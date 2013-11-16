@@ -1,0 +1,6 @@
+[submodule "modules/cgmath-rs"]
+	path = modules/cgmath-rs
+	url = https://github.com/csherratt/cgmath-rs
+[submodule "modules/glfw-rs"]
+	path = modules/glfw-rs
+	url = https://github.com/csherratt/glfw-rs
