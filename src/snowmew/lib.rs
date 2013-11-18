@@ -6,8 +6,11 @@
 #[comment = "A game engine in rust"];
 #[crate_type = "lib"];
 
+extern mod std;
 extern mod glfw;
 extern mod gl;
 
 pub mod core;
 pub mod coregl;
+pub mod geometry;
+pub mod shader;

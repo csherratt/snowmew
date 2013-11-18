@@ -1,7 +1,8 @@
 use gl;
-use glfw;
 
 use core;
+use geometry::Geometry;
+use shader::Shader;
 
 pub struct FrameBuffer {
     id: uint,
@@ -14,8 +15,22 @@ pub struct DrawTarget {
     height: uint
 }
 
-impl core::DrawTarget for DrawTarget {
-    fn draw(&mut self, t: core::DrawType) {}
+
+pub struct Uniforms {
+    id: uint
+}
+
+pub struct Texture {
+    id: uint
+}
+
+
+impl core::DrawTarget for DrawTarget  {
+    fn draw(&mut self, s: &Shader, g: &Geometry, _: &[&Uniforms], _: &[&Texture])
+    {
+        s.bind();
+        g.draw();
+    }
 }
 
 impl core::DrawSize for DrawTarget {
@@ -33,7 +48,9 @@ impl core::DrawSize for FrameBuffer {
 }
 
 impl core::FrameBuffer for FrameBuffer {
-    fn viewport(&mut self, offset: (uint, uint), size: (uint, uint), f: &fn(&mut core::DrawTarget))
+    fn viewport(&mut self,
+                offset: (uint, uint), size: (uint, uint),
+                f: &fn(&mut core::DrawTarget))
     {
         let (w, h) = size;
         let (x, y) = offset;

@@ -1,13 +1,13 @@
-pub enum DrawType {
-    TRIANGLE,
-}
+use geometry::Geometry;
+use shader::Shader;
+use coregl::{Uniforms, Texture};
 
 pub trait DrawSize {
     fn size(&self) -> (uint, uint);
 }
 
 pub trait DrawTarget: DrawSize {
-    fn draw(&mut self /* shader, */ , DrawType /* uniform<s>, geometry<s>, texture<s> */);
+    fn draw(&mut self, &Shader, &Geometry, &[&Uniforms], &[&Texture]);
 }
 
 pub trait FrameBuffer: DrawSize {
@@ -20,15 +20,15 @@ pub struct FrameInfo {
     frame_delta: f64,   /* time from last frame */
 }
 
-pub trait Object {
+pub trait Object  {
     fn setup(&mut self, frame: &FrameInfo);
 
     fn draw(&mut self, frame: &FrameInfo, target: &mut DrawTarget);
 }
 
-pub struct Render {
+pub struct Render  {
     fb: ~FrameBuffer,
-    root: ~Object
+    root: ~Object 
 }
 
 impl Render {
