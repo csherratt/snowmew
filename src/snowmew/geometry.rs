@@ -99,7 +99,7 @@ impl Geometry {
             println(format!("error {:x}", error));
         }
         unsafe {
-            gl::DrawElements(self.draw_op, 6, self.index_type, ptr::null());
+            gl::DrawElements(self.draw_op, self.len, self.index_type, ptr::null());
             //gl::DrawArrays(self.draw_op, 0, 3);
         }
         let error = gl::GetError();

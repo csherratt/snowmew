@@ -6,9 +6,13 @@
 #[comment = "A game engine in rust"];
 #[crate_type = "lib"];
 
+#[feature(macro_rules)];
+#[feature(globs)];
+
 extern mod std;
 extern mod glfw;
 extern mod gl;
+extern mod cgmath;
 
 pub mod core;
 pub mod coregl;

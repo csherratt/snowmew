@@ -7,7 +7,7 @@ pub trait DrawSize {
 }
 
 pub trait DrawTarget: DrawSize {
-    fn draw(&mut self, &Shader, &Geometry, &[&Uniforms], &[&Texture]);
+    fn draw(&mut self, &Shader, &Geometry, &[(&str, &Uniforms)], &[&Texture]);
 }
 
 pub trait FrameBuffer: DrawSize {

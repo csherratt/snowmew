@@ -60,6 +60,15 @@ impl Shader {
     {
         gl::UseProgram(self.program);
         let (s, d) = self.blend;
-        //gl::BlendFunc(s, d);
+        gl::BlendFunc(s, d);
+    }
+
+    pub fn uniform(&self, s: &str) -> i32
+    {
+        unsafe {
+            do s.with_c_str |c_str| {
+                gl::GetUniformLocation(self.program, c_str)
+            }
+        }
     }
 }

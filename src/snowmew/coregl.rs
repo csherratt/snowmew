@@ -4,6 +4,9 @@ use core;
 use geometry::Geometry;
 use shader::Shader;
 
+use cgmath;
+use cgmath::ptr::*;
+
 pub struct FrameBuffer {
     id: uint,
     width: uint,
@@ -16,8 +19,16 @@ pub struct DrawTarget {
 }
 
 
-pub struct Uniforms {
-    id: uint
+pub trait Uniforms {
+    fn bind(&self, idx: i32);
+}
+
+impl Uniforms for cgmath::matrix::Mat4<f32> {
+    fn bind(&self, idx: i32) {
+        unsafe {
+            gl::UniformMatrix4fv(idx, 1, gl::FALSE, self.ptr());
+        }
+    }
 }
 
 pub struct Texture {
@@ -26,8 +37,12 @@ pub struct Texture {
 
 
 impl core::DrawTarget for DrawTarget  {
-    fn draw(&mut self, s: &Shader, g: &Geometry, _: &[&Uniforms], _: &[&Texture])
+    fn draw(&mut self, s: &Shader, g: &Geometry, uni: &[(&str, &Uniforms)], _: &[&Texture])
     {
+        for uni in uni.iter() {
+            let (name, u) = *uni;
+            u.bind(s.uniform(name));
+        }
         s.bind();
         g.draw();
     }
@@ -73,10 +88,19 @@ impl core::FrameBuffer for FrameBuffer {
 
         /* set new values */
         gl::Viewport(x, y, w, h);
-        
+        gl::Scissor(x, y, w, h);
+      
+        let temp = &mut [0i32, 0i32, 0i32, 0i32];
+        unsafe {
+            do temp.as_mut_buf |ptr, _| {
+                gl::GetIntegerv(gl::VIEWPORT, ptr);
+            }
+        }
+
         f(&mut draw_target as &mut core::DrawTarget);
 
         /* restore */
         gl::Viewport(old[0], old[1], old[2], old[3]);
+        gl::Scissor(old[0], old[1], old[2], old[3]);
     }
 }
