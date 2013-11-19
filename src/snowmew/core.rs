@@ -7,7 +7,7 @@ pub trait DrawSize {
 }
 
 pub trait DrawTarget: DrawSize {
-    fn draw(&mut self, &Shader, &Geometry, &[(&str, &Uniforms)], &[&Texture]);
+    fn draw(&mut self, &Shader, &Geometry, &[(i32, &Uniforms)], &[&Texture]);
 }
 
 pub trait FrameBuffer: DrawSize {
@@ -15,9 +15,9 @@ pub trait FrameBuffer: DrawSize {
 }
 
 pub struct FrameInfo {
-    frame_count: uint,  /* unique frame identifier */
-    frame_time: f64,    /* current time in seconds */
-    frame_delta: f64,   /* time from last frame */
+    count: uint,  /* unique frame identifier */
+    time: f64,    /* current time in seconds */
+    delta: f64,   /* time from last frame */
 }
 
 pub trait Object  {

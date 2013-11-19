@@ -35,15 +35,14 @@ pub struct Texture {
     id: uint
 }
 
-
 impl core::DrawTarget for DrawTarget  {
-    fn draw(&mut self, s: &Shader, g: &Geometry, uni: &[(&str, &Uniforms)], _: &[&Texture])
+    fn draw(&mut self, s: &Shader, g: &Geometry, uni: &[(i32, &Uniforms)], _: &[&Texture])
     {
+        s.bind();
         for uni in uni.iter() {
             let (name, u) = *uni;
-            u.bind(s.uniform(name));
+            u.bind(name);
         }
-        s.bind();
         g.draw();
     }
 }
