@@ -131,11 +131,21 @@ fn main() {
 
     do glfw::start {
         let screen = glfw::Monitor::get_primary().unwrap();
+        let modes = screen.get_video_modes();
+        let mut mode = &modes[0];
+        for m in modes.iter() {
+            if m.width == m.width {
+                mode = m;
+            }
+        }
+        let width = mode.width as uint;
+        let height = mode.height as uint;
+        println(format!("{} {}", width, height));
         glfw::window_hint::context_version(4, 0);
         glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
         glfw::window_hint::opengl_forward_compat(true);
 
-        let window = glfw::Window::create(2560, 1440, "OpenGL", glfw::FullScreen(screen)).unwrap();
+        let window = glfw::Window::create(width, height, "OpenGL", glfw::Windowed).unwrap();
         window.make_context_current();
         glfw::set_swap_interval(0);
 
@@ -145,8 +155,8 @@ fn main() {
         
         let mut fb = snowmew::coregl::FrameBuffer {
             id: 0,
-            width: 1024,
-            height: 1024
+            width: width,
+            height: height
         };
 
         let mat: Mat4<f32> = cgmath::matrix::Mat4::identity();
@@ -180,18 +190,18 @@ fn main() {
                 delta: time - time_last
             };
 
-            
-            do fb.viewport((0, 0), (2560, 1440)) |dt| {
-                for i in range(0, 100) {
-                    cube.setup(&fi);
-                    cube.draw(&fi, dt);
+            for x in range(0u, 1u) {
+                for y in range(0u, 2u) {
+                    do fb.viewport((0, 0), (width, height)) |dt| {
+                            cube.setup(&fi);
+                            cube.draw(&fi, dt);
+                    }
                 }
             }
 
             print(format!("{}          \r", 1./(time - time_last)));
             window.swap_buffers();
             time_last = time;
-
         }
     }
 
