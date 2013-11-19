@@ -4,3 +4,6 @@
 [submodule "modules/glfw-rs"]
 	path = modules/glfw-rs
 	url = https://github.com/csherratt/glfw-rs
+[submodule "modules/gl-rs"]
+	path = modules/gl-rs
+	url = https://github.com/bjz/gl-rs.git
