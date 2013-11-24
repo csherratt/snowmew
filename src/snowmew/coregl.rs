@@ -3,6 +3,7 @@ use gl;
 use core;
 use geometry::Geometry;
 use shader::Shader;
+use render::Context;
 
 use cgmath;
 use cgmath::ptr::*;
@@ -36,14 +37,14 @@ pub struct Texture {
 }
 
 impl core::DrawTarget for DrawTarget  {
-    fn draw(&mut self, s: &Shader, g: &Geometry, uni: &[(i32, &Uniforms)], _: &[&Texture])
+    fn draw(&mut self, ctx: &mut Context, s: &Shader, g: &Geometry, uni: &[(i32, &Uniforms)], _: &[&Texture])
     {
-        s.bind();
+        ctx.shader(s);
         for uni in uni.iter() {
             let (name, u) = *uni;
             u.bind(name);
         }
-        g.draw();
+        g.draw(ctx);
     }
 }
 
@@ -63,8 +64,9 @@ impl core::DrawSize for FrameBuffer {
 
 impl core::FrameBuffer for FrameBuffer {
     fn viewport(&mut self,
+                ctx: &mut Context,
                 offset: (uint, uint), size: (uint, uint),
-                f: &fn(&mut core::DrawTarget))
+                f: &fn(&mut core::DrawTarget, ctx: &mut Context))
     {
         let (w, h) = size;
         let (x, y) = offset;
@@ -78,28 +80,13 @@ impl core::FrameBuffer for FrameBuffer {
         let x = x as i32;
         let y = y as i32;
 
-        let old = &mut [0i32, 0i32, 0i32, 0i32];
-        unsafe {
-            do old.as_mut_buf |ptr, _| {
-                gl::GetIntegerv(gl::VIEWPORT, ptr);
-            }
-        }
-
         /* set new values */
-        gl::Viewport(x, y, w, h);
-        gl::Scissor(x, y, w, h);
-      
-        let temp = &mut [0i32, 0i32, 0i32, 0i32];
-        unsafe {
-            do temp.as_mut_buf |ptr, _| {
-                gl::GetIntegerv(gl::VIEWPORT, ptr);
-            }
-        }
+        let (old_offset, old_size) = ctx.get_viewport();
+        ctx.viewport((x, y), (w, h));
 
-        f(&mut draw_target as &mut core::DrawTarget);
+        f(&mut draw_target as &mut core::DrawTarget, ctx);
 
         /* restore */
-        gl::Viewport(old[0], old[1], old[2], old[3]);
-        gl::Scissor(old[0], old[1], old[2], old[3]);
+        ctx.viewport(old_offset, old_size);
     }
 }

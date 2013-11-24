@@ -20,12 +20,13 @@ fn compile_shader(src: &str, ty: gl::types::GLenum) -> gl::types::GLuint {
         if status != (gl::TRUE as gl::types::GLint) {
             let mut len = 0;
             gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-            let mut buf = vec::from_elem(len as uint - 1, 0u8);     // subtract 1 to skip the trailing null character
+            let mut buf = vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
+            println(format!("size {}", len));
             gl::GetShaderInfoLog(shader,
                                  len,
                                  ptr::mut_null(),
                                  vec::raw::to_mut_ptr(buf) as *mut gl::types::GLchar);
-            fail!(format!("glsl error: {:s}", str::raw::from_utf8(buf)));
+            fail!(format!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf)));
         }
     }
 
@@ -36,6 +37,7 @@ pub struct Shader {
     program: gl::types::GLuint,
     fs: gl::types::GLuint,
     vs: gl::types::GLuint,
+    gs: gl::types::GLuint,
     blend: (gl::types::GLenum, gl::types::GLenum)
 }
 
@@ -52,15 +54,28 @@ impl Shader {
             program: program,
             fs: frag,
             vs: vert,
+            gs: 0,
             blend: blend
         }
     }
 
-    pub fn bind(&self)
+    pub fn new_geo(vert: &str, frag: &str, geo: &str, blend: (gl::types::GLenum, gl::types::GLenum)) -> Shader
     {
-        gl::UseProgram(self.program);
-        let (s, d) = self.blend;
-        gl::BlendFunc(s, d);
+        let program = gl::CreateProgram();
+        let vert = compile_shader(vert, gl::VERTEX_SHADER);
+        let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
+        let geo = compile_shader(geo, gl::GEOMETRY_SHADER);
+        gl::AttachShader(program, vert);
+        gl::AttachShader(program, frag);
+        gl::AttachShader(program, geo);
+        gl::LinkProgram(program);
+        Shader {
+            program: program,
+            fs: frag,
+            vs: vert,
+            gs: geo,
+            blend: blend
+        }
     }
 
     pub fn uniform(&self, s: &str) -> i32
