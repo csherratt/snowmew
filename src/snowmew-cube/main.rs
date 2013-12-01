@@ -28,7 +28,7 @@ static FS_SRC: &'static str =
 out vec4 out_color;
 in vec3 UV;\n \
 void main() {
-    gl_FragColor = vec4(UV.x, UV.y, UV.z, 1);
+    out_color = vec4(UV.x, UV.y, UV.z, 1);
 }";
 
 static LINE_VS_SRC: &'static str =
@@ -49,8 +49,9 @@ static LINE_FS_SRC: &'static str =
 in fData {
     vec3 UV;
 } frag;
+out vec4 out_color;
 void main() {
-    gl_FragColor = vec4(frag.UV.x * 0.65, frag.UV.y * 0.65, frag.UV.z * 0.65, 1);
+    out_color = vec4(frag.UV.x * 0.65, frag.UV.y * 0.65, frag.UV.z * 0.65, 1);
 }";
 
 static LINE_GS_SRC: &'static str =
@@ -263,7 +264,7 @@ fn main() {
 
         let window = glfw::Window::create(width, height, "OpenGL", glfw::Windowed).unwrap();
         window.make_context_current();
-        glfw::set_swap_interval(0);
+        glfw::set_swap_interval(1);
 
         gl::load_with(glfw::get_proc_address);
 
@@ -312,12 +313,12 @@ fn main() {
 
             for x in range(0u, 1u) {
                 for y in range(0u, 1u) {
-                    do fb.viewport(&mut ctx, (0, 0), (width, height)) |dt, ctx| {
+                    fb.viewport(&mut ctx, (0, 0), (width, height), |dt, ctx| {
                         for _ in range(0, 200) {
                         cube.setup(ctx, &fi, dt);
                         cube.draw(ctx, &fi, dt);
                         }
-                    }
+                    });
                 }
             }
 

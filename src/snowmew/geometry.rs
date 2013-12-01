@@ -20,7 +20,7 @@ pub struct Geometry {
     index_type: gl::types::GLenum,
 }
 
-trait GlType {
+pub trait GlType {
     fn gl_type(&self) -> gl::types::GLenum;
 }
 
@@ -73,7 +73,7 @@ fn find_trig<IDX: GlType+Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) 
 
 pub fn to_triangles_adjacency<IDX: GlType+Eq+Clone>(index: &[IDX]) -> ~[IDX]
 {
-    do vec::build(Some(index.len() * 2)) |emit| {
+    vec::build(Some(index.len() * 2), |emit| {
         for i in range(0, index.len()/3) {
             let a = &index[i*3];
             let b = &index[i*3+1];
@@ -86,7 +86,7 @@ pub fn to_triangles_adjacency<IDX: GlType+Eq+Clone>(index: &[IDX]) -> ~[IDX]
             emit(c.clone());
             emit(find_trig(index, i, c.clone(), a.clone()).clone());
         }
-    }
+    })
 }
 
 impl Geometry {
@@ -98,9 +98,9 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
-            do vbo.as_mut_buf |ptr, _| { 
+            vbo.as_mut_buf(|ptr, _| { 
                 gl::GenBuffers(2, ptr);
-            }
+            });
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,
@@ -150,9 +150,9 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
-            do vbo.as_mut_buf |ptr, _| { 
+            vbo.as_mut_buf(|ptr, _| { 
                 gl::GenBuffers(2, ptr);
-            }
+            });
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,
@@ -203,9 +203,9 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
-            do vbo.as_mut_buf |ptr, _| { 
+            vbo.as_mut_buf(|ptr, _| { 
                 gl::GenBuffers(2, ptr);
-            }
+            });
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,

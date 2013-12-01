@@ -66,7 +66,7 @@ impl core::FrameBuffer for FrameBuffer {
     fn viewport(&mut self,
                 ctx: &mut Context,
                 offset: (uint, uint), size: (uint, uint),
-                f: &fn(&mut core::DrawTarget, ctx: &mut Context))
+                f: |&mut core::DrawTarget, ctx: &mut Context|)
     {
         let (w, h) = size;
         let (x, y) = offset;

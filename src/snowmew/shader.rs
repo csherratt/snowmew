@@ -7,9 +7,9 @@ use std::str;
 fn compile_shader(src: &str, ty: gl::types::GLenum) -> gl::types::GLuint {
     let shader = gl::CreateShader(ty);
     unsafe {
-        do src.with_c_str |ptr| {
+        src.with_c_str(|ptr| {
             gl::ShaderSource(shader, 1, &ptr, ptr::null());
-        }
+        });
 
         gl::CompileShader(shader);
 
@@ -81,9 +81,9 @@ impl Shader {
     pub fn uniform(&self, s: &str) -> i32
     {
         unsafe {
-            do s.with_c_str |c_str| {
+            s.with_c_str(|c_str| {
                 gl::GetUniformLocation(self.program, c_str)
-            }
+            })
         }
     }
 }

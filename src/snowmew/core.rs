@@ -12,7 +12,7 @@ pub trait DrawTarget: DrawSize {
 }
 
 pub trait FrameBuffer: DrawSize {
-    fn viewport(&mut self, ctx: &mut Context, offset :(uint, uint), size :(uint, uint), f: &fn(&mut DrawTarget, ctx: &mut Context));
+    fn viewport(&mut self, ctx: &mut Context, offset :(uint, uint), size :(uint, uint), f: |&mut DrawTarget, ctx: &mut Context|);
 }
 
 pub struct FrameInfo {
@@ -36,9 +36,9 @@ pub struct Render  {
 impl Render {
     fn draw(&mut self, fi: &FrameInfo) {
         let (w, h) = self.fb.size();
-        do self.fb.viewport(&mut self.ctx, (0, 0), (w, h)) |viewport, ctx| {
+        self.fb.viewport(&mut self.ctx, (0, 0), (w, h), |viewport, ctx| {
             self.root.setup(ctx, fi, viewport);
             self.root.draw(ctx, fi, viewport);
-        }
+        });
     }
 }
