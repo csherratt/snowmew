@@ -273,7 +273,6 @@ impl Drop for Geometry
             gl::DeleteVertexArrays(1, &self.vertex_array);
             gl::DeleteBuffers(1, &self.vertex_buffer);
             gl::DeleteBuffers(1, &self.index_buffer);
-
         }
     }
 }

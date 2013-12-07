@@ -19,3 +19,4 @@ pub mod coregl;
 pub mod geometry;
 pub mod shader;
 pub mod render;
+pub mod db;

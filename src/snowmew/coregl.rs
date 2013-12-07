@@ -3,7 +3,7 @@ use gl;
 use core;
 use geometry::Geometry;
 use shader::Shader;
-use render::Context;
+use render::{Context};
 
 use cgmath;
 use cgmath::ptr::*;
@@ -37,7 +37,7 @@ pub struct Texture {
 }
 
 impl core::DrawTarget for DrawTarget  {
-    fn draw(&mut self, ctx: &mut Context, s: &Shader, g: &Geometry, uni: &[(i32, &Uniforms)], _: &[&Texture])
+    fn draw(&self, ctx: &mut Context, s: &Shader, g: &Geometry, uni: &[(i32, &Uniforms)], _: &[&Texture])
     {
         ctx.shader(s);
         for uni in uni.iter() {
@@ -63,7 +63,7 @@ impl core::DrawSize for FrameBuffer {
 }
 
 impl core::FrameBuffer for FrameBuffer {
-    fn viewport(&mut self,
+    fn viewport(&self,
                 ctx: &mut Context,
                 offset: (uint, uint), size: (uint, uint),
                 f: |&mut core::DrawTarget, ctx: &mut Context|)
