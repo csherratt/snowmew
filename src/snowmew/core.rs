@@ -1,9 +1,8 @@
 use geometry::Geometry;
 use shader::Shader;
 use coregl::{Uniforms, Texture};
-use coregl;
-use db;
 use render::Context;
+use cow::btree::BTree;
 
 use cgmath::vector::*;
 
@@ -25,86 +24,155 @@ pub struct FrameInfo {
     delta: f64,   /* time from last frame */
 }
 
-pub trait Object  {
-    fn draw(&self, ren: &Database, ctx: &mut Context, frame: &FrameInfo, target: &mut DrawTarget);
+#[deriving(Clone, Default)]
+pub struct Location
+{
+    position: Vec3<f32>,
+    rotation: Vec3<f32>,
+    scale: f32,
 }
 
+#[deriving(Clone, Default)]
+pub struct Object
+{
+    parent: object_key,
+    name: ~str,
+}
+
+#[deriving(Clone, Default)]
+pub struct Drawable
+{
+    shader: shader_key,
+    geometry: geometry_key,
+    textures: ~[texture_key],
+}
+
+pub type object_key = i32;
+pub type shader_key = i32;
+pub type geometry_key = i32;
+pub type texture_key = i32;
+
 pub struct Database {
-    priv objects: ~[~Object],
-    priv geometry: ~[Geometry],
-    priv shaders: ~[Shader]   
+    priv last_key: i32,
+
+    // raw data
+    priv objects: BTree<object_key, Object>,
+    priv location: BTree<object_key, Location>,
+    priv draw: BTree<object_key, Drawable>,
+    
+    priv geometry: BTree<geometry_key, Geometry>,
+    priv shaders: BTree<shader_key, Shader>,
+
+    // --- indexes ---
+    // map all children to a parent
+    priv index_parent_child: BTree<i32, BTree<i32, ()>>,
 }
 
 impl Database {
     pub fn new() -> Database
     {
         Database {
-            objects: ~[],
-            geometry: ~[],
-            shaders: ~[]
+            last_key: 1,
+            objects: BTree::new(),
+            location:  BTree::new(),
+            draw: BTree::new(),
+            
+            geometry:  BTree::new(),
+            shaders: BTree::new(),
+
+            // --- indexes ---
+            // map all children to a parent
+            index_parent_child: BTree::new(),
         }
     }
 
-
-    fn object_mut<'a>(&'a mut self, id: uint) -> &'a mut ~Object
+    fn new_key(&mut self) -> object_key
     {
-        &mut self.objects[id]
+        let new_key = self.last_key;
+        self.last_key += 1;
+        new_key        
     }
 
-    fn shader_mut<'a>(&'a mut self, id: uint) -> &'a mut Shader
+    fn update_parent_child(&mut self, parent: object_key, child: object_key)
     {
-        &mut self.shaders[id]
-    }
+        let new = match self.index_parent_child.find_mut(&parent) {
+            Some(child_list) => {
+                child_list.insert(child, ());
+                None
+            },
+            None => {
+                let mut child_list = BTree::new();
+                child_list.insert(child, ());
+                Some(child_list)
+            }
+        };
 
-    fn geometry_mut<'a>(&'a mut self, id: uint) -> &'a mut Geometry
-    {
-        &mut self.geometry[id]
-    }
-
-    fn object<'a>(&'a self, id: uint) -> &'a ~Object
-    {
-        &self.objects[id]
-    }
-
-    fn shader<'a>(&'a self, id: uint) -> &'a Shader
-    {
-        &self.shaders[id]
-    }
-
-    fn geometry<'a>(&'a self, id: uint) -> &'a Geometry
-    {
-        &self.geometry[id]
-    }
-}
-
-pub struct Render  {
-    priv fb: ~FrameBuffer,
-    priv root: uint,
-    priv ctx: Context,
-    priv db: Database
-}
-
-impl Render {
-    pub fn new() -> Render
-    {
-        Render {
-            fb: ~coregl::FrameBuffer {
-                width: 800,
-                height: 600,
-                id: 0
-            } as ~FrameBuffer,
-            root: 0,
-            ctx: Context::new(),
-            db: Database::new()
+        match new {
+            Some(child_list) => {self.index_parent_child.insert(parent, child_list);},
+            None => (),
         }
     }
 
-    pub fn draw(&mut self, fi: &FrameInfo) {
-        let (w, h) = self.fb.size();
-        self.fb.viewport(&mut self.ctx, (0, 0), (w, h), |viewport, ctx| {
-            let root = self.db.object(self.root);
-            root.draw(&self.db, ctx, fi, viewport);  
-        });
+    pub fn new_object(&mut self, parent: Option<object_key>, name: ~str) -> object_key
+    {
+        let new_key = self.new_key();
+        let parent = match parent {
+            Some(key) => key,
+            None => 0
+        };
+
+        let object = Object {
+            name: name,
+            parent: parent
+        };
+
+        self.objects.insert(new_key, object);
+        self.update_parent_child(parent, new_key);
+
+        new_key
     }
 
+    pub fn update_location(&mut self, key: object_key, location: Location)
+    {
+        self.location.insert(key, location);
+    }
+
+    fn ifind(&self, node: Option<object_key>, str_key: &str) -> Option<object_key>
+    {
+        let node = match node {
+            Some(key) => key,
+            None => 0
+        };
+
+        let children = match self.index_parent_child.find(&node) {
+            Some(children) => children,
+            None => return None,
+        };
+
+        for (key, _) in children.iter() {
+            match self.objects.find(key) {
+                Some(obj) => {
+                    if obj.name.as_slice() == str_key {
+                        return Some(*key);
+                    }
+                },
+                _ => ()
+            }
+        }
+
+        None
+    }
+
+    pub fn find(&self, str_key: &str) -> Option<object_key>
+    {
+        let mut node = None;
+        for s in str_key.split('/') {
+            let next = self.ifind(node, s);
+            if next == None {
+                return None
+            }
+            node = next;
+        }
+        node
+    }
 }

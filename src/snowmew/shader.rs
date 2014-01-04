@@ -33,6 +33,7 @@ fn compile_shader(src: &str, ty: gl::types::GLenum) -> gl::types::GLuint {
     shader
 }
 
+#[deriving(Clone, Default)]
 pub struct Shader {
     program: gl::types::GLuint,
     fs: gl::types::GLuint,

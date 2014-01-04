@@ -276,9 +276,6 @@ fn main() {
 
         let mut ctx = snowmew::render::Context::new();
 
-        let mut render = snowmew::core::Render::new();
-        //let mut scene = ~snowmew::core::Scene::new();
-
         let mut db = snowmew::core::Database::new();
 
         while !window.should_close() {

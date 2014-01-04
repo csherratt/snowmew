@@ -5,11 +5,9 @@ use std::cast;
 use std::ptr;
 use std::vec;
 
-use cgmath::matrix::*;
-use cgmath::vector::*;
-
 use render::Context;
 
+#[deriving(Clone, Default)]
 pub struct Geometry {
     vertex_array: gl::types::GLuint,
     vertex_buffer: gl::types::GLuint,
