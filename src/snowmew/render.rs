@@ -17,9 +17,7 @@ impl Context
     {
         let viewport = &mut [0i32, 0i32, 0i32, 0i32];
         unsafe {
-            viewport.as_mut_buf(|ptr, _| {
-                gl::GetIntegerv(gl::VIEWPORT, ptr);
-            });
+            gl::GetIntegerv(gl::VIEWPORT, viewport.unsafe_mut_ref(0));
         }
 
         Context {

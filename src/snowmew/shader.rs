@@ -25,7 +25,7 @@ fn compile_shader(src: &str, ty: gl::types::GLenum) -> gl::types::GLuint {
             gl::GetShaderInfoLog(shader,
                                  len,
                                  ptr::mut_null(),
-                                 vec::raw::to_mut_ptr(buf) as *mut gl::types::GLchar);
+                                 buf.unsafe_mut_ref(0) as *mut gl::types::GLchar);
             fail!(format!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf)));
         }
     }

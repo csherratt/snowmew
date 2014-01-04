@@ -5,13 +5,14 @@ extern mod glfw;
 extern mod gl;
 extern mod snowmew;
 extern mod cgmath;
+extern mod native;
 
-use snowmew::core::{FrameBuffer, Object, FrameInfo, DrawTarget};
+
+use snowmew::core::{FrameBuffer, Object, FrameInfo, DrawTarget, Database};
 use snowmew::shader::Shader;
 use snowmew::geometry::Geometry;
 use snowmew::render::Context;
 use cgmath::matrix::*;
-use cgmath::vector::*;
 
 static VS_SRC: &'static str =
 "#version 400
@@ -25,10 +26,10 @@ void main() {
 
 static FS_SRC: &'static str =
 "#version 400
-out vec4 out_color;
+out vec4 colour;
 in vec3 UV;\n \
 void main() {
-    out_color = vec4(UV.x, UV.y, UV.z, 1);
+    colour = vec4(UV.x, UV.y, UV.z, 1);
 }";
 
 static LINE_VS_SRC: &'static str =
@@ -49,9 +50,9 @@ static LINE_FS_SRC: &'static str =
 in fData {
     vec3 UV;
 } frag;
-out vec4 out_color;
+out vec4 colour;
 void main() {
-    out_color = vec4(frag.UV.x * 0.65, frag.UV.y * 0.65, frag.UV.z * 0.65, 1);
+    colour = vec4(frag.UV.x * 0.65, frag.UV.y * 0.65, frag.UV.z * 0.65, 1);
 }";
 
 static LINE_GS_SRC: &'static str =
@@ -173,7 +174,7 @@ static INDEX_DATA: [u16, ..36] = [
 
 #[start]
 fn start(argc: int, argv: **u8) -> int {
-    std::rt::start_on_main_thread(argc, argv, main)
+    native::start(argc, argv, main)
 }
 
 struct Cube
@@ -205,12 +206,7 @@ impl Cube
 
 impl Object for Cube
 {
-    fn setup(&mut self, ctx: &mut Context, frame: &FrameInfo, target: &DrawTarget)
-    {
-
-    }
-
-    fn draw(&mut self, ctx: &mut Context, frame: &FrameInfo, target: &mut DrawTarget)
+    fn draw(&self, ren: &Database, ctx: &mut Context, frame: &FrameInfo, target: &mut DrawTarget)
     {
         let projection = cgmath::projection::perspective(
             cgmath::angle::deg(60f32), 16f32/9f32, 0.01f32, 25f32
@@ -242,29 +238,17 @@ impl Object for Cube
 }
 
 fn main() {
-    //do glfw::set_error_callback |_, description| {
-        //print(format!("GLFW Error: {}", description));
-    //}
-
     do glfw::start {
-        let screen = glfw::Monitor::get_primary().unwrap();
-        let modes = screen.get_video_modes();
-        let mut mode = &modes[0];
-        for m in modes.iter() {
-            if m.width == m.width {
-                mode = m;
-            }
-        }
-        let width = 1440 as uint;
-        let height = 900 as uint;
+        let width = 2560 as uint;
+        let height = 1440 as uint;
         println(format!("{} {}", width, height));
         glfw::window_hint::context_version(4, 0);
         glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
         glfw::window_hint::opengl_forward_compat(true);
 
-        let window = glfw::Window::create(width, height, "OpenGL", glfw::Windowed).unwrap();
+        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
         window.make_context_current();
-        glfw::set_swap_interval(1);
+        glfw::set_swap_interval(0);
 
         gl::load_with(glfw::get_proc_address);
 
@@ -276,12 +260,6 @@ fn main() {
             height: height
         };
 
-        let mat: Mat4<f32> = cgmath::matrix::Mat4::identity();
-
-        let projection = cgmath::projection::perspective(
-            cgmath::angle::deg(90f32), 1f32, 0.01f32, 10f32
-        );
-
         gl::Enable(gl::SCISSOR_TEST);
         gl::Enable(gl::DEPTH_TEST);
         gl::Enable(gl::CULL_FACE);
@@ -289,7 +267,6 @@ fn main() {
         gl::Enable(gl::BLEND);
         gl::CullFace(gl::BACK);
 
-        let mut rot = 0f32;
 
         gl::ClearColor(0.05, 0.05, 0.05, 1.);
 
@@ -298,6 +275,11 @@ fn main() {
         let mut time_last = time;
 
         let mut ctx = snowmew::render::Context::new();
+
+        let mut render = snowmew::core::Render::new();
+        //let mut scene = ~snowmew::core::Scene::new();
+
+        let mut db = snowmew::core::Database::new();
 
         while !window.should_close() {
             glfw::poll_events();
@@ -311,16 +293,10 @@ fn main() {
                 delta: time - time_last
             };
 
-            for x in range(0u, 1u) {
-                for y in range(0u, 1u) {
-                    fb.viewport(&mut ctx, (0, 0), (width, height), |dt, ctx| {
-                        for _ in range(0, 200) {
-                        cube.setup(ctx, &fi, dt);
-                        cube.draw(ctx, &fi, dt);
-                        }
-                    });
-                }
-            }
+            //render.add
+            fb.viewport(&mut ctx, (0, 0), (width, height), |dt, ctx| {
+                cube.draw(&mut db, ctx, &fi, dt);
+            });
 
             gl::Finish();
             let end_time = glfw::get_time();
@@ -328,6 +304,7 @@ fn main() {
             print(format!("Frame Budget %{:f}          \r", 100. * (end_time - time) / (1./120.)));
             window.swap_buffers();
             time_last = time;
+            count += 1;
         }
     }
 

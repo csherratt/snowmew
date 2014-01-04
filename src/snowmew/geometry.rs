@@ -98,9 +98,7 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
-            vbo.as_mut_buf(|ptr, _| { 
-                gl::GenBuffers(2, ptr);
-            });
+            gl::GenBuffers(2, vbo.unsafe_mut_ref(0));
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,
@@ -150,9 +148,7 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
-            vbo.as_mut_buf(|ptr, _| { 
-                gl::GenBuffers(2, ptr);
-            });
+            gl::GenBuffers(2, vbo.unsafe_mut_ref(0));
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,
@@ -203,9 +199,7 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
-            vbo.as_mut_buf(|ptr, _| { 
-                gl::GenBuffers(2, ptr);
-            });
+            gl::GenBuffers(2, vbo.unsafe_mut_ref(0));
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,

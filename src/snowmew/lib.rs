@@ -1,7 +1,6 @@
-#[link(name = "snowmew",
-       vers = "0.1",
-       author = "Colin Sherratt",
-       url = "https://github.com/csherratt/snowmew")];
+#[crate_id = "github.com/csherratt/snowmews#snowmew:0.1"];
+#[license = "ASL2"];
+#[crate_type = "lib"];
 
 #[comment = "A game engine in rust"];
 #[crate_type = "lib"];

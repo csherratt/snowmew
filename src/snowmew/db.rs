@@ -35,6 +35,7 @@ pub struct Physics
     mass: f32
 }
 
+#[deriving(Clone)]
 pub struct Database
 {
     objects: ~[Object],
@@ -102,7 +103,7 @@ impl Database
 
     pub fn get_position(&self, key: key) -> Option<Position>
     {
-        if self.objects.len() >= key as uint {
+        if self.objects.len() <= key as uint {
             None
         } else {
             let pos = &self.objects[key];
@@ -112,6 +113,18 @@ impl Database
                 Some(self.positions[pos.position.unwrap()].clone())
             }
         }
+    }
+
+    pub fn set_position(&mut self, key: key, pos: Position)
+    {
+        if self.objects[key].position.is_none() {
+            let pos_idx = self.add_position(pos.position, pos.rotation, pos.scale);
+            self.objects[key].position = Some(pos_idx);
+        } else {
+            self.positions[self.objects[key].position.unwrap()] = pos;
+        }
+
+
     }
 
     fn ifind(&self, node: Option<key>, str_key: &str) -> Option<key>

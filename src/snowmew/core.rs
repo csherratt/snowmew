@@ -36,7 +36,7 @@ pub struct Database {
 }
 
 impl Database {
-    fn new() -> Database
+    pub fn new() -> Database
     {
         Database {
             objects: ~[],
@@ -75,13 +75,6 @@ impl Database {
     {
         &self.geometry[id]
     }
-}
-
-pub struct Position {
-    position: Vec3<f32>,
-    rotation: Vec3<f32>,
-    scale:    f32,
-    parent:   i32
 }
 
 pub struct Render  {
