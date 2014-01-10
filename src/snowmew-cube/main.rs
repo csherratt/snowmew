@@ -3,16 +3,20 @@
 
 extern mod glfw;
 extern mod gl;
-extern mod snowmew;
+extern mod snowmew = "snowmew";
 extern mod cgmath;
 extern mod native;
 
-
-use snowmew::core::{FrameBuffer, Object, FrameInfo, DrawTarget, Database};
+use snowmew::core::{Object, Database};
 use snowmew::shader::Shader;
 use snowmew::geometry::Geometry;
-use snowmew::render::Context;
-use cgmath::matrix::*;
+use cgmath::quaternion::*;
+use cgmath::transform::*;
+use cgmath::vector::*;
+
+
+use std::default;
+
 
 static VS_SRC: &'static str =
 "#version 400
@@ -146,7 +150,7 @@ static VERTEX_DATA: [f32, ..24] = [
      1.,  1., -1.,
 ];
 
-static INDEX_DATA: [u16, ..36] = [
+static INDEX_DATA: [u32, ..36] = [
     // top
     0, 2, 1,
     2, 3, 1,
@@ -177,6 +181,7 @@ fn start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, main)
 }
 
+/*
 struct Cube
 {
     shader: Shader,
@@ -304,5 +309,46 @@ fn main() {
             count += 1;
         }
     }
+}
+*/
 
+fn main() {
+    do glfw::start {
+        let width = 2560 as uint;
+        let height = 1440 as uint;
+        println(format!("{} {}", width, height));
+        glfw::window_hint::context_version(4, 0);
+        glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
+        glfw::window_hint::opengl_forward_compat(true);
+
+        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
+        window.make_context_current();
+        glfw::set_swap_interval(0);
+
+        gl::load_with(glfw::get_proc_address);
+
+        let mut db = Database::new();
+
+        let shader = Shader::new(VS_SRC.into_owned(), FS_SRC.into_owned());
+        let indexs = snowmew::geometry::to_triangles_adjacency(INDEX_DATA);
+        let vbo = snowmew::geometry::VertexBuffer::new(VERTEX_DATA.into_owned(), indexs);
+
+        let shader = db.add_shader(0, ~"shader", shader);
+        let vbo = db.add_vertex_buffer(0, ~"vbo", vbo);
+        let geometry = snowmew::geometry::Geometry::triangles_adjacency(vbo as uint, 0, INDEX_DATA.len() / 3);
+
+        let geometry = db.add_geometry(0, ~"geo", geometry);
+        let cube_id = db.new_object(None, ~"cube");
+        db.update_location(cube_id, Transform3D::new(1f32, Quat::new(0f32, 0f32, 0f32, 0f32), Vec3::new(0f32, 0f32, 0f32)));
+        db.set_draw(cube_id, geometry, shader);
+        // load cube assets
+
+        db.dump();
+
+        while !window.should_close() {
+            glfw::poll_events();
+            window.swap_buffers();
+        }
+
+    }
 }

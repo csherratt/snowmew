@@ -8,13 +8,10 @@
 
 extern mod std;
 extern mod glfw;
-extern mod gl;
 extern mod cgmath;
 extern mod cow;
 
 pub mod core;
-pub mod coregl;
 pub mod geometry;
 pub mod shader;
-pub mod render;
 pub mod db;

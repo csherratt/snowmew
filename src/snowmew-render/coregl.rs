@@ -36,17 +36,17 @@ pub struct Texture {
     id: uint
 }
 
-impl core::DrawTarget for DrawTarget  {
-    fn draw(&self, ctx: &mut Context, s: &Shader, g: &Geometry, uni: &[(i32, &Uniforms)], _: &[&Texture])
-    {
-        ctx.shader(s);
-        for uni in uni.iter() {
-            let (name, u) = *uni;
-            u.bind(name);
-        }
-        g.draw(ctx);
-    }
-}
+//impl core::DrawTarget for DrawTarget  {
+//    fn draw(&self, ctx: &mut Context, s: &Shader, g: &Geometry, uni: &[(i32, &Uniforms)], _: &[&Texture])
+//    {
+//        ctx.shader(s);
+//        for uni in uni.iter() {
+//            let (name, u) = *uni;
+//            u.bind(name);
+//        }
+//        g.draw(ctx);
+//    }
+//}
 
 impl core::DrawSize for DrawTarget {
     fn size(&self) -> (uint, uint)
@@ -84,7 +84,7 @@ impl core::FrameBuffer for FrameBuffer {
         let (old_offset, old_size) = ctx.get_viewport();
         ctx.viewport((x, y), (w, h));
 
-        f(&mut draw_target as &mut core::DrawTarget, ctx);
+//        f(&mut draw_target as &mut core::DrawTarget, ctx);
 
         /* restore */
         ctx.viewport(old_offset, old_size);
