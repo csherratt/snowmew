@@ -1,0 +1,76 @@
+#!/usr/bin/python
+#
+# Copyright Colin Sherratt 2014
+
+import subprocess
+
+class Module:
+    def get_dep(self):
+        args = ["rustc", "src/%s/%s" % (self.name, self.ext),
+                "--dep-info", ".tmp.txt", "--no-analysis", "--no-trans", "--out-dir=%s" % self.dir]
+        subprocess.call(args)
+        with open(".tmp.txt", "r") as f:
+            return f.read().split("\n")[0]
+
+    def get_name(self):
+        args = ["rustc", "--crate-file-name", "src/%s/%s" % (self.name, self.ext)]
+        with open(".tmp.txt", "w+") as f:
+            subprocess.call(args, stdout=f)
+            f.seek(0)
+            return f.read().split("\n")[0]
+
+    def make_rule(self, mods):
+        dep = self.get_dep() + " "
+        dep +=  " ".join(mods[m].ename for m in self.dep_modules)
+        how = "%s\n\trustc $(RUST_FLAGS) --out-dir=%s %s src/%s/%s\n" % (dep, self.dir, self.flags, self.name, self.ext)
+        return how
+
+class Lib(Module):
+    ext = "lib.rs"
+    dir = "lib"
+    flags = "--lib"
+    def __init__(self, name, dep_modules=None):
+        self.name = name
+        self.ename = "lib/%s" % self.get_name()
+        if dep_modules:
+            self.dep_modules = dep_modules
+        else:
+            self.dep_modules = []
+
+class Bin(Module):
+    ext = "main.rs"
+    dir = "bin"
+    flags = ""
+    def __init__(self, name, dep_modules=None):
+        self.name = name
+        self.ename = "bin/%s" % self.get_name()
+        if dep_modules:
+            self.dep_modules = dep_modules
+        else:
+            self.dep_modules = []
+
+
+modules = [Bin("snowmew-cube", ["snowmew"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw"]),
+           Lib("cgmath"),
+           Lib("cow"),
+           Lib("gl"),
+           Lib("glfw")]
+
+modules = {m.name: m for m in modules}
+
+rules = "\n".join(m.make_rule(modules) for m in modules.values())
+all = " ".join(m.ename for m in modules.values())
+
+with open("Makefile", "w+") as f:
+    f.write("RUST_FLAGS=--opt-level=3 -L lib\n")
+    f.write("\n")
+    f.write("all: lib bin %s\n" % all)
+    f.write("\n")
+    f.write("lib:\n\tmkdir lib\n")
+    f.write("\n")
+    f.write("bin:\n\tmkdir bin\n")
+    f.write("\n")
+    f.write("clean:\n\trm -r lib bin\n")
+    f.write("\n")
+    f.write(rules)
