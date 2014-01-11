@@ -1,3 +1,5 @@
+#[crate_id = "snowmew-cube"];
+
 #[feature(macro_rules)];
 #[feature(globs)];
 
@@ -316,7 +318,7 @@ fn main() {
     do glfw::start {
         let width = 2560 as uint;
         let height = 1440 as uint;
-        println(format!("{} {}", width, height));
+        println!("{} {}", width, height);
         glfw::window_hint::context_version(4, 0);
         glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
         glfw::window_hint::opengl_forward_compat(true);
@@ -333,22 +335,27 @@ fn main() {
         let indexs = snowmew::geometry::to_triangles_adjacency(INDEX_DATA);
         let vbo = snowmew::geometry::VertexBuffer::new(VERTEX_DATA.into_owned(), indexs);
 
-        let shader = db.add_shader(0, ~"shader", shader);
-        let vbo = db.add_vertex_buffer(0, ~"vbo", vbo);
+        let assets = db.new_object(None, ~"asserts");
+        let shader = db.add_shader(assets, ~"shader", shader);
+        let vbo = db.add_vertex_buffer(assets, ~"vbo", vbo);
         let geometry = snowmew::geometry::Geometry::triangles_adjacency(vbo as uint, 0, INDEX_DATA.len() / 3);
 
-        let geometry = db.add_geometry(0, ~"geo", geometry);
-        let cube_id = db.new_object(None, ~"cube");
-        db.update_location(cube_id, Transform3D::new(1f32, Quat::new(0f32, 0f32, 0f32, 0f32), Vec3::new(0f32, 0f32, 0f32)));
-        db.set_draw(cube_id, geometry, shader);
-        // load cube assets
+        let geometry = db.add_geometry(assets, ~"geo", geometry);
+
+        let scene = db.new_object(None, ~"scene");
+        for i in range(0, 10) {
+            let cube_id = db.new_object(Some(scene), format!("cube_{}", i));
+            let i = i as f32;
+            db.update_location(cube_id, Transform3D::new(1f32, Quat::new(0f32, 0f32, 0f32, 0f32), Vec3::new(i, i, i)));
+            db.set_draw(cube_id, geometry, shader);
+        }
 
         db.dump();
 
-        while !window.should_close() {
-            glfw::poll_events();
-            window.swap_buffers();
-        }
+        //while !window.should_close() {
+        //    glfw::poll_events();
+        //    window.swap_buffers();
+        //}
 
     }
 }

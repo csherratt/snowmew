@@ -163,11 +163,11 @@ impl Database
     {
         for (key, o) in self.objects.iter().enumerate() {
             if o.nick.is_some() {
-                print(format!("{} {}", key, self.name(key as key)));
+                println!("{} {}", key, self.name(key as key));
             } else {
-                print(format!("{} <Anonymous>", key));
+                println!("{} <Anonymous>", key);
             }
-            println("");
+            println!("");
         }
     }
 }

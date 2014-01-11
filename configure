@@ -22,16 +22,17 @@ class Module:
     def make_rule(self, mods):
         dep = self.get_dep() + " "
         dep +=  " ".join(mods[m].ename for m in self.dep_modules)
-        how = "%s\n\trustc $(RUST_FLAGS) --out-dir=%s %s src/%s/%s\n" % (dep, self.dir, self.flags, self.name, self.ext)
+        how = "%s\n\trustc $(RUST_FLAGS) --out-dir=%s %s %s src/%s/%s\n" % (dep, self.dir, self.flags, self.other_flags, self.name, self.ext)
         return how
 
 class Lib(Module):
     ext = "lib.rs"
     dir = "lib"
     flags = "--lib"
-    def __init__(self, name, dep_modules=None):
+    def __init__(self, name, dep_modules=None, other_flags=""):
         self.name = name
         self.ename = "lib/%s" % self.get_name()
+        self.other_flags = other_flags
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -41,9 +42,10 @@ class Bin(Module):
     ext = "main.rs"
     dir = "bin"
     flags = ""
-    def __init__(self, name, dep_modules=None):
+    def __init__(self, name, dep_modules=None, other_flags=""):
         self.name = name
         self.ename = "bin/%s" % self.get_name()
+        self.other_flags = other_flags
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -55,7 +57,7 @@ modules = [Bin("snowmew-cube", ["snowmew"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
-           Lib("glfw")]
+           Lib("glfw", other_flags="--link-args=-lglfw")]
 
 modules = {m.name: m for m in modules}
 

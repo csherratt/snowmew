@@ -1,4 +1,4 @@
-use cow::btree::BTree;
+use cow::btree::{BTreeMap, BTreeSet};
 
 use geometry::{Geometry, VertexBuffer};
 use shader::Shader;
@@ -30,22 +30,22 @@ pub struct Drawable
 
 pub type object_key = i32;
 
-#[deriving(Clone)]
+//#[deriving(Clone)]
 pub struct Database {
     priv last_key: i32,
 
     // raw data
-    priv objects: BTree<object_key, Object>,
-    priv location: BTree<object_key, Transform3D<f32>>,
-    priv draw: BTree<object_key, Drawable>,
+    priv objects: BTreeMap<object_key, Object>,
+    priv location: BTreeMap<object_key, Transform3D<f32>>,
+    priv draw: BTreeMap<object_key, Drawable>,
     
-    priv geometry: BTree<object_key, Geometry>,
-    priv vertex: BTree<object_key, VertexBuffer>,
-    priv shader: BTree<object_key, Shader>,
+    priv geometry: BTreeMap<object_key, Geometry>,
+    priv vertex: BTreeMap<object_key, VertexBuffer>,
+    priv shader: BTreeMap<object_key, Shader>,
 
     // --- indexes ---
     // map all children to a parent
-    priv index_parent_child: BTree<i32, BTree<object_key, ()>>,
+    priv index_parent_child: BTreeMap<i32, BTreeSet<object_key>>,
 }
 
 impl Database {
@@ -53,17 +53,17 @@ impl Database {
     {
         Database {
             last_key: 1,
-            objects: BTree::new(),
-            location: BTree::new(),
-            draw: BTree::new(),
+            objects: BTreeMap::new(),
+            location: BTreeMap::new(),
+            draw: BTreeMap::new(),
             
-            geometry: BTree::new(),
-            vertex: BTree::new(),
-            shader: BTree::new(),
+            geometry: BTreeMap::new(),
+            vertex: BTreeMap::new(),
+            shader: BTreeMap::new(),
 
             // --- indexes ---
             // map all children to a parent
-            index_parent_child: BTree::new(),
+            index_parent_child: BTreeMap::new(),
         }
     }
 
@@ -78,12 +78,12 @@ impl Database {
     {
         let new = match self.index_parent_child.find_mut(&parent) {
             Some(child_list) => {
-                child_list.insert(child, ());
+                child_list.insert(child);
                 None
             },
             None => {
-                let mut child_list = BTree::new();
-                child_list.insert(child, ());
+                let mut child_list = BTreeSet::new();
+                child_list.insert(child);
                 Some(child_list)
             }
         };
@@ -135,7 +135,7 @@ impl Database {
             None => return None,
         };
 
-        for (key, _) in child.iter() {
+        for key in child.iter() {
             match self.objects.find(key) {
                 Some(obj) => {
                     if obj.name.as_slice() == str_key {
@@ -180,7 +180,7 @@ impl Database {
         };
 
 
-        for (key, _) in child.iter() {
+        for key in child.iter() {
             println!("{:5}: {:s}", *key, self.name(*key));
             self.idump(depth+1, *key);
         }
@@ -218,5 +218,10 @@ impl Database {
                 textures: ~[]
             }
         );
+    }
+
+    pub fn walk_drawables(&self, oid: object_key, f: ||)
+    {
+
     }
 }
