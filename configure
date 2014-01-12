@@ -88,7 +88,7 @@ with open("Makefile", "w+") as f:
     f.write("test:\n\tmkdir test\n")
     f.write("\n")
     f.write("check: lib test %s\n" % " ".join("test/%s" % m.name for m in modules.values() if m.has_tests()))
-    f.write("\t"+"\n\t".join("./test/%s" % m.name for m in modules.values() if m.has_tests()) + "\n")
+    f.write("\t"+" && ".join("./test/%s" % m.name for m in modules.values() if m.has_tests()) + " && touch check\n")
     f.write("\n")
     f.write("clean:\n\trm -r lib bin test\n")
     f.write("\n")
