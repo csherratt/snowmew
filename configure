@@ -32,7 +32,7 @@ class Module:
     def make_test_rules(self, mods):
         dep = self.get_dep() + " "
         dep +=  " ".join(mods[m].ename for m in self.dep_modules)
-        dep = ": ".join(["test/%s" % self.name, " ".join([self.ename, dep.split(": ", 2)[1]])])
+        dep = ": ".join(["test/%s" % self.name, " ".join([self.ename, "src/%s/test.rs" % self.name, dep.split(": ", 2)[1]])])
         how = "%s\n\trustc $(RUST_FLAGS) --test -o test/%s %s %s src/%s/test.rs\n" % (dep, self.name, self.flags, self.other_flags, self.name)
         return how
 

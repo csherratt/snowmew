@@ -22,7 +22,7 @@ pub struct Object
     name: ~str,
 }
 
-#[deriving(Clone, Default)]
+#[deriving(Clone, Default, Eq)]
 pub struct Drawable
 {
     shader: object_key,
@@ -131,6 +131,16 @@ impl Database {
             Some(loc) => Some(&loc.trans),
             None => None
         }
+    }
+
+    pub fn update_drawable(&mut self, key: object_key, draw: Drawable)
+    {
+        self.draw.insert(key, draw);
+    }
+
+    pub fn drawable<'a>(&'a self, key: object_key) -> Option<&'a Drawable>
+    {
+        self.draw.find(&key)
     }
 
     fn ifind(&self, node: Option<object_key>, str_key: &str) -> Option<object_key>
