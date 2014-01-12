@@ -1,10 +1,12 @@
-use cow::btree::{BTreeMap, BTreeSet};
+use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
+use cow::join::{join_set_to_map, JoinMapSetIterator};
 
 use geometry::{Geometry, VertexBuffer};
 use shader::Shader;
 
 use cgmath::vector::*;
 use cgmath::transform::*;
+use cgmath::matrix::*;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -30,13 +32,18 @@ pub struct Drawable
 
 pub type object_key = i32;
 
+#[deriving(Clone, Default)]
+pub struct Location {
+    priv trans: Transform3D<f32>
+}
+
 //#[deriving(Clone)]
 pub struct Database {
     priv last_key: i32,
 
     // raw data
     priv objects: BTreeMap<object_key, Object>,
-    priv location: BTreeMap<object_key, Transform3D<f32>>,
+    priv location: BTreeMap<object_key, Location>,
     priv draw: BTreeMap<object_key, Drawable>,
     
     priv geometry: BTreeMap<object_key, Geometry>,
@@ -115,12 +122,15 @@ impl Database {
 
     pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
     {
-        self.location.insert(key, location);
+        self.location.insert(key, Location{trans: location});
     }
 
     pub fn location<'a>(&'a self, key: object_key) -> Option<&'a Transform3D<f32>>
     {
-        self.location.find(&key)
+        match self.location.find(&key) {
+            Some(loc) => Some(&loc.trans),
+            None => None
+        }
     }
 
     fn ifind(&self, node: Option<object_key>, str_key: &str) -> Option<object_key>
@@ -220,8 +230,78 @@ impl Database {
         );
     }
 
-    pub fn walk_drawables(&self, oid: object_key, f: ||)
+    pub fn walk_drawables<'a>(&'a self, oid: object_key) -> IterObjs<'a>
     {
+        let mat = match self.location.find(&oid) {
+            Some(loc) => loc.trans.get().to_mat4(),
+            None => Mat4::identity()
+        };
 
+        let stack = match self.index_parent_child.find(&oid) {
+            Some(set) => {
+                ~[IterObjsLayer {
+                    child_iter: join_set_to_map(
+                                    set.iter(),
+                                    self.location.iter()),
+                    mat: mat,
+                }]
+            },
+            None => ~[]
+        };
+
+        IterObjs {
+            db: self,
+            stack: stack
+        }
+    }
+}
+
+struct IterObjsLayer<'a>
+{
+    child_iter: JoinMapSetIterator<
+                    BTreeSetIterator<'a, object_key>,
+                    BTreeMapIterator<'a, object_key, Location>>,
+    mat: Mat4<f32>
+}
+
+pub struct IterObjs<'a>
+{
+    priv db: &'a Database,
+    priv stack: ~[IterObjsLayer<'a>]
+}
+
+impl<'a> Iterator<(object_key, Mat4<f32>, &'a Drawable)> for IterObjs<'a>
+{
+    fn next(&mut self) -> Option<(object_key, Mat4<f32>, &'a Drawable)>
+    {
+        loop {
+            let len = self.stack.len();
+            if len == 0 {
+                return None;
+            }
+
+            match self.stack[len-1].child_iter.next() {
+                Some((object_key, loc)) => {
+
+                    let mat = self.stack[len-1].mat.mul_m(&loc.trans.get().to_mat4());
+
+                    match self.db.index_parent_child.find(object_key) {
+                        Some(set) => {
+                            self.stack.push(IterObjsLayer {
+                                mat: mat,
+                                child_iter: join_set_to_map(set.iter(), self.db.location.iter())
+                            });
+                        },
+                        None => ()
+                    }
+
+                    match self.db.draw.find(object_key) {
+                        Some(draw) => return Some((*object_key, mat, draw)),
+                        None => ()
+                    }
+                },
+                None => { self.stack.pop(); }
+            }
+        }
     }
 }

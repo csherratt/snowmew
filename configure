@@ -3,8 +3,12 @@
 # Copyright Colin Sherratt 2014
 
 import subprocess
+import os.path
 
 class Module:
+    def has_tests(self):
+        return os.path.isfile("src/%s/test.rs" % self.name)
+
     def get_dep(self):
         args = ["rustc", "src/%s/%s" % (self.name, self.ext),
                 "--dep-info", ".tmp.txt", "--no-analysis", "--no-trans", "--out-dir=%s" % self.dir]
@@ -23,6 +27,13 @@ class Module:
         dep = self.get_dep() + " "
         dep +=  " ".join(mods[m].ename for m in self.dep_modules)
         how = "%s\n\trustc $(RUST_FLAGS) --out-dir=%s %s %s src/%s/%s\n" % (dep, self.dir, self.flags, self.other_flags, self.name, self.ext)
+        return how
+
+    def make_test_rules(self, mods):
+        dep = self.get_dep() + " "
+        dep +=  " ".join(mods[m].ename for m in self.dep_modules)
+        dep = ": ".join(["test/%s" % self.name, " ".join([self.ename, dep.split(": ", 2)[1]])])
+        how = "%s\n\trustc $(RUST_FLAGS) --test -o test/%s %s %s src/%s/test.rs\n" % (dep, self.name, self.flags, self.other_flags, self.name)
         return how
 
 class Lib(Module):
@@ -61,18 +72,24 @@ modules = [Bin("snowmew-cube", ["snowmew"]),
 
 modules = {m.name: m for m in modules}
 
-rules = "\n".join(m.make_rule(modules) for m in modules.values())
+rules = "\n".join(m.make_rule(modules) for m in modules.values()) + "\n"
+rules += "\n".join(m.make_test_rules(modules) for m in modules.values() if m.has_tests())
 all = " ".join(m.ename for m in modules.values())
 
 with open("Makefile", "w+") as f:
     f.write("RUST_FLAGS=--opt-level=3 -L lib\n")
     f.write("\n")
-    f.write("all: lib bin %s\n" % all)
+    f.write("all: lib bin test %s\n" % all)
     f.write("\n")
     f.write("lib:\n\tmkdir lib\n")
     f.write("\n")
     f.write("bin:\n\tmkdir bin\n")
     f.write("\n")
-    f.write("clean:\n\trm -r lib bin\n")
+    f.write("test:\n\tmkdir test\n")
+    f.write("\n")
+    f.write("check: lib test %s\n" % " ".join("test/%s" % m.name for m in modules.values() if m.has_tests()))
+    f.write("\t"+"\n\t".join("./test/%s" % m.name for m in modules.values() if m.has_tests()) + "\n")
+    f.write("\n")
+    f.write("clean:\n\trm -r lib bin test\n")
     f.write("\n")
     f.write(rules)
