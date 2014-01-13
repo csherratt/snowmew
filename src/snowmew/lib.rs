@@ -1,4 +1,4 @@
-#[crate_id = "github.com/csherratt/snowmews#snowmew:0.1"];
+#[crate_id = "github.com/csherratt/snowmew#snowmew:0.1"];
 #[license = "ASL2"];
 #[crate_type = "lib"];
 #[comment = "A game engine in rust"];
@@ -14,4 +14,3 @@ extern mod cow;
 pub mod core;
 pub mod geometry;
 pub mod shader;
-pub mod db;

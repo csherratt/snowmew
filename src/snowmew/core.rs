@@ -37,7 +37,7 @@ pub struct Location {
     priv trans: Transform3D<f32>
 }
 
-//#[deriving(Clone)]
+#[deriving(Clone)]
 pub struct Database {
     priv last_key: i32,
 
@@ -222,6 +222,11 @@ impl Database {
         oid
     }
 
+    pub fn geometry<'a>(&'a self, oid: object_key) -> Option<&'a Geometry>
+    {
+        self.geometry.find(&oid)
+    }
+
     pub fn add_shader(&mut self, parent: object_key, name: ~str, shader: Shader) -> object_key
     {
         let oid = self.new_object(Some(parent), name);
@@ -263,6 +268,16 @@ impl Database {
             db: self,
             stack: stack
         }
+    }
+
+    pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, object_key, VertexBuffer>
+    {
+        self.vertex.iter()
+    }
+
+    pub fn walk_shaders<'a>(&'a self) -> BTreeMapIterator<'a, object_key, Shader>
+    {
+        self.shader.iter()
     }
 }
 

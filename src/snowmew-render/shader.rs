@@ -1,10 +1,14 @@
-use gl;
-
 use std::ptr;
 use std::vec;
 use std::str;
 
-fn compile_shader(src: &str, ty: gl::types::GLenum) -> gl::types::GLuint {
+use gl;
+use gl::types::GLuint;
+
+use cgmath::matrix::Mat4;
+use cgmath::ptr::Ptr;
+
+fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
     let shader = gl::CreateShader(ty);
     unsafe {
         src.with_c_str(|ptr| {
@@ -21,62 +25,77 @@ fn compile_shader(src: &str, ty: gl::types::GLenum) -> gl::types::GLuint {
             let mut len = 0;
             gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
             let mut buf = vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
-            println(format!("size {}", len));
             gl::GetShaderInfoLog(shader,
                                  len,
                                  ptr::mut_null(),
                                  buf.unsafe_mut_ref(0) as *mut gl::types::GLchar);
-            fail!(format!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf)));
+            fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf));
         }
     }
 
     shader
 }
 
+fn uniform(program: GLuint, s: &str) -> i32
+{
+    unsafe {
+        s.with_c_str(|c_str| {
+            gl::GetUniformLocation(program, c_str)
+        })
+    }
+}
+
 #[deriving(Clone, Default)]
 pub struct Shader {
-    program: gl::types::GLuint,
-    fs: gl::types::GLuint,
-    vs: gl::types::GLuint,
-    gs: gl::types::GLuint,
-    blend: (gl::types::GLenum, gl::types::GLenum)
+    program: GLuint,
+    fs: GLuint,
+    vs: GLuint,
+    gs: GLuint,
+
+    uniform_position: i32,
+    uniform_projection: i32
 }
 
 impl Shader {
-    pub fn new(vert: &str, frag: &str, blend: (gl::types::GLenum, gl::types::GLenum)) -> Shader
+    fn _new(vs: GLuint, gs: GLuint, fs: GLuint) -> Shader
     {
         let program = gl::CreateProgram();
-        let vert = compile_shader(vert, gl::VERTEX_SHADER);
-        let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
-        gl::AttachShader(program, vert);
-        gl::AttachShader(program, frag);
+        gl::AttachShader(program, vs);
+        gl::AttachShader(program, fs);
         gl::LinkProgram(program);
+
+        let pos = uniform(program, "position");
+        let proj = uniform(program, "projection");
+
+        "colour".with_c_str(|ptr| {
+            unsafe {
+                gl::BindFragDataLocation(program, 0, ptr);
+            }
+        });
+
         Shader {
             program: program,
-            fs: frag,
-            vs: vert,
-            gs: 0,
-            blend: blend
+            fs: fs,
+            vs: vs,
+            gs: gs,
+            uniform_position: pos,
+            uniform_projection: proj
         }
     }
 
-    pub fn new_geo(vert: &str, frag: &str, geo: &str, blend: (gl::types::GLenum, gl::types::GLenum)) -> Shader
+    pub fn new(vert: &str, frag: &str) -> Shader
     {
-        let program = gl::CreateProgram();
+        let vert = compile_shader(vert, gl::VERTEX_SHADER);
+        let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
+        Shader::_new(vert, 0, frag)
+    }
+
+    pub fn new_geo(vert: &str, frag: &str, geo: &str) -> Shader
+    {
         let vert = compile_shader(vert, gl::VERTEX_SHADER);
         let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
         let geo = compile_shader(geo, gl::GEOMETRY_SHADER);
-        gl::AttachShader(program, vert);
-        gl::AttachShader(program, frag);
-        gl::AttachShader(program, geo);
-        gl::LinkProgram(program);
-        Shader {
-            program: program,
-            fs: frag,
-            vs: vert,
-            gs: geo,
-            blend: blend
-        }
+        Shader::_new(vert, geo, frag)
     }
 
     pub fn uniform(&self, s: &str) -> i32
@@ -86,5 +105,24 @@ impl Shader {
                 gl::GetUniformLocation(self.program, c_str)
             })
         }
+    }
+
+    pub fn bind(&self)
+    {
+        gl::UseProgram(self.program);
+    }
+
+    pub fn set_projection(&self, mat: &Mat4<f32>)
+    {
+        unsafe {
+            gl::UniformMatrix4fv(self.uniform_projection, 1, gl::FALSE, mat.ptr());
+        }
+    }
+
+    pub fn set_position(&self, mat: &Mat4<f32>)
+    {
+        unsafe {
+            gl::UniformMatrix4fv(self.uniform_position, 1, gl::FALSE, mat.ptr());
+        }        
     }
 }

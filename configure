@@ -63,8 +63,9 @@ class Bin(Module):
             self.dep_modules = []
 
 
-modules = [Bin("snowmew-cube", ["snowmew"]),
+modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw"]),
+           Lib("snowmew-render", ["snowmew"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
@@ -87,8 +88,10 @@ with open("Makefile", "w+") as f:
     f.write("\n")
     f.write("test:\n\tmkdir test\n")
     f.write("\n")
-    f.write("check: lib test %s\n" % " ".join("test/%s" % m.name for m in modules.values() if m.has_tests()))
-    f.write("\t"+" && ".join("./test/%s" % m.name for m in modules.values() if m.has_tests()) + " && touch check\n")
+    f.write("check: test test/.check\n")
+    f.write("\n")
+    f.write("test/.check: lib test %s\n" % " ".join("test/%s" % m.name for m in modules.values() if m.has_tests()))
+    f.write("\t"+" && ".join("./test/%s" % m.name for m in modules.values() if m.has_tests()) + " && touch test/.check\n")
     f.write("\n")
     f.write("clean:\n\trm -r lib bin test\n")
     f.write("\n")

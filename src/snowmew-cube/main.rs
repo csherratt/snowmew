@@ -5,29 +5,33 @@
 
 extern mod glfw;
 extern mod gl;
-extern mod snowmew = "snowmew";
+extern mod snowmew;
+extern mod render = "snowmew-render";
 extern mod cgmath;
 extern mod native;
+
+use std::default;
 
 use snowmew::core::{Object, Database};
 use snowmew::shader::Shader;
 use snowmew::geometry::Geometry;
+
+use render::RenderManager;
+
 use cgmath::quaternion::*;
 use cgmath::transform::*;
 use cgmath::vector::*;
-
-
-use std::default;
-
+use cgmath::angle::{ToRad, deg};
 
 static VS_SRC: &'static str =
 "#version 400
-uniform mat4 mat; 
-in vec3 position;
+uniform mat4 position;
+uniform mat4 projection;
+in vec3 pos;
 out vec3 UV;
 void main() {
-    gl_Position = mat * vec4(position, 1.);
-    UV = vec3(position.x, position.y, position.z); 
+    gl_Position = projection * position * vec4(pos, 1.);
+    UV = vec3(pos.x, pos.y, pos.z); 
 }";
 
 static FS_SRC: &'static str =
@@ -316,8 +320,8 @@ fn main() {
 
 fn main() {
     do glfw::start {
-        let width = 2560 as uint;
-        let height = 1440 as uint;
+        let width = 1024 as uint;
+        let height = 768 as uint;
         println!("{} {}", width, height);
         glfw::window_hint::context_version(4, 0);
         glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
@@ -325,7 +329,7 @@ fn main() {
 
         let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
         window.make_context_current();
-        glfw::set_swap_interval(0);
+        glfw::set_swap_interval(1);
 
         gl::load_with(glfw::get_proc_address);
 
@@ -333,29 +337,45 @@ fn main() {
 
         let shader = Shader::new(VS_SRC.into_owned(), FS_SRC.into_owned());
         let indexs = snowmew::geometry::to_triangles_adjacency(INDEX_DATA);
+        let len = indexs.len();
         let vbo = snowmew::geometry::VertexBuffer::new(VERTEX_DATA.into_owned(), indexs);
 
         let assets = db.new_object(None, ~"asserts");
         let shader = db.add_shader(assets, ~"shader", shader);
         let vbo = db.add_vertex_buffer(assets, ~"vbo", vbo);
-        let geometry = snowmew::geometry::Geometry::triangles_adjacency(vbo as uint, 0, INDEX_DATA.len() / 3);
+        let geometry = snowmew::geometry::Geometry::triangles_adjacency(vbo, 0, len);
 
         let geometry = db.add_geometry(assets, ~"geo", geometry);
 
         let scene = db.new_object(None, ~"scene");
-        for i in range(0, 10) {
-            let cube_id = db.new_object(Some(scene), format!("cube_{}", i));
-            let i = i as f32;
-            db.update_location(cube_id, Transform3D::new(1f32, Quat::new(0f32, 0f32, 0f32, 0f32), Vec3::new(i, i, i)));
+        for y in range(-5, 5) {
+        for x in range(-5, 5) {
+            let cube_id = db.new_object(Some(scene), format!("cube_{}_{}", x, y));
+            let x = x as f32;
+            let y = y as f32;
+            db.update_location(cube_id, Transform3D::new(0.25f32, Quat::from_euler(deg(45f32).to_rad(), deg(45f32).to_rad(), deg(45f32).to_rad()), Vec3::new(y, x, -5.)));
             db.set_draw(cube_id, geometry, shader);
         }
+        }
 
-        db.dump();
+        let mut ren = RenderManager::new(&window, db.clone());
 
-        //while !window.should_close() {
-        //    glfw::poll_events();
-        //    window.swap_buffers();
-        //}
+        ren.load();
+
+        gl::Enable(gl::SCISSOR_TEST);
+        gl::Enable(gl::DEPTH_TEST);
+        gl::Enable(gl::CULL_FACE);
+        gl::Enable(gl::LINE_SMOOTH);
+        gl::Enable(gl::BLEND);
+        gl::CullFace(gl::BACK);
+
+        while !window.should_close() {
+            glfw::poll_events();
+            gl::ClearColor(0.05, 0.05, 0.05, 1.);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+            ren.render(scene);
+            window.swap_buffers();
+        }
 
     }
 }
