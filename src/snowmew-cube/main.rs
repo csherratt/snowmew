@@ -347,35 +347,46 @@ fn main() {
 
         let geometry = db.add_geometry(assets, ~"geo", geometry);
 
+        let camera = db.new_object(None, ~"camera");
         let scene = db.new_object(None, ~"scene");
         for y in range(-5, 5) {
-        for x in range(-5, 5) {
-            let cube_id = db.new_object(Some(scene), format!("cube_{}_{}", x, y));
-            let x = x as f32;
-            let y = y as f32;
-            db.update_location(cube_id, Transform3D::new(0.25f32, Quat::from_euler(deg(45f32).to_rad(), deg(45f32).to_rad(), deg(45f32).to_rad()), Vec3::new(y, x, -5.)));
-            db.set_draw(cube_id, geometry, shader);
+            for x in range(-5, 5) {
+                let cube_id = db.new_object(Some(scene), format!("cube_{}_{}", x, y));
+                let x = (x*5) as f32;
+                let y = (y*5) as f32;
+                db.update_location(cube_id, Transform3D::new(1f32, Quat::from_euler(deg(45f32).to_rad(), deg(45f32).to_rad(), deg(45f32).to_rad()), Vec3::new(y, x, 0.)));
+                db.set_draw(cube_id, geometry, shader);
+            }
         }
-        }
+
+        db.update_location(camera,
+            Transform3D::new(1f32,
+                             Quat::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
+                             Vec3::new(0f32, 0f32, -10f32)));
+
 
         let mut ren = RenderManager::new(&window, db.clone());
-
         ren.load();
 
-        gl::Enable(gl::SCISSOR_TEST);
-        gl::Enable(gl::DEPTH_TEST);
-        gl::Enable(gl::CULL_FACE);
-        gl::Enable(gl::LINE_SMOOTH);
-        gl::Enable(gl::BLEND);
-        gl::CullFace(gl::BACK);
+        let mut x = 0f32;
 
         while !window.should_close() {
             glfw::poll_events();
+
+            x += 0.1;
+
+            db.update_location(camera,
+                Transform3D::new(1f32,
+                                 Quat::from_euler(deg(x).to_rad(), deg(x).to_rad(), deg(x).to_rad()),
+                                 Vec3::new(0f32, 0f32, -10f32)));
+
+            ren.update(db.clone());
+
+
             gl::ClearColor(0.05, 0.05, 0.05, 1.);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            ren.render(scene);
+            ren.render(scene, camera);
             window.swap_buffers();
         }
-
     }
 }

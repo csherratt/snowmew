@@ -252,6 +252,7 @@ impl Database {
             None => Mat4::identity()
         };
 
+
         let stack = match self.index_parent_child.find(&oid) {
             Some(set) => {
                 ~[IterObjsLayer {
