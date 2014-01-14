@@ -9,6 +9,7 @@ extern mod snowmew;
 extern mod render = "snowmew-render";
 extern mod cgmath;
 extern mod native;
+extern mod extra;
 
 use std::default;
 
@@ -22,6 +23,9 @@ use cgmath::quaternion::*;
 use cgmath::transform::*;
 use cgmath::vector::*;
 use cgmath::angle::{ToRad, deg};
+
+use extra::time::precise_time_s;
+
 
 static VS_SRC: &'static str =
 "#version 400
@@ -329,7 +333,7 @@ fn main() {
 
         let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
         window.make_context_current();
-        glfw::set_swap_interval(1);
+        glfw::set_swap_interval(0);
 
         gl::load_with(glfw::get_proc_address);
 
@@ -349,20 +353,20 @@ fn main() {
 
         let camera = db.new_object(None, ~"camera");
         let scene = db.new_object(None, ~"scene");
-        for y in range(-5, 5) {
-            for x in range(-5, 5) {
-                let cube_id = db.new_object(Some(scene), format!("cube_{}_{}", x, y));
-                let x = (x*5) as f32;
-                let y = (y*5) as f32;
-                db.update_location(cube_id, Transform3D::new(1f32, Quat::from_euler(deg(45f32).to_rad(), deg(45f32).to_rad(), deg(45f32).to_rad()), Vec3::new(y, x, 0.)));
-                db.set_draw(cube_id, geometry, shader);
-            }
-        }
+        for y in range(-25, 25) { for x in range(-25, 25) {for z in range(-25, 25) {
+            let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
+            let x = (x*5) as f32;
+            let y = (y*5) as f32;
+            let z = (z*5) as f32;
+            db.update_location(cube_id,
+                Transform3D::new(1f32, Quat::from_euler(deg(45f32).to_rad(), deg(45f32).to_rad(), deg(45f32).to_rad()), Vec3::new(y, x, z)));
+            db.set_draw(cube_id, geometry, shader);
+        }}}
 
         db.update_location(camera,
             Transform3D::new(1f32,
                              Quat::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                             Vec3::new(0f32, 0f32, -10f32)));
+                             Vec3::new(0f32, 0f32, 0f32)));
 
 
         let mut ren = RenderManager::new(&window, db.clone());
@@ -372,6 +376,7 @@ fn main() {
 
         while !window.should_close() {
             glfw::poll_events();
+            let start = precise_time_s();
 
             x += 0.1;
 
@@ -387,6 +392,9 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             ren.render(scene, camera);
             window.swap_buffers();
+            let end = precise_time_s();
+
+            println!("time: {:0.3f}, budget: {:0.2f}", (end-start), (end-start)/(1./60.));
         }
     }
 }
