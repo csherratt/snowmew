@@ -6,6 +6,7 @@ use snowmew::core::{Database, object_key};
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
 
+#[deriving(Clone)]
 pub struct Graphics
 {
     last: Database,

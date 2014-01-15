@@ -14,7 +14,8 @@ use snowmew::geometry::Geometry;
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
 
-//
+
+
 pub struct ObjectCull<IN>
 {
     priv input: IN,
@@ -58,65 +59,82 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>>
 pub struct Expand<'a, IN>
 {
     priv input: IN,
-    priv geo_id: object_key,
-    priv geo: Option<&'a Geometry>,
-    priv vb_id: object_key,
-    priv vb: Option<&'a VertexBuffer>,
     priv shader_id: object_key,
-    priv shader: Option<&'a Shader>,
-    priv camera: Mat4<f32>,
+    priv vb_id: object_key,
+    priv last_shader_id: object_key,
+    priv last_vb_id: object_key,
+    priv mat: Option<Mat4<f32>>,
+    priv geometry: Option<&'a Geometry>,
     priv db: &'a Graphics
 }
 
 impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> Expand<'a,IN>
 {
-    pub fn new(input: IN, camera: Mat4<f32>, db: &'a Graphics) -> Expand<'a,IN>
+    pub fn new(input: IN, db: &'a Graphics) -> Expand<'a,IN>
     {
         Expand {
             input: input,
-            geo: None,
-            vb: None,
-            shader: None,
-            geo_id: 0,
-            vb_id: 0,
             shader_id: 0,
-            camera: camera,
+            vb_id: 0,
+            last_shader_id: 0,
+            last_vb_id: 0,
+            mat: None,
+            geometry: None,
             db: db
         }
     }
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>>
-     Iterator<(object_key, Mat4<f32>, &'a Geometry, &'a VertexBuffer, &'a Shader)> for Expand<'a, IN>
+pub enum DrawCommand
 {
-    fn next(&mut self) -> Option<(object_key, Mat4<f32>, &'a Geometry, &'a VertexBuffer, &'a Shader)>
+    Done,
+    Draw(Geometry),
+    BindShader(object_key),
+    BindVertexBuffer(object_key),
+    SetMatrix(Mat4<f32>),
+}
+
+impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> Iterator<DrawCommand> for Expand<'a, IN>
+{
+    fn next(&mut self) -> Option<DrawCommand>
     {
+        loop {
+            if self.shader_id != self.last_shader_id {
+                self.last_shader_id = self.shader_id;
+                return Some(BindShader(self.shader_id));
+            }
+
+            if self.vb_id != self.last_vb_id {
+                self.last_vb_id = self.vb_id;
+                return Some(BindVertexBuffer(self.vb_id));
+            }
+
+            match self.mat {
+                Some(mat) => {
+                    let out = SetMatrix(mat);
+                    self.mat = None;
+                    return Some(out);
+                },
+                None => ()
+            }
+
+            match self.geometry {
+                Some(geometry) => {
+                    let out = Draw(geometry.clone());
+                    self.geometry = None;
+                    return Some(out);
+                },
+                None => ()
+            }
+
             match self.input.next() {
                 Some((oid, mat, draw)) => {
-                    if draw.geometry != self.geo_id {
-                        self.geo = self.db.current.geometry(draw.geometry);
-                        self.geo_id = draw.geometry;
-                    }
-                    let geo = self.geo.unwrap();
-
-                    if geo.vb != self.vb_id {
-                        self.vb = self.db.vertex.find(&geo.vb);
-                        self.vb_id = geo.vb;
-                        self.vb.unwrap().bind();
-                    }
-                    let vb = self.vb.unwrap();
-
-                    if draw.shader != self.shader_id {
-                        self.shader = self.db.shaders.find(&draw.shader);
-                        self.shader_id = draw.shader;
-                        self.shader.unwrap().bind();
-                        self.shader.unwrap().set_projection(&self.camera)
-                    }
-                    let shader = self.shader.unwrap();
-
-                    return Some((oid, mat, geo, vb, shader));
+                    self.mat = Some(mat);
+                    self.shader_id = draw.shader;
+                    self.geometry = self.db.current.geometry(draw.geometry);
                 },
-                None => return None
+                None => return None,
             }
+        }
     }
 }
