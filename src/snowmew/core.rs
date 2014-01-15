@@ -1,3 +1,4 @@
+
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_set_to_map, JoinMapSetIterator};
 
@@ -298,6 +299,7 @@ pub struct IterObjs<'a>
 
 impl<'a> Iterator<(object_key, Mat4<f32>, &'a Drawable)> for IterObjs<'a>
 {
+    #[inline]
     fn next(&mut self) -> Option<(object_key, Mat4<f32>, &'a Drawable)>
     {
         loop {

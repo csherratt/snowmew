@@ -12,7 +12,11 @@ extern mod gl;
 
 use std::ptr;
 use cgmath::matrix::{ToMat4, Matrix};
-use drawlist::Drawlist;
+//use drawlist::Drawlist;
+use drawlist::{ObjectCull, Expand};
+
+use cgmath::matrix::{Mat4, ToMat4, Matrix};
+use cgmath::vector::{Vec4, Vector};
 
 mod db;
 mod shader;
@@ -62,28 +66,19 @@ impl RenderManager
 
         let projection = projection.mul_m(&camera.get().to_mat4());
 
-        let mut last_vb = 0;
-        let mut last_shader = 0;
+        let mut list = Expand::new(
+                        ObjectCull::new(
+                            self.db.current.walk_drawables(scene), projection.clone()
+                        ),
+                        projection.clone(),
+                        &self.db
+                    );
 
-        let mut dl = Drawlist::create(&self.db, scene, projection.clone());
-
-        //dl.sort(projection.clone());
-
-        for (_, dat) in dl.iter() {
-            let geo = self.db.current.geometry(dat.draw.geometry).unwrap();
-            let vb = self.db.vertex.find(&geo.vb).unwrap();
-            let shader = self.db.shaders.find(&dat.draw.shader).unwrap();
-         
-            if last_vb != geo.vb {
-                vb.bind();
-                last_vb = geo.vb;
-            }
-            if last_shader != dat.draw.shader {
-                shader.bind();
-                last_shader = dat.draw.shader;
-                shader.set_projection(&projection);
-            }
-            shader.set_position(&dat.mat);
+        for (_, mat, geo, _, shader) in list {
+            //shader.bind();
+            //vb.bind();
+            shader.set_position(&mat);
+            //shader.set_projection(&projection);
 
             unsafe {
                 gl::DrawElements(gl::TRIANGLES_ADJACENCY, geo.count as i32, gl::UNSIGNED_INT, ptr::null());

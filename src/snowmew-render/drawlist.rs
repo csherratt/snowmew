@@ -10,104 +10,113 @@ use std::vec;
 use cow::btree::BTreeMap;
 use cow::btree::BTreeMapIterator;
 
-pub struct Drawlist<'a>
+use snowmew::geometry::Geometry;
+use vertex_buffer::VertexBuffer;
+use shader::Shader;
+
+//
+pub struct ObjectCull<IN>
 {
-    list: BTreeMap<order_key, Draw<'a>>
+    priv input: IN,
+    priv camera: Mat4<f32>
 }
 
-#[deriving(Clone, Default)]
-pub struct Draw<'a>
+impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> ObjectCull<IN>
 {
-    oid: object_key,
-    mat: Mat4<f32>,
-    draw: Drawable
-}
-
-
-#[deriving(Clone, Default)]
-struct order_key(f32);
- 
-impl TotalEq for order_key
-{
-    fn equals(&self, other: &order_key) -> bool
+    pub fn new(input: IN, camera: Mat4<f32>) -> ObjectCull<IN>
     {
-        let order_key(s) = *self;
-        let order_key(o) = *other;
-
-        s == o
-    }
-}
-
-impl TotalOrd for order_key
-{
-    fn cmp(&self, other: &order_key) -> Ordering
-    {
-        let order_key(s) = *self;
-        let order_key(o) = *other;
-
-        if s > o {
-            Greater
-        } else {
-            Less 
-        } 
-    }
-}
-
-impl<'a> Drawlist<'a>
-{
-    pub fn create<'a>(db: &'a Graphics, scene: object_key, camera: Mat4<f32>) -> Drawlist<'a>
-    {
-        let mut l = BTreeMap::new();
-        let point = Vec4::new(0f32, 0f32, 0f32, 1f32);
-
-        for (uid, mat, draw) in db.current.walk_drawables(scene) {
-            let a = camera.mul_m(&mat);
-            let a = a.mul_v(&point);
-            let a = a.mul_s(1./a.w);
-
-            if a.z > 0. && a.x > -1.2 && a.x < 1.2 && a.y > -1.2 && a.y < 1.2 {
-                l.insert(order_key(a.z), Draw {
-                    oid: uid,
-                    mat: mat,
-                    draw: draw.clone()
-                });
-            }
-        }
-
-        Drawlist {
-            list: l,
+        ObjectCull {
+            input: input,
+            camera: camera
         }
     }
+}
 
-    /*pub fn sort(&mut self, camera: Mat4<f32>)
+impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>>
+     Iterator<(object_key, Mat4<f32>, &'a Drawable)> for ObjectCull<IN>
+{
+    fn next(&mut self) -> Option<(object_key, Mat4<f32>, &'a Drawable)>
     {
-        let point = Vec4::new(0f32, 0f32, 0f32, 1f32);
+        loop {
+            match self.input.next() {
+                Some((oid, mat, draw)) => {
+                    let a = self.camera.mul_m(&mat);
+                    let a = a.mul_v(&Vec4::new(0f32, 0f32, 0f32, 1f32));
+                    let a = a.mul_s(1./a.w);
 
-        self.list.sort_by(
-            |&a, &b| {
-                let a = camera.mul_m(&a.mat);
-                let b = camera.mul_m(&b.mat);
-
-                let a = a.mul_v(&point);
-                let b = b.mul_v(&point);
-
-                let a = a.mul_s(1./a.w);
-                let b = b.mul_s(1./b.w);
-
-                if a.z > b.z {
-                    Less
-                } else if b.z > a.z {
-                    Greater
-                } else {
-                    Equal
-                }
+                    // this check is CRAP
+                    if a.z > 0. && a.x > -1.2 && a.x < 1.2 && a.y > -1.2 && a.y < 1.2 {
+                        return Some((oid, mat, draw));
+                    }
+                },
+                None => return None
             }
-        );
-    }*/
+        }
+    }
+}
 
-    pub fn iter(&'a self) -> BTreeMapIterator<'a, order_key, Draw<'a>>
+pub struct Expand<'a, IN>
+{
+    priv input: IN,
+    priv geo_id: object_key,
+    priv geo: Option<&'a Geometry>,
+    priv vb_id: object_key,
+    priv vb: Option<&'a VertexBuffer>,
+    priv shader_id: object_key,
+    priv shader: Option<&'a Shader>,
+    priv camera: Mat4<f32>,
+    priv db: &'a Graphics
+}
+
+impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> Expand<'a,IN>
+{
+    pub fn new(input: IN, camera: Mat4<f32>, db: &'a Graphics) -> Expand<'a,IN>
     {
-        println!("len: {:}", self.list.len());
-        self.list.iter()
+        Expand {
+            input: input,
+            geo: None,
+            vb: None,
+            shader: None,
+            geo_id: 0,
+            vb_id: 0,
+            shader_id: 0,
+            camera: camera,
+            db: db
+        }
+    }
+}
+
+impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>>
+     Iterator<(object_key, Mat4<f32>, &'a Geometry, &'a VertexBuffer, &'a Shader)> for Expand<'a, IN>
+{
+    fn next(&mut self) -> Option<(object_key, Mat4<f32>, &'a Geometry, &'a VertexBuffer, &'a Shader)>
+    {
+            match self.input.next() {
+                Some((oid, mat, draw)) => {
+                    if draw.geometry != self.geo_id {
+                        self.geo = self.db.current.geometry(draw.geometry);
+                        self.geo_id = draw.geometry;
+                    }
+                    let geo = self.geo.unwrap();
+
+                    if geo.vb != self.vb_id {
+                        self.vb = self.db.vertex.find(&geo.vb);
+                        self.vb_id = geo.vb;
+                        self.vb.unwrap().bind();
+                    }
+                    let vb = self.vb.unwrap();
+
+                    if draw.shader != self.shader_id {
+                        self.shader = self.db.shaders.find(&draw.shader);
+                        self.shader_id = draw.shader;
+                        self.shader.unwrap().bind();
+                        self.shader.unwrap().set_projection(&self.camera)
+                    }
+                    let shader = self.shader.unwrap();
+
+                    return Some((oid, mat, geo, vb, shader));
+                },
+                None => return None
+            }
     }
 }

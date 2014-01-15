@@ -394,7 +394,10 @@ fn main() {
             window.swap_buffers();
             let end = precise_time_s();
 
-            println!("time: {:0.3f}, budget: {:0.2f}", (end-start), (end-start)/(1./60.));
+            let time = (end-start);
+
+            print!("\rfps: {:0.2f} time: {:0.3f}ms, budget: {:0.2f}                 ",
+                1./time, time*1000., time/(1./60.));
         }
     }
 }
