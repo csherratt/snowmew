@@ -295,7 +295,7 @@ fn main() {
 
         while !window.should_close() {
             glfw::poll_events();
-            time = glfw::get_time();
+            time = glfw::get_time();p
 
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
@@ -353,7 +353,7 @@ fn main() {
 
         let camera = db.new_object(None, ~"camera");
         let scene = db.new_object(None, ~"scene");
-        for y in range(-25, 25) { for x in range(-25, 25) {for z in range(-25, 25) {
+        for y in range(-30, 30) { for x in range(-30, 30) {for z in range(-30, 30) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
             let x = (x*5) as f32;
             let y = (y*5) as f32;
@@ -369,10 +369,10 @@ fn main() {
                              Vec3::new(0f32, 0f32, 0f32)));
 
 
-        let mut ren = RenderManager::new(&window, db.clone());
+        let mut ren = RenderManager::new(db.clone());
         ren.load();
 
-        let mut x = 0f32;
+        let mut x = 45f32;
 
         while !window.should_close() {
             glfw::poll_events();
@@ -383,7 +383,7 @@ fn main() {
             db.update_location(camera,
                 Transform3D::new(1f32,
                                  Quat::from_euler(deg(x).to_rad(), deg(x).to_rad(), deg(x).to_rad()),
-                                 Vec3::new(0f32, 0f32, -10f32)));
+                                 Vec3::new(0f32, 0f32, 0f32)));
 
             ren.update(db.clone());
 

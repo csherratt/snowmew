@@ -5,7 +5,6 @@ use cow::join::{join_set_to_map, JoinMapSetIterator};
 use geometry::{Geometry, VertexBuffer};
 use shader::Shader;
 
-use cgmath::vector::*;
 use cgmath::transform::*;
 use cgmath::matrix::*;
 
@@ -297,10 +296,10 @@ pub struct IterObjs<'a>
     priv stack: ~[IterObjsLayer<'a>]
 }
 
-impl<'a> Iterator<(object_key, Mat4<f32>, &'a Drawable)> for IterObjs<'a>
+impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
 {
     #[inline]
-    fn next(&mut self) -> Option<(object_key, Mat4<f32>, &'a Drawable)>
+    fn next(&mut self) -> Option<(object_key, Mat4<f32>)>
     {
         loop {
             let len = self.stack.len();
@@ -310,7 +309,6 @@ impl<'a> Iterator<(object_key, Mat4<f32>, &'a Drawable)> for IterObjs<'a>
 
             match self.stack[len-1].child_iter.next() {
                 Some((object_key, loc)) => {
-
                     let mat = self.stack[len-1].mat.mul_m(&loc.trans.get().to_mat4());
 
                     match self.db.index_parent_child.find(object_key) {
@@ -323,10 +321,7 @@ impl<'a> Iterator<(object_key, Mat4<f32>, &'a Drawable)> for IterObjs<'a>
                         None => ()
                     }
 
-                    match self.db.draw.find(object_key) {
-                        Some(draw) => return Some((*object_key, mat, draw)),
-                        None => ()
-                    }
+                    return Some((*object_key, mat))
                 },
                 None => { self.stack.pop(); }
             }

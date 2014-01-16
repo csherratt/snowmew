@@ -10,3 +10,6 @@
 [submodule "modules/cow"]
 	path = modules/cow
 	url = https://github.com/csherratt/cow-rs.git
+[submodule "modules/opencl"]
+	path = modules/opencl
+	url = https://github.com/luqmana/rust-opencl.git

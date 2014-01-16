@@ -14,7 +14,9 @@ use snowmew::geometry::Geometry;
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
 
-
+use OpenCL::CL::CL_MEM_READ_WRITE;
+use OpenCL::mem::CLBuffer;
+use OpenCL::hl::{Context, CommandQueue};
 
 pub struct ObjectCull<IN>
 {
@@ -22,7 +24,7 @@ pub struct ObjectCull<IN>
     priv camera: Mat4<f32>
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> ObjectCull<IN>
+impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> ObjectCull<IN>
 {
     pub fn new(input: IN, camera: Mat4<f32>) -> ObjectCull<IN>
     {
@@ -33,21 +35,37 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> ObjectCull<IN>
     }
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>>
-     Iterator<(object_key, Mat4<f32>, &'a Drawable)> for ObjectCull<IN>
+impl<'a, IN: Iterator<(object_key, Mat4<f32>)>>
+     Iterator<(object_key, Mat4<f32>)> for ObjectCull<IN>
 {
-    fn next(&mut self) -> Option<(object_key, Mat4<f32>, &'a Drawable)>
+    #[inline]
+    fn next(&mut self) -> Option<(object_key, Mat4<f32>)>
     {
         loop {
             match self.input.next() {
-                Some((oid, mat, draw)) => {
-                    let a = self.camera.mul_m(&mat);
-                    let a = a.mul_v(&Vec4::new(0f32, 0f32, 0f32, 1f32));
-                    let a = a.mul_s(1./a.w);
+                Some((oid, mat)) => {
+                    let proj = self.camera.mul_m(&mat);
+                    let points = &mut [
+                        Vec4::new(1f32,  1f32,  1f32, 1f32), Vec4::new(-1f32,  1f32,  1f32, 1f32),
+                        Vec4::new(1f32, -1f32,  1f32, 1f32), Vec4::new(-1f32, -1f32,  1f32, 1f32),
+                        Vec4::new(1f32,  1f32, -1f32, 1f32), Vec4::new(-1f32,  1f32, -1f32, 1f32),
+                        Vec4::new(1f32, -1f32, -1f32, 1f32), Vec4::new(-1f32, -1f32, -1f32, 1f32),
+                    ];
 
-                    // this check is CRAP
-                    if a.z > 0. && a.x > -1.2 && a.x < 1.2 && a.y > -1.2 && a.y < 1.2 {
-                        return Some((oid, mat, draw));
+                    for i in range(0, points.len()) {
+                        let new = proj.mul_v(&points[i]);
+                        points[i] = new.mul_s(1./new.w);
+                    }
+
+                    let mut infront = false;
+                    for point in points.iter() {
+                        infront |= (point.x < 1.) && (point.x > -1.) &&
+                                   (point.y < 1.) && (point.y > -1.) &&
+                                   (point.z < 1.);
+                    }
+
+                    if infront {
+                        return Some((oid, mat));
                     }
                 },
                 None => return None
@@ -68,7 +86,7 @@ pub struct Expand<'a, IN>
     priv db: &'a Graphics
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> Expand<'a,IN>
+impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> Expand<'a,IN>
 {
     pub fn new(input: IN, db: &'a Graphics) -> Expand<'a,IN>
     {
@@ -87,15 +105,15 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> Expand<'a,IN>
 
 pub enum DrawCommand
 {
-    Done,
     Draw(Geometry),
     BindShader(object_key),
     BindVertexBuffer(object_key),
     SetMatrix(Mat4<f32>),
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> Iterator<DrawCommand> for Expand<'a, IN>
+impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> Iterator<DrawCommand> for Expand<'a, IN>
 {
+    #[inline]
     fn next(&mut self) -> Option<DrawCommand>
     {
         loop {
@@ -128,10 +146,15 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>, &'a Drawable)>> Iterator<DrawComma
             }
 
             match self.input.next() {
-                Some((oid, mat, draw)) => {
+                Some((oid, mat)) => {
                     self.mat = Some(mat);
-                    self.shader_id = draw.shader;
-                    self.geometry = self.db.current.geometry(draw.geometry);
+                    match self.db.current.drawable(oid) {
+                        Some(draw) => {
+                            self.shader_id = draw.shader;
+                            self.geometry = self.db.current.geometry(draw.geometry);
+                        },
+                        None => ()
+                    }
                 },
                 None => return None,
             }
