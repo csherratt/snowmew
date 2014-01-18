@@ -64,13 +64,14 @@ class Bin(Module):
 
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render"]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
            Lib("glfw", other_flags="--link-args=-lglfw"),
-           Lib("OpenCL")]
+           Lib("OpenCL"),
+           Lib("octtree", ["cow"])]
 
 modules = {m.name: m for m in modules}
 

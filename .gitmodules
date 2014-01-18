@@ -13,3 +13,6 @@
 [submodule "modules/opencl"]
 	path = modules/opencl
 	url = https://github.com/luqmana/rust-opencl.git
+[submodule "modules/octtree"]
+	path = modules/octtree
+	url = https://github.com/csherratt/octtree-rs.git
