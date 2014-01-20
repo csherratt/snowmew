@@ -22,6 +22,7 @@ use render::RenderManager;
 use cgmath::quaternion::*;
 use cgmath::transform::*;
 use cgmath::vector::*;
+use cgmath::matrix::*;
 use cgmath::angle::{ToRad, deg, rad};
 
 use extra::time::precise_time_s;
@@ -353,7 +354,7 @@ fn main() {
 
         let camera = db.new_object(None, ~"camera");
         let scene = db.new_object(None, ~"scene");
-        for y in range(-30, 30) { for x in range(-30, 30) {for z in range(-30, 30) {
+        for y in range(-25, 25) { for x in range(-25, 25) {for z in range(-25, 25) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
             let x = (x*5) as f32;
             let y = (y*5) as f32;
@@ -381,6 +382,8 @@ fn main() {
 
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
 
+        let mut pos = Vec3::new(0f32, 0f32, 0f32);
+
         while !window.should_close() {
             glfw::poll_events();
             let start = precise_time_s();
@@ -390,21 +393,44 @@ fn main() {
             let (wx, wy) = (wx as f64, wy as f64);
             window.set_cursor_pos(wx/2., wy/2.);
 
-            rot_x += (x - wx/2.) / 1.5;
-            rot_y += (y - wy/2.) / 1.5;
-
-            println!("{:?} {:?}", rot_x, rot_y);
-
+            rot_x += (x - wx/2.) / 3.;
+            rot_y += (y - wy/2.) / 3.;
 
             rot_y = rot_y.max(&-90.).min(&90.);
 
-            let rot =  Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()).mul_q(
-                      &Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad()));
+            let input_vec = Vec4::new(
+                if window.get_key(glfw::KeyA) == glfw::Press {0.5f32} else {0f32} +
+                if window.get_key(glfw::KeyD) == glfw::Press {-0.5f32} else {0f32}, 
+                0f32,
+                if window.get_key(glfw::KeyW) == glfw::Press {0.5f32} else {0f32} +
+                if window.get_key(glfw::KeyS) == glfw::Press {-0.5f32} else {0f32},
+                1f32
+            );
 
-            db.update_location(camera,
-                Transform3D::new(0f32,
+            let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
+                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+
+            let trans = Transform3D::new(0f32,
                                  rot.normalize(),
-                                 Vec3::new(0f32, 0f32, 0f32)));
+                                 Vec3::new(0f32, 0f32, 0f32));
+            let pos_v = trans.rotate().to_mat4().mul_v(&input_vec);
+            let new_pos = Vec3::new(pos_v.x, pos_v.y, pos_v.z);
+            pos = pos.add_v(&new_pos);
+
+
+            let rot =  Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()).mul_q(
+                      &Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad())).normalize();
+
+            
+            
+            //pos = new_pos;
+
+
+            let trans = Transform3D::new(0f32,
+                                 rot.normalize(),
+                                 pos);
+
+            db.update_location(camera, trans);
 
             ren.update(db.clone());
 
