@@ -35,36 +35,44 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> ObjectCull<IN>
     }
 }
 
+
+
 impl<'a, IN: Iterator<(object_key, Mat4<f32>)>>
      Iterator<(object_key, Mat4<f32>)> for ObjectCull<IN>
 {
     #[inline]
     fn next(&mut self) -> Option<(object_key, Mat4<f32>)>
     {
+        static cube_points: &'static [Vec4<f32>] = &'static [
+            Vec4{x:1., y:  1., z:  1., w: 1.}, Vec4{x:-1., y:  1., z:  1., w: 1.},
+            Vec4{x:1., y: -1., z:  1., w: 1.}, Vec4{x:-1., y: -1., z:  1., w: 1.},
+            Vec4{x:1., y:  1., z: -1., w: 1.}, Vec4{x:-1., y:  1., z: -1., w: 1.},
+            Vec4{x:1., y: -1., z: -1., w: 1.}, Vec4{x:-1., y: -1., z: -1., w: 1.},
+        ];
+
         loop {
             match self.input.next() {
                 Some((oid, mat)) => {
                     let proj = self.camera.mul_m(&mat);
-                    let points = &mut [
-                        Vec4::new(1f32,  1f32,  1f32, 1f32), Vec4::new(-1f32,  1f32,  1f32, 1f32),
-                        Vec4::new(1f32, -1f32,  1f32, 1f32), Vec4::new(-1f32, -1f32,  1f32, 1f32),
-                        Vec4::new(1f32,  1f32, -1f32, 1f32), Vec4::new(-1f32,  1f32, -1f32, 1f32),
-                        Vec4::new(1f32, -1f32, -1f32, 1f32), Vec4::new(-1f32, -1f32, -1f32, 1f32),
-                    ];
 
-                    for i in range(0, points.len()) {
-                        let new = proj.mul_v(&points[i]);
-                        points[i] = new.mul_s(1./new.w);
+                    let mut behind_camera = true;
+                    let mut right_of_camera = true;
+                    let mut left_of_camera = true;
+                    let mut above_camera = true;
+                    let mut below_camera = true;
+
+                    for p in cube_points.iter() {
+                        let point = proj.mul_v(p);
+                        let point = point.mul_s(1./point.w);
+
+                        behind_camera &= point.z > 1.;
+                        right_of_camera &= point.x > 1.;
+                        left_of_camera &= point.x < -1.;
+                        above_camera &= point.y > 1.;
+                        below_camera &= point.y < -1.;
                     }
 
-                    let mut infront = false;
-                    for point in points.iter() {
-                        infront |= (point.x < 1.) && (point.x > -1.) &&
-                                   (point.y < 1.) && (point.y > -1.) &&
-                                   (point.z < 1.);
-                    }
-
-                    if infront {
+                    if !(behind_camera|right_of_camera|left_of_camera|above_camera|below_camera) {
                         return Some((oid, mat));
                     }
                 },

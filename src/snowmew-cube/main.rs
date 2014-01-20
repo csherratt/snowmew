@@ -324,8 +324,8 @@ fn main() {
 
 fn main() {
     do glfw::start {
-        let width = 1024 as uint;
-        let height = 768 as uint;
+        let width = 1920 as uint;
+        let height = 1080 as uint;
         println!("{} {}", width, height);
         glfw::window_hint::context_version(4, 0);
         glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
@@ -333,7 +333,7 @@ fn main() {
 
         let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
         window.make_context_current();
-        glfw::set_swap_interval(0);
+        glfw::set_swap_interval(1);
 
         gl::load_with(glfw::get_proc_address);
 
@@ -353,13 +353,13 @@ fn main() {
 
         let camera = db.new_object(None, ~"camera");
         let scene = db.new_object(None, ~"scene");
-        for y in range(-30, 30) { for x in range(-30, 30) {for z in range(-30, 30) {
+        for y in range(-10, 10) { for x in range(-10, 10) {for z in range(-10, 10) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
             let x = (x*5) as f32;
             let y = (y*5) as f32;
             let z = (z*5) as f32;
             db.update_location(cube_id,
-                Transform3D::new(1f32, Quat::from_euler(deg(45f32).to_rad(), deg(45f32).to_rad(), deg(45f32).to_rad()), Vec3::new(y, x, z)));
+                Transform3D::new(0.5f32, Quat::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
             db.set_draw(cube_id, geometry, shader);
         }}}
 
@@ -378,12 +378,12 @@ fn main() {
             glfw::poll_events();
             let start = precise_time_s();
 
-            x += 0.1;
+            x += 0.5;
 
             db.update_location(camera,
-                Transform3D::new(1f32,
-                                 Quat::from_euler(deg(x).to_rad(), deg(x).to_rad(), deg(x).to_rad()),
-                                 Vec3::new(0f32, 0f32, 0f32)));
+                Transform3D::new(5f32,
+                                 Quat::from_euler(deg(x).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
+                                 Vec3::new(0f32, 0f32, -50f32)));
 
             ren.update(db.clone());
 

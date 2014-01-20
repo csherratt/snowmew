@@ -20,7 +20,7 @@ use cgmath::matrix::{ToMat4, Matrix};
 use drawlist::{ObjectCull, Expand, DrawCommand, Draw, BindShader, BindVertexBuffer, SetMatrix};
 use drawlist_cl::{ObjectCullOffloadContext};
 
-use cgmath::matrix::{Mat4, ToMat4, Matrix};
+use cgmath::matrix::{Mat4, ToMat4, Matrix, ToMat3};
 use cgmath::vector::{Vec4, Vector};
 
 use snowmew::core::{object_key, IterObjs};
@@ -41,7 +41,7 @@ pub struct RenderManager {
 fn render_db<'a>(db: db::Graphics, scene: i32, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>,
     cull_cl: &mut ObjectCullOffloadContext)
 {
-    let mut list = Expand::new(cull_cl.iter(db.current.walk_drawables(scene), camera), &db);
+    let mut list = Expand::new(db.current.walk_drawables(scene), &db);
 
     let mut out = vec::with_capacity(512);
     for cmd in list {
@@ -101,10 +101,17 @@ impl RenderManager
     pub fn render(&mut self, scene: i32, camera: i32)
     {
         let projection = cgmath::projection::perspective(
-            cgmath::angle::deg(72f32), 1024f32/768f32, 0.01f32, 1000f32
+            cgmath::angle::deg(60f32), 1920f32/1080f32, 0.01f32, 1000f32
         );
         let camera = self.db.current.location(camera).unwrap();
-        let projection = projection.mul_m(&camera.get().to_mat4());
+        let camera = camera.translate().rotate().to_mat4();
+
+
+        let projection = projection.mul_m(&camera);
+
+        let vec = Vec4::new(0_f32, 0_f32, 0_f32, 1_f32);
+        let vec = projection.mul_v(&vec);
+        let vec = Vec4::new(vec.x/vec.w, vec.y/vec.w, vec.z/vec.w, vec.z/vec.w);
 
         self.render_chan.send((self.db.clone(), scene, projection));
 

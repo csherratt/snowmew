@@ -34,6 +34,8 @@ class Module:
         dep +=  " ".join(mods[m].ename for m in self.dep_modules)
         dep = ": ".join(["test/%s" % self.name, " ".join([self.ename, "src/%s/test.rs" % self.name, dep.split(": ", 2)[1]])])
         how = "%s\n\trustc $(RUST_FLAGS) --test -o test/%s %s %s src/%s/test.rs\n" % (dep, self.name, self.flags, self.other_flags, self.name)
+        how += "\ntest/.%s.check: test/%s\n" % (self.name, self.name)
+        how += "\t./test/%s && touch test/.%s.check\n" % (self.name, self.name)
         return how
 
 class Lib(Module):
@@ -63,6 +65,32 @@ class Bin(Module):
             self.dep_modules = []
 
 
+def write_makefile(modules):
+    modules = {m.name: m for m in modules}
+
+    rules = "\n".join(m.make_rule(modules) for m in modules.values()) + "\n"
+    rules += "\n".join(m.make_test_rules(modules) for m in modules.values() if m.has_tests())
+    all = " ".join(m.ename for m in modules.values())
+
+    with open("Makefile", "w+") as f:
+        f.write("RUST_FLAGS=--opt-level=3 -L lib\n")
+        f.write("\n")
+        f.write("all: lib bin test %s\n" % all)
+        f.write("\n")
+        f.write("lib:\n\tmkdir lib\n")
+        f.write("\n")
+        f.write("bin:\n\tmkdir bin\n")
+        f.write("\n")
+        f.write("test:\n\tmkdir test\n")
+        f.write("\n")
+        f.write("check: test test/.check\n")
+        f.write("\n")
+        f.write("test/.check: lib test %s\n" % " ".join("test/.%s.check" % m.name for m in modules.values() if m.has_tests()))
+        f.write("\n")
+        f.write("clean:\n\trm -r lib bin test\n")
+        f.write("\n")
+        f.write(rules) 
+
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
@@ -71,30 +99,6 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render"]),
            Lib("gl"),
            Lib("glfw", other_flags="--link-args=-lglfw"),
            Lib("OpenCL"),
-           Lib("octtree", ["cow"])]
+           Lib("octtree", ["cow", "cgmath"])]
 
-modules = {m.name: m for m in modules}
-
-rules = "\n".join(m.make_rule(modules) for m in modules.values()) + "\n"
-rules += "\n".join(m.make_test_rules(modules) for m in modules.values() if m.has_tests())
-all = " ".join(m.ename for m in modules.values())
-
-with open("Makefile", "w+") as f:
-    f.write("RUST_FLAGS=--opt-level=3 -L lib\n")
-    f.write("\n")
-    f.write("all: lib bin test %s\n" % all)
-    f.write("\n")
-    f.write("lib:\n\tmkdir lib\n")
-    f.write("\n")
-    f.write("bin:\n\tmkdir bin\n")
-    f.write("\n")
-    f.write("test:\n\tmkdir test\n")
-    f.write("\n")
-    f.write("check: test test/.check\n")
-    f.write("\n")
-    f.write("test/.check: lib test %s\n" % " ".join("test/%s" % m.name for m in modules.values() if m.has_tests()))
-    f.write("\t"+" && ".join("./test/%s" % m.name for m in modules.values() if m.has_tests()) + " && touch test/.check\n")
-    f.write("\n")
-    f.write("clean:\n\trm -r lib bin test\n")
-    f.write("\n")
-    f.write(rules)
+write_makefile(modules)

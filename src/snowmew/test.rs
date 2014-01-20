@@ -66,15 +66,18 @@ mod core {
         let child_id1 = db.new_object(Some(id), ~"child_1");
         let child_id1_0 = db.new_object(Some(child_id1), ~"child_1_0");
 
-        let trans = Transform3D::new(1f32,
+        let trans1 = Transform3D::new(0.25f32,
                         Quat::new(0f32, 0f32, 0f32, 0f32),
-                        Vec3::new(1f32, 1f32, 1f32));
+                        Vec3::new(3f32, 3f32, 3f32));
 
+        let trans2 = Transform3D::new(1f32,
+                        Quat::new(0f32, 0f32, 0f32, 0f32),
+                        Vec3::new(9f32, 9f32, 9f32));
 
-        db.update_location(id, trans.clone());
-        db.update_location(child_id0, trans.clone());
-        db.update_location(child_id1, trans.clone());
-        db.update_location(child_id1_0, trans.clone());
+        db.update_location(id, trans1.clone());
+        db.update_location(child_id0, trans1.clone());
+        db.update_location(child_id1, trans2.clone());
+        db.update_location(child_id1_0, trans2.clone());
 
         let draw = Drawable{
             shader: 1,
@@ -87,15 +90,15 @@ mod core {
         db.update_drawable(child_id1_0, draw.clone());
 
         let mut map = HashMap::new();
-        let mat = trans.get().to_mat4();
+        let mat1 = trans1.get().to_mat4();
+        let mat2 = trans2.get().to_mat4();
 
-        map.insert(child_id0, mat.mul_m(&mat));
-        map.insert(child_id1, mat.mul_m(&mat));
-        map.insert(child_id1_0, mat.mul_m(&mat.mul_m(&mat)));
+        map.insert(child_id0, mat1.mul_m(&mat1));
+        map.insert(child_id1, mat1.mul_m(&mat2));
+        map.insert(child_id1_0, mat1.mul_m(&mat2.mul_m(&mat2)));
 
-        for (id, mat, d) in db.walk_drawables(id) {
+        for (id, mat) in db.walk_drawables(id) {
             assert!(map.find(&id).unwrap() == &mat);
-            assert!(&draw == d);
         }
     }
 }

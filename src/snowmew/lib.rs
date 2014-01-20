@@ -10,6 +10,7 @@ extern mod std;
 extern mod glfw;
 extern mod cgmath;
 extern mod cow;
+extern mod octtree;
 
 pub mod core;
 pub mod geometry;

@@ -2,11 +2,15 @@
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_set_to_map, JoinMapSetIterator};
 
+use octtree::{Sphere, OctTree};
+
 use geometry::{Geometry, VertexBuffer};
 use shader::Shader;
 
 use cgmath::transform::*;
 use cgmath::matrix::*;
+use cgmath::quaternion::*;
+use cgmath::vector::*;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -32,9 +36,31 @@ pub struct Drawable
 
 pub type object_key = i32;
 
-#[deriving(Clone, Default)]
 pub struct Location {
     priv trans: Transform3D<f32>
+}
+
+impl Default for Location
+{
+    fn default() -> Location
+    {
+        Location {
+            trans: Transform3D::new(1f32, Quat::zero(), Vec3::zero())
+        }
+    }
+}
+
+impl Clone for Location
+{
+    fn clone(&self) -> Location
+    {
+        let tras = self.trans.get();
+        Location {
+            trans: Transform3D::new(tras.scale.clone(),
+                                    tras.rot.clone(),
+                                    tras.disp.clone())
+        }
+    }
 }
 
 #[deriving(Clone)]
@@ -53,6 +79,7 @@ pub struct Database {
     // --- indexes ---
     // map all children to a parent
     priv index_parent_child: BTreeMap<i32, BTreeSet<object_key>>,
+    priv position: OctTree<f32, Sphere<f32>, object_key>
 }
 
 impl Database {
@@ -71,6 +98,7 @@ impl Database {
             // --- indexes ---
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
+            position: OctTree::new(1000f32)
         }
     }
 
@@ -120,9 +148,31 @@ impl Database {
         new_key
     }
 
+    fn get_position(&self, oid: object_key) -> Mat4<f32>
+    {
+        let obj = self.objects.find(&oid);
+        let p_mat = match obj {
+            Some(obj) => self.get_position(obj.parent),
+            None => Mat4::identity()
+        };
+
+        let loc = match self.location(oid) {
+            Some(t) => {t.get().to_mat4()},
+            None => Mat4::identity()
+        };
+        p_mat.mul_m(&loc)
+    }
+
+    fn set_position(&mut self, oid: object_key)
+    {
+        let sphere = Sphere::from_mat4(&self.get_position(oid));
+        self.position.insert(sphere, oid);
+    }
+
     pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
     {
         self.location.insert(key, Location{trans: location});
+        //self.set_position(key);
     }
 
     pub fn location<'a>(&'a self, key: object_key) -> Option<&'a Transform3D<f32>>

@@ -82,31 +82,29 @@ bounds_check(global Mat4 *in, global char *out, global Mat4 *proj)
 {
     int i;
     bool visible = true;
-    f4 point[8];
     int index = get_global_id(0);
 
     if (index < get_global_size(0)) {
         Mat4 mat = mult_m(proj[0], in[index]);
-
-        for (i=0; i<8; i++) {
-            point[i] = mult_v(mat, corner[i]);
-            float inv = 1. / point[i].w;
-            point[i].x *= inv;
-            point[i].y *= inv;
-            point[i].z *= inv;
-        }
 
         bool behind_camera = true;
         bool right_of_camera = true;
         bool left_of_camera = true;
         bool above_camera = true;
         bool below_camera = true;
+
         for (i=0; i<8; i++) {
-            behind_camera &= point[i].z > 1.;
-            right_of_camera &= point[i].x > 1.;
-            left_of_camera &= point[i].x < -1.;
-            above_camera &= point[i].y > 1.;
-            below_camera &= point[i].y < -1.;
+            f4 point = mult_v(mat, corner[i]);
+            float inv = 1. / point.w;
+            point.x *= inv;
+            point.y *= inv;
+            point.z *= inv;
+
+            behind_camera &= point.z > 1.;
+            right_of_camera &= point.x > 1.;
+            left_of_camera &= point.x < -1.;
+            above_camera &= point.y > 1.;
+            below_camera &= point.y < -1.;
         }
 
         out[index] = (behind_camera|
@@ -116,7 +114,7 @@ bounds_check(global Mat4 *in, global char *out, global Mat4 *proj)
 }
 ";
 
-static size: uint = 16*1024;
+static size: uint = 32*1024;
 
 pub struct ObjectCullOffloadContext
 {
