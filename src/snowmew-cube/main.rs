@@ -22,7 +22,7 @@ use render::RenderManager;
 use cgmath::quaternion::*;
 use cgmath::transform::*;
 use cgmath::vector::*;
-use cgmath::angle::{ToRad, deg};
+use cgmath::angle::{ToRad, deg, rad};
 
 use extra::time::precise_time_s;
 
@@ -333,7 +333,7 @@ fn main() {
 
         let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
         window.make_context_current();
-        glfw::set_swap_interval(1);
+        glfw::set_swap_interval(0);
 
         gl::load_with(glfw::get_proc_address);
 
@@ -353,7 +353,7 @@ fn main() {
 
         let camera = db.new_object(None, ~"camera");
         let scene = db.new_object(None, ~"scene");
-        for y in range(-10, 10) { for x in range(-10, 10) {for z in range(-10, 10) {
+        for y in range(-30, 30) { for x in range(-30, 30) {for z in range(-30, 30) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
             let x = (x*5) as f32;
             let y = (y*5) as f32;
@@ -372,18 +372,39 @@ fn main() {
         let mut ren = RenderManager::new(db.clone());
         ren.load();
 
-        let mut x = 45f32;
+        window.set_cursor_mode(glfw::CursorDisabled);
+
+        glfw::poll_events();
+        let (wx, wy) = window.get_size();
+        let (wx, wy) = (wx as f64, wy as f64);
+        window.set_cursor_pos(wx/2., wy/2.);
+
+        let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
 
         while !window.should_close() {
             glfw::poll_events();
             let start = precise_time_s();
 
-            x += 0.5;
+            let (x, y) = window.get_cursor_pos();
+            let (wx, wy) = window.get_size();
+            let (wx, wy) = (wx as f64, wy as f64);
+            window.set_cursor_pos(wx/2., wy/2.);
+
+            rot_x += (x - wx/2.) / 1.5;
+            rot_y += (y - wy/2.) / 1.5;
+
+            println!("{:?} {:?}", rot_x, rot_y);
+
+
+            rot_y = rot_y.max(&-90.).min(&90.);
+
+            let rot =  Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()).mul_q(
+                      &Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad()));
 
             db.update_location(camera,
-                Transform3D::new(5f32,
-                                 Quat::from_euler(deg(x).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                                 Vec3::new(0f32, 0f32, -50f32)));
+                Transform3D::new(0f32,
+                                 rot.normalize(),
+                                 Vec3::new(0f32, 0f32, 0f32)));
 
             ren.update(db.clone());
 

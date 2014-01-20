@@ -41,7 +41,7 @@ pub struct RenderManager {
 fn render_db<'a>(db: db::Graphics, scene: i32, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>,
     cull_cl: &mut ObjectCullOffloadContext)
 {
-    let mut list = Expand::new(db.current.walk_drawables(scene), &db);
+    let mut list = Expand::new(cull_cl.iter(db.current.walk_drawables(scene), camera), &db);
 
     let mut out = vec::with_capacity(512);
     for cmd in list {

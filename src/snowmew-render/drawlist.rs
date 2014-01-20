@@ -4,7 +4,7 @@ use db::Graphics;
 use snowmew::core::{object_key, Drawable};
 
 use std::cmp::TotalOrd;
-use std::vec::VecIterator;
+use std::vec::Items;
 use std::vec;
 
 use cow::btree::BTreeMap;
