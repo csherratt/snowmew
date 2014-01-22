@@ -12,7 +12,7 @@ use cgmath::matrix::*;
 use cgmath::quaternion::*;
 use cgmath::vector::*;
 
-use std::trie::TrieSet;
+use bitmap::BitMapSet;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -310,8 +310,8 @@ impl Database {
 
     pub fn walk_drawables<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterObjs<'a>
     {
-        let mut set = TrieSet::new();
-        self.position.quary(camera, |_, val| {set.insert(*val);});
+        let mut set = BitMapSet::new(1024*1024);
+        self.position.quary(camera, |_, val| {set.set(*val);});
 
         let mat = match self.location.find(&oid) {
             Some(loc) => loc.trans.get().to_mat4(),
@@ -360,7 +360,7 @@ struct IterObjsLayer<'a>
 pub struct IterObjs<'a>
 {
     priv db: &'a Database,
-    priv view_set: TrieSet,
+    priv view_set: BitMapSet,
     priv stack: ~[IterObjsLayer<'a>]
 }
 
@@ -377,7 +377,7 @@ impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
 
             match self.stack[len-1].child_iter.next() {
                 Some((object_key, loc)) => {
-                    if self.view_set.contains(object_key) {
+                    if self.view_set.check(*object_key) {
                         let mat = self.stack[len-1].mat.mul_m(&loc.trans.get().to_mat4());
 
                         match self.db.index_parent_child.find(object_key) {

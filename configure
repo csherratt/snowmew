@@ -92,13 +92,14 @@ def write_makefile(modules):
         f.write(rules) 
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render"]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "bitmap-set"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
            Lib("glfw", other_flags="--link-args=-lglfw"),
            Lib("OpenCL"),
-           Lib("octtree", ["cow", "cgmath"])]
+           Lib("octtree", ["cow", "cgmath"]),
+           Lib("bitmap-set")]
 
 write_makefile(modules)

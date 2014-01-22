@@ -12,6 +12,7 @@ extern mod cgmath;
 extern mod cow;
 extern mod octtree;
 extern mod extra;
+extern mod bitmap = "bitmap-set";
 
 pub mod core;
 pub mod geometry;
