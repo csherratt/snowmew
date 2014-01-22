@@ -11,11 +11,8 @@ extern mod cgmath;
 extern mod native;
 extern mod extra;
 
-use std::default;
-
-use snowmew::core::{Object, Database};
+use snowmew::core::Database;
 use snowmew::shader::Shader;
-use snowmew::geometry::Geometry;
 
 use render::RenderManager;
 
@@ -23,7 +20,7 @@ use cgmath::quaternion::*;
 use cgmath::transform::*;
 use cgmath::vector::*;
 use cgmath::matrix::*;
-use cgmath::angle::{ToRad, deg, rad};
+use cgmath::angle::{ToRad, deg};
 
 use extra::time::precise_time_s;
 
@@ -46,109 +43,6 @@ in vec3 UV;\n \
 void main() {
     colour = vec4(UV.x, UV.y, UV.z, 1);
 }";
-
-static LINE_VS_SRC: &'static str =
-"#version 400
-uniform mat4 mat; 
-in vec3 position;
-out vData {
-    vec3 UV;
-} vertex; 
-
-void main() {
-    gl_Position = mat * vec4(position, 1.);
-    vertex.UV = vec3(position.x, position.y, position.z); 
-}";
-
-static LINE_FS_SRC: &'static str =
-"#version 400
-in fData {
-    vec3 UV;
-} frag;
-out vec4 colour;
-void main() {
-    colour = vec4(frag.UV.x * 0.65, frag.UV.y * 0.65, frag.UV.z * 0.65, 1);
-}";
-
-static LINE_GS_SRC: &'static str =
-"#version 400
-layout(triangles_adjacency) in;
-layout(triangle_strip, max_vertices = 24) out;
-
-in vData {
-    vec3 UV;
-} vertices[];
-
-out fData {
-    vec3 UV;
-} frag;
-
-bool is_front(vec3 A, vec3 B, vec3 C, vec3 camera)
-{
-    return dot(cross(A-B, A-C), camera) > 0;
-}
-
-void emit(vec3 vec, vec3 UV)
-{
-    gl_Position = vec4(vec.xy, 0, 1.);
-    frag.UV = UV;
-    EmitVertex();
-}
-
-void emit_line(int a, int b)
-{
-    vec3 A = gl_in[a].gl_Position.xyz / gl_in[a].gl_Position.w;
-    vec3 B = gl_in[b].gl_Position.xyz / gl_in[b].gl_Position.w;
-
-    vec3 V = normalize(B - A);
-    vec3 N = vec3(-V.y, V.x, 0.) * 0.002;
-
-    vec3 vec_a = A - N;
-    vec3 vec_b = A + N;
-    vec3 vec_c = B - N;
-    vec3 vec_d = B + N;
-
-    vec3 UV_A = vertices[a].UV.xyz;
-    vec3 UV_B = vertices[b].UV.xyz;
-
-    vec3 UV_V = normalize(UV_B - UV_A);
-    vec3 UV_N = vec3(-UV_V.y, UV_V.x, 0.) * 0.002;
-
-    vec3 uv_a = UV_A - UV_N;
-    vec3 uv_b = UV_A + UV_N;
-    vec3 uv_c = UV_B - UV_N;
-    vec3 uv_d = UV_B + UV_N;
-
-    emit(vec_d, uv_d);
-    emit(vec_b, uv_b); 
-    emit(vec_c, uv_c);
-    emit(vec_a, uv_a);
-
-    EndPrimitive();
-}
-
-void main() {
-    vec3 v0 = gl_in[0].gl_Position.xyz / gl_in[0].gl_Position.w;
-    vec3 v1 = gl_in[1].gl_Position.xyz / gl_in[1].gl_Position.w;
-    vec3 v2 = gl_in[2].gl_Position.xyz / gl_in[2].gl_Position.w;
-    vec3 v3 = gl_in[3].gl_Position.xyz / gl_in[3].gl_Position.w;
-    vec3 v4 = gl_in[4].gl_Position.xyz / gl_in[4].gl_Position.w;
-    vec3 v5 = gl_in[5].gl_Position.xyz / gl_in[5].gl_Position.w;
-
-    if (is_front(v0, v2, v4, vec3(0., 0., -1.))) {
-        if (!is_front(v0, v1, v2, vec3(0., 0., -1.))) {
-            emit_line(0, 2);
-        }
-        if (!is_front(v2, v3, v4, vec3(0., 0., -1.))) {
-            emit_line(2, 4);
-        }
-        if (!is_front(v4, v5, v0, vec3(0., 0., -1.))) {
-            emit_line(4, 0);
-        }
-    }
-}
-";
-
 
 static VERTEX_DATA: [f32, ..24] = [
     -1., -1.,  1.,
@@ -334,7 +228,7 @@ fn main() {
 
         let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
         window.make_context_current();
-        glfw::set_swap_interval(0);
+        glfw::set_swap_interval(1);
 
         gl::load_with(glfw::get_proc_address);
 
@@ -354,7 +248,10 @@ fn main() {
 
         let camera = db.new_object(None, ~"camera");
         let scene = db.new_object(None, ~"scene");
-        for y in range(-25, 25) { for x in range(-25, 25) {for z in range(-25, 25) {
+
+        let size = 25;
+
+        for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
             let x = (x*5) as f32;
             let y = (y*5) as f32;
@@ -420,10 +317,6 @@ fn main() {
 
             let rot =  Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()).mul_q(
                       &Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad())).normalize();
-
-            
-            
-            //pos = new_pos;
 
 
             let trans = Transform3D::new(0f32,

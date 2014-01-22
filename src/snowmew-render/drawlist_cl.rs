@@ -1,13 +1,12 @@
 use std::vec;
 
-use cgmath::matrix::{Matrix, Mat4};
+use cgmath::matrix::{Mat4};
 
 use OpenCL::CL::{CL_MEM_WRITE_ONLY, CL_MEM_READ_ONLY};
 use OpenCL::mem::{CLBuffer, Buffer};
-use OpenCL::hl::{Context, CommandQueue, Program, Kernel, Device, KernelArg};
+use OpenCL::hl::{Context, CommandQueue, Program, Kernel, Device};
 
-use db::Graphics;
-use snowmew::core::{object_key, Drawable};
+use snowmew::core::{object_key};
 
 
 static source: &'static str = &"

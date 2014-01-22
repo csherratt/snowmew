@@ -2,7 +2,7 @@
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_set_to_map, JoinMapSetIterator};
 
-use octtree::{Sphere, OctTree};
+use octtree::{Cube, OctTree};
 
 use geometry::{Geometry, VertexBuffer};
 use shader::Shader;
@@ -11,6 +11,8 @@ use cgmath::transform::*;
 use cgmath::matrix::*;
 use cgmath::quaternion::*;
 use cgmath::vector::*;
+
+use std::trie::TrieSet;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -34,7 +36,7 @@ pub struct Drawable
     textures: ~[object_key],
 }
 
-pub type object_key = i32;
+pub type object_key = uint;
 
 pub struct Location {
     priv trans: Transform3D<f32>
@@ -65,7 +67,7 @@ impl Clone for Location
 
 #[deriving(Clone)]
 pub struct Database {
-    priv last_key: i32,
+    priv last_key: object_key,
 
     // raw data
     priv objects: BTreeMap<object_key, Object>,
@@ -78,8 +80,8 @@ pub struct Database {
 
     // --- indexes ---
     // map all children to a parent
-    priv index_parent_child: BTreeMap<i32, BTreeSet<object_key>>,
-    priv position: OctTree<f32, Sphere<f32>, object_key>
+    priv index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
+    priv position: OctTree<f32, Cube<f32>, object_key>
 }
 
 impl Database {
@@ -98,7 +100,7 @@ impl Database {
             // --- indexes ---
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
-            position: OctTree::new(1000f32)
+            position: OctTree::new(1000f32, 0.1f32)
         }
     }
 
@@ -165,14 +167,25 @@ impl Database {
 
     fn set_position(&mut self, oid: object_key)
     {
-        let sphere = Sphere::from_mat4(&self.get_position(oid));
+        let sphere = Cube::from_mat4(&self.get_position(oid));
         self.position.insert(sphere, oid);
+    }
+
+    fn update_position(&mut self, oid: object_key, old: &Mat4<f32>)
+    {
+        let old = Cube::from_mat4(old);
+        self.position.remove(old);
+        self.set_position(oid);
     }
 
     pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
     {
-        self.location.insert(key, Location{trans: location});
-        //self.set_position(key);
+        let old = self.get_position(key);
+        if self.location.insert(key, Location{trans: location}) {
+            self.update_position(key, &old);
+        } else {
+            self.set_position(key);
+        }
     }
 
     pub fn location<'a>(&'a self, key: object_key) -> Option<&'a Transform3D<f32>>
@@ -295,8 +308,11 @@ impl Database {
         );
     }
 
-    pub fn walk_drawables<'a>(&'a self, oid: object_key) -> IterObjs<'a>
+    pub fn walk_drawables<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterObjs<'a>
     {
+        let mut set = TrieSet::new();
+        self.position.quary(camera, |_, val| {set.insert(*val);});
+
         let mat = match self.location.find(&oid) {
             Some(loc) => loc.trans.get().to_mat4(),
             None => Mat4::identity()
@@ -317,6 +333,7 @@ impl Database {
 
         IterObjs {
             db: self,
+            view_set: set,
             stack: stack
         }
     }
@@ -343,6 +360,7 @@ struct IterObjsLayer<'a>
 pub struct IterObjs<'a>
 {
     priv db: &'a Database,
+    priv view_set: TrieSet,
     priv stack: ~[IterObjsLayer<'a>]
 }
 
@@ -359,19 +377,21 @@ impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
 
             match self.stack[len-1].child_iter.next() {
                 Some((object_key, loc)) => {
-                    let mat = self.stack[len-1].mat.mul_m(&loc.trans.get().to_mat4());
+                    if self.view_set.contains(object_key) {
+                        let mat = self.stack[len-1].mat.mul_m(&loc.trans.get().to_mat4());
 
-                    match self.db.index_parent_child.find(object_key) {
-                        Some(set) => {
-                            self.stack.push(IterObjsLayer {
-                                mat: mat,
-                                child_iter: join_set_to_map(set.iter(), self.db.location.iter())
-                            });
-                        },
-                        None => ()
+                        match self.db.index_parent_child.find(object_key) {
+                            Some(set) => {
+                                self.stack.push(IterObjsLayer {
+                                    mat: mat,
+                                    child_iter: join_set_to_map(set.iter(), self.db.location.iter())
+                                });
+                            },
+                            None => ()
+                        }
+
+                        return Some((*object_key, mat))
                     }
-
-                    return Some((*object_key, mat))
                 },
                 None => { self.stack.pop(); }
             }

@@ -1,22 +1,9 @@
-use cgmath::matrix::{Mat4, ToMat4, Matrix};
+use cgmath::matrix::{Mat4, Matrix};
 use cgmath::vector::{Vec4, Vector};
 use db::Graphics;
-use snowmew::core::{object_key, Drawable};
-
-use std::cmp::TotalOrd;
-use std::vec::Items;
-use std::vec;
-
-use cow::btree::BTreeMap;
-use cow::btree::BTreeMapIterator;
+use snowmew::core::{object_key};
 
 use snowmew::geometry::Geometry;
-use vertex_buffer::VertexBuffer;
-use shader::Shader;
-
-use OpenCL::CL::CL_MEM_READ_WRITE;
-use OpenCL::mem::CLBuffer;
-use OpenCL::hl::{Context, CommandQueue};
 
 pub struct ObjectCull<IN>
 {

@@ -75,14 +75,14 @@ impl VertexBuffer {
     }
 }
 
-impl Drop for VertexBuffer
-{
-    fn drop(&mut self)
-    {
-        unsafe {
+//impl Drop for VertexBuffer
+//{
+    //fn drop(&mut self)
+    //{
+        //unsafe {
             //gl::DeleteVertexArrays(1, &self.vertex_array);
             //gl::DeleteBuffers(1, &self.vertex_buffer);
             //gl::DeleteBuffers(1, &self.index_buffer);
-        }
-    }
-}
+        //}
+   //}
+//}

@@ -2,6 +2,7 @@
 #[license = "ASL2"];
 #[crate_type = "lib"];
 #[comment = "A game engine in rust"];
+#[allow(dead_code)];
 
 extern mod std;
 extern mod glfw;
@@ -15,15 +16,13 @@ use std::ptr;
 use std::vec;
 use std::comm::{Chan, Port};
 
-use cgmath::matrix::{ToMat4, Matrix};
 //use drawlist::Drawlist;
-use drawlist::{ObjectCull, Expand, DrawCommand, Draw, BindShader, BindVertexBuffer, SetMatrix};
+use drawlist::{Expand, DrawCommand, Draw, BindShader, BindVertexBuffer, SetMatrix};
 use drawlist_cl::{ObjectCullOffloadContext};
 
-use cgmath::matrix::{Mat4, ToMat4, Matrix, ToMat3};
-use cgmath::vector::{Vec4, Vector};
+use cgmath::matrix::{Mat4, ToMat4, Matrix};
 
-use snowmew::core::{object_key, IterObjs};
+use snowmew::core::{object_key};
 
 mod db;
 mod shader;
@@ -34,14 +33,14 @@ mod drawlist_cl;
 
 pub struct RenderManager {
     db: db::Graphics,
-    render_chan: Chan<(db::Graphics, i32, Mat4<f32>)>,
+    render_chan: Chan<(db::Graphics, object_key, Mat4<f32>)>,
     result_port: Port<Option<~[DrawCommand]>>,
 }
 
-fn render_db<'a>(db: db::Graphics, scene: i32, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>,
-    cull_cl: &mut ObjectCullOffloadContext)
+fn render_db<'a>(db: db::Graphics, scene: object_key, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>,
+    _: &mut ObjectCullOffloadContext)
 {
-    let mut list = Expand::new(cull_cl.iter(db.current.walk_drawables(scene), camera), &db);
+    let mut list = Expand::new(db.current.walk_drawables(scene, &camera), &db);
 
     let mut out = vec::with_capacity(512);
     for cmd in list {
@@ -52,6 +51,7 @@ fn render_db<'a>(db: db::Graphics, scene: i32, camera: Mat4<f32>, chan: &Chan<Op
             out = vec::with_capacity(512);
         }
     }
+
     chan.send(Some(out));
     chan.send(None);
 }
@@ -68,7 +68,7 @@ impl RenderManager
         gl::Enable(gl::BLEND);
         gl::CullFace(gl::BACK);
 
-        let (render_port, render_chan): (Port<(db::Graphics, i32, Mat4<f32>)>, Chan<(db::Graphics, i32, Mat4<f32>)>) = Chan::new();
+        let (render_port, render_chan): (Port<(db::Graphics, object_key, Mat4<f32>)>, Chan<(db::Graphics, object_key, Mat4<f32>)>) = Chan::new();
         let (result_port, result_chan): (Port<Option<~[DrawCommand]>>, Chan<Option<~[DrawCommand]>>) = Chan::new();
 
         do spawn {
@@ -98,20 +98,17 @@ impl RenderManager
         self.db.update(db);
     }
 
-    pub fn render(&mut self, scene: i32, camera: i32)
+    pub fn render(&mut self, scene: object_key, camera: object_key)
     {
         let projection = cgmath::projection::perspective(
-            cgmath::angle::deg(60f32), 1920f32/1080f32, 0.01f32, 1000f32
+            cgmath::angle::deg(60f32), 1920f32/1080f32, 1f32, 1000f32
         );
+
         let camera = self.db.current.location(camera).unwrap();
         let camera = camera.translate().rotate().to_mat4();
 
 
         let projection = projection.mul_m(&camera);
-
-        let vec = Vec4::new(0_f32, 0_f32, 0_f32, 1_f32);
-        let vec = projection.mul_v(&vec);
-        let vec = Vec4::new(vec.x/vec.w, vec.y/vec.w, vec.z/vec.w, vec.z/vec.w);
 
         self.render_chan.send((self.db.clone(), scene, projection));
 
