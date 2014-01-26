@@ -11,6 +11,8 @@ extern mod cgmath;
 extern mod native;
 extern mod extra;
 
+use std::num::{zero};
+
 use snowmew::core::Database;
 use snowmew::shader::Shader;
 
@@ -115,7 +117,8 @@ fn main() {
 
         let geometry = db.add_geometry(assets, ~"geo", geometry);
 
-        let camera = db.new_object(None, ~"camera");
+        let camera_dolly = db.new_object(None, ~"dolly");
+        let camera = db.new_object(Some(camera_dolly), ~"camera");
         let scene = db.new_object(None, ~"scene");
 
         let size = 25;
@@ -139,30 +142,38 @@ fn main() {
         let mut ren = RenderManager::new(db.clone());
         ren.load();
 
-        window.set_cursor_mode(glfw::CursorDisabled);
 
         glfw::poll_events();
-        let (wx, wy) = window.get_size();
-        let (wx, wy) = (wx as f64, wy as f64);
-        window.set_cursor_pos(wx/2., wy/2.);
-
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
-
         let mut pos = Vec3::new(0f32, 0f32, 0f32);
 
         while !window.should_close() {
             glfw::poll_events();
             let start = precise_time_s();
 
-            let (x, y) = window.get_cursor_pos();
-            let (wx, wy) = window.get_size();
-            let (wx, wy) = (wx as f64, wy as f64);
-            window.set_cursor_pos(wx/2., wy/2.);
 
-            rot_x += (x - wx/2.) / 3.;
-            rot_y += (y - wy/2.) / 3.;
+            match window.is_focused() {
+                true => {
+                    window.set_cursor_mode(glfw::CursorHidden);
+                    let (x, y) = window.get_cursor_pos();
+                    let (wx, wy) = window.get_size();
+                    let (wx, wy) = (wx as f64, wy as f64);
+                    window.set_cursor_pos(wx/2., wy/2.);
 
-            rot_y = rot_y.max(&-90.).min(&90.);
+                    rot_x += (x - wx/2.) / 3.;
+                    rot_y += (y - wy/2.) / 3.;
+
+                    rot_y = rot_y.max(&-90.).min(&90.);
+                },
+                false => {
+                    window.set_cursor_mode(glfw::CursorNormal);
+                }
+            }
+
+            if window.get_key(glfw::KeySpace) == glfw::Press {
+                rot_x = 0.;
+                rot_y = 0.;
+            }
 
             let input_vec = Vec4::new(
                 if window.get_key(glfw::KeyA) == glfw::Press {0.5f32} else {0f32} +
@@ -176,10 +187,10 @@ fn main() {
             let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
                       &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
 
-            let trans = Transform3D::new(0f32,
+            let trans = Transform3D::new(1f32,
                                  rot.normalize(),
                                  Vec3::new(0f32, 0f32, 0f32));
-            let pos_v = trans.rotate().to_mat4().mul_v(&input_vec);
+            let pos_v = trans.get().rot.to_mat3().to_mat4().mul_v(&input_vec);
             let new_pos = Vec3::new(pos_v.x, pos_v.y, pos_v.z);
             pos = pos.add_v(&new_pos);
 
@@ -188,11 +199,12 @@ fn main() {
                       &Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad())).normalize();
 
 
-            let trans = Transform3D::new(0f32,
-                                 rot.normalize(),
-                                 pos);
+            let dolly_trans = Transform3D::new(1f32, Quat::zero(), pos);
+            let camera_trans = Transform3D::new(1f32, rot.normalize(), zero());
 
-            db.update_location(camera, trans);
+
+            db.update_location(camera, camera_trans);
+            db.update_location(camera_dolly, dolly_trans);
 
             ren.update(db.clone());
 

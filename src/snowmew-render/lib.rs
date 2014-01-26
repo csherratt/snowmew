@@ -20,7 +20,7 @@ use std::comm::{Chan, Port};
 use drawlist::{Expand, DrawCommand, Draw, BindShader, BindVertexBuffer, SetMatrix};
 use drawlist_cl::{ObjectCullOffloadContext};
 
-use cgmath::matrix::{Mat4, ToMat4, Matrix};
+use cgmath::matrix::{Mat4, ToMat4, ToMat3, Matrix};
 
 use snowmew::core::{object_key};
 
@@ -104,9 +104,11 @@ impl RenderManager
             cgmath::angle::deg(60f32), 1920f32/1080f32, 1f32, 1000f32
         );
 
-        let camera = self.db.current.location(camera).unwrap();
-        let camera = camera.translate().rotate().to_mat4();
+        let camera_obj = self.db.current.object(camera).unwrap();
+        let camera_parent = self.db.current.position(camera_obj.parent);
+        let camera_trans = self.db.current.location(camera).unwrap();
 
+        let camera = camera_trans.get().rot.to_mat3().to_mat4().mul_m(&camera_parent);
 
         let projection = projection.mul_m(&camera);
 

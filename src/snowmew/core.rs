@@ -2,7 +2,10 @@
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_set_to_map, JoinMapSetIterator};
 
-use octtree::{Cube, OctTree};
+use octtree;
+use octtree::sparse::Sparse;
+use octtree::{Cube};
+use octtree::cl::MatrixSearchCL;
 
 use geometry::{Geometry, VertexBuffer};
 use shader::Shader;
@@ -13,6 +16,8 @@ use cgmath::quaternion::*;
 use cgmath::vector::*;
 
 use bitmap::BitMapSet;
+
+use OpenCL::util;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -81,7 +86,7 @@ pub struct Database {
     // --- indexes ---
     // map all children to a parent
     priv index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
-    priv position: OctTree<f32, Cube<f32>, object_key>
+    priv position: octtree::sparse::Sparse<f32, Cube<f32>, object_key>
 }
 
 impl Database {
@@ -100,7 +105,7 @@ impl Database {
             // --- indexes ---
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
-            position: OctTree::new(1000f32, 0.1f32)
+            position: octtree::sparse::Sparse::new(1000f32, 0.1f32)
         }
     }
 
@@ -131,6 +136,11 @@ impl Database {
         }
     }
 
+    pub fn object<'a>(&'a self, oid: object_key) -> Option<&'a Object>
+    {
+        self.objects.find(&oid)
+    }
+
     pub fn new_object(&mut self, parent: Option<object_key>, name: ~str) -> object_key
     {
         let new_key = self.new_key();
@@ -150,11 +160,11 @@ impl Database {
         new_key
     }
 
-    fn get_position(&self, oid: object_key) -> Mat4<f32>
+    pub fn position(&self, oid: object_key) -> Mat4<f32>
     {
         let obj = self.objects.find(&oid);
         let p_mat = match obj {
-            Some(obj) => self.get_position(obj.parent),
+            Some(obj) => self.position(obj.parent),
             None => Mat4::identity()
         };
 
@@ -167,7 +177,7 @@ impl Database {
 
     fn set_position(&mut self, oid: object_key)
     {
-        let sphere = Cube::from_mat4(&self.get_position(oid));
+        let sphere = Cube::from_mat4(&self.position(oid));
         self.position.insert(sphere, oid);
     }
 
@@ -180,7 +190,7 @@ impl Database {
 
     pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
     {
-        let old = self.get_position(key);
+        let old = self.position(key);
         if self.location.insert(key, Location{trans: location}) {
             self.update_position(key, &old);
         } else {
@@ -310,6 +320,9 @@ impl Database {
 
     pub fn walk_drawables<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterObjs<'a>
     {
+        //let (dev, ctx, queue) = util::create_compute_context_prefer(util::GPU_PREFERED).unwrap();
+        //let ctx = MatrixSearchCL::new(&ctx, &dev, queue);
+
         let mut set = BitMapSet::new(1024*1024);
         self.position.quary(camera, |_, val| {set.set(*val);});
 

@@ -13,6 +13,7 @@ extern mod cow;
 extern mod octtree;
 extern mod extra;
 extern mod bitmap = "bitmap-set";
+extern mod OpenCL;
 
 pub mod core;
 pub mod geometry;

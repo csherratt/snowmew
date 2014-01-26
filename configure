@@ -99,7 +99,7 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render"]),
            Lib("gl"),
            Lib("glfw", other_flags="--link-args=-lglfw"),
            Lib("OpenCL"),
-           Lib("octtree", ["cow", "cgmath"]),
+           Lib("octtree", ["cow", "cgmath", "OpenCL"]),
            Lib("bitmap-set")]
 
 write_makefile(modules)
