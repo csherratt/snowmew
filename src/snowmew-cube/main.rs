@@ -121,7 +121,7 @@ fn main() {
         let camera = db.new_object(Some(camera_dolly), ~"camera");
         let scene = db.new_object(None, ~"scene");
 
-        let size = 25;
+        let size = 30;
 
         for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
@@ -144,6 +144,10 @@ fn main() {
 
 
         glfw::poll_events();
+
+        let (wx, wy) = window.get_size();
+        window.set_cursor_pos(wx as f64 /2., wy as f64/2.);
+
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
         let mut pos = Vec3::new(0f32, 0f32, 0f32);
 

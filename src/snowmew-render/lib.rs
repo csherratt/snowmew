@@ -21,6 +21,7 @@ use drawlist::{Expand, DrawCommand, Draw, BindShader, BindVertexBuffer, SetMatri
 use drawlist_cl::{ObjectCullOffloadContext};
 
 use cgmath::matrix::{Mat4, ToMat4, ToMat3, Matrix};
+use cow::join::join_maps;
 
 use snowmew::core::{object_key};
 
@@ -40,7 +41,7 @@ pub struct RenderManager {
 fn render_db<'a>(db: db::Graphics, scene: object_key, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>,
     _: &mut ObjectCullOffloadContext)
 {
-    let mut list = Expand::new(db.current.walk_drawables(scene, &camera), &db);
+    let mut list = Expand::new(join_maps(db.current.walk_in_camera(scene, &camera), db.current.walk_drawables()), &db);
 
     let mut out = vec::with_capacity(512);
     for cmd in list {

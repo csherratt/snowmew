@@ -3,7 +3,10 @@ use cgmath::vector::{Vec4, Vector};
 use db::Graphics;
 use snowmew::core::{object_key};
 
+use cow::join::join_maps;
+
 use snowmew::geometry::Geometry;
+use snowmew::core::Drawable;
 
 pub struct ObjectCull<IN>
 {
@@ -81,9 +84,9 @@ pub struct Expand<'a, IN>
     priv db: &'a Graphics
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> Expand<'a,IN>
+impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Expand<'a, IN>
 {
-    pub fn new(input: IN, db: &'a Graphics) -> Expand<'a,IN>
+    pub fn new(input: IN, db: &'a Graphics) -> Expand<'a, IN>
     {
         Expand {
             input: input,
@@ -106,7 +109,7 @@ pub enum DrawCommand
     SetMatrix(Mat4<f32>),
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> Iterator<DrawCommand> for Expand<'a, IN>
+impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCommand> for Expand<'a, IN>
 {
     #[inline]
     fn next(&mut self) -> Option<DrawCommand>
@@ -141,15 +144,10 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> Iterator<DrawCommand> for Expand
             }
 
             match self.input.next() {
-                Some((oid, mat)) => {
+                Some((oid, (mat, draw))) => {
                     self.mat = Some(mat);
-                    match self.db.current.drawable(oid) {
-                        Some(draw) => {
-                            self.shader_id = draw.shader;
-                            self.geometry = self.db.current.geometry(draw.geometry);
-                        },
-                        None => ()
-                    }
+                    self.shader_id = draw.shader;
+                    self.geometry = self.db.current.geometry(draw.geometry);
                 },
                 None => return None,
             }

@@ -105,7 +105,7 @@ impl Database {
             // --- indexes ---
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
-            position: octtree::sparse::Sparse::new(1000f32, 0.1f32)
+            position: octtree::sparse::Sparse::new(1000f32, 6)
         }
     }
 
@@ -318,11 +318,13 @@ impl Database {
         );
     }
 
-    pub fn walk_drawables<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterObjs<'a>
+    pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, object_key, Drawable>>
     {
-        //let (dev, ctx, queue) = util::create_compute_context_prefer(util::GPU_PREFERED).unwrap();
-        //let ctx = MatrixSearchCL::new(&ctx, &dev, queue);
+        UnwrapKey::new(self.draw.iter())
+    } 
 
+    pub fn walk_in_camera<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterObjs<'a>
+    {
         let mut set = BitMapSet::new(1024*1024);
         self.position.quary(camera, |_, val| {set.set(*val);});
 
@@ -408,6 +410,31 @@ impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
                 },
                 None => { self.stack.pop(); }
             }
+        }
+    }
+}
+
+struct UnwrapKey<IN>
+{
+    input: IN
+}
+
+impl<IN> UnwrapKey<IN> {
+    fn new(input: IN) -> UnwrapKey<IN>
+    {
+        UnwrapKey {
+            input: input
+        }
+    }
+}
+
+impl<'a, K: Clone, V, IN: Iterator<(&'a K, &'a V)>> Iterator<(K, &'a V)> for UnwrapKey<IN>
+{
+    fn next(&mut self) -> Option<(K, &'a V)>
+    {
+        match self.input.next() {
+            Some((k, v)) => Some((k.clone(), v)),
+            None => None
         }
     }
 }
