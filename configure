@@ -38,6 +38,21 @@ class Module:
         how += "\t./test/%s && touch test/.%s.check\n" % (self.name, self.name)
         return how
 
+class cd:
+    """Context manager for changing the current working directory, creating if necessary"""
+    def __init__(self, newPath):
+        newPath = os.path.abspath(os.path.expandvars(os.path.expanduser(newPath)))
+        self.newPath = newPath
+        if not os.path.exists(newPath):
+            os.makedirs(newPath)
+
+    def __enter__(self):
+        self.savedPath = os.getcwd()
+        os.chdir(self.newPath)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.savedPath)
+
 class Lib(Module):
     ext = "lib.rs"
     dir = "lib"
@@ -63,6 +78,56 @@ class Bin(Module):
             self.dep_modules = dep_modules
         else:
             self.dep_modules = []
+
+class LibMakefile(Module):
+    ext = ""
+    dir = ""
+    flags = ""
+
+    def get_name(self):
+        return self.name
+
+    def __init__(self, name, path_to_makefile_dir, path_to_output, dep_modules=None, other_flags=""):
+        self.name = name
+        self.ename = "lib/%s" % self.get_name()
+        self.other_flags = other_flags
+        self.path_to_makefile_dir = path_to_makefile_dir
+        self.path_to_output = path_to_output
+        if dep_modules:
+            self.dep_modules = dep_modules
+        else:
+            self.dep_modules = []
+
+    def make_rule(self, mods):
+        out  = "%s: %s\n" % (self.ename, self.path_to_makefile_dir + "Makefile")
+        out += "\tmake -C %s && cp %s %s\n" % (self.path_to_makefile_dir, self.path_to_output, self.ename)
+        return out
+
+class LibCMake(Module):
+    ext = ""
+    dir = ""
+    flags = ""
+
+    def get_name(self):
+        return self.name
+
+    def __init__(self, name, path_to_makefile_dir, path_to_output, dep_modules=None, other_flags=""):
+        self.name = name
+        self.ename = "lib/%s" % self.get_name()
+        self.other_flags = other_flags
+        self.path_to_makefile_dir = path_to_makefile_dir
+        self.path_to_output = path_to_output
+        if dep_modules:
+            self.dep_modules = dep_modules
+        else:
+            self.dep_modules = []
+
+    def make_rule(self, mods):
+        out  = "%s:\n" % (self.path_to_makefile_dir + "Makefile")
+        out += "\tcd %s && cmake .\n\n" % (self.path_to_makefile_dir)
+        out += "%s: %s\n" % (self.ename, self.path_to_makefile_dir + "Makefile")
+        out += "\tmake -C %s && cp %s %s\n" % (self.path_to_makefile_dir, self.path_to_output, self.ename)
+        return out
 
 
 def write_makefile(modules):
@@ -99,6 +164,10 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render"]),
            Lib("gl"),
            Lib("glfw", other_flags="--link-args=-lglfw"),
            Lib("OpenCL"),
+           Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a", "libedid.a"]),
+           LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
+           LibCMake("libOculusVR.a", "src/ovr/OculusSDK/LibOVR/", "src/ovr/OculusSDK/LibOVR/libOculusVR.a"),
+           LibCMake("libedid.a", "src/ovr/OculusSDK/3rdParty/EDID/", "src/ovr/OculusSDK/3rdParty/EDID/libedid.a"),
            Lib("octtree", ["cow", "cgmath", "OpenCL"]),
            Lib("bitmap-set")]
 
