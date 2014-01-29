@@ -11,6 +11,7 @@ extern mod snowmew;
 extern mod cow;
 extern mod gl;
 extern mod OpenCL;
+extern mod ovr = "ovr-rs";
 
 use std::ptr;
 use std::vec;
@@ -24,6 +25,11 @@ use cgmath::matrix::{Mat4, ToMat4, ToMat3, Matrix};
 use cow::join::join_maps;
 
 use snowmew::core::{object_key};
+
+use ovr::{HMDInfo, create_reference_matrices};
+
+use glfw::Window;
+
 
 mod db;
 mod shader;
@@ -111,16 +117,15 @@ impl RenderManager
 
         let camera = camera_trans.get().rot.to_mat3().to_mat4().mul_m(&camera_parent);
 
-        let projection = projection.mul_m(&camera);
+        let projection = projection.mul_m(&camera.invert().unwrap());
 
         self.render_chan.send((self.db.clone(), scene, projection));
 
         let mut shader = None;
-        let mut cmds = 0;
         for block in self.result_port.iter() {
             let block = match block {
                 Some(block) => { block },
-                None => {println!("batches: {}", cmds); return;}
+                None => {return;}
             };
 
             for &item in block.iter() {
@@ -141,12 +146,76 @@ impl RenderManager
                         unsafe {
                             gl::DrawElements(gl::TRIANGLES_ADJACENCY, geo.count as i32, gl::UNSIGNED_INT, ptr::null());
                         }
-                        cmds += 1;
                     },
                 }
             }
         }
+    }
 
-        println!("batches: {}\n", cmds);
+    pub fn render_vr(&mut self, scene: object_key, camera: object_key, hmd: &HMDInfo, win: &Window)
+    {
+        let camera_obj = self.db.current.object(camera).unwrap();
+        let camera_parent = self.db.current.position(camera_obj.parent);
+        let camera_trans = self.db.current.location(camera).unwrap();
+
+        let camera = camera_trans.get().rot.to_mat3().to_mat4().mul_m(&camera_parent);
+        let camera = camera.invert().unwrap();
+
+        let ((proj_left, proj_right), (view_left, view_right)) = 
+                create_reference_matrices(hmd, &camera);
+
+        let (h_res, v_res) = hmd.resolution();
+
+        gl::ClearColor(0.05, 0.05, 0.05, 1.);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+        for x in range(0, 2) {
+            let proj = if x == 0 {
+                gl::Viewport(0, 0, (h_res/2u) as i32, v_res as i32);
+                proj_left.mul_m(&view_left)
+            } else {
+                gl::Viewport((h_res/2u) as i32, 0, (h_res/2u) as i32, v_res as i32);
+                proj_right.mul_m(&view_right)
+            };
+            self.render_chan.send((self.db.clone(), scene, proj));
+
+            let mut shader = None;
+            for block in self.result_port.iter() {
+                let block = match block {
+                    Some(block) => { block },
+                    None => {break;}
+                };
+
+                for &item in block.iter() {
+                    match item {
+                        BindShader(id) => {
+                            shader = self.db.shaders.find(&id);
+                            shader.unwrap().bind();
+                            shader.unwrap().set_projection(&proj);
+                        },
+                        BindVertexBuffer(id) => {
+                            let vb = self.db.vertex.find(&id);
+                            vb.unwrap().bind();
+                        },
+                        SetMatrix(mat) => {
+                            shader.unwrap().set_position(&mat);
+                        },
+                        Draw(geo) => {
+                            unsafe {
+                                gl::DrawElements(gl::TRIANGLES, geo.count as i32, gl::UNSIGNED_INT, ptr::null());
+                            }
+                        },
+                    }
+                }
+            }
+        }
+        win.swap_buffers();
+        unsafe {
+            gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
+            let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+            gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
+        }
+
+
     }
 }

@@ -18,3 +18,5 @@ extern mod OpenCL;
 pub mod core;
 pub mod geometry;
 pub mod shader;
+
+mod default;

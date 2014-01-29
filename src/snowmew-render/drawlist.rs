@@ -3,8 +3,6 @@ use cgmath::vector::{Vec4, Vector};
 use db::Graphics;
 use snowmew::core::{object_key};
 
-use cow::join::join_maps;
-
 use snowmew::geometry::Geometry;
 use snowmew::core::Drawable;
 

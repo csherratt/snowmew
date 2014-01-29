@@ -19,6 +19,8 @@ use bitmap::BitMapSet;
 
 use OpenCL::util;
 
+use default::load_default;
+
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
     count: uint,  /* unique frame identifier */
@@ -92,6 +94,14 @@ pub struct Database {
 impl Database {
     pub fn new() -> Database
     {
+        let mut new = Database::empty();
+        load_default(&mut new);
+        new
+        
+    }
+
+    pub fn empty() -> Database
+    {
         Database {
             last_key: 1,
             objects: BTreeMap::new(),
@@ -158,6 +168,11 @@ impl Database {
         self.update_parent_child(parent, new_key);
 
         new_key
+    }
+
+    pub fn add_dir(&mut self, parent: Option<object_key>, name: ~str) -> object_key
+    {
+        self.new_object(parent, name)
     }
 
     pub fn position(&self, oid: object_key) -> Mat4<f32>
@@ -381,7 +396,7 @@ pub struct IterObjs<'a>
 
 impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
 {
-    #[inline]
+    #[inline(always)]
     fn next(&mut self) -> Option<(object_key, Mat4<f32>)>
     {
         loop {
@@ -430,6 +445,7 @@ impl<IN> UnwrapKey<IN> {
 
 impl<'a, K: Clone, V, IN: Iterator<(&'a K, &'a V)>> Iterator<(K, &'a V)> for UnwrapKey<IN>
 {
+    #[inline(always)]
     fn next(&mut self) -> Option<(K, &'a V)>
     {
         match self.input.next() {

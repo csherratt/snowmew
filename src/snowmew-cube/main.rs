@@ -10,6 +10,7 @@ extern mod render = "snowmew-render";
 extern mod cgmath;
 extern mod native;
 extern mod extra;
+extern mod ovr = "ovr-rs";
 
 use std::num::{zero};
 
@@ -24,64 +25,10 @@ use cgmath::vector::*;
 use cgmath::matrix::*;
 use cgmath::angle::{ToRad, deg};
 
+use glfw::Monitor;
+
 use extra::time::precise_time_s;
 
-
-static VS_SRC: &'static str =
-"#version 400
-uniform mat4 position;
-uniform mat4 projection;
-in vec3 pos;
-out vec3 UV;
-void main() {
-    gl_Position = projection * position * vec4(pos, 1.);
-    UV = vec3(pos.x, pos.y, pos.z); 
-}";
-
-static FS_SRC: &'static str =
-"#version 400
-out vec4 colour;
-in vec3 UV;\n \
-void main() {
-    colour = vec4(UV.x, UV.y, UV.z, 1);
-}";
-
-static VERTEX_DATA: [f32, ..24] = [
-    -1., -1.,  1.,
-    -1.,  1.,  1.,
-     1., -1.,  1.,
-     1.,  1.,  1.,
-    -1., -1., -1.,
-    -1.,  1., -1.,
-     1., -1., -1.,
-     1.,  1., -1.,
-];
-
-static INDEX_DATA: [u32, ..36] = [
-    // top
-    0, 2, 1,
-    2, 3, 1,
-
-    // bottom
-    5, 7, 4,
-    7, 6, 4,
-
-    // right
-    1, 3, 5,
-    3, 7, 5,
-
-    // left
-    4, 6, 0,
-    6, 2, 0,
-
-    // front
-    4, 0, 5,
-    0, 1, 5,
-
-    // back
-    2, 6, 3,
-    6, 7, 3,
-];
 
 #[start]
 fn start(argc: int, argv: **u8) -> int {
@@ -90,14 +37,23 @@ fn start(argc: int, argv: **u8) -> int {
 
 fn main() {
     do glfw::start {
-        let width = 1920 as uint;
-        let height = 1080 as uint;
+        ovr::init();
+        let dm = ovr::DeviceManager::new().unwrap();
+        let dev = dm.enumerate().unwrap();
+        let info = dev.get_info().unwrap();
+        let sf = ovr::SensorFusion::new().unwrap();
+        let sensor = dev.get_sensor().unwrap();
+        sf.attach_to_sensor(&sensor);
+
+        let (width, height) = info.resolution();
+
+        let monitors = Monitor::get_connected();
         println!("{} {}", width, height);
         glfw::window_hint::context_version(4, 0);
         glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
         glfw::window_hint::opengl_forward_compat(true);
 
-        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
+        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[info.id()])).unwrap();
         window.make_context_current();
         glfw::set_swap_interval(1);
 
@@ -105,29 +61,19 @@ fn main() {
 
         let mut db = Database::new();
 
-        let shader = Shader::new(VS_SRC.into_owned(), FS_SRC.into_owned());
-        let indexs = snowmew::geometry::to_triangles_adjacency(INDEX_DATA);
-        let len = indexs.len();
-        let vbo = snowmew::geometry::VertexBuffer::new(VERTEX_DATA.into_owned(), indexs);
-
-        let assets = db.new_object(None, ~"asserts");
-        let shader = db.add_shader(assets, ~"shader", shader);
-        let vbo = db.add_vertex_buffer(assets, ~"vbo", vbo);
-        let geometry = snowmew::geometry::Geometry::triangles_adjacency(vbo, 0, len);
-
-        let geometry = db.add_geometry(assets, ~"geo", geometry);
-
         let camera_dolly = db.new_object(None, ~"dolly");
         let camera = db.new_object(Some(camera_dolly), ~"camera");
         let scene = db.new_object(None, ~"scene");
+        let geometry = db.find("core/geometry/cube").unwrap();
+        let shader = db.find("core/shaders/rainbow").unwrap();
 
-        let size = 30;
+        let size = 20;
 
         for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
-            let x = (x*5) as f32;
-            let y = (y*5) as f32;
-            let z = (z*5) as f32;
+            let x = x as f32 * 1.5;
+            let y = y as f32 * 1.5;
+            let z = z as f32 * 1.5;
             db.update_location(cube_id,
                 Transform3D::new(0.5f32, Quat::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
             db.set_draw(cube_id, geometry, shader);
@@ -142,7 +88,6 @@ fn main() {
         let mut ren = RenderManager::new(db.clone());
         ren.load();
 
-
         glfw::poll_events();
 
         let (wx, wy) = window.get_size();
@@ -154,7 +99,6 @@ fn main() {
         while !window.should_close() {
             glfw::poll_events();
             let start = precise_time_s();
-
 
             match window.is_focused() {
                 true => {
@@ -188,19 +132,24 @@ fn main() {
                 1f32
             );
 
-            let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
-                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+            let rot = sf.get_predicted_orientation(None);
+
+            //let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
+            //          &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+
+
 
             let trans = Transform3D::new(1f32,
                                  rot.normalize(),
                                  Vec3::new(0f32, 0f32, 0f32));
+
             let pos_v = trans.get().rot.to_mat3().to_mat4().mul_v(&input_vec);
             let new_pos = Vec3::new(pos_v.x, pos_v.y, pos_v.z);
             pos = pos.add_v(&new_pos);
 
 
-            let rot =  Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()).mul_q(
-                      &Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad())).normalize();
+            //let rot =  Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()).mul_q(
+            //          &Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad())).normalize();
 
 
             let dolly_trans = Transform3D::new(1f32, Quat::zero(), pos);
@@ -212,11 +161,7 @@ fn main() {
 
             ren.update(db.clone());
 
-
-            gl::ClearColor(0.05, 0.05, 0.05, 1.);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            ren.render(scene, camera);
-            window.swap_buffers();
+            ren.render_vr(scene, camera, &info, &window);
             let end = precise_time_s();
 
             let time = (end-start);
