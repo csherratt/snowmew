@@ -157,7 +157,7 @@ impl RenderManager
     pub fn render_vr(&mut self, scene: object_key, camera: object_key, hmd: &HMDInfo, win: &Window)
     {
         if self.hmd.is_none() {
-            self.hmd = Some(hmd::HMD::new(2., hmd));
+            self.hmd = Some(hmd::HMD::new(1.7, hmd));
         }
         let camera_obj = self.db.current.object(camera).unwrap();
         let camera_parent = self.db.current.position(camera_obj.parent);
@@ -167,7 +167,7 @@ impl RenderManager
         let camera = camera.invert().unwrap();
 
         let ((proj_left, proj_right), (view_left, view_right)) = 
-                create_reference_matrices(hmd, &camera);
+                create_reference_matrices(hmd, &camera, self.hmd.unwrap().scale);
 
         for x in range(0, 2) {
             let proj = if x == 0 {

@@ -49,7 +49,7 @@ fn main() {
 
         let monitors = Monitor::get_connected();
         println!("{} {}", width, height);
-        glfw::window_hint::context_version(4, 0);
+        glfw::window_hint::context_version(4, 3);
         glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
         glfw::window_hint::opengl_forward_compat(true);
 

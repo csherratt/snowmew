@@ -84,8 +84,10 @@ impl HMD
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    fn setup_viewport(&self, shader: &Shader, vp: (f32, f32, f32, f32), ws: (f32, f32), offset: f32, scale: f32)
+    fn setup_viewport(&self, shader: &Shader, vp: (f32, f32, f32, f32), ws: (f32, f32), offset: f32)
     {
+        let scale = 1./self.scale;
+
         let (vpx, vpy, vpw, vph) = vp;
         let (wsw, wsh) = ws;
         let (w, h, x, y) = (vpw/wsw, vph/wsh, vpx/wsw, vpy/wsh);
@@ -128,7 +130,6 @@ impl HMD
         let (width, height) = (width as f32, height as f32);
         let lens_separation_distance = hmd.lens_separation_distance();
         let lense_center = 1. - 2.*lens_separation_distance/horz;
-        let scale = 1.;
 
 //        print!("w: {} h: {} x: {} y: {}\n", w, h, x, y);
 //        print!("center offset {}\n", lense_center);
@@ -145,10 +146,10 @@ impl HMD
 
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
 
-            self.setup_viewport(shader, (0., 0.,       width/2., 800.), (width, height), lense_center, scale);
+            self.setup_viewport(shader, (0., 0.,       width/2., 800.), (width, height), lense_center);
             gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
 
-            self.setup_viewport(shader, (width/2., 0., width/2., 800.), (width, height), -lense_center, scale);
+            self.setup_viewport(shader, (width/2., 0., width/2., 800.), (width, height), -lense_center);
             gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
         }
     }
