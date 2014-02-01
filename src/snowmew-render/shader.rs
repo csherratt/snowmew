@@ -64,10 +64,27 @@ impl Shader {
         gl::AttachShader(program, fs);
         gl::LinkProgram(program);
 
+        unsafe {
+            let mut status = gl::FALSE as gl::types::GLint;
+            gl::GetProgramiv(program, gl::LINK_STATUS, &mut status);
+
+            // Fail on error
+            if status != (gl::TRUE as gl::types::GLint) {
+                let mut len = 0;
+                gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
+                let mut buf = vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
+                gl::GetProgramInfoLog(program,
+                                      len,
+                                      ptr::mut_null(),
+                                      buf.unsafe_mut_ref(0) as *mut gl::types::GLchar);
+                fail!("glsl error: {:s}", str::raw::from_utf8(buf));
+            }
+        }
+
         let pos = uniform(program, "position");
         let proj = uniform(program, "projection");
 
-        "colour".with_c_str(|ptr| {
+        "color".with_c_str(|ptr| {
             unsafe {
                 gl::BindFragDataLocation(program, 0, ptr);
             }
@@ -100,11 +117,7 @@ impl Shader {
 
     pub fn uniform(&self, s: &str) -> i32
     {
-        unsafe {
-            s.with_c_str(|c_str| {
-                gl::GetUniformLocation(self.program, c_str)
-            })
-        }
+        uniform(self.program, s)
     }
 
     pub fn bind(&self)

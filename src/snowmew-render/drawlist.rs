@@ -146,6 +146,7 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCom
                     self.mat = Some(mat);
                     self.shader_id = draw.shader;
                     self.geometry = self.db.current.geometry(draw.geometry);
+                    self.vb_id = self.geometry.unwrap().vb;
                 },
                 None => return None,
             }

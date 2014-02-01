@@ -53,7 +53,16 @@ fn main() {
         glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
         glfw::window_hint::opengl_forward_compat(true);
 
-        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[info.id()])).unwrap();
+        let mut id = info.id();
+        for (idx, m) in monitors.iter().enumerate() {
+            println!("{} {}", if idx == info.id() as uint {">>>"} else {"   "}, m.get_name());
+            if m.get_name() == ~"HDMI-0" {
+                id = idx as int;
+            }
+        }
+
+        //let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
+        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[id])).unwrap();
         window.make_context_current();
         glfw::set_swap_interval(1);
 
@@ -67,13 +76,13 @@ fn main() {
         let geometry = db.find("core/geometry/cube").unwrap();
         let shader = db.find("core/shaders/rainbow").unwrap();
 
-        let size = 20;
+        let size = 16;
 
         for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
-            let x = x as f32 * 1.5;
-            let y = y as f32 * 1.5;
-            let z = z as f32 * 1.5;
+            let x = x as f32 * 2.5;
+            let y = y as f32 * 2.5;
+            let z = z as f32 * 2.5;
             db.update_location(cube_id,
                 Transform3D::new(0.5f32, Quat::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
             db.set_draw(cube_id, geometry, shader);

@@ -36,10 +36,11 @@ mod shader;
 mod vertex_buffer;
 mod drawlist;
 mod drawlist_cl;
-
+mod hmd;
 
 pub struct RenderManager {
     db: db::Graphics,
+    hmd: Option<hmd::HMD>,
     render_chan: Chan<(db::Graphics, object_key, Mat4<f32>)>,
     result_port: Port<Option<~[DrawCommand]>>,
 }
@@ -90,6 +91,7 @@ impl RenderManager
 
         RenderManager {
             db: db::Graphics::new(db),
+            hmd: None,
             result_port: result_port,
             render_chan: render_chan
         }
@@ -154,6 +156,9 @@ impl RenderManager
 
     pub fn render_vr(&mut self, scene: object_key, camera: object_key, hmd: &HMDInfo, win: &Window)
     {
+        if self.hmd.is_none() {
+            self.hmd = Some(hmd::HMD::new(2., hmd));
+        }
         let camera_obj = self.db.current.object(camera).unwrap();
         let camera_parent = self.db.current.position(camera_obj.parent);
         let camera_trans = self.db.current.location(camera).unwrap();
@@ -164,17 +169,12 @@ impl RenderManager
         let ((proj_left, proj_right), (view_left, view_right)) = 
                 create_reference_matrices(hmd, &camera);
 
-        let (h_res, v_res) = hmd.resolution();
-
-        gl::ClearColor(0.05, 0.05, 0.05, 1.);
-        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
         for x in range(0, 2) {
             let proj = if x == 0 {
-                gl::Viewport(0, 0, (h_res/2u) as i32, v_res as i32);
+                self.hmd.unwrap().set_left(&self.db, hmd);
                 proj_left.mul_m(&view_left)
             } else {
-                gl::Viewport((h_res/2u) as i32, 0, (h_res/2u) as i32, v_res as i32);
+                self.hmd.unwrap().set_right(&self.db, hmd);
                 proj_right.mul_m(&view_right)
             };
             self.render_chan.send((self.db.clone(), scene, proj));
@@ -209,6 +209,9 @@ impl RenderManager
                 }
             }
         }
+
+        self.hmd.unwrap().draw_screen(&self.db, hmd);
+
         win.swap_buffers();
         unsafe {
             gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
