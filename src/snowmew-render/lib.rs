@@ -25,6 +25,7 @@ use cgmath::matrix::{Mat4, ToMat4, ToMat3, Matrix};
 use cow::join::join_maps;
 
 use snowmew::core::{object_key};
+use snowmew::camera::Camera;
 
 use ovr::{HMDInfo, create_reference_matrices};
 
@@ -107,27 +108,30 @@ impl RenderManager
         self.db.update(db);
     }
 
-    pub fn render(&mut self, scene: object_key, camera: object_key)
+    pub fn render(&mut self, scene: object_key, camera: object_key, win: &Window)
     {
+        let (w, h) = win.get_framebuffer_size();
+        let (w, h) = (w as f32, h as f32);
         let projection = cgmath::projection::perspective(
-            cgmath::angle::deg(60f32), 1920f32/1080f32, 1f32, 1000f32
+            cgmath::angle::deg(80f32), w/h, 1f32, 1000f32
         );
 
-        let camera_obj = self.db.current.object(camera).unwrap();
-        let camera_parent = self.db.current.position(camera_obj.parent);
-        let camera_trans = self.db.current.location(camera).unwrap();
+        let camera_trans = self.db.current.position(camera);
+        let camera = Camera::new().view_matrix(&camera_trans);
 
-        let camera = camera_trans.get().rot.to_mat3().to_mat4().mul_m(&camera_parent);
-
-        let projection = projection.mul_m(&camera.invert().unwrap());
+        let projection = projection.mul_m(&camera);
 
         self.render_chan.send((self.db.clone(), scene, projection));
+
+
+        gl::ClearColor(0., 0., 0., 1.);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
         let mut shader = None;
         for block in self.result_port.iter() {
             let block = match block {
                 Some(block) => { block },
-                None => {return;}
+                None => {break;}
             };
 
             for &item in block.iter() {
@@ -146,11 +150,18 @@ impl RenderManager
                     },
                     Draw(geo) => {
                         unsafe {
-                            gl::DrawElements(gl::TRIANGLES_ADJACENCY, geo.count as i32, gl::UNSIGNED_INT, ptr::null());
+                            gl::DrawElements(gl::TRIANGLES, geo.count as i32, gl::UNSIGNED_INT, ptr::null());
                         }
                     },
                 }
             }
+        }
+
+        win.swap_buffers();
+        unsafe {
+            gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
+            let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+            gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
         }
     }
 
@@ -159,11 +170,9 @@ impl RenderManager
         if self.hmd.is_none() {
             self.hmd = Some(hmd::HMD::new(1.7, hmd));
         }
-        let camera_obj = self.db.current.object(camera).unwrap();
-        let camera_parent = self.db.current.position(camera_obj.parent);
-        let camera_trans = self.db.current.location(camera).unwrap();
 
-        let camera = camera_trans.get().rot.to_mat3().to_mat4().mul_m(&camera_parent);
+        let camera_trans = self.db.current.position(camera);
+        let camera = Camera::new().view_matrix(&camera_trans);
 
         let ((proj_left, proj_right), (view_left, view_right)) = 
                 create_reference_matrices(hmd, &camera, self.hmd.unwrap().scale);
@@ -172,10 +181,10 @@ impl RenderManager
         for x in range(0, 2) {
             let proj = if x == 0 {
                 self.hmd.unwrap().set_left(&self.db, hmd);
-                proj_left.mul_m(&view_left.invert().unwrap())
+                proj_left.mul_m(&view_left)
             } else {
                 self.hmd.unwrap().set_right(&self.db, hmd);
-                proj_right.mul_m(&view_right.invert().unwrap())
+                proj_right.mul_m(&view_right)
             };
             self.render_chan.send((self.db.clone(), scene, proj));
 

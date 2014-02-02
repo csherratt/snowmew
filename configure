@@ -23,17 +23,27 @@ class Module:
             f.seek(0)
             return f.read().split("\n")[0]
 
+    def collect_flags(self, mods):
+        flags = [self.other_flags]
+        for m in [mods[name] for name in self.dep_modules]:
+            flags += m.collect_flags(mods)
+        return flags
+
+    def get_flags(self, mods):
+        flags = [self.flags] + self.collect_flags(mods)
+        return " ".join(flags) 
+
     def make_rule(self, mods):
         dep = self.get_dep() + " "
         dep +=  " ".join(mods[m].ename for m in self.dep_modules)
-        how = "%s\n\trustc $(RUST_FLAGS) --out-dir=%s %s %s src/%s/%s\n" % (dep, self.dir, self.flags, self.other_flags, self.name, self.ext)
+        how = "%s\n\trustc $(RUST_FLAGS) --out-dir=%s %s src/%s/%s\n" % (dep, self.dir, self.get_flags(mods), self.name, self.ext)
         return how
 
     def make_test_rules(self, mods):
         dep = self.get_dep() + " "
         dep +=  " ".join(mods[m].ename for m in self.dep_modules)
         dep = ": ".join(["test/%s" % self.name, " ".join([self.ename, "src/%s/test.rs" % self.name, dep.split(": ", 2)[1]])])
-        how = "%s\n\trustc $(RUST_FLAGS) --test -o test/%s %s %s src/%s/test.rs\n" % (dep, self.name, self.flags, self.other_flags, self.name)
+        how = "%s\n\trustc $(RUST_FLAGS) --test -o test/%s %s src/%s/test.rs\n" % (dep, self.name, self.get_flags(mods), self.name)
         how += "\ntest/.%s.check: test/%s\n" % (self.name, self.name)
         how += "\t./test/%s && touch test/.%s.check\n" % (self.name, self.name)
         return how
@@ -156,7 +166,7 @@ def write_makefile(modules):
         f.write("\n")
         f.write(rules) 
 
-modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render"]),
+modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "bitmap-set"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
            Lib("cgmath"),

@@ -15,6 +15,7 @@ extern mod ovr = "ovr-rs";
 use std::num::{zero};
 
 use snowmew::core::Database;
+use snowmew::camera::Camera;
 
 use render::RenderManager;
 
@@ -60,8 +61,8 @@ fn main() {
             }
         }
 
-        //let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
-        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[id])).unwrap();
+        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
+        //let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[id])).unwrap();
         window.make_context_current();
         glfw::set_swap_interval(1);
 
@@ -69,8 +70,7 @@ fn main() {
 
         let mut db = Database::new();
 
-        let camera_dolly = db.new_object(None, ~"dolly");
-        let head = db.new_object(Some(camera_dolly), ~"head");
+        let camera_loc = db.new_object(None, ~"camera");
 
         let scene = db.new_object(None, ~"scene");
         let geometry = db.find("core/geometry/cube").unwrap();
@@ -88,7 +88,7 @@ fn main() {
             db.set_draw(cube_id, geometry, shader);
         }}}
 
-        db.update_location(head,
+        db.update_location(camera_loc,
             Transform3D::new(1f32,
                              Quat::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
                              Vec3::new(0f32, 0f32, 0f32)));
@@ -102,7 +102,7 @@ fn main() {
         window.set_cursor_pos(wx as f64 /2., wy as f64/2.);
 
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
-        let mut pos = Vec3::new(0f32, 0f32, 0f32);
+        let mut pos = Vec3::new(100f32, 0f32, 0f32);
 
         while !window.should_close() {
             glfw::poll_events();
@@ -120,6 +120,11 @@ fn main() {
                     rot_y += (y - wy/2.) / 3.;
 
                     rot_y = rot_y.max(&-90.).min(&90.);
+                    if rot_x > 360. {
+                        rot_x -= 360.
+                    } else if rot_x < -360. {
+                        rot_x += 360.
+                    }
                 },
                 false => {
                     window.set_cursor_mode(glfw::CursorNormal);
@@ -141,35 +146,27 @@ fn main() {
                 1f32
             );
 
-            let rot = Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
-                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+            let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad()).mul_q(
+                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 1f32), deg(0. as f32).to_rad()));
 
-            let trans = Transform3D::new(1f32,
-                                 rot.normalize(),
-                                 Vec3::new(0f32, 0f32, 0f32));
-            let pos_v = trans.get().rot.to_mat4().mul_v(&input_vec);
+            let pos_v = rot.to_mat4().invert().unwrap().mul_v(&input_vec);
             let new_pos = Vec3::new(pos_v.x, pos_v.y, pos_v.z);
             pos = pos.add_v(&new_pos);
 
             let rift = sf.get_predicted_orientation(None);
-            let (r_x, r_y, r_z) = rift.to_euler();
 
             let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
-                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));
 
-            let head_trans = Transform3D::new(1f32,
-                                              rot.mul_q(&rift).normalize(),
-                                              Vec3::new(0f32, 0f32, 0f32));
+            let head_trans = Transform3D::new(1f32, rot, pos);
 
 
-            let dolly_trans = Transform3D::new(1f32, Quat::zero(), pos);
-
-            db.update_location(head, head_trans);
-            db.update_location(camera_dolly, dolly_trans);
+            db.update_location(camera_loc, head_trans);
 
             ren.update(db.clone());
+            //ren.render_vr(scene, camera_loc,  &info, &window);
+            ren.render(scene, camera_loc, /*&info,*/ &window);
 
-            ren.render_vr(scene, head, &info, &window);
             let end = precise_time_s();
 
             let time = (end-start);
