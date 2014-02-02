@@ -15,7 +15,6 @@ extern mod ovr = "ovr-rs";
 use std::num::{zero};
 
 use snowmew::core::Database;
-use snowmew::shader::Shader;
 
 use render::RenderManager;
 
@@ -36,7 +35,7 @@ fn start(argc: int, argv: **u8) -> int {
 }
 
 fn main() {
-    do glfw::start {
+    glfw::start(proc() {
         ovr::init();
         let dm = ovr::DeviceManager::new().unwrap();
         let dev = dm.enumerate().unwrap();
@@ -71,7 +70,8 @@ fn main() {
         let mut db = Database::new();
 
         let camera_dolly = db.new_object(None, ~"dolly");
-        let camera = db.new_object(Some(camera_dolly), ~"camera");
+        let head = db.new_object(Some(camera_dolly), ~"head");
+
         let scene = db.new_object(None, ~"scene");
         let geometry = db.find("core/geometry/cube").unwrap();
         let shader = db.find("core/shaders/rainbow").unwrap();
@@ -88,11 +88,10 @@ fn main() {
             db.set_draw(cube_id, geometry, shader);
         }}}
 
-        db.update_location(camera,
+        db.update_location(head,
             Transform3D::new(1f32,
                              Quat::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
                              Vec3::new(0f32, 0f32, 0f32)));
-
 
         let mut ren = RenderManager::new(db.clone());
         ren.load();
@@ -130,6 +129,7 @@ fn main() {
             if window.get_key(glfw::KeySpace) == glfw::Press {
                 rot_x = 0.;
                 rot_y = 0.;
+                sf.reset();
             }
 
             let input_vec = Vec4::new(
@@ -141,36 +141,35 @@ fn main() {
                 1f32
             );
 
-            let rot = sf.get_predicted_orientation(None);
-
-            //let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
-            //          &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
-
-
+            let rot = Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
+                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
 
             let trans = Transform3D::new(1f32,
                                  rot.normalize(),
                                  Vec3::new(0f32, 0f32, 0f32));
-
-            let pos_v = trans.get().rot.to_mat3().to_mat4().mul_v(&input_vec);
+            let pos_v = trans.get().rot.to_mat4().mul_v(&input_vec);
             let new_pos = Vec3::new(pos_v.x, pos_v.y, pos_v.z);
             pos = pos.add_v(&new_pos);
 
+            let rift = sf.get_predicted_orientation(None);
+            let (r_x, r_y, r_z) = rift.to_euler();
 
-            //let rot =  Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()).mul_q(
-            //          &Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad())).normalize();
+            let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
+                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+
+            let head_trans = Transform3D::new(1f32,
+                                              rot.mul_q(&rift).normalize(),
+                                              Vec3::new(0f32, 0f32, 0f32));
 
 
             let dolly_trans = Transform3D::new(1f32, Quat::zero(), pos);
-            let camera_trans = Transform3D::new(1f32, rot.normalize(), zero());
 
-
-            db.update_location(camera, camera_trans);
+            db.update_location(head, head_trans);
             db.update_location(camera_dolly, dolly_trans);
 
             ren.update(db.clone());
 
-            ren.render_vr(scene, camera, &info, &window);
+            ren.render_vr(scene, head, &info, &window);
             let end = precise_time_s();
 
             let time = (end-start);
@@ -178,5 +177,5 @@ fn main() {
             print!("\rfps: {:0.2f} time: {:0.3f}ms, budget: {:0.2f}                 ",
                 1./time, time*1000., time/(1./60.));
         }
-    }
+    });
 }

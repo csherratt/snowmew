@@ -131,18 +131,12 @@ impl HMD
         let lens_separation_distance = hmd.lens_separation_distance();
         let lense_center = 1. - 2.*lens_separation_distance/horz;
 
-//        print!("w: {} h: {} x: {} y: {}\n", w, h, x, y);
-//        print!("center offset {}\n", lense_center);
-//        print!("scaleFactor: {} as: {}\n", scale, aspect_ratio);
-//        print!("lens center: {} {}\n", x + (w + lense_center * 0.5)*0.5, y + h*0.5);
-//        print!("screen center: {} {}\n", x + w*0.5, y + h*0.5);
-//        print!("scale out: {} {}\n", (w/2.) * scale, (h/2.) * scale * aspect_ratio);
-//        print!("scale in: {} {}\n", (2./w),               (2./h) / aspect_ratio);
-
         unsafe {
             let distortion_K = hmd.distortion_K();
+            let ChromAbParam = hmd.chroma_ab_correction();
             gl::Uniform1i(shader.uniform("Texture0"), 0);
             gl::Uniform4fv(shader.uniform("HmdWarpParam"), 1, distortion_K.unsafe_ref(0));
+            gl::Uniform4fv(shader.uniform("ChromAbParam"), 1, ChromAbParam.unsafe_ref(0));
 
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
 

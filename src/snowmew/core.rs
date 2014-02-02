@@ -5,7 +5,6 @@ use cow::join::{join_set_to_map, JoinMapSetIterator};
 use octtree;
 use octtree::sparse::Sparse;
 use octtree::{Cube};
-use octtree::cl::MatrixSearchCL;
 
 use geometry::{Geometry, VertexBuffer};
 use shader::Shader;
@@ -16,8 +15,6 @@ use cgmath::quaternion::*;
 use cgmath::vector::*;
 
 use bitmap::BitMapSet;
-
-use OpenCL::util;
 
 use default::load_default;
 

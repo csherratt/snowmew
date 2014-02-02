@@ -1,6 +1,7 @@
 use std::ptr;
 use std::vec;
 use std::str;
+use std::cast;
 
 use gl;
 use gl::types::GLuint;
@@ -28,8 +29,8 @@ fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
             gl::GetShaderInfoLog(shader,
                                  len,
                                  ptr::mut_null(),
-                                 buf.unsafe_mut_ref(0) as *mut gl::types::GLchar);
-            fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf));
+                                 cast::transmute(buf.unsafe_mut_ref(0)));
+            fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf.as_slice()));
         }
     }
 
@@ -76,8 +77,8 @@ impl Shader {
                 gl::GetProgramInfoLog(program,
                                       len,
                                       ptr::mut_null(),
-                                      buf.unsafe_mut_ref(0) as *mut gl::types::GLchar);
-                fail!("glsl error: {:s}", str::raw::from_utf8(buf));
+                                      cast::transmute(buf.unsafe_mut_ref(0)));
+                fail!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
             }
         }
 

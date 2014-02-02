@@ -42,29 +42,42 @@ uniform vec2 ScreenCenter;
 uniform vec2 ScaleIn;
 uniform vec2 ScaleOut;
 uniform vec4 HmdWarpParam;
+uniform vec4 ChromAbParam;
 uniform sampler2D Texture0;
 
 in vec2 UV;
 out vec4 color;
 
-vec2 HmdWarp(vec2 in01)
+void main()
 {
-    vec2 theta = (in01 - LensCenter) * ScaleIn;
+    vec2 pos = vec2(UV.x, UV.y);
+    
+    vec2 theta = (pos - LensCenter) * ScaleIn;
     float rSq = theta.x * theta.x + theta.y * theta.y;
-    vec2 rvector = theta * (HmdWarpParam.x + HmdWarpParam.y * rSq +
+    vec2 theta1 = theta * (HmdWarpParam.x + HmdWarpParam.y * rSq +
                             HmdWarpParam.z * rSq * rSq +
                             HmdWarpParam.w * rSq * rSq * rSq);
     
-    return LensCenter + ScaleOut * rvector;
-}
+    vec2 thetaBlue = theta1 * (ChromAbParam.z + ChromAbParam.w * rSq);
+    vec2 tcBlue = LensCenter + ScaleOut * thetaBlue;
 
-void main()
-{
-    vec2 tc = HmdWarp(vec2(UV.x, UV.y));
-    if (!all(equal(clamp(tc, ScreenCenter-vec2(0.25,0.5), ScreenCenter+vec2(0.25,0.5)), tc)))
+
+    if (!all(equal(clamp(tcBlue, ScreenCenter-vec2(0.25,0.5), ScreenCenter+vec2(0.25,0.5)), tcBlue))) {
         color = vec4(0.);
-    else
-        color = texture2D(Texture0, tc);
+        return;
+    }
+
+
+    float blue = texture2D(Texture0, tcBlue).b;
+    
+    vec2  tcGreen = LensCenter + ScaleOut * theta1;
+    vec4  center = texture2D(Texture0, tcGreen);
+    
+    vec2  thetaRed = theta1 * (ChromAbParam.x + ChromAbParam.y * rSq);
+    vec2  tcRed = LensCenter + ScaleOut * thetaRed;
+    float red = texture2D(Texture0, tcRed).r;
+    
+    color = vec4(red, center.g, blue, center.a);
 }
 ";
 
@@ -117,7 +130,6 @@ pub fn load_default(db: &mut core::Database)
     let core_dir = db.add_dir(None, ~"core");
     let shader_dir = db.add_dir(Some(core_dir), ~"shaders");
     let geo_dir = db.add_dir(Some(core_dir), ~"geometry");
-    let vbo_dir = db.add_dir(Some(core_dir), ~"geometry");
 
     let vbo = VertexBuffer::new(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
 

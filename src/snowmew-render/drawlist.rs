@@ -142,7 +142,7 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCom
             }
 
             match self.input.next() {
-                Some((oid, (mat, draw))) => {
+                Some((_, (mat, draw))) => {
                     self.mat = Some(mat);
                     self.shader_id = draw.shader;
                     self.geometry = self.db.current.geometry(draw.geometry);

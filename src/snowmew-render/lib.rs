@@ -79,7 +79,7 @@ impl RenderManager
         let (render_port, render_chan): (Port<(db::Graphics, object_key, Mat4<f32>)>, Chan<(db::Graphics, object_key, Mat4<f32>)>) = Chan::new();
         let (result_port, result_chan): (Port<Option<~[DrawCommand]>>, Chan<Option<~[DrawCommand]>>) = Chan::new();
 
-        do spawn {
+        spawn(proc() {
             let result_chan = result_chan;
             let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
             let mut offload = ObjectCullOffloadContext::new(&context, &device, queue);
@@ -87,7 +87,7 @@ impl RenderManager
             for (db, scene, camera) in render_port.iter() {
                 render_db(db, scene, camera, &result_chan, &mut offload);
             }
-        }
+        });
 
         RenderManager {
             db: db::Graphics::new(db),
@@ -164,18 +164,18 @@ impl RenderManager
         let camera_trans = self.db.current.location(camera).unwrap();
 
         let camera = camera_trans.get().rot.to_mat3().to_mat4().mul_m(&camera_parent);
-        let camera = camera.invert().unwrap();
 
         let ((proj_left, proj_right), (view_left, view_right)) = 
                 create_reference_matrices(hmd, &camera, self.hmd.unwrap().scale);
 
+
         for x in range(0, 2) {
             let proj = if x == 0 {
                 self.hmd.unwrap().set_left(&self.db, hmd);
-                proj_left.mul_m(&view_left)
+                proj_left.mul_m(&view_left.invert().unwrap())
             } else {
                 self.hmd.unwrap().set_right(&self.db, hmd);
-                proj_right.mul_m(&view_right)
+                proj_right.mul_m(&view_right.invert().unwrap())
             };
             self.render_chan.send((self.db.clone(), scene, proj));
 
