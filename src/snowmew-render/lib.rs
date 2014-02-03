@@ -21,7 +21,7 @@ use std::comm::{Chan, Port};
 use drawlist::{Expand, DrawCommand, Draw, BindShader, BindVertexBuffer, SetMatrix};
 use drawlist_cl::{ObjectCullOffloadContext};
 
-use cgmath::matrix::{Mat4, ToMat4, ToMat3, Matrix};
+use cgmath::matrix::{Mat4, Matrix};
 use cow::join::join_maps;
 
 use snowmew::core::{object_key};
@@ -116,8 +116,9 @@ impl RenderManager
             cgmath::angle::deg(80f32), w/h, 1f32, 1000f32
         );
 
+        let camera_rot = self.db.current.location(camera).unwrap().get().rot;
         let camera_trans = self.db.current.position(camera);
-        let camera = Camera::new().view_matrix(&camera_trans);
+        let camera = Camera::new(camera_rot, camera_trans.clone()).view_matrix();
 
         let projection = projection.mul_m(&camera);
 
@@ -171,8 +172,9 @@ impl RenderManager
             self.hmd = Some(hmd::HMD::new(1.7, hmd));
         }
 
+        let camera_rot = self.db.current.location(camera).unwrap().get().rot;
         let camera_trans = self.db.current.position(camera);
-        let camera = Camera::new().view_matrix(&camera_trans);
+        let camera = Camera::new(camera_rot, camera_trans.clone()).view_matrix();
 
         let ((proj_left, proj_right), (view_left, view_right)) = 
                 create_reference_matrices(hmd, &camera, self.hmd.unwrap().scale);

@@ -55,7 +55,7 @@ impl Graphics
             match self.shaders.find(oid) {
                 Some(_) => (),
                 None => {
-                    let s = match(shader.geometry) {
+                    let s = match shader.geometry {
                         Some(ref geo) => {
                             Shader::new_geo(shader.vertex.as_slice(), geo.as_slice(), shader.frag.as_slice())
                         },

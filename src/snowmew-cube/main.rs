@@ -12,8 +12,6 @@ extern mod native;
 extern mod extra;
 extern mod ovr = "ovr-rs";
 
-use std::num::{zero};
-
 use snowmew::core::Database;
 use snowmew::camera::Camera;
 
@@ -22,6 +20,7 @@ use render::RenderManager;
 use cgmath::quaternion::*;
 use cgmath::transform::*;
 use cgmath::vector::*;
+use cgmath::point::*;
 use cgmath::matrix::*;
 use cgmath::angle::{ToRad, deg};
 
@@ -61,10 +60,10 @@ fn main() {
             }
         }
 
-        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
-        //let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[id])).unwrap();
+        //let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
+        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[id])).unwrap();
         window.make_context_current();
-        glfw::set_swap_interval(1);
+        glfw::set_swap_interval(0);
 
         gl::load_with(glfw::get_proc_address);
 
@@ -102,7 +101,7 @@ fn main() {
         window.set_cursor_pos(wx as f64 /2., wy as f64/2.);
 
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
-        let mut pos = Vec3::new(100f32, 0f32, 0f32);
+        let mut pos = Point3::new(0f32, 0f32, 0f32);
 
         while !window.should_close() {
             glfw::poll_events();
@@ -137,35 +136,30 @@ fn main() {
                 sf.reset();
             }
 
-            let input_vec = Vec4::new(
+            let input_vec = Vec3::new(
                 if window.get_key(glfw::KeyA) == glfw::Press {0.5f32} else {0f32} +
                 if window.get_key(glfw::KeyD) == glfw::Press {-0.5f32} else {0f32}, 
                 0f32,
                 if window.get_key(glfw::KeyW) == glfw::Press {0.5f32} else {0f32} +
-                if window.get_key(glfw::KeyS) == glfw::Press {-0.5f32} else {0f32},
-                1f32
+                if window.get_key(glfw::KeyS) == glfw::Press {-0.5f32} else {0f32}
             );
 
-            let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(rot_x as f32).to_rad()).mul_q(
-                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 1f32), deg(0. as f32).to_rad()));
-
-            let pos_v = rot.to_mat4().invert().unwrap().mul_v(&input_vec);
-            let new_pos = Vec3::new(pos_v.x, pos_v.y, pos_v.z);
-            pos = pos.add_v(&new_pos);
-
-            let rift = sf.get_predicted_orientation(None);
-
+            let rift = sf.get_predicted_orientation(Some(0.005));
             let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
-                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));
+                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
 
-            let head_trans = Transform3D::new(1f32, rot, pos);
+            let rift = rift.mul_q(&Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
 
+            let camera = Camera::new(rot.clone(), Transform3D::new(1f32, rot, pos.to_vec()).to_mat4());
+            pos = camera.move(&input_vec.mul_s(-1f32));
+
+            let head_trans = Transform3D::new(1f32, rot.mul_q(&rift), pos.to_vec());
 
             db.update_location(camera_loc, head_trans);
 
             ren.update(db.clone());
-            //ren.render_vr(scene, camera_loc,  &info, &window);
-            ren.render(scene, camera_loc, /*&info,*/ &window);
+            ren.render_vr(scene, camera_loc,  &info, &window);
+            //ren.render(scene, camera_loc, /*&info,*/ &window);
 
             let end = precise_time_s();
 
