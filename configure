@@ -167,7 +167,7 @@ def write_makefile(modules):
         f.write(rules) 
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "bitmap-set"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "bitmap-set", "SendRecvReply"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
            Lib("cgmath"),
            Lib("cow"),
@@ -179,6 +179,7 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
            LibCMake("libOculusVR.a", "src/ovr/OculusSDK/LibOVR/", "src/ovr/OculusSDK/LibOVR/libOculusVR.a"),
            LibCMake("libedid.a", "src/ovr/OculusSDK/3rdParty/EDID/", "src/ovr/OculusSDK/3rdParty/EDID/libedid.a"),
            Lib("octtree", ["cow", "cgmath", "OpenCL"]),
-           Lib("bitmap-set")]
+           Lib("bitmap-set"),
+           Lib("SendRecvReply")]
 
 write_makefile(modules)

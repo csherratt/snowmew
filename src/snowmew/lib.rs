@@ -14,10 +14,27 @@ extern mod octtree;
 extern mod extra;
 extern mod bitmap = "bitmap-set";
 extern mod OpenCL;
+extern mod SendRecvReply;
+extern mod native;
+extern mod std;
 
 pub mod core;
 pub mod geometry;
 pub mod shader;
 pub mod camera;
+pub mod input;
 
 mod default;
+
+pub fn start(f: proc(input::InputManager))
+{
+    glfw::start(proc() {
+        let f = f;
+        let im = input::InputManager::new();
+        let im_game = im.clone();
+        spawn(proc() {
+            f(im_game);    
+        });
+        im.run();
+    });
+}
