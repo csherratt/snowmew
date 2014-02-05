@@ -1,7 +1,7 @@
 use glfw::{WindowEvent, Window, wait_events};
 
 use std::util;
-use std::comm::{Select};
+use std::comm::{Select, Handle};
 use std::comm::{Chan, Port, SharedChan};
 
 use std::trie::TrieMap;
@@ -15,30 +15,48 @@ pub type window_id = uint;
 
 enum Command {
     AddPort(Port<(f64, WindowEvent)>, proc(window_id)),
-    RemovePort(window_id, proc(bool))
+    RemovePort(window_id, proc(bool)),
+    Finish(proc())
+}
+
+
+// This is a hack to make sure these are destroyed before the select is.
+struct WaitState<'a> {
+    cmd_handle: Handle<'a, Command>,
+    handles: ~[Handle<'a, (f64, WindowEvent)>]
 }
 
 fn wait_commands(cmd: &mut Port<Command>, ports: &mut TrieMap<Port<(f64, WindowEvent)>>) -> Command
 {
-    let mut handles = ~[];
     let select = Select::new();
-    let mut cmd_handle = select.add(cmd);
+
+    let mut ws = WaitState {
+        cmd_handle: select.add(cmd),
+        handles: ~[]
+    };
 
     for (_, port) in ports.mut_iter() {
-        handles.push(select.add(port));
+        ws.handles.push(select.add(port));
     }
 
     loop {
         let id = select.wait();
-        if id == cmd_handle.id {
-            let cmd = cmd_handle.recv();
+        if id == ws.cmd_handle.id {
+            let cmd = ws.cmd_handle.recv();
             match cmd {
-                AddPort(port, reply) => return AddPort(port, reply),
-                RemovePort(id, reply) => return RemovePort(id, reply),
+                AddPort(port, reply) => {
+                    return AddPort(port, reply);
+                },
+                RemovePort(id, reply) => {
+                    return RemovePort(id, reply);
+                },
+                Finish(reply) => {  
+                    return Finish(reply);
+                }
             }
         }
 
-        for h in handles.mut_iter() {
+        for h in ws.handles.mut_iter() {
             if h.id == id {
                 println!("{:?}", h.recv());
                 // do event porcessing :o
@@ -62,12 +80,16 @@ fn thread(cmd: Port<Command>)
             AddPort(port, reply) => {
                 let id = max_id;
                 max_id += 1;
-                reply(max_id);
+                reply(id);
 
                 ports.insert(id, port);
             },
             RemovePort(id, reply) => {
                 reply(ports.remove(&id));
+            },
+            Finish(reply) => {
+                reply();
+                break;
             }
         }
     }
@@ -100,6 +122,7 @@ impl InputManager
         let mut port = None;
         util::swap(&mut port, &mut window.event_port);
         
+        window.set_all_polling(true);
         self.cmd.send(AddPort(port.unwrap(), proc(id) c.send(id)));
 
         p.recv()
@@ -112,10 +135,15 @@ impl InputManager
         p.recv()
     }
 
-    pub fn run(&self)
+    pub fn wait(&self)
     {
-        loop {
-            wait_events();
-        }
+        wait_events();
+    }
+
+    pub fn finish(&self)
+    {
+        let (p, c) = Chan::new();
+        self.cmd.send(Finish(proc() c.send(())));
+        p.recv()     
     }
 }

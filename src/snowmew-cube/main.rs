@@ -35,7 +35,7 @@ fn start(argc: int, argv: **u8) -> int {
 }
 
 fn main() {
-    glfw::start(proc() {
+    snowmew::start_managed_input(proc(im) {
         ovr::init();
         let dm = ovr::DeviceManager::new().unwrap();
         let dev = dm.enumerate().unwrap();
@@ -61,11 +61,12 @@ fn main() {
         }
 
         //let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
-        let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[id])).unwrap();
+        let mut window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[id])).unwrap();
         window.make_context_current();
         glfw::set_swap_interval(0);
-
         gl::load_with(glfw::get_proc_address);
+
+        let window_handle = im.add_window(&mut window);
 
         let mut db = Database::new();
 
@@ -75,7 +76,7 @@ fn main() {
         let geometry = db.find("core/geometry/cube").unwrap();
         let shader = db.find("core/shaders/rainbow").unwrap();
 
-        let size = 16;
+        let size = 10;
 
         for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
@@ -95,8 +96,6 @@ fn main() {
         let mut ren = RenderManager::new(db.clone());
         ren.load();
 
-        glfw::poll_events();
-
         let (wx, wy) = window.get_size();
         window.set_cursor_pos(wx as f64 /2., wy as f64/2.);
 
@@ -104,7 +103,6 @@ fn main() {
         let mut pos = Point3::new(0f32, 0f32, 0f32);
 
         while !window.should_close() {
-            glfw::poll_events();
             let start = precise_time_s();
 
             match window.is_focused() {
@@ -144,7 +142,7 @@ fn main() {
                 if window.get_key(glfw::KeyS) == glfw::Press {-0.5f32} else {0f32}
             );
 
-            let rift = sf.get_predicted_orientation(Some(0.005));
+            let rift = sf.get_predicted_orientation(None);
             let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
                       &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
 
@@ -168,5 +166,6 @@ fn main() {
             print!("\rfps: {:0.2f} time: {:0.3f}ms, budget: {:0.2f}                 ",
                 1./time, time*1000., time/(1./60.));
         }
+        im.remove_window(window_handle);
     });
 }

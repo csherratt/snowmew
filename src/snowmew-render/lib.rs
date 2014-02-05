@@ -46,8 +46,7 @@ pub struct RenderManager {
     result_port: Port<Option<~[DrawCommand]>>,
 }
 
-fn render_db<'a>(db: db::Graphics, scene: object_key, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>,
-    _: &mut ObjectCullOffloadContext)
+fn render_db<'a>(db: db::Graphics, scene: object_key, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>)
 {
     let mut list = Expand::new(join_maps(db.current.walk_in_camera(scene, &camera), db.current.walk_drawables()), &db);
 
@@ -82,11 +81,11 @@ impl RenderManager
 
         spawn(proc() {
             let result_chan = result_chan;
-            let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
-            let mut offload = ObjectCullOffloadContext::new(&context, &device, queue);
+            //let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
+            //let mut offload = ObjectCullOffloadContext::new(&context, &device, queue);
 
             for (db, scene, camera) in render_port.iter() {
-                render_db(db, scene, camera, &result_chan, &mut offload);
+                render_db(db, scene, camera, &result_chan);
             }
         });
 
@@ -224,11 +223,11 @@ impl RenderManager
         self.hmd.unwrap().draw_screen(&self.db, hmd);
 
         win.swap_buffers();
-        unsafe {
-            gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
-            let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
-            gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
-        }
+        //unsafe {
+        //    gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
+        //    let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+        //    gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
+        //}
 
 
     }

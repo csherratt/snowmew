@@ -26,15 +26,45 @@ pub mod input;
 
 mod default;
 
-pub fn start(f: proc(input::InputManager))
+// THIS CURRENTLY CAUSES PERFORMANCE ISSUES WITH SOME DRIVERS
+// USE WITH CAUTION
+pub fn start_managed_input(f: proc(input::InputManager))
 {
     glfw::start(proc() {
         let f = f;
         let im = input::InputManager::new();
         let im_game = im.clone();
+
+        let (p, c) = std::comm::Chan::new();
+
         spawn(proc() {
-            f(im_game);    
+            println!("game- starting")
+            f(im_game);
+            println!("game- completed");
+            c.send(());
+
         });
-        im.run();
+
+        loop {
+            match p.try_recv() {
+                std::comm::Empty => im.wait(),
+                std::comm::Disconnected | std::comm::Data(_) => break
+            }
+        }
+
+        im.finish();
+    });
+}
+
+pub fn start_manual_input(f: proc(input::InputManager))
+{
+    glfw::start(proc() {
+        let f = f;
+        let im = input::InputManager::new();
+        let im_game = im.clone();
+        f(im_game);
+        println!("Cleaning up input manager");
+        im.finish();
+        println!("done");
     });
 }
