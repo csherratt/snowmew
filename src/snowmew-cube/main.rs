@@ -13,6 +13,7 @@ extern mod extra;
 extern mod ovr = "ovr-rs";
 
 use snowmew::core::Database;
+use snowmew::display::Display;
 use snowmew::camera::Camera;
 
 use render::RenderManager;
@@ -24,8 +25,6 @@ use cgmath::point::*;
 use cgmath::matrix::*;
 use cgmath::angle::{ToRad, deg};
 
-use glfw::Monitor;
-
 use extra::time::precise_time_s;
 
 
@@ -36,40 +35,10 @@ fn start(argc: int, argv: **u8) -> int {
 
 fn main() {
     snowmew::start_managed_input(proc(im) {
-        ovr::init();
-        let dm = ovr::DeviceManager::new().unwrap();
-        let dev = dm.enumerate().unwrap();
-        let info = dev.get_info().unwrap();
-        let sf = ovr::SensorFusion::new().unwrap();
-        let sensor = dev.get_sensor().unwrap();
-        sf.attach_to_sensor(&sensor);
-
-        let (width, height) = info.resolution();
-
-        let monitors = Monitor::get_connected();
-        println!("{} {}", width, height);
-        glfw::window_hint::context_version(4, 3);
-        glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
-        glfw::window_hint::opengl_forward_compat(true);
-
-        let mut id = info.id();
-        for (idx, m) in monitors.iter().enumerate() {
-            println!("{} {}", if idx == info.id() as uint {">>>"} else {"   "}, m.get_name());
-            if m.get_name() == ~"HDMI-0" {
-                id = idx as int;
-            }
-        }
-
-        //let window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::Windowed).unwrap();
-        let mut window = glfw::Window::create(width as u32, height as u32, "OpenGL", glfw::FullScreen(monitors[id])).unwrap();
-        window.make_context_current();
-        glfw::set_swap_interval(0);
+        let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
         gl::load_with(glfw::get_proc_address);
 
-        let window_handle = im.add_window(&mut window);
-
         let mut db = Database::new();
-
         let camera_loc = db.new_object(None, ~"camera");
 
         let scene = db.new_object(None, ~"scene");
@@ -96,53 +65,62 @@ fn main() {
         let mut ren = RenderManager::new(db.clone());
         ren.load();
 
-        let (wx, wy) = window.get_size();
-        window.set_cursor_pos(wx as f64 /2., wy as f64/2.);
+        let (wx, wy) = display.size();
+        display_input.set_cursor(wx as f64 /2., wy as f64/2.);
 
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
         let mut pos = Point3::new(0f32, 0f32, 0f32);
 
-        while !window.should_close() {
+        let mut last_input = display_input.get();
+
+        while !last_input.should_close() {
+            let input_state = display_input.get();
             let start = precise_time_s();
 
-            match window.is_focused() {
+            match input_state.is_focused() {
                 true => {
-                    window.set_cursor_mode(glfw::CursorHidden);
-                    let (x, y) = window.get_cursor_pos();
-                    let (wx, wy) = window.get_size();
-                    let (wx, wy) = (wx as f64, wy as f64);
-                    window.set_cursor_pos(wx/2., wy/2.);
+                    //display.set_cursor_mode(glfw::CursorNormal);
+                    match input_state.cursor_delta(last_input.time()) {
+                        Some((x, y)) => {
+                            let (wx, wy) = display.size();
+                            let (wx, wy) = (wx as f64, wy as f64);
+                            display_input.set_cursor(wx/2., wy/2.);
 
-                    rot_x += (x - wx/2.) / 3.;
-                    rot_y += (y - wy/2.) / 3.;
+                            rot_x += x / 3.;
+                            rot_y += y / 3.;
 
-                    rot_y = rot_y.max(&-90.).min(&90.);
-                    if rot_x > 360. {
-                        rot_x -= 360.
-                    } else if rot_x < -360. {
-                        rot_x += 360.
+                            rot_y = rot_y.max(&-90.).min(&90.);
+                            if rot_x > 360. {
+                                rot_x -= 360.
+                            } else if rot_x < -360. {
+                                rot_x += 360.
+                            }
+                        },
+                        None => (),
                     }
+
                 },
                 false => {
-                    window.set_cursor_mode(glfw::CursorNormal);
+                    //display.set_cursor_mode(glfw::CursorNormal);
                 }
             }
 
-            if window.get_key(glfw::KeySpace) == glfw::Press {
+            if input_state.key_down(glfw::KeySpace) {
                 rot_x = 0.;
                 rot_y = 0.;
-                sf.reset();
+                //sf.reset();
             }
 
             let input_vec = Vec3::new(
-                if window.get_key(glfw::KeyA) == glfw::Press {0.5f32} else {0f32} +
-                if window.get_key(glfw::KeyD) == glfw::Press {-0.5f32} else {0f32}, 
+                if input_state.key_down(glfw::KeyA) {0.5f32} else {0f32} +
+                if input_state.key_down(glfw::KeyD) {-0.5f32} else {0f32}, 
                 0f32,
-                if window.get_key(glfw::KeyW) == glfw::Press {0.5f32} else {0f32} +
-                if window.get_key(glfw::KeyS) == glfw::Press {-0.5f32} else {0f32}
+                if input_state.key_down(glfw::KeyW) {0.5f32} else {0f32} +
+                if input_state.key_down(glfw::KeyS) {-0.5f32} else {0f32}
             );
 
-            let rift = sf.get_predicted_orientation(None);
+            //let rift = sf.get_predicted_orientation(None);
+            let rift = Quat::identity();
             let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
                       &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
 
@@ -156,8 +134,8 @@ fn main() {
             db.update_location(camera_loc, head_trans);
 
             ren.update(db.clone());
-            ren.render_vr(scene, camera_loc,  &info, &window);
-            //ren.render(scene, camera_loc, /*&info,*/ &window);
+            //ren.render_vr(scene, camera_loc,  &info, &mut display);
+            ren.render(scene, camera_loc, /*&info,*/ &mut display);
 
             let end = precise_time_s();
 
@@ -165,7 +143,8 @@ fn main() {
 
             print!("\rfps: {:0.2f} time: {:0.3f}ms, budget: {:0.2f}                 ",
                 1./time, time*1000., time/(1./60.));
+
+            last_input = input_state;
         }
-        im.remove_window(window_handle);
     });
 }

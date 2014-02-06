@@ -2,6 +2,8 @@ use core;
 use geometry::{VertexBuffer, Geometry};
 use shader::Shader;
 
+use ovr;
+
 static VS_SRC: &'static str =
 "#version 400
 uniform mat4 position;
@@ -27,59 +29,15 @@ void main() {
 static VR_VS_SRC: &'static str =
 "#version 400
 in vec3 pos;
-out vec2 UV;
+out vec2 TexPos;
 
 void main() {
     gl_Position = vec4(pos.x, pos.y, 0.5, 1.);
-    UV = vec2((pos.x+1)/2, (pos.y+1)/2); 
+    TexPos = vec2((pos.x+1)/2, (pos.y+1)/2); 
 }
 ";
 
-static VR_FS_SRC: &'static str =
-"#version 400
-uniform vec2 LensCenter;
-uniform vec2 ScreenCenter;
-uniform vec2 ScaleIn;
-uniform vec2 ScaleOut;
-uniform vec4 HmdWarpParam;
-uniform vec4 ChromAbParam;
-uniform sampler2D Texture0;
-
-in vec2 UV;
-out vec4 color;
-
-void main()
-{
-    vec2 pos = vec2(UV.x, UV.y);
-    
-    vec2 theta = (pos - LensCenter) * ScaleIn;
-    float rSq = theta.x * theta.x + theta.y * theta.y;
-    vec2 theta1 = theta * (HmdWarpParam.x + HmdWarpParam.y * rSq +
-                            HmdWarpParam.z * rSq * rSq +
-                            HmdWarpParam.w * rSq * rSq * rSq);
-    
-    vec2 thetaBlue = theta1 * (ChromAbParam.z + ChromAbParam.w * rSq);
-    vec2 tcBlue = LensCenter + ScaleOut * thetaBlue;
-
-
-    if (!all(equal(clamp(tcBlue, ScreenCenter-vec2(0.25,0.5), ScreenCenter+vec2(0.25,0.5)), tcBlue))) {
-        color = vec4(0.);
-        return;
-    }
-
-
-    float blue = texture2D(Texture0, tcBlue).b;
-    
-    vec2  tcGreen = LensCenter + ScaleOut * theta1;
-    vec4  center = texture2D(Texture0, tcGreen);
-    
-    vec2  thetaRed = theta1 * (ChromAbParam.x + ChromAbParam.y * rSq);
-    vec2  tcRed = LensCenter + ScaleOut * thetaRed;
-    float red = texture2D(Texture0, tcRed).r;
-    
-    color = vec4(red, center.g, blue, center.a);
-}
-";
+static VR_FS_SRC: &'static str = ovr::SHADER_FRAG_CHROMAB;
 
 static VERTEX_DATA: [f32, ..36] = [
     // CUBE

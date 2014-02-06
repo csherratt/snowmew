@@ -28,9 +28,6 @@ impl Camera {
         let eye = Point3::new(eye.x/eye.w, eye.y/eye.w, eye.z/eye.w);
         let target = Point3::new(target.x/target.w, target.y/target.w, target.z/target.w);
 
-        println!("{:2.2f} {:2.2f} {:2.2f}, {:2.2f} {:2.2f} {:2.2f}, {:2.2f} {:2.2f} {:2.2f}", 
-            eye.x, eye.y, eye.z, target.x, target.y, target.z, up.x ,up.z, up.y);
-
         Mat4::look_at(&eye, &target, &up)
     }
 

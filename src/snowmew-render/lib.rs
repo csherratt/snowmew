@@ -19,7 +19,6 @@ use std::comm::{Chan, Port};
 
 //use drawlist::Drawlist;
 use drawlist::{Expand, DrawCommand, Draw, BindShader, BindVertexBuffer, SetMatrix};
-use drawlist_cl::{ObjectCullOffloadContext};
 
 use cgmath::matrix::{Mat4, Matrix};
 use cow::join::join_maps;
@@ -29,7 +28,7 @@ use snowmew::camera::Camera;
 
 use ovr::{HMDInfo, create_reference_matrices};
 
-use glfw::Window;
+use snowmew::display::Display;
 
 
 mod db;
@@ -107,9 +106,9 @@ impl RenderManager
         self.db.update(db);
     }
 
-    pub fn render(&mut self, scene: object_key, camera: object_key, win: &Window)
+    pub fn render(&mut self, scene: object_key, camera: object_key, win: &mut Display)
     {
-        let (w, h) = win.get_framebuffer_size();
+        let (w, h) = win.size();
         let (w, h) = (w as f32, h as f32);
         let projection = cgmath::projection::perspective(
             cgmath::angle::deg(80f32), w/h, 1f32, 1000f32
@@ -165,7 +164,7 @@ impl RenderManager
         }
     }
 
-    pub fn render_vr(&mut self, scene: object_key, camera: object_key, hmd: &HMDInfo, win: &Window)
+    pub fn render_vr(&mut self, scene: object_key, camera: object_key, hmd: &HMDInfo, win: &mut Display)
     {
         if self.hmd.is_none() {
             self.hmd = Some(hmd::HMD::new(1.7, hmd));

@@ -14,55 +14,72 @@ extern mod octtree;
 extern mod extra;
 extern mod bitmap = "bitmap-set";
 extern mod OpenCL;
-extern mod SendRecvReply;
 extern mod native;
 extern mod std;
+extern mod gl;
+extern mod ovr = "ovr-rs";
 
 pub mod core;
 pub mod geometry;
 pub mod shader;
 pub mod camera;
 pub mod input;
+pub mod display;
 
 mod default;
 
+fn setup_glfw()
+{
+    glfw::window_hint::context_version(4, 3);
+    glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
+    glfw::window_hint::opengl_forward_compat(true);
+
+}
+
 // THIS CURRENTLY CAUSES PERFORMANCE ISSUES WITH SOME DRIVERS
 // USE WITH CAUTION
-pub fn start_managed_input(f: proc(input::InputManager))
+pub fn start_managed_input(f: proc(&mut input::InputManager))
 {
     glfw::start(proc() {
+        setup_glfw();
+
         let f = f;
         let im = input::InputManager::new();
-        let im_game = im.clone();
 
         let (p, c) = std::comm::Chan::new();
 
         spawn(proc() {
+            let mut im = im;
             println!("game- starting")
-            f(im_game);
+            f(&mut im);
             println!("game- completed");
-            c.send(());
+            c.send(im);
 
         });
 
+        
         loop {
+            glfw::wait_events();
             match p.try_recv() {
-                std::comm::Empty => im.wait(),
-                std::comm::Disconnected | std::comm::Data(_) => break
+                std::comm::Empty => (),
+                std::comm::Disconnected => fail!("Sound not have received Disconnected"),
+                std::comm::Data(im) => {
+                    im.finish();
+                    return
+                }
             }
         }
-
-        im.finish();
     });
 }
 
-pub fn start_manual_input(f: proc(input::InputManager))
+pub fn start_manual_input(f: proc(&mut input::InputManager))
 {
     glfw::start(proc() {
+        setup_glfw();
+
         let f = f;
-        let im = input::InputManager::new();
-        let im_game = im.clone();
-        f(im_game);
+        let mut im = input::InputManager::new();
+        f(&mut im);
         println!("Cleaning up input manager");
         im.finish();
         println!("done");
