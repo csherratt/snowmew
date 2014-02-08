@@ -134,4 +134,13 @@ impl Display
     {
         self.hmd_info.unwrap().clone()
     }
+
+    pub fn set_cursor_mode(&mut self, cm: glfw::CursorMode)
+    {
+        unsafe {
+            self.window.unsafe_access(|win| {
+                win.set_cursor_mode(cm);
+            });
+        }
+    }
 }

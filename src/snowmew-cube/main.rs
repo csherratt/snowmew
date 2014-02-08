@@ -36,7 +36,7 @@ fn start(argc: int, argv: **u8) -> int {
 
 fn main() {
     snowmew::start_managed_input(proc(im) {
-        let (mut display, mut display_input) = Display::new_ovr(im).unwrap();
+        let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
 
         let mut db = Database::new();
         let camera_loc = db.new_object(None, ~"camera");
@@ -79,7 +79,7 @@ fn main() {
 
             match input_state.is_focused() {
                 true => {
-                    //display.set_cursor_mode(glfw::CursorNormal);
+                    display.set_cursor_mode(glfw::CursorHidden);
                     match input_state.cursor_delta(last_input.time()) {
                         Some((x, y)) => {
                             let (wx, wy) = display.size();
@@ -101,7 +101,7 @@ fn main() {
 
                 },
                 false => {
-                    //display.set_cursor_mode(glfw::CursorNormal);
+                    display.set_cursor_mode(glfw::CursorNormal);
                 }
             }
 
@@ -119,7 +119,6 @@ fn main() {
                 if input_state.key_down(glfw::KeyS) {-0.5f32} else {0f32}
             );
 
-            //let rift = sf.get_predicted_orientation(None);
             let rift = input_state.predicted.clone();
             let rot: Quat<f32> =  Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
             let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
