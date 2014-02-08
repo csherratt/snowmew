@@ -23,6 +23,7 @@ use cgmath::transform::*;
 use cgmath::vector::*;
 use cgmath::point::*;
 use cgmath::matrix::*;
+use cgmath::rotation::*;
 use cgmath::angle::{ToRad, deg};
 
 use extra::time::precise_time_s;
@@ -35,8 +36,7 @@ fn start(argc: int, argv: **u8) -> int {
 
 fn main() {
     snowmew::start_managed_input(proc(im) {
-        let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
-        gl::load_with(glfw::get_proc_address);
+        let (mut display, mut display_input) = Display::new_ovr(im).unwrap();
 
         let mut db = Database::new();
         let camera_loc = db.new_object(None, ~"camera");
@@ -45,7 +45,7 @@ fn main() {
         let geometry = db.find("core/geometry/cube").unwrap();
         let shader = db.find("core/shaders/rainbow").unwrap();
 
-        let size = 10;
+        let size = 20;
 
         for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
@@ -53,13 +53,13 @@ fn main() {
             let y = y as f32 * 2.5;
             let z = z as f32 * 2.5;
             db.update_location(cube_id,
-                Transform3D::new(0.5f32, Quat::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
+                Transform3D::new(0.5f32, Rotation3::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
             db.set_draw(cube_id, geometry, shader);
         }}}
 
         db.update_location(camera_loc,
             Transform3D::new(1f32,
-                             Quat::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
+                             Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
                              Vec3::new(0f32, 0f32, 0f32)));
 
         let mut ren = RenderManager::new(db.clone());
@@ -120,11 +120,11 @@ fn main() {
             );
 
             //let rift = sf.get_predicted_orientation(None);
-            let rift = Quat::identity();
-            let rot =  Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad()).mul_q(
-                      &Quat::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+            let rift = input_state.predicted.clone();
+            let rot: Quat<f32> =  Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
+            let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
 
-            let rift = rift.mul_q(&Quat::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
+            let rift = rift.mul_q(&Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
 
             let camera = Camera::new(rot.clone(), Transform3D::new(1f32, rot, pos.to_vec()).to_mat4());
             pos = camera.move(&input_vec.mul_s(-1f32));

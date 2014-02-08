@@ -11,7 +11,7 @@ extern mod glfw;
 extern mod cgmath;
 extern mod cow;
 extern mod octtree;
-extern mod extra;
+extern mod sync;
 extern mod bitmap = "bitmap-set";
 extern mod OpenCL;
 extern mod native;
@@ -30,22 +30,18 @@ mod default;
 
 fn setup_glfw()
 {
-    glfw::window_hint::context_version(4, 3);
+    glfw::window_hint::context_version(4, 1);
     glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
     glfw::window_hint::opengl_forward_compat(true);
-
 }
 
-// THIS CURRENTLY CAUSES PERFORMANCE ISSUES WITH SOME DRIVERS
-// USE WITH CAUTION
+#[cfg(target_os = "win32")]
 pub fn start_managed_input(f: proc(&mut input::InputManager))
 {
     glfw::start(proc() {
         setup_glfw();
-
         let f = f;
         let im = input::InputManager::new();
-
         let (p, c) = std::comm::Chan::new();
 
         spawn(proc() {
@@ -69,6 +65,40 @@ pub fn start_managed_input(f: proc(&mut input::InputManager))
                 }
             }
         }
+    });
+}
+
+// it is faster to do rendering on Thread1
+#[cfg(not(target_os = "win32"))]
+pub fn start_managed_input(f: proc(&mut input::InputManager))
+{
+    glfw::start(proc() {
+        setup_glfw();
+        let f = f;
+        let mut im = input::InputManager::new();
+        let (p, c): (Port<input::InputManager>, Chan<input::InputManager>) = std::comm::Chan::new();
+        
+        spawn(proc() {
+            loop {
+                glfw::wait_events();
+                match p.try_recv() {
+                    std::comm::Empty => (),
+                    std::comm::Disconnected => fail!("Sound not have received Disconnected"),
+                    std::comm::Data(im) => {
+                        im.finish();
+                        println!("done!");
+                        return;
+                    }
+                }
+            }
+        });
+
+        
+        println!("game- starting")
+        f(&mut im);
+        println!("game- completed");
+        c.send(im);
+
     });
 }
 

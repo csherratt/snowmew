@@ -1,4 +1,4 @@
-use extra::arc::MutexArc;
+use sync::MutexArc;
 use glfw::{WindowEvent, Window, wait_events, Key, MouseButton};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
 use glfw::{CloseEvent, FocusEvent};
@@ -9,6 +9,8 @@ use std::comm::{Chan, Port, SharedChan};
 use std::trie::TrieMap;
 use std::hashmap::HashSet;
 
+use cgmath::quaternion::Quat;
+
 use cow::CowArc;
 
 use ovr;
@@ -18,6 +20,8 @@ pub type window_id = uint;
 enum Command {
     AddPort(Port<(f64, WindowEvent)>, MutexArc<Window>, proc(window_id)),
     RemovePort(window_id, proc(bool)),
+
+    AddOVR(Port<ovr::Message>),
 
     Get(proc(InputState)),
 
@@ -41,7 +45,8 @@ pub struct InputState
     priv keyboard: HashSet<Key>,
     priv mouse: HashSet<MouseButton>,
     priv should_close: bool,
-    priv focus: bool
+    priv focus: bool,
+    predicted: Quat<f32>,
 }
 
 struct InputHistoryIterator
@@ -75,7 +80,8 @@ impl InputState
             keyboard: HashSet::new(),
             mouse: HashSet::new(),
             should_close: false,
-            focus: false
+            focus: false,
+            predicted: Quat::identity()
         }
     }
 
@@ -182,14 +188,25 @@ impl InputState
     }
 }
 
+struct OVR
+{
+    port: Port<ovr::Message>,
+    sensor: ovr::SensorFusion
+}
+
 fn wait_commands(state: &mut InputState,
                  cmd: &mut Port<Command>,
+                 ovr: &mut Option<OVR>,
                  ports: &mut TrieMap<(MutexArc<Window>, Port<(f64, WindowEvent)>)>) -> Command
 {
     let select = Select::new();
 
     let mut handles = ~[];
     let mut cmd_handle = select.add(cmd);
+    let (mut ovr_handle, sf) = match *ovr {
+        Some(ref mut ovr) => (Some(select.add(&mut ovr.port)), Some(&ovr.sensor)),
+        None => (None, None)
+    };
 
     for (id, &(_, ref mut port)) in ports.mut_iter() {
         handles.push((id, select.add(port)));
@@ -203,6 +220,9 @@ fn wait_commands(state: &mut InputState,
                 AddPort(port, window, reply) => {
                     return AddPort(port, window, reply);
                 },
+                AddOVR(port) => {
+                    return AddOVR(port);
+                }
                 RemovePort(id, reply) => {
                     return RemovePort(id, reply);
                 },
@@ -225,6 +245,22 @@ fn wait_commands(state: &mut InputState,
                 break;
             }
         }
+
+        match ovr_handle {
+            Some(ref mut ovr_handle) => {
+                if ovr_handle.id == id {
+                    let msg = ovr_handle.recv();
+                    match sf {
+                        Some(ref sf) => {
+                            sf.on_message(&msg);
+                            state.predicted = sf.get_predicted_orientation(None);
+                        },
+                        _ => (),
+                    }
+                }
+            },
+            None => ()
+        }
     }
 }
 
@@ -233,11 +269,12 @@ fn thread(cmd: Port<Command>)
     let mut state = InputState::new();
     let mut max_id: window_id = 0;
     let mut cmd = cmd;
-   
+    
+    let mut ovr: Option<OVR> = None;
     let mut ports: TrieMap<(MutexArc<Window>, Port<(f64, WindowEvent)>)> = TrieMap::new();
 
     loop {
-        let command = wait_commands(&mut state, &mut cmd, &mut ports);
+        let command = wait_commands(&mut state, &mut cmd, &mut ovr, &mut ports);
 
         match command {
             AddPort(port, window, reply) => {
@@ -246,6 +283,12 @@ fn thread(cmd: Port<Command>)
                 reply(id);
 
                 ports.insert(id, (window, port));
+            },
+            AddOVR(port) => {
+                ovr = Some(OVR {
+                    port: port,
+                    sensor: ovr::SensorFusion::new().unwrap(),
+                });
             },
             SetPos(id, (x, y)) => {
                  match ports.find(&id) {
@@ -268,10 +311,13 @@ fn thread(cmd: Port<Command>)
     }
 }
 
+
 pub struct InputManager
 {
     priv cmd: SharedChan<Command>,
-    priv ovr_device_manager: Option<ovr::DeviceManager>
+    priv ovr_sensor_device: Option<ovr::SensorDevice>,
+    priv ovr_hmd_device: Option<ovr::HMDDevice>,
+    priv ovr_device_manager: Option<ovr::DeviceManager>,
 }
 
 impl InputManager
@@ -286,7 +332,9 @@ impl InputManager
 
         InputManager {
             cmd: conn,
-            ovr_device_manager: None
+            ovr_device_manager: None,
+            ovr_hmd_device: None,
+            ovr_sensor_device: None,
         }
     }
 
@@ -322,6 +370,45 @@ impl InputManager
         p.recv()     
     }
 
+    pub fn setup_ovr(&mut self) -> bool
+    {
+        if self.ovr_device_manager.is_some() &&
+           self.ovr_sensor_device.is_some() &&
+           self.ovr_hmd_device.is_some() {
+            return true;
+        }
+
+        if self.ovr_device_manager.is_none() {
+            ovr::init();
+            self.ovr_device_manager = ovr::DeviceManager::new();
+        }
+
+        match self.ovr_device_manager {
+            Some(ref hmd) => {
+                self.ovr_hmd_device = hmd.enumerate();
+            },
+            None => return false
+        }
+
+        match self.ovr_hmd_device {
+            Some(ref hmd) => {
+                self.ovr_sensor_device = hmd.get_sensor();
+            },
+            None => return false
+        }
+
+        match self.ovr_sensor_device {
+            Some(ref mut sd) => {
+                let (port, chan) = Chan::new();
+                sd.register_chan(~chan);
+                self.cmd.send(AddOVR(port));
+            },
+            None => return false
+        }
+
+        true
+    }
+
     pub fn ovr_manager<'a>(&'a mut self) -> Option<&'a ovr::DeviceManager>
     {
         if self.ovr_device_manager.is_none() {
@@ -332,13 +419,6 @@ impl InputManager
     }
 
 }
-
-//let dm = ovr::DeviceManager::new().unwrap();
-//let dev = dm.enumerate().unwrap();
-//let info = dev.get_info();
-//let sf = ovr::SensorFusion::new().unwrap();
-//let sensor = dev.get_sensor().unwrap();
-//sf.attach_to_sensor(&sensor);
 
 #[deriving(Clone)]
 pub struct InputHandle
