@@ -39,8 +39,8 @@ mod hmd;
 pub struct RenderManager {
     db: db::Graphics,
     hmd: Option<hmd::HMD>,
-    render_chan: Chan<(db::Graphics, object_key, Mat4<f32>)>,
-    result_port: Port<Option<~[DrawCommand]>>,
+    render_chans: ~[Chan<(db::Graphics, object_key, Mat4<f32>)>],
+    result_ports: ~[Port<Option<~[DrawCommand]>>]
 }
 
 fn render_db<'a>(db: db::Graphics, scene: object_key, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>)
@@ -73,24 +73,30 @@ impl RenderManager
         gl::Enable(gl::BLEND);
         gl::CullFace(gl::BACK);
 
-        let (render_port, render_chan): (Port<(db::Graphics, object_key, Mat4<f32>)>, Chan<(db::Graphics, object_key, Mat4<f32>)>) = Chan::new();
-        let (result_port, result_chan): (Port<Option<~[DrawCommand]>>, Chan<Option<~[DrawCommand]>>) = Chan::new();
+        let mut result_ports = ~[];
+        let mut render_chans = ~[];
 
-        spawn(proc() {
-            let result_chan = result_chan;
-            //let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
-            //let mut offload = ObjectCullOffloadContext::new(&context, &device, queue);
+        for _ in range(0, 2) {
+            let (render_port, render_chan): (Port<(db::Graphics, object_key, Mat4<f32>)>, Chan<(db::Graphics, object_key, Mat4<f32>)>) = Chan::new();
+            let (result_port, result_chan): (Port<Option<~[DrawCommand]>>, Chan<Option<~[DrawCommand]>>) = Chan::new();
+        
+            spawn(proc() {
+                let result_chan = result_chan;
+                for (db, scene, camera) in render_port.iter() {
+                    render_db(db, scene, camera, &result_chan);
+                }
+            });
 
-            for (db, scene, camera) in render_port.iter() {
-                render_db(db, scene, camera, &result_chan);
-            }
-        });
+            result_ports.push(result_port);
+            render_chans.push(render_chan);
+
+        }
 
         RenderManager {
             db: db::Graphics::new(db),
             hmd: None,
-            result_port: result_port,
-            render_chan: render_chan
+            result_ports: result_ports,
+            render_chans: render_chans
         }
     }
 
@@ -104,10 +110,10 @@ impl RenderManager
         self.db.update(db);
     }
 
-    fn drawsink(&mut self, projection: Mat4<f32>)
+    fn drawsink(&mut self, projection: Mat4<f32>, port: int)
     {
         let mut shader = None;
-        for block in self.result_port.iter() {
+        for block in self.result_ports[port].iter() {
             let block = match block {
                 Some(block) => { block },
                 None => {break;}
@@ -144,6 +150,7 @@ impl RenderManager
             gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
             let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
             gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
+            gl::DeleteSync(sync);
         }
     }
 
@@ -156,7 +163,7 @@ impl RenderManager
         }
     }
 
-    pub fn render_normal(&mut self, scene: object_key, camera: object_key, win: &mut Display)
+    fn render_normal(&mut self, scene: object_key, camera: object_key, win: &mut Display)
     {
         let camera_rot = self.db.current.location(camera).unwrap().get().rot;
         let camera_trans = self.db.current.position(camera);
@@ -164,12 +171,12 @@ impl RenderManager
 
         let projection = camera.projection.mul_m(&camera.view);
 
-        self.render_chan.send((self.db.clone(), scene, projection));
+        self.render_chans[0].send((self.db.clone(), scene, projection));
 
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-        self.drawsink(projection);
+        self.drawsink(projection, 0);
 
         self.swap_buffers(win);
     }
@@ -186,18 +193,18 @@ impl RenderManager
         let camera_trans = self.db.current.position(camera);
         let (left, right) = Camera::new(camera_rot, camera_trans.clone()).get_matrices_ovr(win);
 
+        let proj_left = left.projection.mul_m(&left.view);
+        self.render_chans[0].send((self.db.clone(), scene, proj_left));
+        let proj_right = right.projection.mul_m(&right.view);
+        self.render_chans[1].send((self.db.clone(), scene, proj_right));
+
         self.hmd.unwrap().set_left(&self.db, &hmd_info);
-        let projection = left.projection.mul_m(&left.view);
-        self.render_chan.send((self.db.clone(), scene, projection));
-        self.drawsink(projection);
+        self.drawsink(proj_left, 0);
 
         self.hmd.unwrap().set_right(&self.db, &hmd_info);
-        let projection = right.projection.mul_m(&right.view);
-        self.render_chan.send((self.db.clone(), scene, projection));
-        self.drawsink(projection);
+        self.drawsink(proj_right, 1);
 
         self.hmd.unwrap().draw_screen(&self.db, &hmd_info);
-
         self.swap_buffers(win);
     }
 }
