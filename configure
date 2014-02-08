@@ -79,7 +79,7 @@ class Lib(Module):
 class Bin(Module):
     ext = "main.rs"
     dir = "bin"
-    flags = ""
+    flags = "-Zlto"
     def __init__(self, name, dep_modules=None, other_flags=""):
         self.name = name
         self.ename = "bin/%s" % self.get_name()
@@ -169,6 +169,7 @@ def write_makefile(modules):
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "bitmap-set", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
+           Lib("snowmew-loader"),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
