@@ -26,8 +26,6 @@ use cow::join::join_maps;
 use snowmew::core::{object_key};
 use snowmew::camera::Camera;
 
-use ovr::{HMDInfo, create_reference_matrices};
-
 use snowmew::display::Display;
 
 
@@ -106,26 +104,8 @@ impl RenderManager
         self.db.update(db);
     }
 
-    pub fn render(&mut self, scene: object_key, camera: object_key, win: &mut Display)
+    fn drawsink(&mut self, projection: Mat4<f32>)
     {
-        let (w, h) = win.size();
-        let (w, h) = (w as f32, h as f32);
-        let projection = cgmath::projection::perspective(
-            cgmath::angle::deg(80f32), w/h, 1f32, 1000f32
-        );
-
-        let camera_rot = self.db.current.location(camera).unwrap().get().rot;
-        let camera_trans = self.db.current.position(camera);
-        let camera = Camera::new(camera_rot, camera_trans.clone()).view_matrix();
-
-        let projection = projection.mul_m(&camera);
-
-        self.render_chan.send((self.db.clone(), scene, projection));
-
-
-        gl::ClearColor(0., 0., 0., 1.);
-        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
         let mut shader = None;
         for block in self.result_port.iter() {
             let block = match block {
@@ -154,8 +134,11 @@ impl RenderManager
                     },
                 }
             }
-        }
+        }       
+    }
 
+    fn swap_buffers(&mut self, win: &mut Display)
+    {
         win.swap_buffers();
         unsafe {
             gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
@@ -164,70 +147,57 @@ impl RenderManager
         }
     }
 
-    pub fn render_vr(&mut self, scene: object_key, camera: object_key, hmd: &HMDInfo, win: &mut Display)
+    pub fn render(&mut self, scene: object_key, camera: object_key, win: &mut Display)
     {
+        if win.is_hmd() {
+            self.render_vr(scene, camera, win)
+        } else {
+            self.render_normal(scene, camera, win)
+        }
+    }
+
+    pub fn render_normal(&mut self, scene: object_key, camera: object_key, win: &mut Display)
+    {
+        let camera_rot = self.db.current.location(camera).unwrap().get().rot;
+        let camera_trans = self.db.current.position(camera);
+        let camera = Camera::new(camera_rot, camera_trans.clone()).get_matrices(win);
+
+        let projection = camera.projection.mul_m(&camera.view);
+
+        self.render_chan.send((self.db.clone(), scene, projection));
+
+        gl::ClearColor(0., 0., 0., 1.);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+        self.drawsink(projection);
+
+        self.swap_buffers(win);
+    }
+
+    fn render_vr(&mut self, scene: object_key, camera: object_key, win: &mut Display)
+    {
+        let hmd_info = win.hmd();
+
         if self.hmd.is_none() {
-            self.hmd = Some(hmd::HMD::new(1.7, hmd));
+            self.hmd = Some(hmd::HMD::new(1.7, &hmd_info));
         }
 
         let camera_rot = self.db.current.location(camera).unwrap().get().rot;
         let camera_trans = self.db.current.position(camera);
-        let camera = Camera::new(camera_rot, camera_trans.clone()).view_matrix();
+        let (left, right) = Camera::new(camera_rot, camera_trans.clone()).get_matrices_ovr(win);
 
-        let ((proj_left, proj_right), (view_left, view_right)) = 
-                create_reference_matrices(hmd, &camera, self.hmd.unwrap().scale);
+        self.hmd.unwrap().set_left(&self.db, &hmd_info);
+        let projection = left.projection.mul_m(&left.view);
+        self.render_chan.send((self.db.clone(), scene, projection));
+        self.drawsink(projection);
 
+        self.hmd.unwrap().set_right(&self.db, &hmd_info);
+        let projection = right.projection.mul_m(&right.view);
+        self.render_chan.send((self.db.clone(), scene, projection));
+        self.drawsink(projection);
 
-        for x in range(0, 2) {
-            let proj = if x == 0 {
-                self.hmd.unwrap().set_left(&self.db, hmd);
-                proj_left.mul_m(&view_left)
-            } else {
-                self.hmd.unwrap().set_right(&self.db, hmd);
-                proj_right.mul_m(&view_right)
-            };
-            self.render_chan.send((self.db.clone(), scene, proj));
+        self.hmd.unwrap().draw_screen(&self.db, &hmd_info);
 
-            let mut shader = None;
-            for block in self.result_port.iter() {
-                let block = match block {
-                    Some(block) => { block },
-                    None => {break;}
-                };
-
-                for &item in block.iter() {
-                    match item {
-                        BindShader(id) => {
-                            shader = self.db.shaders.find(&id);
-                            shader.unwrap().bind();
-                            shader.unwrap().set_projection(&proj);
-                        },
-                        BindVertexBuffer(id) => {
-                            let vb = self.db.vertex.find(&id);
-                            vb.unwrap().bind();
-                        },
-                        SetMatrix(mat) => {
-                            shader.unwrap().set_position(&mat);
-                        },
-                        Draw(geo) => {
-                            unsafe {
-                                gl::DrawElements(gl::TRIANGLES, geo.count as i32, gl::UNSIGNED_INT, ptr::null());
-                            }
-                        },
-                    }
-                }
-            }
-        }
-
-        self.hmd.unwrap().draw_screen(&self.db, hmd);
-
-        win.swap_buffers();
-        //unsafe {
-        //    gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
-        //    let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
-        //    gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
-        //}
-
-
+        self.swap_buffers(win);
     }
 }

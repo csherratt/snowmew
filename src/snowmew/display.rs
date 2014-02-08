@@ -5,10 +5,13 @@ use input::{InputManager, InputHandle};
 use glfw;
 use gl;
 
+use ovr;
+
 pub struct Display
 {
     priv window: MutexArc<Window>,
     priv handle: InputHandle,
+    priv hmd_info: Option<ovr::HMDInfo>
 }
 
 impl Display
@@ -30,7 +33,8 @@ impl Display
 
         Some((Display {
             window: window,
-            handle: handle.clone()
+            handle: handle.clone(),
+            hmd_info: None
         },
         handle))       
     }
@@ -94,8 +98,9 @@ impl Display
 
         let win = Display::window(im, (width, height), FullScreen(monitors[idx]));
         match win {
-            Some(win) => {
-                Some(win)
+            Some((mut win, input_handle)) => {
+                win.hmd_info = Some(info);
+                Some((win, input_handle))
             },
             None => None
         }
@@ -120,4 +125,13 @@ impl Display
         }
     }
 
+    pub fn is_hmd(&self) -> bool
+    {
+        self.hmd_info.is_some()
+    }
+
+    pub fn hmd(&self) -> ovr::HMDInfo
+    {
+        self.hmd_info.unwrap().clone()
+    }
 }

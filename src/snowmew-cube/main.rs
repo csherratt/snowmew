@@ -134,8 +134,7 @@ fn main() {
             db.update_location(camera_loc, head_trans);
 
             ren.update(db.clone());
-            //ren.render_vr(scene, camera_loc,  &info, &mut display);
-            ren.render(scene, camera_loc, /*&info,*/ &mut display);
+            ren.render(scene, camera_loc, &mut display);
 
             let end = precise_time_s();
 
