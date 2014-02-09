@@ -82,8 +82,8 @@ impl Shader {
             }
         }
 
-        let pos = uniform(program, "position");
-        let proj = uniform(program, "projection");
+        let pos = uniform(program, "mat_model");
+        let proj = uniform(program, "mat_proj_view");
 
         "color".with_c_str(|ptr| {
             unsafe {
@@ -133,7 +133,7 @@ impl Shader {
         }
     }
 
-    pub fn set_position(&self, mat: &Mat4<f32>)
+    pub fn set_model(&self, mat: &Mat4<f32>)
     {
         unsafe {
             gl::UniformMatrix4fv(self.uniform_position, 1, gl::FALSE, mat.ptr());

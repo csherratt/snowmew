@@ -1,32 +1,55 @@
 use core;
-use geometry::{VertexBuffer, Geometry, VertexGeo};
+use geometry::{VertexBuffer, Geometry, VertexGeoTex};
 use shader::Shader;
 
-use cgmath::vector::Vec3;
+use cgmath::vector::{Vec3, Vec2};
 
 use ovr;
 
 static VS_SRC: &'static str =
 "#version 400
-uniform mat4 position;
-uniform mat4 projection;
-in vec3 pos;
-out vec2 UV;
+uniform mat4 mat_model;
+uniform mat4 mat_proj_view;
+
+in vec3 position;
+in vec2 in_texture;
+in vec3 in_normal;
+
+out vec2 fs_texture;
+out vec3 fs_normal;
+
 void main() {
-    gl_Position = projection * position * vec4(pos, 1.);
-    UV = vec2(pos.x, pos.y); 
+    gl_Position = mat_proj_view * mat_model * vec4(position, 1.);
+    fs_texture = in_texture;
+    fs_normal = in_normal;
 }
 ";
 
-static FS_SRC: &'static str =
+static FS_RAINBOW_NORMAL_SRC: &'static str =
 "#version 400
+
+in vec2 fs_texture;
+in vec3 fs_normal;
+
 out vec4 color;
-in vec2 UV;
+
 void main() {
-    color = vec4(UV.x, UV.y, 0., 1);
+    color = vec4(fs_normal, 1);
 }
 ";
 
+static FS_RAINBOW_TEXTURE_SRC: &'static str =
+"#version 400
+
+in vec2 fs_texture;
+in vec3 fs_normal;
+
+out vec4 color;
+
+void main() {
+    color = vec4(fs_texture, 0.5, 1);
+}
+";
 
 static VR_VS_SRC: &'static str =
 "#version 400
@@ -41,22 +64,22 @@ void main() {
 
 static VR_FS_SRC: &'static str = ovr::SHADER_FRAG_CHROMAB;
 
-static VERTEX_DATA: [VertexGeo, ..12] = [
+static VERTEX_DATA: [VertexGeoTex, ..12] = [
     // CUBE
-    VertexGeo{position: Vec3{x: -1., y: -1., z:  1.}}, // 0
-    VertexGeo{position: Vec3{x: -1., y:  1., z:  1.}},
-    VertexGeo{position: Vec3{x:  1., y: -1., z:  1.}},
-    VertexGeo{position: Vec3{x:  1., y:  1., z:  1.}},
-    VertexGeo{position: Vec3{x: -1., y: -1., z: -1.}},
-    VertexGeo{position: Vec3{x: -1., y:  1., z: -1.}},
-    VertexGeo{position: Vec3{x:  1., y: -1., z: -1.}},
-    VertexGeo{position: Vec3{x:  1., y:  1., z: -1.}},
+    VertexGeoTex{position: Vec3{x: -1., y: -1., z:  1.}, texture: Vec2{x: -1., y: -1.}}, // 0
+    VertexGeoTex{position: Vec3{x: -1., y:  1., z:  1.}, texture: Vec2{x: -1., y:  1.}},
+    VertexGeoTex{position: Vec3{x:  1., y: -1., z:  1.}, texture: Vec2{x:  1., y: -1.}},
+    VertexGeoTex{position: Vec3{x:  1., y:  1., z:  1.}, texture: Vec2{x:  1., y:  1.}},
+    VertexGeoTex{position: Vec3{x: -1., y: -1., z: -1.}, texture: Vec2{x: -1., y: -1.}},
+    VertexGeoTex{position: Vec3{x: -1., y:  1., z: -1.}, texture: Vec2{x: -1., y:  1.}},
+    VertexGeoTex{position: Vec3{x:  1., y: -1., z: -1.}, texture: Vec2{x:  1., y: -1.}},
+    VertexGeoTex{position: Vec3{x:  1., y:  1., z: -1.}, texture: Vec2{x:  1., y:  1.}},
 
      // BILL BOARD
-    VertexGeo{position: Vec3{x: -1., y: -1., z:  0.}}, // 8
-    VertexGeo{position: Vec3{x: -1., y:  1., z:  0.}}, 
-    VertexGeo{position: Vec3{x:  1., y: -1., z:  0.}},
-    VertexGeo{position: Vec3{x:  1., y:  1., z:  0.}},
+    VertexGeoTex{position: Vec3{x: -1., y: -1., z:  0.}, texture: Vec2{x: -1., y: -1.}}, // 8
+    VertexGeoTex{position: Vec3{x: -1., y:  1., z:  0.}, texture: Vec2{x: -1., y:  1.}}, 
+    VertexGeoTex{position: Vec3{x:  1., y: -1., z:  0.}, texture: Vec2{x:  1., y: -1.}},
+    VertexGeoTex{position: Vec3{x:  1., y:  1., z:  0.}, texture: Vec2{x:  1., y:  1.}},
 ];
 
 static INDEX_DATA: [u32, ..42] = [
@@ -91,9 +114,10 @@ pub fn load_default(db: &mut core::Database)
     let shader_dir = db.add_dir(Some(core_dir), ~"shaders");
     let geo_dir = db.add_dir(Some(core_dir), ~"geometry");
 
-    let vbo = VertexBuffer::new_position(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
+    let vbo = VertexBuffer::new_position_texture(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
 
-    db.add_shader(shader_dir, ~"rainbow", Shader::new(VS_SRC.into_owned(), FS_SRC.into_owned()));
+    db.add_shader(shader_dir, ~"rainbow_normal", Shader::new(VS_SRC.into_owned(), FS_RAINBOW_NORMAL_SRC.into_owned()));
+    db.add_shader(shader_dir, ~"rainbow_texture", Shader::new(VS_SRC.into_owned(), FS_RAINBOW_TEXTURE_SRC.into_owned()));
     db.add_shader(shader_dir, ~"ovr_hmd", Shader::new(VR_VS_SRC.into_owned(), VR_FS_SRC.into_owned()));
 
     let vbo = db.add_vertex_buffer(geo_dir, ~"vbo", vbo);

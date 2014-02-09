@@ -5,7 +5,7 @@
 #[allow(dead_code)];
 
 extern mod std;
-extern mod glfw;
+extern mod glfw = "glfw-rs";
 extern mod cgmath;
 extern mod snowmew;
 extern mod cow;
@@ -131,7 +131,7 @@ impl RenderManager
                         vb.unwrap().bind();
                     },
                     SetMatrix(mat) => {
-                        shader.unwrap().set_position(&mat);
+                        shader.unwrap().set_model(&mat);
                     },
                     Draw(geo) => {
                         unsafe {

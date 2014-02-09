@@ -3,7 +3,7 @@
 #[feature(macro_rules)];
 #[feature(globs)];
 
-extern mod glfw;
+extern mod glfw = "glfw-rs";
 extern mod gl;
 extern mod snowmew;
 extern mod render = "snowmew-render";
@@ -43,7 +43,7 @@ fn main() {
 
         let scene = db.new_object(None, ~"scene");
         let geometry = db.find("core/geometry/cube").unwrap();
-        let shader = db.find("core/shaders/rainbow").unwrap();
+        let shader = db.find("core/shaders/rainbow_texture").unwrap();
 
         let size = 20;
 
@@ -108,7 +108,6 @@ fn main() {
             if input_state.key_down(glfw::KeySpace) {
                 rot_x = 0.;
                 rot_y = 0.;
-                //sf.reset();
             }
 
             let input_vec = Vec3::new(

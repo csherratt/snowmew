@@ -29,7 +29,6 @@ impl HMD
             gl::GenFramebuffers(1, framebuffers.unsafe_mut_ref(0));
             gl::GenRenderbuffers(1, renderbuffers.unsafe_mut_ref(0));
 
-            println!("{:?} {:?} {:?}", textures, framebuffers, renderbuffers);
             gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffers[0]);
             gl::BindTexture(gl::TEXTURE_2D, textures[0]);
         

@@ -33,7 +33,7 @@ impl Camera {
     pub fn projection_matrix(&self, aspect_ratio: f32) -> Mat4<f32>
     {
         perspective(
-            deg(80f32), aspect_ratio, 1f32, 1000f32
+            deg(80f32), aspect_ratio, 1f32, 10000f32
         )
     }
 

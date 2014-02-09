@@ -7,7 +7,7 @@
 #[feature(globs)];
 
 extern mod std;
-extern mod glfw;
+extern mod glfw = "glfw-rs";
 extern mod cgmath;
 extern mod cow;
 extern mod octtree;
