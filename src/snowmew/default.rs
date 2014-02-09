@@ -1,6 +1,8 @@
 use core;
-use geometry::{VertexBuffer, Geometry};
+use geometry::{VertexBuffer, Geometry, VertexGeo};
 use shader::Shader;
+
+use cgmath::vector::Vec3;
 
 use ovr;
 
@@ -9,19 +11,19 @@ static VS_SRC: &'static str =
 uniform mat4 position;
 uniform mat4 projection;
 in vec3 pos;
-out vec3 UV;
+out vec2 UV;
 void main() {
     gl_Position = projection * position * vec4(pos, 1.);
-    UV = vec3(pos.x, pos.y, pos.z); 
+    UV = vec2(pos.x, pos.y); 
 }
 ";
 
 static FS_SRC: &'static str =
 "#version 400
 out vec4 color;
-in vec3 UV;
+in vec2 UV;
 void main() {
-    color = vec4(UV.x, UV.y, UV.z, 1);
+    color = vec4(UV.x, UV.y, 0., 1);
 }
 ";
 
@@ -39,22 +41,22 @@ void main() {
 
 static VR_FS_SRC: &'static str = ovr::SHADER_FRAG_CHROMAB;
 
-static VERTEX_DATA: [f32, ..36] = [
+static VERTEX_DATA: [VertexGeo, ..12] = [
     // CUBE
-    -1., -1.,  1., // 0
-    -1.,  1.,  1.,
-     1., -1.,  1.,
-     1.,  1.,  1.,
-    -1., -1., -1.,
-    -1.,  1., -1.,
-     1., -1., -1.,
-     1.,  1., -1.,
+    VertexGeo{position: Vec3{x: -1., y: -1., z:  1.}}, // 0
+    VertexGeo{position: Vec3{x: -1., y:  1., z:  1.}},
+    VertexGeo{position: Vec3{x:  1., y: -1., z:  1.}},
+    VertexGeo{position: Vec3{x:  1., y:  1., z:  1.}},
+    VertexGeo{position: Vec3{x: -1., y: -1., z: -1.}},
+    VertexGeo{position: Vec3{x: -1., y:  1., z: -1.}},
+    VertexGeo{position: Vec3{x:  1., y: -1., z: -1.}},
+    VertexGeo{position: Vec3{x:  1., y:  1., z: -1.}},
 
      // BILL BOARD
-    -1., -1.,  0., // 8
-    -1.,  1.,  0., 
-     1., -1.,  0.,
-     1.,  1.,  0.,
+    VertexGeo{position: Vec3{x: -1., y: -1., z:  0.}}, // 8
+    VertexGeo{position: Vec3{x: -1., y:  1., z:  0.}}, 
+    VertexGeo{position: Vec3{x:  1., y: -1., z:  0.}},
+    VertexGeo{position: Vec3{x:  1., y:  1., z:  0.}},
 ];
 
 static INDEX_DATA: [u32, ..42] = [
@@ -89,7 +91,7 @@ pub fn load_default(db: &mut core::Database)
     let shader_dir = db.add_dir(Some(core_dir), ~"shaders");
     let geo_dir = db.add_dir(Some(core_dir), ~"geometry");
 
-    let vbo = VertexBuffer::new(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
+    let vbo = VertexBuffer::new_position(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
 
     db.add_shader(shader_dir, ~"rainbow", Shader::new(VS_SRC.into_owned(), FS_SRC.into_owned()));
     db.add_shader(shader_dir, ~"ovr_hmd", Shader::new(VR_VS_SRC.into_owned(), VR_FS_SRC.into_owned()));

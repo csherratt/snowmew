@@ -5,6 +5,11 @@ use std::mem;
 use std::cast;
 use std::ptr;
 
+use std::libc::c_void;
+
+use snowmew::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGetTexNorm};
+use snowmew::geometry::{Geo, GeoTex, GeoTexNorm, Empty};
+
 #[deriving(Clone, Default)]
 pub struct VertexBuffer
 {
@@ -17,11 +22,32 @@ pub struct VertexBuffer
 }
 
 impl VertexBuffer {
-    pub fn new(vertex: &[f32], index: &[u32]) -> VertexBuffer
+    pub fn new(vertex: &Vertex, index: &[u32]) -> VertexBuffer
     {
         let mut vao = 0;
         let vbo: &mut[gl::types::GLuint] = &mut [0, 0];
-        unsafe {
+
+        let (vertex_size, index_size) = unsafe {
+            let (addr, size, stride) = match *vertex {
+                Geo(ref data) => {
+                    (cast::transmute(&data[0].position),
+                     data.len() * mem::size_of::<VertexGeo>(),
+                     mem::size_of::<VertexGeo>())
+                },
+                GeoTex(ref data) => {
+                    (cast::transmute(&data[0].position),
+                     data.len() * mem::size_of::<VertexGeoTex>(),
+                     mem::size_of::<VertexGeoTex>())
+                },
+                GeoTexNorm(ref data) => {
+                    (cast::transmute(&data[0].position),
+                     data.len() * mem::size_of::<VertexGetTexNorm>(),
+                     mem::size_of::<VertexGetTexNorm>())
+                },
+                Empty => fail!("Should not be empty"),
+            };
+            let stride = stride as i32;
+
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
@@ -29,19 +55,29 @@ impl VertexBuffer {
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,
-                           (vertex.len() * mem::size_of::<f32>())  as gl::types::GLsizeiptr,
-                           cast::transmute(&vertex[0]),
+                           size  as gl::types::GLsizeiptr,
+                           addr,
                            gl::STATIC_DRAW
             );
 
             gl::EnableVertexAttribArray(0);
-            gl::VertexAttribPointer(0,
-                                    3,
-                                    gl::FLOAT,
-                                    gl::FALSE,
-                                    0,
-                                    ptr::null()
-            );
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, ptr::null());
+
+            match *vertex {
+                Empty | Geo(_) => (),
+                GeoTex(_) | GeoTexNorm(_) => {
+                    gl::EnableVertexAttribArray(1);
+                    gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, 12 as *c_void);
+                }
+            }
+
+            match *vertex {
+                Empty | Geo(_) | GeoTex(_) => (),
+                GeoTexNorm(_) => {
+                    gl::EnableVertexAttribArray(2);
+                    gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, 20 as *c_void);
+                }
+            }
 
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, vbo[1]);
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
@@ -49,7 +85,9 @@ impl VertexBuffer {
                            cast::transmute(&index[0]),
                            gl::STATIC_DRAW
             );
-        }
+
+            (size, index.len())
+        };
 
         /* todo check for errors */
         let error = gl::GetError();
@@ -62,8 +100,8 @@ impl VertexBuffer {
             vertex_buffer: vbo[0],
             index_buffer: vbo[1],
 
-            vertex_buffer_len: vertex.len(),
-            index_buffer_len: index.len()
+            vertex_buffer_len: vertex_size,
+            index_buffer_len: index_size
         }
     }
 

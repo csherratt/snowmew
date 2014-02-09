@@ -167,9 +167,10 @@ def write_makefile(modules):
         f.write(rules) 
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
+           Bin("snowmew-teapot", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "bitmap-set", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
-           Lib("snowmew-loader"),
+           Lib("snowmew-loader", ["snowmew"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),

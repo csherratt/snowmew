@@ -1,6 +1,8 @@
 
 use std::vec;
 
+use cgmath::vector::{Vec2, Vec3};
+
 use core::object_key;
 
 #[deriving(Clone)]
@@ -11,9 +13,46 @@ pub enum Primative {
     TriangleAdjacency
 }
 
+#[deriving(Clone)]
+pub struct VertexGeo
+{
+    position: Vec3<f32>
+}
+
+#[deriving(Clone)]
+pub struct VertexGeoTex
+{
+    position: Vec3<f32>,
+    texture: Vec2<f32>
+}
+
+#[deriving(Clone)]
+pub struct VertexGetTexNorm
+{
+    position: Vec3<f32>,
+    texture: Vec2<f32>,
+    normal: Vec3<f32>
+}
+
+#[deriving(Clone)]
+pub enum Vertex {
+    Empty,
+    Geo(~[VertexGeo]),
+    GeoTex(~[VertexGeoTex]),
+    GeoTexNorm(~[VertexGetTexNorm])
+}
+
+impl Default for Vertex
+{
+    fn default() -> Vertex
+    {
+        return Empty
+    }
+}
+
 #[deriving(Clone, Default)]
 pub struct VertexBuffer {
-    vertex: ~[f32],
+    vertex: Vertex,
     index: ~[u32]
 }
 
@@ -122,9 +161,23 @@ impl Geometry {
 }
 
 impl VertexBuffer {
-    pub fn new(vert: ~[f32], idx: ~[u32]) -> VertexBuffer {
+    pub fn new_position(vert: ~[VertexGeo], idx: ~[u32]) -> VertexBuffer {
         VertexBuffer {
-            vertex: vert,
+            vertex: Geo(vert),
+            index: idx
+        }
+    }
+
+    pub fn new_position_texture(vert: ~[VertexGeoTex], idx: ~[u32]) -> VertexBuffer {
+        VertexBuffer {
+            vertex: GeoTex(vert),
+            index: idx
+        }
+    }
+
+    pub fn new_position_texture_normal(vert: ~[VertexGetTexNorm], idx: ~[u32]) -> VertexBuffer {
+        VertexBuffer {
+            vertex: GeoTexNorm(vert),
             index: idx
         }
     }

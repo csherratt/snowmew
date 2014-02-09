@@ -41,7 +41,7 @@ impl Graphics
             match self.vertex.find(oid) {
                 Some(_) => (),
                 None => {
-                    let vb = VertexBuffer::new(vbo.vertex.as_slice(), vbo.index.as_slice());
+                    let vb = VertexBuffer::new(&vbo.vertex, vbo.index.as_slice());
                     self.vertex.insert(*oid, vb);
                 }
             }

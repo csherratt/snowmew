@@ -19,6 +19,9 @@ extern mod std;
 extern mod gl;
 extern mod ovr = "ovr-rs";
 
+pub use core::{object_key, Database};
+pub use geometry::{VertexBuffer};
+
 pub mod core;
 pub mod geometry;
 pub mod shader;
