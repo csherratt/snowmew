@@ -43,7 +43,9 @@ fn main() {
 
         let scene = db.new_object(None, ~"scene");
         let geometry = db.find("core/geometry/cube").unwrap();
-        let shader = db.find("core/shaders/rainbow_texture").unwrap();
+        let material = db.find("core/material/flat/red").unwrap();
+
+        db.dump();
 
         let size = 20;
 
@@ -54,7 +56,7 @@ fn main() {
             let z = z as f32 * 2.5;
             db.update_location(cube_id,
                 Transform3D::new(0.5f32, Rotation3::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
-            db.set_draw(cube_id, geometry, shader);
+            db.set_draw(cube_id, geometry, material);
         }}}
 
         db.update_location(camera_loc,

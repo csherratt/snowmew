@@ -9,6 +9,8 @@ use gl::types::GLuint;
 use cgmath::matrix::Mat4;
 use cgmath::ptr::Ptr;
 
+use snowmew::material::{Material, Flat};
+
 fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
     let shader = gl::CreateShader(ty);
     unsafe {
@@ -138,5 +140,16 @@ impl Shader {
         unsafe {
             gl::UniformMatrix4fv(self.uniform_position, 1, gl::FALSE, mat.ptr());
         }        
+    }
+
+    pub fn set_material(&self, m: &Material)
+    {
+        match *m {
+            Flat(ref color) => {
+                let id = self.uniform("ambient");
+                gl::Uniform3f(id, color.x, color.y, color.z);
+            }
+            _ => (),
+        }
     }
 }

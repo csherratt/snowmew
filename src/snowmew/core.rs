@@ -7,7 +7,7 @@ use octtree::sparse::Sparse;
 use octtree::{Cube};
 
 use geometry::{Geometry, VertexBuffer};
-use shader::Shader;
+use material::Material;
 
 use cgmath::transform::*;
 use cgmath::matrix::*;
@@ -25,9 +25,26 @@ pub struct FrameInfo {
     delta: f64,   /* time from last frame */
 }
 
+#[deriving(Clone)]
+enum ObjectType {
+    Invalid,
+    Directory,
+    Draw,
+    VertexBuffer
+}
+
+impl Default for ObjectType
+{
+    fn default() -> ObjectType
+    {
+        Invalid
+    }
+}
+
 #[deriving(Clone, Default)]
 pub struct Object
 {
+    obj_type: ObjectType,
     parent: object_key,
     name: ~str,
 }
@@ -35,9 +52,8 @@ pub struct Object
 #[deriving(Clone, Default, Eq)]
 pub struct Drawable
 {
-    shader: object_key,
     geometry: object_key,
-    textures: ~[object_key],
+    material: object_key,
 }
 
 pub type object_key = uint;
@@ -77,10 +93,9 @@ pub struct Database {
     priv objects: BTreeMap<object_key, Object>,
     priv location: BTreeMap<object_key, Location>,
     priv draw: BTreeMap<object_key, Drawable>,
-    
     priv geometry: BTreeMap<object_key, Geometry>,
     priv vertex: BTreeMap<object_key, VertexBuffer>,
-    priv shader: BTreeMap<object_key, Shader>,
+    priv material: BTreeMap<object_key, Material>,
 
     // --- indexes ---
     // map all children to a parent
@@ -107,7 +122,7 @@ impl Database {
             
             geometry: BTreeMap::new(),
             vertex: BTreeMap::new(),
-            shader: BTreeMap::new(),
+            material: BTreeMap::new(),
 
             // --- indexes ---
             // map all children to a parent
@@ -157,6 +172,7 @@ impl Database {
         };
 
         let object = Object {
+            obj_type: Invalid,
             name: name,
             parent: parent
         };
@@ -312,22 +328,26 @@ impl Database {
         self.geometry.find(&oid)
     }
 
-    pub fn add_shader(&mut self, parent: object_key, name: ~str, shader: Shader) -> object_key
-    {
-        let oid = self.new_object(Some(parent), name);
-        self.shader.insert(oid, shader);
-        oid
-    }
-
-    pub fn set_draw(&mut self, oid: object_key, geo: object_key, shader: object_key)
+    pub fn set_draw(&mut self, oid: object_key, geo: object_key, material: object_key)
     {
         self.draw.insert(oid,
             Drawable {
                 geometry: geo,
-                shader: shader,
-                textures: ~[]
+                material: material
             }
         );
+    }
+
+    pub fn material<'a>(&'a self, oid: object_key) -> Option<&'a Material>
+    {
+        self.material.find(&oid)
+    }
+
+    pub fn new_material(&mut self, parent: object_key, name: ~str, material: Material) -> object_key
+    {
+        let obj = self.new_object(Some(parent), name);
+        self.material.insert(obj, material);
+        obj
     }
 
     pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, object_key, Drawable>>
@@ -368,11 +388,6 @@ impl Database {
     pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, object_key, VertexBuffer>
     {
         self.vertex.iter()
-    }
-
-    pub fn walk_shaders<'a>(&'a self) -> BTreeMapIterator<'a, object_key, Shader>
-    {
-        self.shader.iter()
     }
 }
 

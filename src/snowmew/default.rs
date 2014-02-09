@@ -1,68 +1,8 @@
 use core;
 use geometry::{VertexBuffer, Geometry, VertexGeoTex};
-use shader::Shader;
+use material::Material;
 
 use cgmath::vector::{Vec3, Vec2};
-
-use ovr;
-
-static VS_SRC: &'static str =
-"#version 400
-uniform mat4 mat_model;
-uniform mat4 mat_proj_view;
-
-in vec3 position;
-in vec2 in_texture;
-in vec3 in_normal;
-
-out vec2 fs_texture;
-out vec3 fs_normal;
-
-void main() {
-    gl_Position = mat_proj_view * mat_model * vec4(position, 1.);
-    fs_texture = in_texture;
-    fs_normal = in_normal;
-}
-";
-
-static FS_RAINBOW_NORMAL_SRC: &'static str =
-"#version 400
-
-in vec2 fs_texture;
-in vec3 fs_normal;
-
-out vec4 color;
-
-void main() {
-    color = vec4(fs_normal, 1);
-}
-";
-
-static FS_RAINBOW_TEXTURE_SRC: &'static str =
-"#version 400
-
-in vec2 fs_texture;
-in vec3 fs_normal;
-
-out vec4 color;
-
-void main() {
-    color = vec4(fs_texture, 0.5, 1);
-}
-";
-
-static VR_VS_SRC: &'static str =
-"#version 400
-in vec3 pos;
-out vec2 TexPos;
-
-void main() {
-    gl_Position = vec4(pos.x, pos.y, 0.5, 1.);
-    TexPos = vec2((pos.x+1)/2, (pos.y+1)/2); 
-}
-";
-
-static VR_FS_SRC: &'static str = ovr::SHADER_FRAG_CHROMAB;
 
 static VERTEX_DATA: [VertexGeoTex, ..12] = [
     // CUBE
@@ -108,18 +48,37 @@ static INDEX_DATA: [u32, ..42] = [
 ];
 
 
+static WEB_COLORS: [(&'static str, Vec3<f32>), ..16] = [
+    ("white",   Vec3{x: 1.,   y: 1.,   z: 1.}),
+    ("silver",  Vec3{x: 0.75, y: 0.75, z: 0.75}),
+    ("gray",    Vec3{x: 0.5,  y: 0.5,  z: 0.5}),
+    ("black",   Vec3{x: 0.,   y: 0.,   z: 0.}),
+    ("red",     Vec3{x: 1.,   y: 0.,   z: 0.}),
+    ("maroon",  Vec3{x: 0.5,  y: 0.,   z: 0.}),
+    ("yellow",  Vec3{x: 1.,   y: 1.,   z: 0.}),
+    ("olive",   Vec3{x: 0.5,  y: 0.5,  z: 0.}),
+    ("line",    Vec3{x: 0.,   y: 1.,   z: 0.}),
+    ("green",   Vec3{x: 0.,   y: 0.5,  z: 0.}),
+    ("aqua",    Vec3{x: 0.,   y: 1.,   z: 1.}),
+    ("teal",    Vec3{x: 0.,   y: 0.5,  z: 0.5}),
+    ("blue",    Vec3{x: 0.,   y: 0.,   z: 1.}),
+    ("navy",    Vec3{x: 0.,   y: 0.,   z: 0.5}),
+    ("fuchsia", Vec3{x: 1.,   y: 0.,   z: 1.}),
+    ("pruple",  Vec3{x: 0.5,   y: 0.,   z: 0.5}),
+];
+
 pub fn load_default(db: &mut core::Database)
 {
     let core_dir = db.add_dir(None, ~"core");
-    let shader_dir = db.add_dir(Some(core_dir), ~"shaders");
+    let mat_dir = db.add_dir(Some(core_dir), ~"material");
+    let flat_dir = db.add_dir(Some(mat_dir), ~"flat");
+
+    for &(ref name, ref color) in WEB_COLORS.iter() {
+        db.new_material(flat_dir, name.to_owned(), Material::flat(color.clone()));
+    }
+
     let geo_dir = db.add_dir(Some(core_dir), ~"geometry");
-
     let vbo = VertexBuffer::new_position_texture(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
-
-    db.add_shader(shader_dir, ~"rainbow_normal", Shader::new(VS_SRC.into_owned(), FS_RAINBOW_NORMAL_SRC.into_owned()));
-    db.add_shader(shader_dir, ~"rainbow_texture", Shader::new(VS_SRC.into_owned(), FS_RAINBOW_TEXTURE_SRC.into_owned()));
-    db.add_shader(shader_dir, ~"ovr_hmd", Shader::new(VR_VS_SRC.into_owned(), VR_FS_SRC.into_owned()));
-
     let vbo = db.add_vertex_buffer(geo_dir, ~"vbo", vbo);
     db.add_geometry(geo_dir, ~"cube", Geometry::triangles(vbo, 0, 36));
     db.add_geometry(geo_dir, ~"billboard", Geometry::triangles(vbo, 36, 6));

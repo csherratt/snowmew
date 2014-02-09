@@ -23,8 +23,6 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> ObjectCull<IN>
     }
 }
 
-
-
 impl<'a, IN: Iterator<(object_key, Mat4<f32>)>>
      Iterator<(object_key, Mat4<f32>)> for ObjectCull<IN>
 {
@@ -73,9 +71,9 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>)>>
 pub struct Expand<'a, IN>
 {
     priv input: IN,
-    priv shader_id: object_key,
+    priv material_id: object_key,
     priv vb_id: object_key,
-    priv last_shader_id: object_key,
+    priv last_material_id: object_key,
     priv last_vb_id: object_key,
     priv mat: Option<Mat4<f32>>,
     priv geometry: Option<&'a Geometry>,
@@ -88,9 +86,9 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Expand<'a, IN>
     {
         Expand {
             input: input,
-            shader_id: 0,
+            material_id: 0,
             vb_id: 0,
-            last_shader_id: 0,
+            last_material_id: 0,
             last_vb_id: 0,
             mat: None,
             geometry: None,
@@ -102,9 +100,9 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Expand<'a, IN>
 pub enum DrawCommand
 {
     Draw(Geometry),
-    BindShader(object_key),
+    BindMaterial(object_key),
     BindVertexBuffer(object_key),
-    SetMatrix(Mat4<f32>),
+    SetModelMatrix(Mat4<f32>),
 }
 
 impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCommand> for Expand<'a, IN>
@@ -113,9 +111,9 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCom
     fn next(&mut self) -> Option<DrawCommand>
     {
         loop {
-            if self.shader_id != self.last_shader_id {
-                self.last_shader_id = self.shader_id;
-                return Some(BindShader(self.shader_id));
+            if self.material_id != self.last_material_id {
+                self.last_material_id = self.material_id;
+                return Some(BindMaterial(self.material_id));
             }
 
             if self.vb_id != self.last_vb_id {
@@ -125,7 +123,7 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCom
 
             match self.mat {
                 Some(mat) => {
-                    let out = SetMatrix(mat);
+                    let out = SetModelMatrix(mat);
                     self.mat = None;
                     return Some(out);
                 },
@@ -144,7 +142,7 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCom
             match self.input.next() {
                 Some((_, (mat, draw))) => {
                     self.mat = Some(mat);
-                    self.shader_id = draw.shader;
+                    self.material_id = draw.material;
                     self.geometry = self.db.current.geometry(draw.geometry);
                     self.vb_id = self.geometry.unwrap().vb;
                 },

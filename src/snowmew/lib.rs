@@ -24,10 +24,10 @@ pub use geometry::{VertexBuffer};
 
 pub mod core;
 pub mod geometry;
-pub mod shader;
 pub mod camera;
 pub mod input;
 pub mod display;
+pub mod material;
 
 mod default;
 

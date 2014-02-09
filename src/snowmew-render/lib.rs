@@ -18,7 +18,7 @@ use std::vec;
 use std::comm::{Chan, Port};
 
 //use drawlist::Drawlist;
-use drawlist::{Expand, DrawCommand, Draw, BindShader, BindVertexBuffer, SetMatrix};
+use drawlist::{Expand, DrawCommand, Draw, BindMaterial, BindVertexBuffer, SetModelMatrix};
 
 use cgmath::matrix::{Mat4, Matrix};
 use cow::join::join_maps;
@@ -112,7 +112,12 @@ impl RenderManager
 
     fn drawsink(&mut self, projection: Mat4<f32>, port: int)
     {
-        let mut shader = None;
+        let mut material = None;
+        let mut shader = self.db.flat_shader.unwrap();
+
+        shader.bind();
+        shader.set_projection(&projection);
+
         for block in self.result_ports[port].iter() {
             let block = match block {
                 Some(block) => { block },
@@ -121,17 +126,21 @@ impl RenderManager
 
             for &item in block.iter() {
                 match item {
-                    BindShader(id) => {
-                        shader = self.db.shaders.find(&id);
-                        shader.unwrap().bind();
-                        shader.unwrap().set_projection(&projection);
+                    BindMaterial(id) => {
+                        material = self.db.current.material(id);
+                        match material {
+                            Some(material) => shader.set_material(material),
+                            None => {
+                                println!("material {} not found", id);
+                            }
+                        }
                     },
                     BindVertexBuffer(id) => {
                         let vb = self.db.vertex.find(&id);
                         vb.unwrap().bind();
                     },
-                    SetMatrix(mat) => {
-                        shader.unwrap().set_model(&mat);
+                    SetModelMatrix(mat) => {
+                        shader.set_model(&mat);
                     },
                     Draw(geo) => {
                         unsafe {

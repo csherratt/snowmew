@@ -19,7 +19,6 @@ use cgmath::angle::{ToRad, deg};
 use cgmath::point::*;
 use cgmath::quaternion::*;
 
-
 use render::RenderManager;
 
 use loader::Obj;
@@ -39,10 +38,10 @@ fn main() {
 
         let scene = db.add_dir(None, ~"scene");
         let geo = db.find("import/Teapot01").unwrap();
-        let shader = db.find("core/shaders/rainbow_normal").unwrap();
+        let material = db.find("core/material/flat/white").unwrap();
         let teapot = db.new_object(Some(scene), ~"teapot");
 
-        db.set_draw(teapot, geo, shader);
+        db.set_draw(teapot, geo, material);
         db.update_location(teapot,
             Transform3D::new(1f32,
                              Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),

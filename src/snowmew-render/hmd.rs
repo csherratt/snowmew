@@ -109,10 +109,9 @@ impl HMD
     pub fn draw_screen(&self, db: &Graphics, hmd: &HMDInfo)
     {
         let billboard = db.current.find("core/geometry/billboard").unwrap();
-        let shader = db.current.find("core/shaders/ovr_hmd").unwrap();
-
         let billboard = db.current.geometry(billboard).unwrap();
-        let shader = db.shaders.find(&shader).unwrap();
+
+        let shader = db.ovr_shader.as_ref().unwrap();
 
         let vbo = db.vertex.find(&billboard.vb).unwrap();
         shader.bind();
