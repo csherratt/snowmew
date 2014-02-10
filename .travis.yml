@@ -2,9 +2,8 @@ before_install:
   - yes | sudo add-apt-repository ppa:hansjorg/rust
   - sudo apt-get update
 install:
-  - sudo apt-get install rust-nightly libudev-dev libglfw-dev
+  - sudo apt-get install rust-nightly libudev-dev libglfw-dev fglrx opencl-headers
   - git submodule update --init --recursive
 script:
   - ./configure
   - make
-  - make check

@@ -121,12 +121,13 @@ class LibCMake(Module):
     def get_name(self):
         return self.name
 
-    def __init__(self, name, path_to_makefile_dir, path_to_output, dep_modules=None, other_flags=""):
+    def __init__(self, name, path_to_makefile_dir, path_to_output, dep_modules=None, other_flags="", cmake_flags=""):
         self.name = name
         self.ename = "lib/%s" % self.get_name()
         self.other_flags = other_flags
         self.path_to_makefile_dir = path_to_makefile_dir
         self.path_to_output = path_to_output
+        self.cmake_flags = cmake_flags
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -134,7 +135,7 @@ class LibCMake(Module):
 
     def make_rule(self, mods):
         out  = "%s:\n" % (self.path_to_makefile_dir + "Makefile")
-        out += "\tcd %s && cmake .\n\n" % (self.path_to_makefile_dir)
+        out += "\tcd %s && cmake %s .\n\n" % (self.path_to_makefile_dir, self.cmake_flags)
         out += "%s: %s\n" % (self.ename, self.path_to_makefile_dir + "Makefile")
         out += "\tmake -C %s && cp %s %s\n" % (self.path_to_makefile_dir, self.path_to_output, self.ename)
         return out
@@ -174,12 +175,13 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
-           Lib("glfw", other_flags="--link-args=-lglfw"),
+           Lib("glfw", ["libglfw3.a"], other_flags="--link-args='-lglfw3 -lX11 -lGL -lXrandr -lXi'"),
            Lib("OpenCL"),
            Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a", "libedid.a"]),
            LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
            LibCMake("libOculusVR.a", "src/ovr/OculusSDK/LibOVR/", "src/ovr/OculusSDK/LibOVR/libOculusVR.a"),
            LibCMake("libedid.a", "src/ovr/OculusSDK/3rdParty/EDID/", "src/ovr/OculusSDK/3rdParty/EDID/libedid.a"),
+           LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCOMPILE_FLAGS\"-fPIC\""),
            Lib("octtree", ["cow", "cgmath", "OpenCL"]),
            Lib("bitmap-set")]
 
