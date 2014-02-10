@@ -3,6 +3,7 @@ before_install:
   - sudo apt-get update
 install:
   - sudo apt-get install rust-nightly
+  - git submodule update --init --recursive
 script:
   - ./configure
   - make
