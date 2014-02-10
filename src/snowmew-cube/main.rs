@@ -12,6 +12,9 @@ extern mod native;
 extern mod extra;
 extern mod ovr = "ovr-rs";
 
+use std::rand::{StdRng, Rng};
+use std::vec::*;
+
 use snowmew::core::Database;
 use snowmew::display::Display;
 use snowmew::camera::Camera;
@@ -43,13 +46,21 @@ fn main() {
 
         let scene = db.new_object(None, ~"scene");
         let geometry = db.find("core/geometry/cube").unwrap();
-        let material = db.find("core/material/flat/red").unwrap();
 
-        db.dump();
+        let dir = db.find("core/material/flat").unwrap();
 
-        let size = 20;
+        let mut rng = StdRng::new();
+
+        let mut materials = ~[];
+        for oid in db.walk_dir(dir) {
+            materials.push(oid.clone())
+        }
+
+        let size = 50;
 
         for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
+            let materials = materials.slice(0, materials.len());
+            let material = rng.choose(materials);
             let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
             let x = x as f32 * 2.5;
             let y = y as f32 * 2.5;

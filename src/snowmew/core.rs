@@ -41,6 +41,24 @@ impl Default for ObjectType
     }
 }
 
+#[deriving(Clone)]
+pub struct Light
+{
+    color: Vec3<f32>,
+    intensity: f32
+}
+
+impl Default for Light
+{
+    fn default() -> Light
+    {
+        Light {
+            color: Vec3::new(0f32, 0f32, 0f32),
+            intensity: 0.
+        }
+    }
+}
+
 #[deriving(Clone, Default)]
 pub struct Object
 {
@@ -96,6 +114,7 @@ pub struct Database {
     priv geometry: BTreeMap<object_key, Geometry>,
     priv vertex: BTreeMap<object_key, VertexBuffer>,
     priv material: BTreeMap<object_key, Material>,
+    priv light: BTreeMap<object_key, Light>,
 
     // --- indexes ---
     // map all children to a parent
@@ -123,6 +142,7 @@ impl Database {
             geometry: BTreeMap::new(),
             vertex: BTreeMap::new(),
             material: BTreeMap::new(),
+            light: BTreeMap::new(),
 
             // --- indexes ---
             // map all children to a parent
@@ -307,16 +327,19 @@ impl Database {
         }
     }
 
-    pub fn dump(&self) {self.idump(0, 0);}
+    pub fn dump(&self)
+    {
+        self.idump(0, 0);
+    }
 
-    pub fn add_vertex_buffer(&mut self, parent: object_key, name: ~str, vb: VertexBuffer) -> object_key
+    pub fn new_vertex_buffer(&mut self, parent: object_key, name: ~str, vb: VertexBuffer) -> object_key
     {
         let oid = self.new_object(Some(parent), name);
         self.vertex.insert(oid, vb);
         oid
     }
 
-    pub fn add_geometry(&mut self, parent: object_key, name: ~str, geo: Geometry) -> object_key
+    pub fn new_geometry(&mut self, parent: object_key, name: ~str, geo: Geometry) -> object_key
     {
         let oid = self.new_object(Some(parent), name);
         self.geometry.insert(oid, geo);
@@ -326,16 +349,6 @@ impl Database {
     pub fn geometry<'a>(&'a self, oid: object_key) -> Option<&'a Geometry>
     {
         self.geometry.find(&oid)
-    }
-
-    pub fn set_draw(&mut self, oid: object_key, geo: object_key, material: object_key)
-    {
-        self.draw.insert(oid,
-            Drawable {
-                geometry: geo,
-                material: material
-            }
-        );
     }
 
     pub fn material<'a>(&'a self, oid: object_key) -> Option<&'a Material>
@@ -348,6 +361,35 @@ impl Database {
         let obj = self.new_object(Some(parent), name);
         self.material.insert(obj, material);
         obj
+    }
+
+    pub fn light<'a>(&'a self, oid: object_key) -> Option<&'a Light>
+    {
+        self.light.find(&oid)
+    }
+
+    pub fn new_light(&mut self, parent: object_key, name: ~str, light: Light) -> object_key
+    {
+        let obj = self.new_object(Some(parent), name);
+        self.light.insert(obj, light);
+        obj
+    }
+
+    pub fn set_draw(&mut self, oid: object_key, geo: object_key, material: object_key)
+    {
+        self.draw.insert(oid,
+            Drawable {
+                geometry: geo,
+                material: material
+            }
+        );
+    }
+
+    pub fn walk_dir<'a>(&'a self, oid: object_key) -> BTreeSetIterator<'a, uint>
+    {
+        let dir = self.index_parent_child.find(&oid).unwrap();
+
+        dir.iter()
     }
 
     pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, object_key, Drawable>>

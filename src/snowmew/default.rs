@@ -79,7 +79,7 @@ pub fn load_default(db: &mut core::Database)
 
     let geo_dir = db.add_dir(Some(core_dir), ~"geometry");
     let vbo = VertexBuffer::new_position_texture(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
-    let vbo = db.add_vertex_buffer(geo_dir, ~"vbo", vbo);
-    db.add_geometry(geo_dir, ~"cube", Geometry::triangles(vbo, 0, 36));
-    db.add_geometry(geo_dir, ~"billboard", Geometry::triangles(vbo, 36, 6));
+    let vbo = db.new_vertex_buffer(geo_dir, ~"vbo", vbo);
+    db.new_geometry(geo_dir, ~"cube", Geometry::triangles(vbo, 0, 36));
+    db.new_geometry(geo_dir, ~"billboard", Geometry::triangles(vbo, 36, 6));
 }
