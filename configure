@@ -179,9 +179,9 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
            Lib("OpenCL"),
            Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a", "libedid.a"]),
            LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
-           LibCMake("libOculusVR.a", "src/ovr/OculusSDK/LibOVR/", "src/ovr/OculusSDK/LibOVR/libOculusVR.a"),
-           LibCMake("libedid.a", "src/ovr/OculusSDK/3rdParty/EDID/", "src/ovr/OculusSDK/3rdParty/EDID/libedid.a"),
-           LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCOMPILE_FLAGS\"-fPIC\""),
+           LibCMake("libOculusVR.a", "src/ovr/OculusSDK/LibOVR/", "src/ovr/OculusSDK/LibOVR/libOculusVR.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
+           LibCMake("libedid.a", "src/ovr/OculusSDK/3rdParty/EDID/", "src/ovr/OculusSDK/3rdParty/EDID/libedid.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
+           LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("octtree", ["cow", "cgmath", "OpenCL"]),
            Lib("bitmap-set")]
 
