@@ -33,9 +33,10 @@ mod default;
 
 fn setup_glfw()
 {
-    glfw::window_hint::context_version(4, 1);
-    glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
+    glfw::window_hint::context_version(4, 4);
+    glfw::window_hint::opengl_profile(glfw::OpenGlAnyProfile);
     glfw::window_hint::opengl_forward_compat(true);
+    glfw::window_hint::visible(false);
 }
 
 #[cfg(target_os = "win32")]

@@ -27,6 +27,30 @@ void main() {
 }
 ";
 
+static VS_INSTANCED_SRC: &'static str =
+"#version 430
+layout(location = 0) uniform mat4 mat_proj_view;
+layout(location = 1) uniform int instance_offset;
+
+layout(std430, binding = 3) buffer MyBuffer
+{
+    mat4 model_matrix[];
+};
+
+in vec3 position;
+in vec2 in_texture;
+in vec3 in_normal;
+
+out vec2 fs_texture;
+out vec3 fs_normal;
+
+void main() {
+    gl_Position = mat_proj_view * model_matrix[instance_offset+gl_InstanceID] * vec4(position, 1.);
+    fs_texture = in_texture;
+    fs_normal = in_normal;
+}
+";
+
 static FS_RAINBOW_NORMAL_SRC: &'static str =
 "#version 400
 
@@ -91,6 +115,7 @@ pub struct Graphics
     rainbow_texture: Option<Shader>,
 
     flat_shader: Option<Shader>,
+    flat_instanced_shader: Option<Shader>,
 
     ovr_shader: Option<Shader>,
 }
@@ -106,7 +131,8 @@ impl Graphics
             rainbow_normal: None,
             rainbow_texture: None,
             flat_shader: None,
-            ovr_shader: None
+            ovr_shader: None,
+            flat_instanced_shader: None
         }
     }
 
@@ -144,6 +170,9 @@ impl Graphics
         }
         if self.flat_shader.is_none() {
             self.flat_shader = Some(Shader::new(VS_SRC, FS_FLAT_SRC));
+        }
+        if self.flat_instanced_shader.is_none() {
+            self.flat_instanced_shader = Some(Shader::new(VS_INSTANCED_SRC, FS_FLAT_SRC));
         }
     }
 

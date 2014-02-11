@@ -74,6 +74,26 @@ pub struct Drawable
     material: object_key,
 }
 
+impl TotalEq for Drawable {
+    fn equals(&self, other: &Drawable) -> bool
+    {
+        self.geometry == other.geometry &&
+        self.material == other.material
+    }
+}
+
+impl TotalOrd for Drawable {
+    fn cmp(&self, other: &Drawable) -> Ordering
+    {
+        let order = self.geometry.cmp(&other.geometry);
+        match order {
+            Equal => self.material.cmp(&other.material),
+            Greater => Greater,
+            Less => Less
+        }
+    }
+}
+
 pub type object_key = uint;
 
 pub struct Location {
@@ -147,7 +167,7 @@ impl Database {
             // --- indexes ---
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
-            position: octtree::sparse::Sparse::new(1000f32, 6)
+            position: octtree::sparse::Sparse::new(1000f32, 6),
         }
     }
 
@@ -392,12 +412,17 @@ impl Database {
         dir.iter()
     }
 
+    pub fn drawable_count(&self) -> uint
+    {
+        self.draw.len()
+    }
+
     pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, object_key, Drawable>>
     {
         UnwrapKey::new(self.draw.iter())
     } 
 
-    pub fn walk_in_camera<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterObjs<'a>
+    pub fn walk_in_camera<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterCulledObjs<'a>
     {
         let mut set = BitMapSet::new(1024*1024);
         self.position.quary(camera, |_, val| {set.set(*val);});
@@ -420,9 +445,34 @@ impl Database {
             None => ~[]
         };
 
-        IterObjs {
+        IterCulledObjs {
             db: self,
             view_set: set,
+            stack: stack
+        }
+    }
+
+    pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
+    {
+        let mat = match self.location.find(&oid) {
+            Some(loc) => loc.trans.get().to_mat4(),
+            None => Mat4::identity()
+        };
+
+        let stack = match self.index_parent_child.find(&oid) {
+            Some(set) => {
+                ~[IterObjsLayer {
+                    child_iter: join_set_to_map(
+                                    set.iter(),
+                                    self.location.iter()),
+                    mat: mat,
+                }]
+            },
+            None => ~[]
+        };
+
+        IterObjs {
+            db: self,
             stack: stack
         }
     }
@@ -441,14 +491,14 @@ struct IterObjsLayer<'a>
     mat: Mat4<f32>
 }
 
-pub struct IterObjs<'a>
+pub struct IterCulledObjs<'a>
 {
     priv db: &'a Database,
     priv view_set: BitMapSet,
     priv stack: ~[IterObjsLayer<'a>]
 }
 
-impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
+impl<'a> Iterator<(object_key, Mat4<f32>)> for IterCulledObjs<'a>
 {
     #[inline(always)]
     fn next(&mut self) -> Option<(object_key, Mat4<f32>)>
@@ -476,6 +526,45 @@ impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
 
                         return Some((*object_key, mat))
                     }
+                },
+                None => { self.stack.pop(); }
+            }
+        }
+    }
+}
+
+pub struct IterObjs<'a>
+{
+    priv db: &'a Database,
+    priv stack: ~[IterObjsLayer<'a>]
+}
+
+impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
+{
+    #[inline(always)]
+    fn next(&mut self) -> Option<(object_key, Mat4<f32>)>
+    {
+        loop {
+            let len = self.stack.len();
+            if len == 0 {
+                return None;
+            }
+
+            match self.stack[len-1].child_iter.next() {
+                Some((object_key, loc)) => {
+                    let mat = self.stack[len-1].mat.mul_m(&loc.trans.get().to_mat4());
+
+                    match self.db.index_parent_child.find(object_key) {
+                        Some(set) => {
+                            self.stack.push(IterObjsLayer {
+                                mat: mat,
+                                child_iter: join_set_to_map(set.iter(), self.db.location.iter())
+                            });
+                        },
+                        None => ()
+                    }
+
+                    return Some((*object_key, mat))
                 },
                 None => { self.stack.pop(); }
             }

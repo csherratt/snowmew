@@ -12,13 +12,14 @@ extern mod cow;
 extern mod gl;
 extern mod OpenCL;
 extern mod ovr = "ovr-rs";
+extern mod collections;
 
 use std::ptr;
 use std::vec;
 use std::comm::{Chan, Port};
 
 //use drawlist::Drawlist;
-use drawlist::{Expand, DrawCommand, Draw, BindMaterial, BindVertexBuffer, SetModelMatrix};
+use drawlist::{Expand, DrawCommand, Draw, BindMaterial, BindVertexBuffer, SetModelMatrix, MultiDraw, DrawElements};
 
 use cgmath::matrix::{Mat4, Matrix};
 use cow::join::join_maps;
@@ -33,7 +34,6 @@ mod db;
 mod shader;
 mod vertex_buffer;
 mod drawlist;
-mod drawlist_cl;
 mod hmd;
 
 pub struct RenderManager {
@@ -147,6 +147,7 @@ impl RenderManager
                             gl::DrawElements(gl::TRIANGLES, geo.count as i32, gl::UNSIGNED_INT, ptr::null());
                         }
                     },
+                    _ => (),
                 }
             }
         }       
@@ -180,12 +181,81 @@ impl RenderManager
 
         let projection = camera.projection.mul_m(&camera.view);
 
-        self.render_chans[0].send((self.db.clone(), scene, projection));
-
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-        self.drawsink(projection, 0);
+        {
+            let mut material = None;
+            let mut shader = self.db.flat_instanced_shader.unwrap();
+
+            shader.bind();
+            shader.set_projection(&projection);
+
+            let mut dl = drawlist::Drawlist::new();
+            dl.setup_scene(&self.db, scene);
+            let list = dl.generate(&self.db);
+
+            for cmd in list.iter() {
+                match *cmd {
+                    BindMaterial(id) => {
+                        material = self.db.current.material(id);
+                        match material {
+                            Some(material) => shader.set_material(material),
+                            None => {
+                                println!("material {} not found", id);
+                            }
+                        }
+                    },
+                    BindVertexBuffer(id) => {
+                        let vb = self.db.vertex.find(&id);
+                        vb.unwrap().bind();
+                    },
+                    SetModelMatrix(mat) => {
+                        shader.set_model(&mat);
+                    },
+                    Draw(geo) => {
+                        unsafe {
+                            gl::DrawElements(gl::TRIANGLES, geo.count as i32, gl::UNSIGNED_INT, ptr::null());
+                        }
+                    },
+                    MultiDraw(vbo, mat, indirect, offset, len) => {
+                        let vb = self.db.vertex.find(&vbo);
+                        vb.unwrap().bind();
+                        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 3, mat);
+                        gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, indirect);
+
+                        unsafe {
+                        gl::DrawElementsIndirect(gl::TRIANGLES,
+                                                 gl::UNSIGNED_INT,
+                                                (20*offset) as *std::libc::c_void);
+                        }
+
+                    },
+                    DrawElements(vbo, mat, count, first_index, base_vertex, base_instance, instance) => {
+                        let vb = self.db.vertex.find(&vbo);
+                        vb.unwrap().bind();
+                        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 3, mat);
+                        gl::Uniform1i(1, base_instance as i32);
+                        unsafe {
+                            gl::DrawElementsInstancedBaseVertexBaseInstance(gl::TRIANGLES,
+                                                count,
+                                                gl::UNSIGNED_INT,
+                                                first_index as *std::libc::c_void,
+                                                instance,
+                                                base_vertex,
+                                                base_instance);
+                        }
+                    }
+                }
+
+            }
+        }
+
+//        self.render_chans[0].send((self.db.clone(), scene, projection));//
+
+
+
+//        self.drawsink(projection, 0);
 
         self.swap_buffers(win);
     }

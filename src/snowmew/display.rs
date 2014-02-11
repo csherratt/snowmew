@@ -14,6 +14,11 @@ pub struct Display
     priv hmd_info: Option<ovr::HMDInfo>
 }
 
+pub struct RenderContext
+{
+    priv context: Window
+}
+
 impl Display
 {
     fn window(im: &mut InputManager, size: (u32, u32), win: WindowMode) -> Option<(Display, InputHandle)>
@@ -25,9 +30,12 @@ impl Display
             None => return None
         };
 
+        println!("{:?}", window.get_context_version());
+
         window.make_context_current();
         gl::load_with(glfw::get_proc_address);
 
+        window.show();
         let window = MutexArc::new(window);
         let handle = im.add_window(window.clone());
 
@@ -142,5 +150,39 @@ impl Display
                 win.set_cursor_mode(cm);
             });
         }
+    }
+
+    pub fn make_current(&mut self)
+    {
+        unsafe {
+            self.window.unsafe_access(|win| {
+                win.make_context_current();
+            });
+        }
+    }
+
+    pub fn make_render_context(&mut self) -> Option<RenderContext>
+    {
+        unsafe {
+            self.window.unsafe_access(|win| {
+                let window = win.create_shared(0, 0, "Render Context", glfw::Windowed);
+                match window {
+                    Some(win) => {
+                        Some(RenderContext {
+                            context: win
+                        })
+                    },
+                    None => None
+                }
+            })
+        }
+    }
+}
+
+impl RenderContext
+{
+    pub fn make_current(&self)
+    {
+        self.context.make_context_current()
     }
 }
