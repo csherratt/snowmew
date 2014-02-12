@@ -1,4 +1,4 @@
-use std::util;
+use std::mem;
 
 use cow::btree::BTreeMap;
 use snowmew::core::{Database, object_key};
@@ -138,7 +138,7 @@ impl Graphics
 
     pub fn update(&mut self, db: Database)
     {
-        util::swap(&mut self.last, &mut self.current);
+        mem::swap(&mut self.last, &mut self.current);
         self.current = db;
 
     }
