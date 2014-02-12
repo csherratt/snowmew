@@ -19,9 +19,6 @@
 [submodule "modules/ovr-rs"]
 	path = modules/ovr-rs
 	url = https://github.com/csherratt/ovr-rs.git
-[submodule "modules/SendRecvReply"]
-	path = modules/SendRecvReply
-	url = https://github.com/csherratt/SendRecvReply.git
 [submodule "modules/glfw"]
 	path = modules/glfw
 	url = https://github.com/glfw/glfw.git

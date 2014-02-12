@@ -1,8 +1,8 @@
-use sync::MutexArc;
+use sync::{CowArc, MutexArc};
 use glfw::{WindowEvent, Window, wait_events, Key, MouseButton};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
 use glfw::{CloseEvent, FocusEvent};
-use std::util;
+use std::mem;
 use std::comm::Select;
 use std::comm::{Chan, Port, SharedChan};
 
@@ -10,8 +10,6 @@ use std::trie::TrieMap;
 use std::hashmap::HashSet;
 
 use cgmath::quaternion::Quat;
-
-use cow::CowArc;
 
 use ovr;
 
@@ -345,7 +343,7 @@ impl InputManager
 
         unsafe {
             window.unsafe_access(|window| {
-                util::swap(&mut port, &mut window.event_port);
+                mem::swap(&mut port, &mut window.event_port);
                 window.set_all_polling(true);
             });
         }
