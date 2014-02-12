@@ -8,6 +8,7 @@ use octtree::{Cube};
 
 use geometry::{Geometry, VertexBuffer};
 use material::Material;
+use timing::Timing;
 
 use cgmath::transform::*;
 use cgmath::matrix::*;
@@ -139,7 +140,10 @@ pub struct Database {
     // --- indexes ---
     // map all children to a parent
     priv index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
-    priv position: octtree::sparse::Sparse<f32, Cube<f32>, object_key>
+    priv position: octtree::sparse::Sparse<f32, Cube<f32>, object_key>,
+
+    // other
+    priv timing: Timing
 }
 
 impl Database {
@@ -168,6 +172,8 @@ impl Database {
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
             position: octtree::sparse::Sparse::new(1000f32, 6),
+
+            timing: Timing::new()
         }
     }
 
@@ -480,6 +486,21 @@ impl Database {
     pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, object_key, VertexBuffer>
     {
         self.vertex.iter()
+    }
+
+    pub fn reset_time(&mut self)
+    {
+        self.timing.reset()
+    }
+
+    pub fn mark_time(&mut self, name: ~str)
+    {
+        self.timing.mark(name)
+    }
+
+    pub fn dump_time(&mut self)
+    {
+        self.timing.dump()
     }
 }
 

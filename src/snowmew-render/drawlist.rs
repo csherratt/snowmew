@@ -1,5 +1,6 @@
 use std::mem;
 use std::ptr;
+use std::cast;
 use std::vec::raw::mut_buf_as_slice;
 
 use cgmath::matrix::{Mat4, Matrix};
@@ -174,14 +175,9 @@ struct Indirect {
 
 pub struct Drawlist
 {
-    priv model_matrix: GLuint,
-    priv indirect: GLuint,
-    
+    priv model_matrix: GLuint,    
     priv size_model: uint,
-    priv size_indirect: uint,
-
-    priv bins: TreeMap<Drawable ,~[(object_key, Mat4<f32>)]>,
-
+    priv bins: TreeMap<Drawable ,~[Mat4<f32>]>,
     priv cmds: ~[DrawCommand]
 }
 
@@ -189,17 +185,15 @@ impl Drawlist
 {
     pub fn new() -> Drawlist
     {
-        let mut buffers = &mut [0, 0];
+        let mut buffers = &mut [0];
 
         unsafe {
-            gl::GenBuffers(2, buffers.unsafe_mut_ref(0));
+            gl::GenBuffers(1, buffers.unsafe_mut_ref(0));
         }
 
         Drawlist {
             model_matrix: buffers[0],
-            indirect: buffers[1],
             size_model: 0,
-            size_indirect: 0,
             bins: TreeMap::new(),
             cmds: ~[]
         }
@@ -220,11 +214,11 @@ impl Drawlist
         let mut list = join_maps(db.current.walk_scene(scene), db.current.walk_drawables());
         for (id, (mat, draw)) in list {
             let empty = match self.bins.find_mut(draw) {
-                Some(dat) => {dat.push((id, mat)); false},
+                Some(dat) => {dat.push(mat); false},
                 None => true
             };
             if empty {
-                self.bins.insert(draw.clone(), ~[(id, mat)]);
+                self.bins.insert(draw.clone(), ~[mat]);
             }
         }
 
@@ -232,24 +226,21 @@ impl Drawlist
             gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_matrix);
             if self.size_model < num_drawable {
                 gl::BufferData(gl::SHADER_STORAGE_BUFFER,
-                               (mem::size_of::<Mat4<f32>>() * num_drawable * 8) as GLsizeiptr,
+                               (mem::size_of::<Mat4<f32>>() * num_drawable) as GLsizeiptr,
                                ptr::null(),
                                gl::DYNAMIC_READ);
                 self.size_model = num_drawable;
             }
 
-            let ptr = gl::MapBuffer(gl::SHADER_STORAGE_BUFFER, gl::WRITE_ONLY);
-
-            mut_buf_as_slice(ptr as *mut Mat4<f32>, self.size_model, |mats| {
-                let mut idx = 0;
-                for (_, items) in self.bins.iter() {
-                    for &(_, mat) in items.iter() {
-                        mats[idx] = mat;
-                        idx += 1;
-                    }
-                }
-            });
-            gl::UnmapBuffer(gl::SHADER_STORAGE_BUFFER);
+            let mut idx = 0;
+            for (_, items) in self.bins.iter() {
+                let size = mem::size_of::<Mat4<f32>>() * items.len();
+                gl::BufferSubData(gl::SHADER_STORAGE_BUFFER,
+                                  idx,
+                                  size as i64,
+                                  cast::transmute(&items[0]));
+                idx += size as i64;
+            }
         }
     }
 
@@ -257,46 +248,22 @@ impl Drawlist
     {
         let size = self.bins.len();   
 
-        unsafe {
-            self.cmds.set_len(0);
+        unsafe { self.cmds.set_len(0); }
 
-            gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.indirect);
-            if self.size_indirect < size {
-                gl::BufferData(gl::DRAW_INDIRECT_BUFFER,
-                               (mem::size_of::<Indirect>() * size) as GLsizeiptr,
-                               ptr::null(),
-                               gl::DYNAMIC_READ);
-                self.size_indirect = size;
-            }
-
-            let ptr = gl::MapBuffer(gl::DRAW_INDIRECT_BUFFER, gl::WRITE_ONLY);
-            mut_buf_as_slice(ptr as *mut Indirect, self.size_model, |draws| {
-                let mut idx = 0;
-                let mut base = 0;
-                for (draw, vals) in self.bins.iter() {
-                    let geo = db.current.geometry(draw.geometry).unwrap();
-                    draws[idx] = Indirect {
-                        vertex_count: geo.count as u32,
-                        instance_count: vals.len() as u32,
-                        first_index: geo.offset as u32,
-                        base_vertex: 0,
-                        base_instance: base as u32
-                    };
-
-                    //println!("{} {} {} {} {}", geo.count, vals.len(), geo.offset, 0, base);
-                    self.cmds.push(BindMaterial(draw.material));
-                    self.cmds.push(DrawElements(geo.vb,
-                                                self.model_matrix,
-                                                geo.count as i32,
-                                                geo.offset as u32,
-                                                0,
-                                                base as u32,
-                                                vals.len() as i32));
-                    base += vals.len() ;
-                    idx += 1;
-                }
-            });
-            gl::UnmapBuffer(gl::DRAW_INDIRECT_BUFFER);
+        let mut idx = 0;
+        let mut base = 0;
+        for (draw, vals) in self.bins.iter() {
+            let geo = db.current.geometry(draw.geometry).unwrap();
+            self.cmds.push(BindMaterial(draw.material));
+            self.cmds.push(DrawElements(geo.vb,
+                                        self.model_matrix,
+                                        geo.count as i32,
+                                        geo.offset as u32,
+                                        0,
+                                        base as u32,
+                                        vals.len() as i32));
+            base += vals.len();
+            idx += 1;
         }
 
         self.cmds.slice(0, self.cmds.len())
@@ -308,8 +275,8 @@ impl Drop for Drawlist
     fn drop(&mut self)
     {
         unsafe {
-            let buffers = &[self.model_matrix, self.indirect];
-            gl::DeleteBuffers(2, buffers.unsafe_ref(0));
+            let buffers = &[self.model_matrix];
+            gl::DeleteBuffers(1, buffers.unsafe_ref(0));
         }
     }
 }

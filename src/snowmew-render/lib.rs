@@ -19,7 +19,7 @@ use std::vec;
 use std::comm::{Chan, Port};
 
 //use drawlist::Drawlist;
-use drawlist::{Expand, DrawCommand, Draw, BindMaterial, BindVertexBuffer, SetModelMatrix, MultiDraw, DrawElements};
+use drawlist::{Drawlist, Expand, DrawCommand, Draw, BindMaterial, BindVertexBuffer, SetModelMatrix, MultiDraw, DrawElements};
 
 use cgmath::matrix::{Mat4, Matrix};
 use cow::join::join_maps;
@@ -40,7 +40,9 @@ pub struct RenderManager {
     db: db::Graphics,
     hmd: Option<hmd::HMD>,
     render_chans: ~[Chan<(db::Graphics, object_key, Mat4<f32>)>],
-    result_ports: ~[Port<Option<~[DrawCommand]>>]
+    result_ports: ~[Port<Option<~[DrawCommand]>>],
+    drawlist: Drawlist
+
 }
 
 fn render_db<'a>(db: db::Graphics, scene: object_key, camera: Mat4<f32>, chan: &Chan<Option<~[DrawCommand]>>)
@@ -96,7 +98,8 @@ impl RenderManager
             db: db::Graphics::new(db),
             hmd: None,
             result_ports: result_ports,
-            render_chans: render_chans
+            render_chans: render_chans,
+            drawlist: Drawlist::new()
         }
     }
 
@@ -181,6 +184,8 @@ impl RenderManager
 
         let projection = camera.projection.mul_m(&camera.view);
 
+        self.db.current.mark_time(~"start");
+
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
@@ -191,9 +196,10 @@ impl RenderManager
             shader.bind();
             shader.set_projection(&projection);
 
-            let mut dl = drawlist::Drawlist::new();
-            dl.setup_scene(&self.db, scene);
-            let list = dl.generate(&self.db);
+            self.drawlist.setup_scene(&self.db, scene);
+            let list = self.drawlist.generate(&self.db);
+
+            self.db.current.mark_time(~"drawlist");
 
             for cmd in list.iter() {
                 match *cmd {
@@ -257,7 +263,10 @@ impl RenderManager
 
 //        self.drawsink(projection, 0);
 
+        self.db.current.mark_time(~"render scene");
         self.swap_buffers(win);
+        self.db.current.mark_time(~"swap_buffers");
+        self.db.current.dump_time();
     }
 
     fn render_vr(&mut self, scene: object_key, camera: object_key, win: &mut Display)

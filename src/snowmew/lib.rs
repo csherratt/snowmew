@@ -7,6 +7,7 @@
 #[feature(globs)];
 
 extern mod std;
+extern mod extra;
 extern mod glfw = "glfw-rs";
 extern mod cgmath;
 extern mod cow;
@@ -28,6 +29,7 @@ pub mod camera;
 pub mod input;
 pub mod display;
 pub mod material;
+mod timing;
 
 mod default;
 
