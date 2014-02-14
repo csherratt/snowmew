@@ -140,7 +140,7 @@ pub struct Database {
     // --- indexes ---
     // map all children to a parent
     priv index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
-    priv position: octtree::sparse::Sparse<f32, Cube<f32>, object_key>,
+    //priv position: octtree::sparse::Sparse<f32, Cube<f32>, object_key>,
 
     // other
     priv timing: Timing
@@ -171,7 +171,7 @@ impl Database {
             // --- indexes ---
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
-            position: octtree::sparse::Sparse::new(1000f32, 6),
+            //position: octtree::sparse::Sparse::new(1000f32, 6),
 
             timing: Timing::new()
         }
@@ -252,14 +252,14 @@ impl Database {
     fn set_position(&mut self, oid: object_key)
     {
         let sphere = Cube::from_mat4(&self.position(oid));
-        self.position.insert(sphere, oid);
+        //self.position.insert(sphere, oid);
     }
 
     fn update_position(&mut self, oid: object_key, old: &Mat4<f32>)
     {
         let old = Cube::from_mat4(old);
-        self.position.remove(old);
-        self.set_position(oid);
+        //self.position.remove(old);
+        //self.set_position(oid);
     }
 
     pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
@@ -428,7 +428,7 @@ impl Database {
         UnwrapKey::new(self.draw.iter())
     } 
 
-    pub fn walk_in_camera<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterCulledObjs<'a>
+    /*pub fn walk_in_camera<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterCulledObjs<'a>
     {
         let mut set = BitMapSet::new(1024*1024);
         self.position.quary(camera, |_, val| {set.set(*val);});
@@ -456,7 +456,7 @@ impl Database {
             view_set: set,
             stack: stack
         }
-    }
+    }*/
 
     pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
     {

@@ -9,6 +9,7 @@ extern mod snowmew;
 extern mod render = "snowmew-render";
 extern mod cgmath;
 extern mod native;
+extern mod green;
 extern mod extra;
 extern mod ovr = "ovr-rs";
 
@@ -31,6 +32,7 @@ use cgmath::angle::{ToRad, deg};
 
 use extra::time::precise_time_s;
 
+use std::io::timer::Timer;
 
 #[start]
 fn start(argc: int, argv: **u8) -> int {
@@ -56,7 +58,7 @@ fn main() {
             materials.push(oid.clone())
         }
 
-        let size = 50;
+        let size = 25;
 
         for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
             let materials = materials.slice(0, materials.len());
@@ -75,8 +77,7 @@ fn main() {
                              Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
                              Vec3::new(0f32, 0f32, 0f32)));
 
-        let mut ren = RenderManager::new(db.clone());
-        ren.load();
+        let mut ren = RenderManager::new(db.clone(), display.clone(), display_input.clone());
 
         let (wx, wy) = display.size();
         display_input.set_cursor(wx as f64 /2., wy as f64/2.);
@@ -86,9 +87,13 @@ fn main() {
 
         let mut last_input = display_input.get();
 
+        let mut timer = Timer::new().unwrap();
+        let timer_port = timer.periodic(8);
+
         while !last_input.should_close() {
             let input_state = display_input.get();
             let start = precise_time_s();
+            timer_port.recv();
 
             match input_state.is_focused() {
                 true => {
@@ -144,15 +149,11 @@ fn main() {
 
             db.update_location(camera_loc, head_trans);
 
-            ren.update(db.clone());
-            ren.render(scene, camera_loc, &mut display);
+            ren.update(db.clone(), scene, camera_loc);
 
             let end = precise_time_s();
 
             let time = (end-start);
-
-            print!("\rfps: {:0.2f} time: {:0.3f}ms, budget: {:0.2f}                 ",
-                1./time, time*1000., time/(1./60.));
 
             last_input = input_state;
         }

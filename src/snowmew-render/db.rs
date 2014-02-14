@@ -30,7 +30,7 @@ void main() {
 static VS_INSTANCED_SRC: &'static str =
 "#version 430
 layout(location = 0) uniform mat4 mat_proj_view;
-layout(location = 1) uniform int instance_offset;
+layout(location = 1) uniform int instance[512];
 
 layout(std430, binding = 3) buffer MyBuffer
 {
@@ -45,7 +45,8 @@ out vec2 fs_texture;
 out vec3 fs_normal;
 
 void main() {
-    gl_Position = mat_proj_view * model_matrix[instance_offset+gl_InstanceID] * vec4(position, 1.);
+    int id = instance[gl_InstanceID];
+    gl_Position = mat_proj_view * model_matrix[id] * vec4(position, 1.);
     fs_texture = in_texture;
     fs_normal = in_normal;
 }

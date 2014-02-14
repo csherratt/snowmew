@@ -18,6 +18,7 @@ extern mod OpenCL;
 extern mod native;
 extern mod std;
 extern mod gl;
+extern mod green;
 extern mod ovr = "ovr-rs";
 
 pub use core::{object_key, Database};
@@ -39,6 +40,7 @@ fn setup_glfw()
     glfw::window_hint::opengl_profile(glfw::OpenGlAnyProfile);
     glfw::window_hint::opengl_forward_compat(true);
     glfw::window_hint::visible(false);
+    glfw::set_swap_interval(0);
 }
 
 #[cfg(target_os = "win32")]
@@ -50,7 +52,7 @@ pub fn start_managed_input(f: proc(&mut input::InputManager))
         let im = input::InputManager::new();
         let (p, c) = std::comm::Chan::new();
 
-        spawn(proc() {
+        green::run(proc() {
             let mut im = im;
             println!("game- starting")
             f(&mut im);
@@ -81,7 +83,7 @@ pub fn start_managed_input(f: proc(&mut input::InputManager))
     glfw::start(proc() {
         setup_glfw();
         let f = f;
-        let mut im = input::InputManager::new();
+        let im = input::InputManager::new();
         let (p, c): (Port<input::InputManager>, Chan<input::InputManager>) = std::comm::Chan::new();
         
         spawn(proc() {
@@ -100,11 +102,13 @@ pub fn start_managed_input(f: proc(&mut input::InputManager))
         });
 
         
-        println!("game- starting")
-        f(&mut im);
-        println!("game- completed");
-        c.send(im);
-
+        green::run(proc() {
+            let mut im = im;
+            println!("game- starting")
+            f(&mut im);
+            println!("game- completed");
+            c.send(im);
+        });
     });
 }
 

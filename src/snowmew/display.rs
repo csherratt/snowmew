@@ -7,6 +7,7 @@ use gl;
 
 use ovr;
 
+#[deriving(Clone)]
 pub struct Display
 {
     priv window: MutexArc<Window>,
@@ -32,7 +33,6 @@ impl Display
 
         println!("{:?}", window.get_context_version());
 
-        window.make_context_current();
         gl::load_with(glfw::get_proc_address);
 
         window.show();
