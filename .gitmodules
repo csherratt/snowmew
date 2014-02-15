@@ -1,6 +1,6 @@
 [submodule "modules/cgmath-rs"]
 	path = modules/cgmath-rs
-	url = https://github.com/bjz/cgmath-rs
+	url = https://github.com/csherratt/snowmew-cgmath-rs
 [submodule "modules/glfw-rs"]
 	path = modules/glfw-rs
 	url = https://github.com/csherratt/glfw-rs
