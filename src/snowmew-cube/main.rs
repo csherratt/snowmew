@@ -30,8 +30,6 @@ use cgmath::matrix::*;
 use cgmath::rotation::*;
 use cgmath::angle::{ToRad, deg};
 
-use extra::time::precise_time_s;
-
 use std::io::timer::Timer;
 
 #[start]
@@ -92,7 +90,6 @@ fn main() {
 
         while !last_input.should_close() {
             let input_state = display_input.get();
-            let start = precise_time_s();
             timer_port.recv();
 
             match input_state.is_focused() {
@@ -150,10 +147,6 @@ fn main() {
             db.update_location(camera_loc, head_trans);
 
             ren.update(db.clone(), scene, camera_loc);
-
-            let end = precise_time_s();
-
-            let time = (end-start);
 
             last_input = input_state;
         }

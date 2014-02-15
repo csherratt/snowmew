@@ -25,7 +25,7 @@ impl Display
     fn window(im: &mut InputManager, size: (u32, u32), win: WindowMode) -> Option<(Display, InputHandle)>
     {
         let (width, height) = size;
-        let window = Window::create(width, height, "Snoawmew", win);
+        let window = Window::create(width, height, "Snowmew", win);
         let window = match window {
             Some(window) => window,
             None => return None

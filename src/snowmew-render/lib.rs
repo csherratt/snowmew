@@ -22,27 +22,26 @@ use std::cast;
 use std::comm::{SharedChan, Port, Empty, Disconnected, Data};
 
 //use drawlist::Drawlist;
-use drawlist::{Drawlist, Expand, DrawCommand, Draw, BindMaterial, BindVertexBuffer, SetModelMatrix, MultiDraw, DrawElements2, DrawElements};
-
 use cgmath::matrix::{Mat4, Matrix};
 use cow::join::join_maps;
 
 use snowmew::core::{object_key};
 use snowmew::camera::Camera;
-
 use snowmew::display::Display;
 use snowmew::input::InputHandle;
 
 use extra::time::precise_time_s;
 
 use db::Graphics;
-
+use pipeline::{DrawTarget, Pipeline};
+use drawlist::{Drawlist, Expand, DrawCommand, Draw, BindMaterial, BindVertexBuffer, SetModelMatrix, MultiDraw, DrawElements2, DrawElements};
 
 mod db;
 mod shader;
 mod vertex_buffer;
 mod drawlist;
 mod hmd;
+mod pipeline;
 
 
 enum RenderCommand {
@@ -81,6 +80,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     let mut scene = 0;
     let mut camera = 0;
     let mut display = display;
+    let mut pipeline = pipeline::Forward::new();
 
     display.make_current();
     gl::load_with(glfw::get_proc_address);
@@ -127,7 +127,14 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 }
             },
             Some(Complete(mut dl)) => {
-                render(&mut dl, &db, camera, &mut display);
+                let camera_rot = db.current.location(camera).unwrap().get().rot;
+                let camera_trans = db.current.position(camera);
+                let camera = Camera::new(camera_rot, camera_trans.clone());
+
+                let dt = DrawTarget::new(0, (0, 0), display.size());
+
+                pipeline.render(&mut dl, &db, &camera, &dt);
+                swap_buffers(&mut display);
                 drawlists.push(dl);
             },
             Some(Finish) => {
@@ -156,16 +163,10 @@ pub fn render(dl: &mut Drawlist, db: &Graphics, camera: object_key, display: &mu
 
 fn render_normal(dl: &mut Drawlist, db: &Graphics, camera: object_key, display: &mut Display)
 {
-    let camera_rot = db.current.location(camera).unwrap().get().rot;
-    let camera_trans = db.current.position(camera);
-    let camera = Camera::new(camera_rot, camera_trans.clone()).get_matrices(display);
-
-    let projection = camera.projection.mul_m(&camera.view);
-
     gl::ClearColor(0., 0., 0., 1.);
     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-    dl.render(db, projection);
+    //dl.render(db, projection);
 
     swap_buffers(display);
 }
