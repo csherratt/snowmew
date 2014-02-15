@@ -6,7 +6,7 @@
 	url = https://github.com/csherratt/glfw-rs
 [submodule "modules/gl-rs"]
 	path = modules/gl-rs
-	url = https://github.com/bjz/gl-rs.git
+	url = https://github.com/csherratt/gl-rs.git
 [submodule "modules/cow"]
 	path = modules/cow
 	url = https://github.com/csherratt/cow-rs.git

@@ -9,6 +9,8 @@ extern mod cgmath;
 extern mod native;
 extern mod glfw = "glfw-rs";
 
+use std::cmp::{max, min};
+
 use snowmew::core::Database;
 use snowmew::display::Display;
 
@@ -55,11 +57,10 @@ fn main() {
 
 
         let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
-        let mut ren = RenderManager::new(db.clone());
-        ren.load();
+        let mut ren = RenderManager::new(db.clone(), display.clone(), display_input.clone());
 
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
-        let mut pos = Point3::new(0f32, 0., -25.);
+        let pos = Point3::new(0f32, 0., -25.);
 
         let mut last_input = display_input.get();
         while !last_input.should_close() {
@@ -76,7 +77,7 @@ fn main() {
                             rot_x += x / 3.;
                             rot_y += y / 3.;
 
-                            rot_y = rot_y.max(&-90.).min(&90.);
+                            rot_y = min(max(rot_y, -90.), 90.);
                             if rot_x > 360. {
                                 rot_x -= 360.
                             } else if rot_x < -360. {
@@ -98,8 +99,7 @@ fn main() {
             let head_trans = Transform3D::new(1f32, rot, pos.to_vec());
             db.update_location(camera, head_trans);
 
-            ren.update(db.clone());
-            ren.render(scene, camera, &mut display);
+            ren.update(db.clone(), scene, camera);
             last_input = input;
         }
 

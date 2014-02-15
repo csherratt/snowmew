@@ -15,6 +15,7 @@ extern mod ovr = "ovr-rs";
 
 use std::rand::{StdRng, Rng};
 use std::vec::*;
+use std::cmp::{max, min};
 
 use snowmew::core::Database;
 use snowmew::display::Display;
@@ -39,7 +40,7 @@ fn start(argc: int, argv: **u8) -> int {
 
 fn main() {
     snowmew::start_managed_input(proc(im) {
-        let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
+        let (mut display, mut display_input) = Display::new_ovr(im).unwrap();
 
         let mut db = Database::new();
         let camera_loc = db.new_object(None, ~"camera");
@@ -56,7 +57,7 @@ fn main() {
             materials.push(oid.clone())
         }
 
-        let size = 25;
+        let size = 20;
 
         for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
             let materials = materials.slice(0, materials.len());
@@ -86,7 +87,7 @@ fn main() {
         let mut last_input = display_input.get();
 
         let mut timer = Timer::new().unwrap();
-        let timer_port = timer.periodic(8);
+        let timer_port = timer.periodic(1);
 
         while !last_input.should_close() {
             let input_state = display_input.get();
@@ -104,7 +105,7 @@ fn main() {
                             rot_x += x / 3.;
                             rot_y += y / 3.;
 
-                            rot_y = rot_y.max(&-90.).min(&90.);
+                            rot_y = min(max(rot_y, -90.), 90.);
                             if rot_x > 360. {
                                 rot_x -= 360.
                             } else if rot_x < -360. {
@@ -123,26 +124,24 @@ fn main() {
             if input_state.key_down(glfw::KeySpace) {
                 rot_x = 0.;
                 rot_y = 0.;
+                display_input.reset_ovr();
             }
 
             let input_vec = Vec3::new(
-                if input_state.key_down(glfw::KeyA) {0.5f32} else {0f32} +
-                if input_state.key_down(glfw::KeyD) {-0.5f32} else {0f32}, 
+                if input_state.key_down(glfw::KeyA) {0.05f32} else {0f32} +
+                if input_state.key_down(glfw::KeyD) {-0.05f32} else {0f32}, 
                 0f32,
-                if input_state.key_down(glfw::KeyW) {0.5f32} else {0f32} +
-                if input_state.key_down(glfw::KeyS) {-0.5f32} else {0f32}
+                if input_state.key_down(glfw::KeyW) {0.05f32} else {0f32} +
+                if input_state.key_down(glfw::KeyS) {-0.05f32} else {0f32}
             );
 
-            let rift = input_state.predicted.clone();
             let rot: Quat<f32> =  Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
             let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
-
-            let rift = rift.mul_q(&Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
 
             let camera = Camera::new(rot.clone(), Transform3D::new(1f32, rot, pos.to_vec()).to_mat4());
             pos = camera.move(&input_vec.mul_s(-1f32));
 
-            let head_trans = Transform3D::new(1f32, rot.mul_q(&rift), pos.to_vec());
+            let head_trans = Transform3D::new(1f32, rot, pos.to_vec());
 
             db.update_location(camera_loc, head_trans);
 

@@ -4,7 +4,7 @@ use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
 use glfw::{CloseEvent, FocusEvent};
 use std::mem;
 use std::comm::Select;
-use std::comm::{Chan, Port, SharedChan};
+use std::comm::{Chan, Port};
 
 use std::trie::TrieMap;
 use std::hashmap::HashSet;
@@ -201,19 +201,19 @@ fn wait_commands(state: &mut InputState,
     let select = Select::new();
 
     let mut handles = ~[];
-    let mut cmd_handle = select.add(cmd);
+    let mut cmd_handle = select.handle(cmd);
     let (mut ovr_handle, sf) = match *ovr {
-        Some(ref mut ovr) => (Some(select.add(&mut ovr.port)), Some(&ovr.sensor)),
+        Some(ref mut ovr) => (Some(select.handle(&ovr.port)), Some(&ovr.sensor)),
         None => (None, None)
     };
 
     for (id, &(_, ref mut port)) in ports.mut_iter() {
-        handles.push((id, select.add(port)));
+        handles.push((id, select.handle(port)));
     }
 
     loop {
         let id = select.wait();
-        if id == cmd_handle.id {
+        if cmd_handle.id() == id {
             let cmd = cmd_handle.recv();
             match cmd {
                 AddPort(port, window, reply) => {
@@ -241,7 +241,7 @@ fn wait_commands(state: &mut InputState,
         }
 
         for &(_, ref mut handle) in handles.mut_iter() {
-            if handle.id == id {
+            if handle.id() == id {
                 let (time, event) = handle.recv();
                 state.event(Some(time), event);
                 break;
@@ -250,7 +250,7 @@ fn wait_commands(state: &mut InputState,
 
         match ovr_handle {
             Some(ref mut ovr_handle) => {
-                if ovr_handle.id == id {
+                if ovr_handle.id() == id {
                     let msg = ovr_handle.recv();
                     match sf {
                         Some(ref sf) => {
@@ -324,7 +324,7 @@ fn thread(cmd: Port<Command>)
 
 pub struct InputManager
 {
-    priv cmd: SharedChan<Command>,
+    priv cmd: Chan<Command>,
     priv ovr_sensor_device: Option<ovr::SensorDevice>,
     priv ovr_hmd_device: Option<ovr::HMDDevice>,
     priv ovr_device_manager: Option<ovr::DeviceManager>,
@@ -334,7 +334,7 @@ impl InputManager
 {
     pub fn new() -> InputManager
     {
-        let (port, conn) = SharedChan::new();
+        let (port, conn) = Chan::new();
 
         spawn(proc() {
             thread(port)
@@ -433,7 +433,7 @@ impl InputManager
 #[deriving(Clone)]
 pub struct InputHandle
 {
-    priv cmd: SharedChan<Command>,
+    priv cmd: Chan<Command>,
     priv handle: window_id,
 }
 

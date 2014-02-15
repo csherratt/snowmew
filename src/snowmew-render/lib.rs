@@ -17,7 +17,7 @@ extern mod extra;
 extern mod native;
 
 use std::ptr;
-use std::comm::{SharedChan, Port, Empty, Disconnected, Data};
+use std::comm::{Chan, Port, Empty, Disconnected, Data};
 
 //use drawlist::Drawlist;
 use cgmath::vector::Vec3;
@@ -45,7 +45,7 @@ mod pipeline;
 
 enum RenderCommand {
     Update(snowmew::core::Database, object_key, object_key),
-    Waiting(SharedChan<(db::Graphics, Drawlist, object_key)>),
+    Waiting(Chan<(db::Graphics, Drawlist, object_key)>),
     Complete(Drawlist),
     Finish
 }
@@ -61,9 +61,9 @@ fn swap_buffers(disp: &mut Display)
     }
 }
 
-fn render_task(chan: SharedChan<RenderCommand>)
+fn render_task(chan: Chan<RenderCommand>)
 {
-    let (p, c) = SharedChan::new();
+    let (p, c) = Chan::new();
     chan.send(Waiting(c.clone()));
     loop {
         let (g, mut dl, oid) = p.recv();
@@ -159,14 +159,14 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
 pub struct RenderManager
 {
-    priv ch: SharedChan<RenderCommand>
+    priv ch: Chan<RenderCommand>
 }
 
 impl RenderManager
 {
     pub fn new(db: snowmew::core::Database, display: Display, ih: InputHandle) -> RenderManager
     {
-        let (port, chan) = SharedChan::new();
+        let (port, chan) = Chan::new();
 
         native::task::spawn(proc() {
             let db = db;
