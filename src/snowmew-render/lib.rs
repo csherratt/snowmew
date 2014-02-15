@@ -17,24 +17,23 @@ extern mod extra;
 extern mod native;
 
 use std::ptr;
-use std::vec;
-use std::cast;
 use std::comm::{SharedChan, Port, Empty, Disconnected, Data};
 
 //use drawlist::Drawlist;
-use cgmath::matrix::{Mat4, Matrix};
-use cow::join::join_maps;
+use cgmath::vector::Vec3;
+use cgmath::matrix::{Matrix, ToMat4};
+use cgmath::rotation::Rotation3;
+use cgmath::angle::{ToRad, deg};
 
 use snowmew::core::{object_key};
 use snowmew::camera::Camera;
 use snowmew::display::Display;
 use snowmew::input::InputHandle;
 
-use extra::time::precise_time_s;
-
 use db::Graphics;
 use pipeline::{DrawTarget, Pipeline};
-use drawlist::{Drawlist, Expand, DrawCommand, Draw, BindMaterial, BindVertexBuffer, SetModelMatrix, MultiDraw, DrawElements2, DrawElements};
+
+use drawlist::Drawlist;
 
 mod db;
 mod shader;
@@ -80,10 +79,15 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     let mut scene = 0;
     let mut camera = 0;
     let mut display = display;
-    let mut pipeline = pipeline::Forward::new();
 
     display.make_current();
     gl::load_with(glfw::get_proc_address);
+
+    let mut pipeline = if display.is_hmd() {
+        ~pipeline::Hmd::new(pipeline::Forward::new(), 1.7, &display.hmd()) as ~pipeline::Pipeline
+    } else {
+        ~pipeline::Forward::new() as ~pipeline::Pipeline
+    };
 
     // todo move!
     gl::Enable(gl::SCISSOR_TEST);
@@ -96,10 +100,8 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
     db.load();
 
-    let mut drawlists = ~[Drawlist::new(256*1024), Drawlist::new(256*1024)];
+    let mut drawlists = ~[Drawlist::new(1024*1024), Drawlist::new(1024*1024), Drawlist::new(1024*1024)];
     let mut waiting = ~[];
-
-    let mut last = precise_time_s();
 
     loop {
         let cmd = if drawlists.len() == 0 || waiting.len() == 0 || scene == 0{
@@ -127,13 +129,18 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 }
             },
             Some(Complete(mut dl)) => {
-                let camera_rot = db.current.location(camera).unwrap().get().rot;
+                let rot = db.current.location(camera).unwrap().get().rot;
                 let camera_trans = db.current.position(camera);
-                let camera = Camera::new(camera_rot, camera_trans.clone());
+
+                let input = ih.get();
+                let rift = input.predicted;
+                let rift = rift.mul_q(&Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
+
+                let camera = Camera::new(rot.mul_q(&rift), camera_trans.mul_m(&rift.to_mat4()));
 
                 let dt = DrawTarget::new(0, (0, 0), display.size());
 
-                pipeline.render(&mut dl, &db, &camera, &dt);
+                pipeline.render(&mut dl, &db, &camera.get_matrices(display.size()), &dt);
                 swap_buffers(&mut display);
                 drawlists.push(dl);
             },
@@ -150,55 +157,6 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     }
 }
 
-
-pub fn render(dl: &mut Drawlist, db: &Graphics, camera: object_key, display: &mut Display)
-{
-    if display.is_hmd() {
-        //self.render_vr(dl, camera, win)
-    } else {
-        render_normal(dl, db, camera, display)
-    }
-}
-
-
-fn render_normal(dl: &mut Drawlist, db: &Graphics, camera: object_key, display: &mut Display)
-{
-    gl::ClearColor(0., 0., 0., 1.);
-    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
-    //dl.render(db, projection);
-
-    swap_buffers(display);
-}
-
-/*fn render_vr(dl: &mut Drawlist, db: &Graphics, scene: object_key, display: &mut Display)
-{
-    let hmd_info = display.hmd();
-
-    if self.hmd.is_none() {
-        self.hmd = Some(hmd::HMD::new(1.7, &hmd_info));
-    }
-
-    let camera_rot = self.db.current.location(camera).unwrap().get().rot;
-    let camera_trans = self.db.current.position(camera);
-    let (left, right) = Camera::new(camera_rot, camera_trans.clone()).get_matrices_ovr(display);
-
-    let proj_left = left.projection.mul_m(&left.view);
-    self.render_chans[0].send((self.db.clone(), scene, proj_left));
-    let proj_right = right.projection.mul_m(&right.view);
-    self.render_chans[1].send((self.db.clone(), scene, proj_right));
-
-    self.hmd.unwrap().set_left(&self.db, &hmd_info);
-    self.drawsink(proj_left, 0);
-
-    self.hmd.unwrap().set_right(&self.db, &hmd_info);
-    self.drawsink(proj_right, 1);
-
-    self.hmd.unwrap().draw_screen(&self.db, &hmd_info);
-    self.swap_buffers(display);
-}*/
-
-
 pub struct RenderManager
 {
     priv ch: SharedChan<RenderCommand>
@@ -211,9 +169,9 @@ impl RenderManager
         let (port, chan) = SharedChan::new();
 
         native::task::spawn(proc() {
-            let mut db = db;
-            let mut display = display;
-            let mut ih = ih;
+            let db = db;
+            let display = display;
+            let ih = ih;
 
             render_server(port, db, display, ih);
         });
@@ -223,6 +181,11 @@ impl RenderManager
             render_task(task_c);
         });
 
+        let task_c = chan.clone();
+        native::task::spawn(proc() {
+            render_task(task_c);
+        });
+        
         RenderManager {
             ch: chan
         }

@@ -11,8 +11,6 @@ use db::Graphics;
 use snowmew::core::{object_key};
 use snowmew::geometry::Geometry;
 use snowmew::core::Drawable;
-use snowmew::camera::Camera;
-use snowmew::display::Display;
 
 use gl;
 use gl::types::{GLuint, GLsizeiptr};
@@ -190,7 +188,7 @@ impl Drawlist
 {
     pub fn new(max_size: uint) -> Drawlist
     {
-        let mut buffers = &mut [0];
+        let buffers = &mut [0];
 
         let model_matrix_ptr = unsafe {
             let size = (mem::size_of::<Mat4<f32>>() * max_size) as GLsizeiptr;
@@ -227,7 +225,7 @@ impl Drawlist
 
         unsafe {
             mut_buf_as_slice(self.model_matrix_ptr, num_drawable, |write| {
-                let mut list = join_maps(db.current.walk_scene(scene), db.current.walk_drawables());
+                let list = join_maps(db.current.walk_scene(scene), db.current.walk_drawables());
                 for (idx, (_, (mat, draw))) in list.enumerate() {
                     write[idx] = mat;
                     let empty = match self.bins.find_mut(draw) {
@@ -242,29 +240,9 @@ impl Drawlist
         }
     }
 
-    pub fn generate<'a>(&'a mut self, db: &Graphics) -> &'a [DrawCommand]
-    {
-        let size = self.bins.len();   
-
-        unsafe { self.cmds.set_len(0); }
-
-        for (draw, vals) in self.bins.iter() {
-            let geo = db.current.geometry(draw.geometry).unwrap();
-            self.cmds.push(BindMaterial(draw.material));
-            for v in vals.chunks(512) {
-                self.cmds.push(DrawElements2(geo.vb,
-                                             geo.clone(),
-                                             self.model_matrix,
-                                             v.to_owned()));
-            }
-        }
-
-        self.cmds.slice(0, self.cmds.len())
-    }
-
     pub fn render<'a>(&'a mut self, db: &Graphics, camera: Mat4<f32>)
     {
-        let mut shader = db.flat_instanced_shader.unwrap();
+        let shader = db.flat_instanced_shader.unwrap();
         shader.bind();
         shader.set_projection(&camera);
 
@@ -298,10 +276,9 @@ impl Drop for Drawlist
 {
     fn drop(&mut self)
     {
-        unsafe {
-            let buffers = &[self.model_matrix];
-            //gl::UnmapBuffer(self.model_matrix);
-            //gl::DeleteBuffers(1, buffers.unsafe_ref(0));
-        }
+        /* TODO, is dropped dies on a none-gl task bad things happen */
+        //let buffers = &[self.model_matrix];
+        //gl::UnmapBuffer(self.model_matrix);
+        //gl::DeleteBuffers(1, buffers.unsafe_ref(0));
     }
 }

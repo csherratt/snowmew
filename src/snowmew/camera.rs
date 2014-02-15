@@ -5,9 +5,8 @@ use cgmath::quaternion::Quat;
 use cgmath::projection::perspective;
 use cgmath::angle::deg;
 
-use display::Display;
-
 use ovr;
+use ovr::HMDInfo;
 
 pub struct Camera
 {
@@ -60,12 +59,18 @@ impl Camera {
         }
     }
 
-    pub fn get_matrices_ovr(&self, display: &Display) -> (DrawMatrices, DrawMatrices)
+    pub fn move(&self, v: &Vec3<f32>) -> Point3<f32>
     {
-        let hmd_info = display.hmd();
-        let view = self.view_matrix();
+        let o = self.transform.mul_v(&Vec4::new(v.x, v.y, v.z, 1f32));
+        Point3::new(o.x, o.y, o.z)
+    }
+}
 
-        let ((pl, pr), (vl, vr)) = ovr::create_reference_matrices(&hmd_info, &view, 1.7);
+impl DrawMatrices
+{
+    pub fn ovr(&self, hmd: &HMDInfo) -> (DrawMatrices, DrawMatrices)
+    {
+        let ((pl, pr), (vl, vr)) = ovr::create_reference_matrices(hmd, &self.view, 1.7);
 
         (DrawMatrices {
             projection: pl,
@@ -75,11 +80,5 @@ impl Camera {
             projection: pr,
             view: vr
          })
-    }
-
-    pub fn move(&self, v: &Vec3<f32>) -> Point3<f32>
-    {
-        let o = self.transform.mul_v(&Vec4::new(v.x, v.y, v.z, 1f32));
-        Point3::new(o.x, o.y, o.z)
     }
 }

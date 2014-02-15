@@ -20,6 +20,7 @@ enum Command {
     RemovePort(window_id, proc(bool)),
 
     AddOVR(Port<ovr::Message>),
+    ResetOvr,
 
     Get(proc(InputState)),
 
@@ -220,7 +221,10 @@ fn wait_commands(state: &mut InputState,
                 },
                 AddOVR(port) => {
                     return AddOVR(port);
-                }
+                },
+                ResetOvr => {
+                    return ResetOvr;
+                },
                 RemovePort(id, reply) => {
                     return RemovePort(id, reply);
                 },
@@ -304,6 +308,14 @@ fn thread(cmd: Port<Command>)
                 reply();
                 break;
             },
+            ResetOvr => {
+                match ovr {
+                    Some(ref ovr) => {
+                        ovr.sensor.reset();
+                    },
+                    None => ()
+                }
+            }
             Get(_) => (),
         }
     }
@@ -437,5 +449,9 @@ impl InputHandle
     pub fn set_cursor(&mut self, x: f64, y: f64)
     {
         self.cmd.send(SetPos(self.handle, (x, y)));
+    }
+
+    pub fn reset_ovr(&mut self) {
+        self.cmd.send(ResetOvr)
     }
 }

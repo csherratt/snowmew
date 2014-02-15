@@ -2,10 +2,6 @@
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_set_to_map, JoinMapSetIterator};
 
-use octtree;
-use octtree::sparse::Sparse;
-use octtree::{Cube};
-
 use geometry::{Geometry, VertexBuffer};
 use material::Material;
 use timing::Timing;
@@ -140,7 +136,6 @@ pub struct Database {
     // --- indexes ---
     // map all children to a parent
     priv index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
-    //priv position: octtree::sparse::Sparse<f32, Cube<f32>, object_key>,
 
     // other
     priv timing: Timing
@@ -171,7 +166,6 @@ impl Database {
             // --- indexes ---
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
-            //position: octtree::sparse::Sparse::new(1000f32, 6),
 
             timing: Timing::new()
         }
@@ -249,27 +243,9 @@ impl Database {
         p_mat.mul_m(&loc)
     }
 
-    fn set_position(&mut self, oid: object_key)
-    {
-        let sphere = Cube::from_mat4(&self.position(oid));
-        //self.position.insert(sphere, oid);
-    }
-
-    fn update_position(&mut self, oid: object_key, old: &Mat4<f32>)
-    {
-        let old = Cube::from_mat4(old);
-        //self.position.remove(old);
-        //self.set_position(oid);
-    }
-
     pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
     {
-        let old = self.position(key);
-        if self.location.insert(key, Location{trans: location}) {
-            self.update_position(key, &old);
-        } else {
-            self.set_position(key);
-        }
+        self.location.insert(key, Location{trans: location});
     }
 
     pub fn location<'a>(&'a self, key: object_key) -> Option<&'a Transform3D<f32>>
@@ -427,36 +403,6 @@ impl Database {
     {
         UnwrapKey::new(self.draw.iter())
     } 
-
-    /*pub fn walk_in_camera<'a>(&'a self, oid: object_key, camera: &Mat4<f32>) -> IterCulledObjs<'a>
-    {
-        let mut set = BitMapSet::new(1024*1024);
-        self.position.quary(camera, |_, val| {set.set(*val);});
-
-        let mat = match self.location.find(&oid) {
-            Some(loc) => loc.trans.get().to_mat4(),
-            None => Mat4::identity()
-        };
-
-
-        let stack = match self.index_parent_child.find(&oid) {
-            Some(set) => {
-                ~[IterObjsLayer {
-                    child_iter: join_set_to_map(
-                                    set.iter(),
-                                    self.location.iter()),
-                    mat: mat,
-                }]
-            },
-            None => ~[]
-        };
-
-        IterCulledObjs {
-            db: self,
-            view_set: set,
-            stack: stack
-        }
-    }*/
 
     pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
     {
