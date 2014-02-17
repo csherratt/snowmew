@@ -1,8 +1,8 @@
 #[feature(macro_rules)];
 #[feature(globs)];
 
-extern mod snowmew;
-extern mod cgmath;
+extern crate snowmew;
+extern crate cgmath;
 
 mod core {
     use std::hashmap::HashMap;

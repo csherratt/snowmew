@@ -2,12 +2,12 @@
 #[feature(macro_rules)];
 #[feature(globs)];
 
-extern mod snowmew;
-extern mod loader = "snowmew-loader";
-extern mod render = "snowmew-render";
-extern mod cgmath;
-extern mod native;
-extern mod glfw = "glfw-rs";
+extern crate snowmew;
+extern crate loader = "snowmew-loader";
+extern crate render = "snowmew-render";
+extern crate cgmath;
+extern crate native;
+extern crate glfw = "glfw-rs";
 
 use std::cmp::{max, min};
 

@@ -6,20 +6,20 @@
 #[feature(macro_rules)];
 #[feature(globs)];
 
-extern mod std;
-extern mod extra;
-extern mod glfw = "glfw-rs";
-extern mod cgmath;
-extern mod cow;
-extern mod octtree;
-extern mod sync;
-extern mod bitmap = "bitmap-set";
-extern mod OpenCL;
-extern mod native;
-extern mod std;
-extern mod gl;
-extern mod green;
-extern mod ovr = "ovr-rs";
+extern crate std;
+extern crate extra;
+extern crate glfw = "glfw-rs";
+extern crate cgmath;
+extern crate cow;
+extern crate octtree;
+extern crate sync;
+extern crate bitmap = "bitmap-set";
+extern crate OpenCL;
+extern crate native;
+extern crate std;
+extern crate gl;
+extern crate green;
+extern crate ovr = "ovr-rs";
 
 pub use core::{object_key, Database};
 pub use geometry::{VertexBuffer};
@@ -43,7 +43,6 @@ fn setup_glfw()
     glfw::set_swap_interval(0);
 }
 
-#[cfg(target_os = "win32")]
 pub fn start_managed_input(f: proc(&mut input::InputManager))
 {
     glfw::start(proc() {
@@ -52,63 +51,30 @@ pub fn start_managed_input(f: proc(&mut input::InputManager))
         let im = input::InputManager::new();
         let (p, c) = std::comm::Chan::new();
 
-        green::run(proc() {
-            let mut im = im;
-            println!("game- starting")
-            f(&mut im);
-            println!("game- completed");
-            c.send(im);
+        let mut task = std::task::task();
+        task.name("game task");
 
+        task.spawn(proc() {
+            green::run(proc() {
+                let mut im = im;
+                println!("game- starting")
+                f(&mut im);
+                println!("game- completed");
+                c.send(im);
+            });
         });
 
-        
         loop {
             glfw::wait_events();
             match p.try_recv() {
                 std::comm::Empty => (),
-                std::comm::Disconnected => fail!("Sound not have received Disconnected"),
+                std::comm::Disconnected => fail!("Should not have received Disconnected"),
                 std::comm::Data(im) => {
                     im.finish();
                     return
                 }
             }
         }
-    });
-}
-
-// it is faster to do rendering on Thread1
-#[cfg(not(target_os = "win32"))]
-pub fn start_managed_input(f: proc(&mut input::InputManager))
-{
-    glfw::start(proc() {
-        setup_glfw();
-        let f = f;
-        let im = input::InputManager::new();
-        let (p, c): (Port<input::InputManager>, Chan<input::InputManager>) = std::comm::Chan::new();
-        
-        spawn(proc() {
-            loop {
-                glfw::wait_events();
-                match p.try_recv() {
-                    std::comm::Empty => (),
-                    std::comm::Disconnected => fail!("Sound not have received Disconnected"),
-                    std::comm::Data(im) => {
-                        im.finish();
-                        println!("done!");
-                        return;
-                    }
-                }
-            }
-        });
-
-        
-        green::run(proc() {
-            let mut im = im;
-            println!("game- starting")
-            f(&mut im);
-            println!("game- completed");
-            c.send(im);
-        });
     });
 }
 

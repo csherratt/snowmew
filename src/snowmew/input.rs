@@ -2,11 +2,12 @@ use sync::{CowArc, MutexArc};
 use glfw::{WindowEvent, Window, wait_events, Key, MouseButton};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
 use glfw::{CloseEvent, FocusEvent};
+
+use std::task;
 use std::mem;
 use std::comm::Select;
 use std::comm::{Chan, Port};
-
-use std::trie::TrieMap;
+use std::comm::{Empty, Disconnected, Data};
 use std::hashmap::HashSet;
 
 use cgmath::quaternion::Quat;
@@ -26,7 +27,9 @@ enum Command {
 
     SetPos(window_id, (f64, f64)),
 
-    Finish(proc())
+    Finish(proc()),
+
+    Ack
 }
 
 #[deriving(Clone)]
@@ -193,130 +196,153 @@ struct OVR
     sensor: ovr::SensorFusion
 }
 
-fn wait_commands(state: &mut InputState,
-                 cmd: &mut Port<Command>,
-                 ovr: &mut Option<OVR>,
-                 ports: &mut TrieMap<(MutexArc<Window>, Port<(f64, WindowEvent)>)>) -> Command
+struct WindowHandle
 {
-    let select = Select::new();
+    id: uint,
+    window: MutexArc<Window>,
+    port: Port<(f64, WindowEvent)>,
+}
 
-    let mut handles = ~[];
-    let mut cmd_handle = select.handle(cmd);
-    let (mut ovr_handle, sf) = match *ovr {
-        Some(ref mut ovr) => (Some(select.handle(&ovr.port)), Some(&ovr.sensor)),
-        None => (None, None)
-    };
+struct ThreadState
+{
+    cmd: Port<Command>,
+    state: InputState,
+    max_id: uint,
+    windows: ~[WindowHandle],
+    ovr: Option<OVR>
+}
 
-    for (id, &(_, ref mut port)) in ports.mut_iter() {
-        handles.push((id, select.handle(port)));
+impl ThreadState
+{
+    fn new(cmd: Port<Command>) -> ThreadState
+    {
+        ThreadState {
+            cmd: cmd,
+            state: InputState::new(),
+            max_id: 1,
+            windows: ~[],
+            ovr: None
+        }
     }
 
-    loop {
-        let id = select.wait();
-        if cmd_handle.id() == id {
-            let cmd = cmd_handle.recv();
-            match cmd {
-                AddPort(port, window, reply) => {
-                    return AddPort(port, window, reply);
-                },
-                AddOVR(port) => {
-                    return AddOVR(port);
-                },
-                ResetOvr => {
-                    return ResetOvr;
-                },
-                RemovePort(id, reply) => {
-                    return RemovePort(id, reply);
-                },
-                SetPos(id, pos) => {
-                    return SetPos(id, pos);
-                },
-                Get(reply) => {
-                    reply(state.clone());
-                },
-                Finish(reply) => {  
-                    return Finish(reply);
-                }
-            }
+    fn wait(&mut self) -> Command
+    {
+        let select = Select::new();
+        let mut cmd_handle = select.handle(&self.cmd);
+        let mut win_handles = ~[];
+        for win in self.windows.iter() {
+            win_handles.push(select.handle(&win.port));
         }
 
-        for &(_, ref mut handle) in handles.mut_iter() {
-            if handle.id() == id {
-                let (time, event) = handle.recv();
-                state.event(Some(time), event);
+        unsafe {  
+            cmd_handle.add();
+            for h in win_handles.mut_iter() { h.add() }
+        }
+
+        loop {
+            select.wait();
+
+            for p in self.windows.iter() {
+                match p.port.try_recv() {
+                    Empty | Disconnected => (),
+                    Data((time, data)) => {
+                        self.state.event(Some(time), data);
+                    }
+                }
+            }
+
+            match self.cmd.try_recv() {
+                Empty | Disconnected => (),
+                Data(cmd) => {
+                    return cmd;
+                }
+            }
+
+        }
+    }
+
+    fn add_window(&mut self, win: MutexArc<Window>, port: Port<(f64, WindowEvent)>) -> uint
+    {
+        let id = self.max_id;
+        self.max_id += 1;
+        self.windows.push(WindowHandle {
+            id: id,
+            window: win,
+            port: port
+        });
+        id
+    }
+
+    fn remove(&mut self, id: uint) -> bool
+    {
+        let mut fidx = None;
+        for (idx, win) in self.windows.iter().enumerate() {
+            if win.id == id {
+                fidx = Some(idx);
                 break;
             }
         }
 
-        match ovr_handle {
-            Some(ref mut ovr_handle) => {
-                if ovr_handle.id() == id {
-                    let msg = ovr_handle.recv();
-                    match sf {
-                        Some(ref sf) => {
-                            sf.on_message(&msg);
-                            state.predicted = sf.get_predicted_orientation(None);
-                        },
-                        _ => (),
-                    }
-                }
-            },
-            None => ()
+        if fidx.is_some() {
+            self.windows.remove(fidx.unwrap());
+            true
+        } else {
+            false
+        }
+    }
+
+    fn set_pos(&mut self, id: uint, x: f64, y: f64)
+    {
+        for win in self.windows.iter() {
+            if win.id == id {
+                unsafe {win.window.unsafe_access(|w| w.set_cursor_pos(x, y))}
+                self.state.event(None, CursorPosEvent(x, y));
+                return;
+            }
         }
     }
 }
 
 fn thread(cmd: Port<Command>)
 {
-    let mut state = InputState::new();
-    let mut max_id: window_id = 0;
-    let mut cmd = cmd;
-    
-    let mut ovr: Option<OVR> = None;
-    let mut ports: TrieMap<(MutexArc<Window>, Port<(f64, WindowEvent)>)> = TrieMap::new();
+    let mut ts = ThreadState::new(cmd);
 
     loop {
-        let command = wait_commands(&mut state, &mut cmd, &mut ovr, &mut ports);
+        let cmd = ts.wait();
 
-        match command {
+        match cmd {
             AddPort(port, window, reply) => {
-                let id = max_id;
-                max_id += 1;
-                reply(id);
-
-                ports.insert(id, (window, port));
+                reply(ts.add_window(window, port));
             },
             AddOVR(port) => {
-                ovr = Some(OVR {
+                println!("adding ovr");
+                ts.ovr = Some(OVR {
                     port: port,
                     sensor: ovr::SensorFusion::new().unwrap(),
                 });
             },
             SetPos(id, (x, y)) => {
-                 match ports.find(&id) {
-                    Some(&(ref window, _)) => {
-                        unsafe {window.unsafe_access(|w| w.set_cursor_pos(x, y))}
-                        state.event(None, CursorPosEvent(x, y));
-                    },
-                    None => ()
-                }
+                 ts.set_pos(id, x, y);
             }
             RemovePort(id, reply) => {
-                reply(ports.remove(&id));
+                reply(ts.remove(id));
             },
             Finish(reply) => {
                 reply();
                 break;
             },
             ResetOvr => {
-                match ovr {
+                match ts.ovr {
                     Some(ref ovr) => {
                         ovr.sensor.reset();
                     },
                     None => ()
                 }
-            }
-            Get(_) => (),
+            },
+            Get(reply) => {
+                reply(ts.state.clone());
+            },
+            Ack => ()
         }
     }
 }
@@ -336,7 +362,13 @@ impl InputManager
     {
         let (port, conn) = Chan::new();
 
-        spawn(proc() {
+        let mut task = task::task();
+        task.name("input");
+
+        // prime the channel to avoid a bug in Select
+        conn.send(Ack);
+
+        task.spawn(proc() {
             thread(port)
         });
 

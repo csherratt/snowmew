@@ -3,15 +3,15 @@
 #[feature(macro_rules)];
 #[feature(globs)];
 
-extern mod glfw = "glfw-rs";
-extern mod gl;
-extern mod snowmew;
-extern mod render = "snowmew-render";
-extern mod cgmath;
-extern mod native;
-extern mod green;
-extern mod extra;
-extern mod ovr = "ovr-rs";
+extern crate glfw = "glfw-rs";
+extern crate gl;
+extern crate snowmew;
+extern crate render = "snowmew-render";
+extern crate cgmath;
+extern crate native;
+extern crate green;
+extern crate extra;
+extern crate ovr = "ovr-rs";
 
 use std::rand::{StdRng, Rng};
 use std::vec::*;
@@ -40,7 +40,7 @@ fn start(argc: int, argv: **u8) -> int {
 
 fn main() {
     snowmew::start_managed_input(proc(im) {
-        let (mut display, mut display_input) = Display::new_ovr(im).unwrap();
+        let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
 
         let mut db = Database::new();
         let camera_loc = db.new_object(None, ~"camera");

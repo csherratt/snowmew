@@ -4,17 +4,17 @@
 #[comment = "A game engine in rust"];
 #[allow(dead_code)];
 
-extern mod std;
-extern mod glfw = "glfw-rs";
-extern mod cgmath;
-extern mod snowmew;
-extern mod cow;
-extern mod gl;
-extern mod OpenCL;
-extern mod ovr = "ovr-rs";
-extern mod collections;
-extern mod extra;
-extern mod native;
+extern crate std;
+extern crate glfw = "glfw-rs";
+extern crate cgmath;
+extern crate snowmew;
+extern crate cow;
+extern crate gl;
+extern crate OpenCL;
+extern crate ovr = "ovr-rs";
+extern crate collections;
+extern crate extra;
+extern crate native;
 
 use std::ptr;
 use std::comm::{Chan, Port, Empty, Disconnected, Data};
@@ -100,7 +100,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
     db.load();
 
-    let mut drawlists = ~[Drawlist::new(1024*1024), Drawlist::new(1024*1024), Drawlist::new(1024*1024)];
+    let mut drawlists = ~[Drawlist::new(1024*1024), Drawlist::new(1024*1024)];
     let mut waiting = ~[];
 
     loop {
@@ -168,7 +168,10 @@ impl RenderManager
     {
         let (port, chan) = Chan::new();
 
-        native::task::spawn(proc() {
+        let mut taskopts = std::task::TaskOpts::new();
+        taskopts.name = Some("render-main".into_maybe_owned());
+
+        native::task::spawn_opts(taskopts, proc() {
             let db = db;
             let display = display;
             let ih = ih;
@@ -176,13 +179,12 @@ impl RenderManager
             render_server(port, db, display, ih);
         });
 
-        let task_c = chan.clone();
-        native::task::spawn(proc() {
-            render_task(task_c);
-        });
+
+        let mut taskopts = std::task::TaskOpts::new();
+        taskopts.name = Some("render worker #0".into_maybe_owned());
 
         let task_c = chan.clone();
-        native::task::spawn(proc() {
+        native::task::spawn_opts(taskopts, proc() {
             render_task(task_c);
         });
         
