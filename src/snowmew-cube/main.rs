@@ -43,9 +43,9 @@ fn main() {
         let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
 
         let mut db = Database::new();
-        let camera_loc = db.new_object(None, ~"camera");
+        let camera_loc = db.new_object(None, "camera");
 
-        let scene = db.new_object(None, ~"scene");
+        let scene = db.new_object(None, "scene");
         let geometry = db.find("core/geometry/cube").unwrap();
 
         let dir = db.find("core/material/flat").unwrap();
@@ -59,17 +59,25 @@ fn main() {
 
         let size = 20;
 
-        for y in range(-size, size) { for x in range(-size, size) {for z in range(-size, size) {
-            let materials = materials.slice(0, materials.len());
-            let material = rng.choose(materials);
-            let cube_id = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
-            let x = x as f32 * 2.5;
-            let y = y as f32 * 2.5;
-            let z = z as f32 * 2.5;
-            db.update_location(cube_id,
-                Transform3D::new(0.5f32, Rotation3::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
-            db.set_draw(cube_id, geometry, material);
-        }}}
+        for x in range(-size, size) {
+            let dir_x = db.add_dir(Some(scene), format!("{}", x));
+            for y in range(-size, size) {
+                let dir_y = db.add_dir(Some(dir_x), format!("{}", x));
+                for z in range(-size, size) {
+                    let materials = materials.slice(0, materials.len());
+                    let material = rng.choose(materials);
+                    let cube_id = db.new_object(Some(dir_y), format!("{}/cube", z));
+                    let x = x as f32 * 2.5;
+                    let y = y as f32 * 2.5;
+                    let z = z as f32 * 2.5;
+                    db.update_location(cube_id,
+                        Transform3D::new(0.5f32, Rotation3::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
+                    db.set_draw(cube_id, geometry, material);
+                }
+            }
+        }
+
+        db.dump();
 
         db.update_location(camera_loc,
             Transform3D::new(1f32,

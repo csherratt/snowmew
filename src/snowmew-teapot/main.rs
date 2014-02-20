@@ -35,13 +35,13 @@ fn main() {
         let mut db = Database::new();
         let teapot = Obj::load(&Path::new("assets/teapot.obj")).unwrap();
 
-        let import = db.add_dir(None, ~"import");
+        let import = db.add_dir(None, "import");
         teapot.import(import, &mut db);
 
-        let scene = db.add_dir(None, ~"scene");
+        let scene = db.add_dir(None, "scene");
         let geo = db.find("import/Teapot01").unwrap();
         let material = db.find("core/material/flat/white").unwrap();
-        let teapot = db.new_object(Some(scene), ~"teapot");
+        let teapot = db.new_object(Some(scene), "teapot");
 
         db.set_draw(teapot, geo, material);
         db.update_location(teapot,
@@ -49,7 +49,7 @@ fn main() {
                              Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
                              Vec3::new(0f32, 0f32, 0f32)));
 
-        let camera = db.new_object(Some(scene), ~"camera");
+        let camera = db.new_object(Some(scene), "camera");
         db.update_location(camera,
             Transform3D::new(1f32,
                              Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
