@@ -12,7 +12,7 @@
 	url = https://github.com/csherratt/cow-rs.git
 [submodule "modules/opencl"]
 	path = modules/opencl
-	url = https://github.com/luqmana/rust-opencl.git
+	url = https://github.com/csherratt/rust-opencl.git
 [submodule "modules/octtree"]
 	path = modules/octtree
 	url = https://github.com/csherratt/octtree-rs.git
