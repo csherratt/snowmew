@@ -32,6 +32,7 @@ use cgmath::rotation::*;
 use cgmath::angle::{ToRad, deg};
 
 use std::io::timer::Timer;
+use std::num::{zero};
 
 #[start]
 fn start(argc: int, argv: **u8) -> int {
@@ -60,13 +61,11 @@ fn main() {
         let size = 20;
 
         for x in range(-size, size) {
-            let dir_x = db.add_dir(Some(scene), format!("{}", x));
             for y in range(-size, size) {
-                let dir_y = db.add_dir(Some(dir_x), format!("{}", x));
                 for z in range(-size, size) {
                     let materials = materials.slice(0, materials.len());
                     let material = rng.choose(materials);
-                    let cube_id = db.new_object(Some(dir_y), format!("{}/cube", z));
+                    let cube_id = db.new_object(Some(scene), "cube");
                     let x = x as f32 * 2.5;
                     let y = y as f32 * 2.5;
                     let z = z as f32 * 2.5;
@@ -76,8 +75,6 @@ fn main() {
                 }
             }
         }
-
-        db.dump();
 
         db.update_location(camera_loc,
             Transform3D::new(1f32,

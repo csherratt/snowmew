@@ -199,8 +199,6 @@ impl Drawlist
             gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0, size, flags) as *mut Mat4<f32>
         };
 
-        println!("model_matrix {:?}", model_matrix_ptr)
-
         Drawlist {
             model_matrix: buffers[0],
             model_matrix_ptr: model_matrix_ptr,

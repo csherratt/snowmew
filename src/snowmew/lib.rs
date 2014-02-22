@@ -23,6 +23,7 @@ extern crate ovr = "ovr-rs";
 
 pub use core::{object_key, Database};
 pub use geometry::{VertexBuffer};
+pub use position::Positions;
 
 pub mod core;
 pub mod geometry;
@@ -30,6 +31,7 @@ pub mod camera;
 pub mod input;
 pub mod display;
 pub mod material;
+mod position;
 mod timing;
 
 mod default;
