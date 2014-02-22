@@ -116,21 +116,17 @@ impl Display
 
     pub fn size(&self) -> (uint, uint)
     {
-        unsafe {
-            self.window.unsafe_access(|window| {
-                let (w, h) = window.get_size();
-                (w as uint, h as uint)
-            })
-        }
+        self.window.access(|window| {
+            let (w, h) = window.get_size();
+            (w as uint, h as uint)
+        })
     }
 
     pub fn swap_buffers(&self)
     {
-        unsafe {
-            self.window.unsafe_access(|window| {
-                window.swap_buffers();
-            })
-        }
+        self.window.access(|window| {
+            window.swap_buffers();
+        })
     }
 
     pub fn is_hmd(&self) -> bool
@@ -145,37 +141,31 @@ impl Display
 
     pub fn set_cursor_mode(&mut self, cm: glfw::CursorMode)
     {
-        unsafe {
-            self.window.unsafe_access(|win| {
-                win.set_cursor_mode(cm);
-            });
-        }
+        self.window.access(|win| {
+            win.set_cursor_mode(cm);
+        });
     }
 
     pub fn make_current(&mut self)
     {
-        unsafe {
-            self.window.unsafe_access(|win| {
-                win.make_context_current();
-            });
-        }
+        self.window.access(|win| {
+            win.make_context_current();
+        });
     }
 
     pub fn make_render_context(&mut self) -> Option<RenderContext>
     {
-        unsafe {
-            self.window.unsafe_access(|win| {
-                let window = win.create_shared(0, 0, "Render Context", glfw::Windowed);
-                match window {
-                    Some(win) => {
-                        Some(RenderContext {
-                            context: win
-                        })
-                    },
-                    None => None
-                }
-            })
-        }
+        self.window.access(|win| {
+            let window = win.create_shared(0, 0, "Render Context", glfw::Windowed);
+            match window {
+                Some(win) => {
+                    Some(RenderContext {
+                        context: win
+                    })
+                },
+                None => None
+            }
+        })
     }
 }
 

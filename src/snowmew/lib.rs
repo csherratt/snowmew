@@ -53,8 +53,7 @@ pub fn start_managed_input(f: proc(&mut input::InputManager))
         let im = input::InputManager::new();
         let (p, c) = std::comm::Chan::new();
 
-        let mut task = std::task::task();
-        task.name("game task");
+        let task = std::task::task().named("game task");
 
         task.spawn(proc() {
             green::run(proc() {

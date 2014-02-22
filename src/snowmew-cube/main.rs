@@ -32,7 +32,6 @@ use cgmath::rotation::*;
 use cgmath::angle::{ToRad, deg};
 
 use std::io::timer::Timer;
-use std::num::{zero};
 
 #[start]
 fn start(argc: int, argv: **u8) -> int {

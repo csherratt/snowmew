@@ -295,7 +295,7 @@ impl ThreadState
     {
         for win in self.windows.iter() {
             if win.id == id {
-                unsafe {win.window.unsafe_access(|w| w.set_cursor_pos(x, y))}
+                win.window.access(|w| w.set_cursor_pos(x, y));
                 self.state.event(None, CursorPosEvent(x, y));
                 return;
             }
@@ -362,8 +362,7 @@ impl InputManager
     {
         let (port, conn) = Chan::new();
 
-        let mut task = task::task();
-        task.name("input");
+        let task = task::task().named("input");
 
         // prime the channel to avoid a bug in Select
         conn.send(Ack);
@@ -385,12 +384,10 @@ impl InputManager
         let (p, c) = Chan::new();
         let mut port = None;
 
-        unsafe {
-            window.unsafe_access(|window| {
-                mem::swap(&mut port, &mut window.event_port);
-                window.set_all_polling(true);
-            });
-        }
+        window.access(|window| {
+            mem::swap(&mut port, &mut window.event_port);
+            window.set_all_polling(true);
+        });
         
         self.cmd.send(AddPort(port.unwrap(), window, proc(id) c.send(id)));
 
