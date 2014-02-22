@@ -16,6 +16,8 @@ use cgmath::vector::*;
 use default::load_default;
 use position;
 
+use extra::time::precise_time_s;
+
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
     count: uint,  /* unique frame identifier */
@@ -457,7 +459,12 @@ impl Database {
 
     pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
     {
+        let start = precise_time_s();
         let pos = self.position.get().to_positions();
+        let end = precise_time_s();
+
+        println!("{:3.2f}ms", 1000. * (end - start));
+
         let stack = match self.index_parent_child.find(&oid) {
             Some(set) => {
                 ~[IterObjsLayer {

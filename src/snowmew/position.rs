@@ -1,10 +1,83 @@
+use std::mem;
 
-use std::vec;
+use sync::mutex;
 
 use cgmath::transform::Transform3D;
 use cgmath::quaternion::Quat;
 use cgmath::vector::Vec3;
 use cgmath::matrix::{Mat4, ToMat4, Matrix};
+
+static mut delta_reuse_mutex: mutex::StaticMutex = mutex::MUTEX_INIT;
+static mut delta_reuse: Option<~[~[Delta]]> = None;
+
+fn delta_alloc() -> ~[Delta]
+{
+    unsafe {
+        let guard = delta_reuse_mutex.lock();
+        let new = match delta_reuse {
+            Some(ref mut arr) => {
+                match arr.pop() {
+                    Some(new) => new,
+                    None => ~[]
+                }
+            },
+            None => {
+                ~[]
+            }
+        };
+        let _ = guard;
+        new
+    }
+}
+
+fn delta_free(old: ~[Delta])
+{
+    unsafe {
+        let guard = delta_reuse_mutex.lock();
+        if delta_reuse.is_none() {
+            delta_reuse = Some(~[old]);
+        } else {
+            delta_reuse.as_mut().unwrap().push(old);
+        }
+        let _ = guard;
+    }
+}
+
+
+static mut position_reuse_mutex: mutex::StaticMutex = mutex::MUTEX_INIT;
+static mut position_reuse: Option<~[~[Mat4<f32>]]> = None;
+
+fn position_alloc() -> ~[Mat4<f32>]
+{
+    unsafe {
+        let guard = position_reuse_mutex.lock();
+        let new = match position_reuse {
+            Some(ref mut arr) => {
+                match arr.pop() {
+                    Some(new) => new,
+                    None => ~[]
+                }
+            },
+            None => ~[]
+        };
+        let _ = guard;
+        new
+    }
+}
+
+fn position_free(old: ~[Mat4<f32>])
+{
+    unsafe {
+        let guard = position_reuse_mutex.lock();
+        if position_reuse.is_none() {
+            position_reuse = Some(~[old]);
+        } else {
+            position_reuse.as_mut().unwrap().push(old);
+        }
+        let _ = guard;
+    }
+}
+
 
 pub struct Delta
 {
@@ -48,7 +121,8 @@ impl Clone for Deltas
     #[inline(never)]
     fn clone(&self) -> Deltas
     {
-        let mut vec = vec::with_capacity(self.delta.len());
+        let mut vec = delta_alloc();
+        vec.reserve(self.delta.len());
         unsafe {
             vec.set_len(self.delta.len());
             vec.copy_memory(self.delta.as_slice())
@@ -57,6 +131,17 @@ impl Clone for Deltas
             gen: self.gen.clone(),
             delta: vec
         }
+    }
+}
+
+impl Drop for Deltas
+{
+    #[inline(never)]
+    fn drop(&mut self)
+    {
+        let mut vec = ~[];
+        mem::swap(&mut vec, &mut self.delta);
+        delta_free(vec);
     }
 }
 
@@ -148,7 +233,10 @@ impl Deltas
 
     pub fn to_positions(&self) -> Positions
     {
-        let mut mat = ~[Mat4::identity()];
+        let mut mat = position_alloc();
+        mat.reserve(self.delta.len());
+        unsafe {mat.set_len(1);}
+        mat[0] = Mat4::identity();
 
         let mut last_gen_off = 0;
         for &(gen_off, len) in self.gen.slice_from(1).iter() {
@@ -171,6 +259,35 @@ pub struct Positions
 {
     priv gen: ~[(uint, uint)],
     priv pos: ~[Mat4<f32>],
+}
+
+impl Clone for Positions
+{
+    #[inline(never)]
+    fn clone(&self) -> Positions
+    {
+        let mut vec = position_alloc();
+        vec.reserve(self.pos.len());
+        unsafe {
+            vec.set_len(self.pos.len());
+            vec.copy_memory(self.pos.as_slice())
+        }
+        Positions {
+            gen: self.gen.clone(),
+            pos: vec
+        }
+    }
+}
+
+impl Drop for Positions
+{
+    #[inline(never)]
+    fn drop(&mut self)
+    {
+        let mut vec = ~[];
+        mem::swap(&mut vec, &mut self.pos);
+        position_free(vec);
+    }
 }
 
 impl Positions
