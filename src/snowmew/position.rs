@@ -1,4 +1,6 @@
 
+use std::vec;
+
 use cgmath::transform::Transform3D;
 use cgmath::quaternion::Quat;
 use cgmath::vector::Vec3;
@@ -41,6 +43,24 @@ pub struct Deltas
     priv delta: ~[Delta],
 }
 
+impl Clone for Deltas
+{
+    #[inline(never)]
+    fn clone(&self) -> Deltas
+    {
+        let mut vec = vec::with_capacity(self.delta.len());
+        unsafe {
+            vec.set_len(self.delta.len());
+            vec.copy_memory(self.delta.as_slice())
+        }
+        Deltas {
+            gen: self.gen.clone(),
+            delta: vec
+        }
+    }
+}
+
+#[deriving(Clone, Default, Eq)]
 pub struct Id(uint, uint);
 
 impl Deltas
@@ -96,6 +116,18 @@ impl Deltas
         });
 
         Id(gen+1, id)
+    }
+
+    pub fn update(&mut self, id: Id, delta: Transform3D<f32>)
+    {
+        let loc = self.get_loc(id);
+        self.delta[loc].delta = delta;
+    }
+
+    pub fn get_delta(&self, id :Id) -> Transform3D<f32>
+    {
+        let loc = self.get_loc(id);
+        self.delta[loc].delta
     }
 
     pub fn get_mat(&self, id :Id) -> Mat4<f32>

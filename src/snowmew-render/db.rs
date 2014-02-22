@@ -137,10 +137,12 @@ impl Graphics
         }
     }
 
-    pub fn update(&mut self, db: Database)
+    pub fn update(&mut self, db: Database) -> Database
     {
+        let mut db = db;
         mem::swap(&mut self.last, &mut self.current);
-        self.current = db;
+        mem::swap(&mut self.current, &mut db);
+        db
 
     }
 

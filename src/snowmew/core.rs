@@ -1,4 +1,6 @@
 
+use sync::CowArc;
+
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_set_to_map, JoinMapSetIterator};
 
@@ -12,6 +14,7 @@ use cgmath::quaternion::*;
 use cgmath::vector::*;
 
 use default::load_default;
+use position;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -66,7 +69,7 @@ pub struct Object
 pub struct Drawable
 {
     geometry: object_key,
-    material: object_key,
+    material: object_key
 }
 
 impl TotalEq for Drawable {
@@ -128,12 +131,13 @@ pub struct Database {
     // raw data
     priv last_oid:      object_key,
     priv objects:       BTreeMap<object_key, Object>,
-    priv location:      BTreeMap<object_key, Location>,
+    priv location:      BTreeMap<object_key, position::Id>,
     priv draw:          BTreeMap<object_key, Drawable>,
     priv geometry:      BTreeMap<object_key, Geometry>,
     priv vertex:        BTreeMap<object_key, VertexBuffer>,
     priv material:      BTreeMap<object_key, Material>,
     priv light:         BTreeMap<object_key, Light>,
+    priv position:      CowArc<position::Deltas>,
 
     // --- indexes ---
     // map all children to a parent
@@ -167,6 +171,7 @@ impl Database {
             vertex:             BTreeMap::new(),
             material:           BTreeMap::new(),
             light:              BTreeMap::new(),
+            position:           CowArc::new(position::Deltas::new()),
 
             // --- indexes ---
             // map all children to a parent
@@ -270,15 +275,34 @@ impl Database {
         p_mat.mul_m(&loc)
     }
 
-    pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
+    fn get_position_id(&mut self, key: object_key) -> position::Id
     {
-        self.location.insert(key, Location{trans: location});
+        if key == 0 {
+            position::Deltas::root()
+        } else {
+            match self.location.find(&key) {
+                Some(id) =>  return *id,
+                None => ()
+            }
+
+            let poid = self.objects.find(&key).unwrap().parent;
+            let pid = self.get_position_id(poid);
+            let id = self.position.get_mut().insert(pid, Transform3D::new(1f32, Quat::identity(), Vec3::new(0f32, 0f32, 0f32)));
+            self.location.insert(key, id);
+            id
+        }
     }
 
-    pub fn location<'a>(&'a self, key: object_key) -> Option<&'a Transform3D<f32>>
+    pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
+    {
+        let id = self.get_position_id(key);
+        self.position.get_mut().update(id, location);
+    }
+
+    pub fn location(&self, key: object_key) -> Option<Transform3D<f32>>
     {
         match self.location.find(&key) {
-            Some(loc) => Some(&loc.trans),
+            Some(id) => Some(self.position.get().get_delta(*id)),
             None => None
         }
     }
@@ -433,18 +457,13 @@ impl Database {
 
     pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
     {
-        let mat = match self.location.find(&oid) {
-            Some(loc) => loc.trans.get().to_mat4(),
-            None => Mat4::identity()
-        };
-
+        let pos = self.position.get().to_positions();
         let stack = match self.index_parent_child.find(&oid) {
             Some(set) => {
                 ~[IterObjsLayer {
                     child_iter: join_set_to_map(
                                     set.iter(),
-                                    self.location.iter()),
-                    mat: mat,
+                                    self.location.iter())
                 }]
             },
             None => ~[]
@@ -452,7 +471,8 @@ impl Database {
 
         IterObjs {
             db: self,
-            stack: stack
+            stack: stack,
+            pos: pos
         }
     }
 
@@ -481,12 +501,12 @@ struct IterObjsLayer<'a>
 {
     child_iter: JoinMapSetIterator<
                     BTreeSetIterator<'a, object_key>,
-                    BTreeMapIterator<'a, object_key, Location>>,
-    mat: Mat4<f32>
+                    BTreeMapIterator<'a, object_key, position::Id>>
 }
 
 pub struct IterObjs<'a>
 {
+    priv pos: position::Positions,
     priv db: &'a Database,
     priv stack: ~[IterObjsLayer<'a>]
 }
@@ -504,19 +524,16 @@ impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
 
             match self.stack[len-1].child_iter.next() {
                 Some((object_key, loc)) => {
-                    let mat = self.stack[len-1].mat.mul_m(&loc.trans.get().to_mat4());
-
                     match self.db.index_parent_child.find(object_key) {
                         Some(set) => {
                             self.stack.push(IterObjsLayer {
-                                mat: mat,
                                 child_iter: join_set_to_map(set.iter(), self.db.location.iter())
                             });
                         },
                         None => ()
                     }
 
-                    return Some((*object_key, mat))
+                    return Some((*object_key, self.pos.get_mat(*loc)))
                 },
                 None => { self.stack.pop(); }
             }
