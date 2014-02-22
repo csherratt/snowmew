@@ -71,7 +71,7 @@ impl Deltas
 
             (s+len, 0)
         } else {
-            for t in self.gen.mut_slice_from(gen).mut_iter() {
+            for t in self.gen.mut_slice_from(gen+1).mut_iter() {
                 let (off, len) = *t;
                 *t = (off+1, len);
             }

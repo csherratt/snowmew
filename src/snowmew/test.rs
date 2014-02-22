@@ -70,4 +70,30 @@ mod position {
         assert!(mat3.mul_v(&vec) == Vec4::new(4f32, 4f32, 4f32, 1f32));
         assert!(mat4.mul_v(&vec) == Vec4::new(5f32, 5f32, 5f32, 1f32));
     }
+
+    #[test]
+    fn insert_children_tree()
+    {
+        let mut pos = Deltas::new();
+
+        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
+        let id1 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+
+        let id0_0 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
+        let id0_1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+        let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
+        let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+    
+        let mat0 = pos.calc_mat(id0_0);
+        let mat1 = pos.calc_mat(id0_1);
+        let mat2 = pos.calc_mat(id1_0);
+        let mat3 = pos.calc_mat(id1_1);
+
+        let vec = Vec4::new(0f32, 0f32, 0f32, 1f32);
+
+        assert!(mat0.mul_v(&vec) == Vec4::new(2f32, 2f32, 2f32, 1f32));
+        assert!(mat1.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
+        assert!(mat2.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
+        assert!(mat3.mul_v(&vec) == Vec4::new(-2f32, -2f32, -2f32, 1f32));
+    }
 }
