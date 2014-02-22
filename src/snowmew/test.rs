@@ -39,7 +39,7 @@ mod core {
 }
 
 mod position {
-    use snowmew::Positions;
+    use snowmew::Deltas;
     use cgmath::matrix::Matrix;
     use cgmath::transform::Transform3D;
     use cgmath::quaternion::Quat;
@@ -48,21 +48,19 @@ mod position {
     #[test]
     fn insert_children()
     {
-        let mut pos = Positions::new();
+        let mut pos = Deltas::new();
 
-        let id0 = pos.insert(Positions::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
+        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
         let id1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
         let id2 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
         let id3 = pos.insert(id2, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
         let id4 = pos.insert(id3, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
 
-        pos.calc();
-
-        let mat0 = pos.get(id0);
-        let mat1 = pos.get(id1);
-        let mat2 = pos.get(id2);
-        let mat3 = pos.get(id3);
-        let mat4 = pos.get(id4);
+        let mat0 = pos.calc_mat(id0);
+        let mat1 = pos.calc_mat(id1);
+        let mat2 = pos.calc_mat(id2);
+        let mat3 = pos.calc_mat(id3);
+        let mat4 = pos.calc_mat(id4);
 
         let vec = Vec4::new(0f32, 0f32, 0f32, 1f32);
 

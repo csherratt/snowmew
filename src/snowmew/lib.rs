@@ -23,7 +23,7 @@ extern crate ovr = "ovr-rs";
 
 pub use core::{object_key, Database};
 pub use geometry::{VertexBuffer};
-pub use position::Positions;
+pub use position::Deltas;
 
 pub mod core;
 pub mod geometry;
