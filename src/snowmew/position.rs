@@ -98,7 +98,7 @@ impl Deltas
         Id(gen+1, id)
     }
 
-    pub fn calc_mat(&self, id :Id) -> Mat4<f32>
+    pub fn get_mat(&self, id :Id) -> Mat4<f32>
     {
         let loc = self.get_loc(id);
         match id {
@@ -109,8 +109,52 @@ impl Deltas
                 let mat = self.delta[loc].delta.to_mat4();
                 let parent = Id(gen-1, self.delta[loc].parent);
 
-                self.calc_mat(parent).mul_m(&mat)
+                self.get_mat(parent).mul_m(&mat)
             }
         }
+    }
+
+    pub fn to_positions(&self) -> Positions
+    {
+        let mut mat = ~[Mat4::identity()];
+
+        let mut last_gen_off = 0;
+        for &(gen_off, len) in self.gen.slice_from(1).iter() {
+            for off in range(gen_off, gen_off+len) {
+                let ploc = last_gen_off + self.delta[off].parent;
+                let nmat = mat[ploc].mul_m(&self.delta[off].delta.to_mat4());
+                mat.push(nmat);
+            }
+            last_gen_off = gen_off;
+        }
+
+        Positions {
+            gen: self.gen.clone(),
+            pos: mat
+        }
+    }
+}
+
+pub struct Positions
+{
+    priv gen: ~[(uint, uint)],
+    priv pos: ~[Mat4<f32>],
+}
+
+impl Positions
+{
+    pub fn root() -> Id {Id(0, 0)}
+
+    fn get_loc(&self, id: Id) -> uint
+    {
+        let Id(gen, offset) = id;
+        let (gen_offset, _) = self.gen[gen];
+
+        gen_offset + offset
+    }
+
+    pub fn get_mat(&self, id :Id) -> Mat4<f32>
+    {
+        self.pos[self.get_loc(id)].clone()
     }
 }
