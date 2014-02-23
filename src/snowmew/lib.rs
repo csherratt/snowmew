@@ -7,7 +7,7 @@
 #[feature(globs)];
 
 extern crate std;
-extern crate extra;
+extern crate time;
 extern crate glfw = "glfw-rs";
 extern crate cgmath;
 extern crate cow;

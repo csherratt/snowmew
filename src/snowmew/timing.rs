@@ -1,5 +1,5 @@
 
-use extra::time::precise_time_s;
+use time::precise_time_s;
 
 #[deriving(Clone)]
 pub struct Timing

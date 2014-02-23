@@ -11,7 +11,7 @@ use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel, EventList};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
 
-use extra::time::precise_time_ns;
+use time::precise_time_ns;
 
 
 static mut delta_reuse_mutex: mutex::StaticMutex = mutex::MUTEX_INIT;

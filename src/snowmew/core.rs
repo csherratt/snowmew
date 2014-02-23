@@ -17,7 +17,7 @@ use default::load_default;
 use position;
 use position::CalcPositionsCl;
 
-use extra::time::precise_time_s;
+use time::precise_time_s;
 
 use OpenCL::hl::CommandQueue;
 
