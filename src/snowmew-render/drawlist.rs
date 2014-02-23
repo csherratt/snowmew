@@ -11,10 +11,14 @@ use db::Graphics;
 use snowmew::core::{object_key};
 use snowmew::geometry::Geometry;
 use snowmew::core::Drawable;
+use snowmew::CalcPositionsCl;
 
 use gl;
 use gl::types::{GLuint, GLsizeiptr};
 use cow::join::join_maps;
+
+use OpenCL::hl::{Device, Context, CommandQueue};
+
 
 use collections::treemap::TreeMap;
 
@@ -181,12 +185,13 @@ pub struct Drawlist
     priv model_matrix_ptr: *mut Mat4<f32>,
     priv max_size: uint,
     priv bins: TreeMap<Drawable ,~[u32]>,
-    priv cmds: ~[DrawCommand]
+    priv cmds: ~[DrawCommand],
+    priv cl_ctx: Option<CalcPositionsCl>
 }
 
 impl Drawlist
 {
-    pub fn new(max_size: uint) -> Drawlist
+    pub fn new(max_size: uint, cl: Option<(&Device, &Context)>) -> Drawlist
     {
         let buffers = &mut [0];
 
@@ -199,17 +204,23 @@ impl Drawlist
             gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0, size, flags) as *mut Mat4<f32>
         };
 
+        let cl_ctx = match cl {
+            Some((dev, ctx)) => Some(CalcPositionsCl::new(ctx, dev)),
+            None => None
+        };
+
         Drawlist {
             model_matrix: buffers[0],
             model_matrix_ptr: model_matrix_ptr,
             max_size: 0,
             bins: TreeMap::new(),
-            cmds: ~[]
+            cmds: ~[],
+            cl_ctx: cl_ctx
         }
     }
 
     // This downloads the positions to the GPU and bins the objects
-    pub fn setup_scene(&mut self, db: &Graphics, scene: object_key)
+    pub fn setup_scene(&mut self, db: &Graphics, scene: object_key, queue: Option<&CommandQueue>)
     {
         let num_drawable = db.current.drawable_count();
         assert!(self.max_size < num_drawable);
@@ -223,7 +234,13 @@ impl Drawlist
 
         unsafe {
             mut_buf_as_slice(self.model_matrix_ptr, num_drawable, |write| {
-                let list = join_maps(db.current.walk_scene(scene), db.current.walk_drawables());
+                let list = match (queue, &mut self.cl_ctx) {
+                    (Some(q), &Some(ref mut cl)) => {
+                        println!("cl");
+                        join_maps(db.current.walk_scene(scene, Some((q, cl))), db.current.walk_drawables())
+                    },
+                    (_, _) => join_maps(db.current.walk_scene(scene, None), db.current.walk_drawables())
+                };
                 for (idx, (_, (mat, draw))) in list.enumerate() {
                     write[idx] = mat;
                     let empty = match self.bins.find_mut(draw) {

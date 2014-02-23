@@ -15,8 +15,11 @@ use cgmath::vector::*;
 
 use default::load_default;
 use position;
+use position::CalcPositionsCl;
 
 use extra::time::precise_time_s;
+
+use OpenCL::hl::CommandQueue;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -457,10 +460,13 @@ impl Database {
         UnwrapKey::new(self.draw.iter())
     } 
 
-    pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
+    pub fn walk_scene<'a>(&'a self, oid: object_key, cl: Option<(&CommandQueue, &mut CalcPositionsCl)>) -> IterObjs<'a>
     {
         let start = precise_time_s();
-        let pos = self.position.get().to_positions();
+        let pos = match cl {
+            Some((q, cl)) => self.position.get().to_positions_cl(q, cl), 
+            None => self.position.get().to_positions()
+        };
         let end = precise_time_s();
 
         println!("{:3.2f}ms", 1000. * (end - start));

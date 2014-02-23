@@ -7,9 +7,11 @@ use cgmath::quaternion::Quat;
 use cgmath::vector::Vec3;
 use cgmath::matrix::{Mat4, ToMat4, Matrix};
 
-use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel};
+use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel, EventList};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
+
+use extra::time::precise_time_ns;
 
 
 static mut delta_reuse_mutex: mutex::StaticMutex = mutex::MUTEX_INIT;
@@ -389,8 +391,12 @@ impl Deltas
             };
         }
 
+        let start = precise_time_ns();
+
         cq.write(&ctx.input, &self.delta.as_slice(), ());
         cq.write(&ctx.output, &default, ());
+
+        let write_end = precise_time_ns();
 
         ctx.kernel.set_arg(0, &ctx.input);
         ctx.kernel.set_arg(1, &ctx.output);
@@ -407,7 +413,6 @@ impl Deltas
             ctx.kernel.set_arg(2, &off);
             let (off, len) = self.gen[idx];
             ctx.kernel.set_arg(3, &off);
-
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
 
@@ -415,7 +420,18 @@ impl Deltas
         mat.reserve(self.delta.len());
         unsafe {mat.set_len(self.delta.len());}
 
-        cq.read(&ctx.output, &mut mat.as_mut_slice(), event);
+        let compute_done = precise_time_ns();
+
+        event.wait();
+
+        cq.read(&ctx.output, &mut mat.as_mut_slice(), ());
+
+        let download = precise_time_ns();
+
+        println!("{} {} {}",
+            write_end - start,
+            compute_done - write_end,
+            download - compute_done);
 
         Positions {
             gen: self.gen.clone(),

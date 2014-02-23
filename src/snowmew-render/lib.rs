@@ -17,6 +17,7 @@ extern crate extra;
 extern crate native;
 
 use std::ptr;
+use std::mem;
 use std::comm::{Chan, Port, Empty, Disconnected, Data};
 
 //use drawlist::Drawlist;
@@ -32,8 +33,9 @@ use snowmew::input::InputHandle;
 
 use db::Graphics;
 use pipeline::{DrawTarget, Pipeline};
-
 use drawlist::Drawlist;
+use OpenCL::hl::{CommandQueue};
+
 
 mod db;
 mod shader;
@@ -47,6 +49,7 @@ enum RenderCommand {
     Update(snowmew::core::Database, object_key, object_key),
     Waiting(Chan<(db::Graphics, Drawlist, object_key)>),
     Complete(Drawlist),
+    Setup(Chan<Option<CommandQueue>>),
     Finish
 }
 
@@ -64,10 +67,16 @@ fn swap_buffers(disp: &mut Display)
 fn render_task(chan: Chan<RenderCommand>)
 {
     let (p, c) = Chan::new();
+    chan.send(Setup(c.clone()));
+    let queue = p.recv();
+
+    println!("queue {:?}", queue);
+
+    let (p, c) = Chan::new();
     chan.send(Waiting(c.clone()));
     loop {
         let (g, mut dl, oid) = p.recv();
-        dl.setup_scene(&g, oid);
+        dl.setup_scene(&g, oid, queue.as_ref());
         chan.send(Waiting(c.clone()));
         chan.send(Complete(dl));
     }
@@ -75,6 +84,10 @@ fn render_task(chan: Chan<RenderCommand>)
 
 fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display: Display, ih: InputHandle)
 {
+    let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
+
+    let mut queue = Some(queue);
+
     let mut db = db::Graphics::new(db);
     let mut scene = 0;
     let mut camera = 0;
@@ -96,11 +109,12 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     gl::Enable(gl::LINE_SMOOTH);
     gl::Enable(gl::BLEND);
     gl::CullFace(gl::BACK);
-    glfw::set_swap_interval(0);
+    glfw::set_swap_interval(1);
 
     db.load();
 
-    let mut drawlists = ~[Drawlist::new(1024*1024), Drawlist::new(1024*1024)];
+    let mut drawlists = ~[Drawlist::new(1024*1024, Some((&device, &context))),
+                          Drawlist::new(1024*1024, Some((&device, &context)))];
     let mut waiting = ~[];
 
     loop {
@@ -115,6 +129,11 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
         };
 
         match cmd {
+            Some(Setup(ch)) => {
+                let mut out = None;
+                mem::swap(&mut queue, &mut out);
+                ch.send(out)
+            },
             Some(Update(new, s, c)) => {
                 db.update(new);
                 db.load();
