@@ -7,8 +7,134 @@ use cgmath::quaternion::Quat;
 use cgmath::vector::Vec3;
 use cgmath::matrix::{Mat4, ToMat4, Matrix};
 
+use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel};
+use OpenCL::mem::CLBuffer;
+use OpenCL::CL::CL_MEM_READ_WRITE;
+
+
 static mut delta_reuse_mutex: mutex::StaticMutex = mutex::MUTEX_INIT;
 static mut delta_reuse: Option<~[~[Delta]]> = None;
+
+static opencl_program: &'static str = "
+struct q4 {
+    float s, x, y, z;
+};
+
+struct f4 {
+    float x, y, z, w;
+};
+
+struct f3 {
+    float x, y, z;
+};
+
+typedef struct q4 q4;
+typedef struct f4 f4;
+typedef struct f3 f3;
+
+struct mat4 {
+    f4 x, y, z, w;
+};
+
+struct transform
+{
+    int parent;
+    float scale;
+    q4 rot;
+    f3 pos;
+};
+
+typedef struct mat4 Mat4;
+typedef struct transform Transform3D;
+
+#define DOT(OUT, A, B, i, j) \
+    OUT.j.i = A.x.i * B.j.x + \
+    A.y.i * B.j.y + \
+    A.z.i * B.j.z + \
+    A.w.i * B.j.w
+
+Mat4
+mult_m(const Mat4 a, const Mat4 b)
+{
+    Mat4 out;
+
+    DOT(out, a, b, x, x);
+    DOT(out, a, b, x, y);
+    DOT(out, a, b, x, z);
+    DOT(out, a, b, x, w);
+
+    DOT(out, a, b, y, x);
+    DOT(out, a, b, y, y);
+    DOT(out, a, b, y, z);
+    DOT(out, a, b, y, w);
+
+    DOT(out, a, b, z, x);
+    DOT(out, a, b, z, y);
+    DOT(out, a, b, z, z);
+    DOT(out, a, b, z, w);
+
+    DOT(out, a, b, w, x);
+    DOT(out, a, b, w, y);
+    DOT(out, a, b, w, z);
+    DOT(out, a, b, w, w);
+
+    return out;
+}
+
+Mat4
+transform_to_mat4(const Transform3D trans)
+{
+    Mat4 mat;
+
+    float x2 = trans.rot.x + trans.rot.x;
+    float y2 = trans.rot.y + trans.rot.y;
+    float z2 = trans.rot.z + trans.rot.z;
+
+    float xx2 = x2 * trans.rot.x;
+    float xy2 = x2 * trans.rot.y;
+    float xz2 = x2 * trans.rot.z;
+
+    float yy2 = y2 * trans.rot.y;
+    float yz2 = y2 * trans.rot.z;
+    float zz2 = z2 * trans.rot.z;
+
+    float sy2 = y2 * trans.rot.s;
+    float sz2 = z2 * trans.rot.s;
+    float sx2 = x2 * trans.rot.s;
+
+    mat.x.x = (1. - yy2 - zz2) * trans.scale;
+    mat.x.y = (xy2 + sz2) * trans.scale;
+    mat.x.z = (xz2 - sy2) * trans.scale;
+    mat.x.w = 0.;
+
+    mat.y.x = (xy2 - sz2) * trans.scale;
+    mat.y.y = (1. - xx2 - zz2) * trans.scale;
+    mat.y.z = (yz2 + sx2) * trans.scale;
+    mat.y.w = 0.;
+
+    mat.z.x = (xy2 + sy2) * trans.scale;
+    mat.z.y = (yz2 - sx2) * trans.scale;
+    mat.z.z = (1. - xx2 - yy2) * trans.scale;
+    mat.z.w = 0.;
+
+    mat.w.x = trans.pos.x;
+    mat.w.y = trans.pos.y;
+    mat.w.z = trans.pos.z;
+    mat.w.w = 1.;
+
+    return mat;
+}
+
+kernel void
+calc_gen(global Transform3D *t, global Mat4 *gen, int offset_last, int offset_this)
+{
+    int id = get_global_id(0);
+    global Transform3D *trans = &t[offset_this+id];
+    Mat4 mat = transform_to_mat4(trans[0]);
+    gen[offset_this+id] = mult_m(gen[offset_last+trans->parent], mat);
+}
+
+";
 
 fn delta_alloc() -> ~[Delta]
 {
@@ -81,7 +207,7 @@ fn position_free(old: ~[Mat4<f32>])
 
 pub struct Delta
 {
-    priv parent: uint,
+    priv parent: u32,
     priv delta : Transform3D<f32>
 }
 
@@ -112,13 +238,12 @@ impl Clone for Delta
 
 pub struct Deltas
 {
-    priv gen: ~[(uint, uint)],
+    priv gen: ~[(u32, u32)],
     priv delta: ~[Delta],
 }
 
 impl Clone for Deltas
 {
-    #[inline(never)]
     fn clone(&self) -> Deltas
     {
         let mut vec = delta_alloc();
@@ -136,7 +261,6 @@ impl Clone for Deltas
 
 impl Drop for Deltas
 {
-    #[inline(never)]
     fn drop(&mut self)
     {
         let mut vec = ~[];
@@ -146,7 +270,7 @@ impl Drop for Deltas
 }
 
 #[deriving(Clone, Default, Eq)]
-pub struct Id(uint, uint);
+pub struct Id(u32, u32);
 
 impl Deltas
 {
@@ -165,18 +289,18 @@ impl Deltas
         let Id(gen, offset) = id;
         let (gen_offset, _) = self.gen[gen];
 
-        gen_offset + offset
+        (gen_offset + offset) as uint
     }
 
-    fn add_loc(&mut self, gen: uint) -> (uint, uint)
+    fn add_loc(&mut self, gen: u32) -> (uint, u32)
     {
-        if gen == self.gen.len() {
+        if gen as uint == self.gen.len() {
             let (s, len) = self.gen[gen-1];
             self.gen.push((s+len, 1));
 
-            (s+len, 0)
+            ((s+len) as uint, 0)
         } else {
-            for t in self.gen.mut_slice_from(gen+1).mut_iter() {
+            for t in self.gen.mut_slice_from((gen+1) as uint).mut_iter() {
                 let (off, len) = *t;
                 *t = (off+1, len);
             }
@@ -184,7 +308,7 @@ impl Deltas
             let (off, len) = self.gen[gen];
             self.gen[gen] = (off, len+1);
 
-            (off+len, len)
+            ((off+len) as uint, len)
         }
     }
 
@@ -192,7 +316,7 @@ impl Deltas
     {
         let Id(gen, pid) = parent;
 
-        assert!(gen < self.gen.len());
+        assert!((gen as uint) < self.gen.len());
 
         let (loc, id) = self.add_loc(gen+1);
         self.delta.insert(loc, Delta {
@@ -253,11 +377,56 @@ impl Deltas
             pos: mat
         }
     }
+
+    pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> Positions
+    {
+        let default: &[Mat4<f32>] = &[Mat4::identity()];
+
+        if self.gen.len() == 1 {
+            return Positions {
+                gen: self.gen.clone(),
+                pos: ~[Mat4::identity()]
+            };
+        }
+
+        cq.write(&ctx.input, &self.delta.as_slice(), ());
+        cq.write(&ctx.output, &default, ());
+
+        ctx.kernel.set_arg(0, &ctx.input);
+        ctx.kernel.set_arg(1, &ctx.output);
+
+        let (off, _) = self.gen[0];
+        ctx.kernel.set_arg(2, &off);
+        let (off, len) = self.gen[1];
+        ctx.kernel.set_arg(3, &off);
+
+        let mut event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, ());
+
+        for idx in range(2, self.gen.len()) {
+            let (off, _) = self.gen[idx-1];
+            ctx.kernel.set_arg(2, &off);
+            let (off, len) = self.gen[idx];
+            ctx.kernel.set_arg(3, &off);
+
+            event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
+        }
+
+        let mut mat = position_alloc();
+        mat.reserve(self.delta.len());
+        unsafe {mat.set_len(self.delta.len());}
+
+        cq.read(&ctx.output, &mut mat.as_mut_slice(), event);
+
+        Positions {
+            gen: self.gen.clone(),
+            pos: mat
+        }
+    }
 }
 
 pub struct Positions
 {
-    priv gen: ~[(uint, uint)],
+    priv gen: ~[(u32, u32)],
     priv pos: ~[Mat4<f32>],
 }
 
@@ -299,11 +468,48 @@ impl Positions
         let Id(gen, offset) = id;
         let (gen_offset, _) = self.gen[gen];
 
-        gen_offset + offset
+        (gen_offset + offset) as uint
     }
 
     pub fn get_mat(&self, id :Id) -> Mat4<f32>
     {
         self.pos[self.get_loc(id)].clone()
+    }
+}
+
+pub struct CalcPositionsCl
+{
+    program: Program,
+    kernel: Kernel,
+    input: CLBuffer<Delta>,
+    output: CLBuffer<Mat4<f32>>
+}
+
+impl CalcPositionsCl
+{
+    pub fn new(ctx: &Context, device: &Device) -> CalcPositionsCl
+    {
+        let program = ctx.create_program_from_source(opencl_program);
+    
+        match program.build(device) {
+            Ok(()) => (),
+            Err(build_log) => {
+                println!("Error building program:");
+                println!("{:s}", build_log);
+                fail!("");
+            }
+        }
+
+        let kernel = program.create_kernel("calc_gen");
+
+        let mat_mem: CLBuffer<Mat4<f32>> = ctx.create_buffer(1024*1024, CL_MEM_READ_WRITE);
+        let delta_mem: CLBuffer<Delta> = ctx.create_buffer(1024*1024, CL_MEM_READ_WRITE);
+
+        CalcPositionsCl {
+            program: program,
+            kernel: kernel,
+            input: delta_mem,
+            output: mat_mem
+        }
     }
 }
