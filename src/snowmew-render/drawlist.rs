@@ -247,21 +247,7 @@ impl Drawlist
         });
 
         let end = precise_time_ns();
-        println!("{}", end - start);
-
-        let mut list = join_maps(db.current.walk_scene(scene), db.current.walk_drawables());
-        for (_, (mat_idx, draw)) in list {
-            let empty = match self.bins.find_mut(draw) {
-                Some(dat) => {dat.push(mat_idx as u32); false},
-                None => true
-            };
-            if empty {
-                self.bins.insert(draw.clone(), ~[mat_idx as u32]);
-            }
-        }
-
-        let end = precise_time_ns();
-        println!("{}", end - start);
+        println!("setup scene {}", end - start);
     }
 
     pub fn calc_pos(&self, accl: &PositionGlAccelerator)
@@ -276,13 +262,16 @@ impl Drawlist
 
     pub fn render<'a>(&'a mut self, db: &Graphics, camera: Mat4<f32>)
     {
+        let start = precise_time_ns();
         let shader = db.flat_instanced_shader.unwrap();
         shader.bind();
         shader.set_projection(&camera);
 
         gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 3, self.model_matrix);
 
-        for (draw, vals) in self.bins.iter() {
+        let mut buffer = ~[];
+
+        for (draw, vals) in db.current.draw_bins.iter() {
             let geo = db.current.geometry(draw.geometry).unwrap();
             let mat = db.current.material(draw.material).unwrap();
 
@@ -291,18 +280,35 @@ impl Drawlist
 
             shader.set_material(mat);
 
-            for v in vals.chunks(512) {
+            for v in vals.iter() {
+                buffer.push(self.gl_pos.as_ref().unwrap().get_loc(*v) as i32);
+                if buffer.len() == 512 {
+                    unsafe {
+                        gl::Uniform1iv(1, buffer.len() as i32, cast::transmute(&buffer[0]));
+                        gl::DrawElementsInstancedBaseInstance(gl::TRIANGLES,
+                                                              geo.count as i32,
+                                                              gl::UNSIGNED_INT,
+                                                              (geo.offset * 32) as *c_void,
+                                                              buffer.len() as i32, 0);
+                        buffer.set_len(0);
+                    }
+                }
+            }
+            if buffer.len() > 0 {
                 unsafe {
-                    gl::Uniform1iv(1, v.len() as i32, cast::transmute(&v[0]));
+                    gl::Uniform1iv(1, buffer.len() as i32, cast::transmute(&buffer[0]));
                     gl::DrawElementsInstancedBaseInstance(gl::TRIANGLES,
                                                           geo.count as i32,
                                                           gl::UNSIGNED_INT,
                                                           (geo.offset * 32) as *c_void,
-                                                          v.len() as i32, 0);
+                                                          buffer.len() as i32, 0);
+                    buffer.set_len(0);
                 }
-
             }
         }
+
+        let end = precise_time_ns();
+        println!("render {}", end - start);
     }
 }
 

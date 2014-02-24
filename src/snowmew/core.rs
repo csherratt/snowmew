@@ -146,6 +146,7 @@ pub struct Database {
     // --- indexes ---
     // map all children to a parent
     priv index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
+    draw_bins: BTreeMap<Drawable, BTreeSet<position::Id>>,
 
     // other
     priv timing: Timing
@@ -180,6 +181,7 @@ impl Database {
             // --- indexes ---
             // map all children to a parent
             index_parent_child: BTreeMap::new(),
+            draw_bins: BTreeMap::new(),
 
             timing: Timing::new()
         }
@@ -313,7 +315,8 @@ impl Database {
 
     pub fn update_drawable(&mut self, key: object_key, draw: Drawable)
     {
-        self.draw.insert(key, draw);
+        self.draw.insert(key, draw.clone());
+
     }
 
     pub fn drawable<'a>(&'a self, key: object_key) -> Option<&'a Drawable>
@@ -434,12 +437,27 @@ impl Database {
 
     pub fn set_draw(&mut self, oid: object_key, geo: object_key, material: object_key)
     {
-        self.draw.insert(oid,
-            Drawable {
-                geometry: geo,
-                material: material
-            }
-        );
+        let draw = Drawable {
+            geometry: geo,
+            material: material
+        };
+
+        self.draw.insert(oid, draw.clone());
+
+        let pid = self.get_position_id(oid);
+        let create = match self.draw_bins.find_mut(&draw) {
+            Some(draw_bin) => {
+                draw_bin.insert(pid.clone());
+                false
+            },
+            None => true
+        };
+
+        if create {
+            let mut set = BTreeSet::new();
+            set.insert(pid.clone());
+            self.draw_bins.insert(draw, set);
+        }
     }
 
     pub fn walk_dir<'a>(&'a self, oid: object_key) -> BTreeSetIterator<'a, object_key>

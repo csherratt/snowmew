@@ -275,7 +275,7 @@ impl Drop for Deltas
     }
 }
 
-#[deriving(Clone, Default, Eq)]
+#[deriving(Clone, Default, Eq, TotalOrd, TotalEq)]
 pub struct Id(u32, u32);
 
 impl Deltas
@@ -458,6 +458,17 @@ impl Deltas
 
 pub struct PositionsGL {
     gen: ~[(u32, u32)]
+}
+
+impl PositionsGL
+{
+    pub fn get_loc(&self, id: Id) -> uint
+    {
+        let Id(gen, offset) = id;
+        let (gen_offset, _) = self.gen[gen];
+
+        (gen_offset + offset) as uint
+    }
 }
 
 pub struct Positions

@@ -7,8 +7,10 @@ use gl;
 use gl::types::GLuint;
 
 use snowmew::position::PositionsGL;
-
 use shader::compile_shader;
+
+use time::precise_time_ns;
+
 
 static position_shader: &'static str = "
 #version 430
@@ -64,7 +66,7 @@ layout(location=0) uniform int offset_last;
 layout(location=1) uniform int offset_this;
 layout(location=2) uniform int len;
 
-layout(local_size_x = 256) in;
+layout(local_size_x = 1, local_size_y = 1) in;
 
 void main()
 {
@@ -127,6 +129,8 @@ impl PositionGlAccelerator
 
     pub fn calc(&self, pos_gl: &PositionsGL, delta: GLuint, pos: GLuint)
     {
+        let start = precise_time_ns();
+
         gl::UseProgram(self.program);
 
         gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 0, delta);
@@ -147,5 +151,8 @@ impl PositionGlAccelerator
             gl::MemoryBarrier(gl::SHADER_STORAGE_BARRIER_BIT);
             last_off = off;
         }
+
+        let end = precise_time_ns();
+        println!("PositionGlAccelerator {}", end - start);
     }
 }
