@@ -36,6 +36,7 @@ use db::Graphics;
 use pipeline::{DrawTarget, Pipeline};
 use drawlist::Drawlist;
 use OpenCL::hl::{CommandQueue};
+use query::Query;
 use compute_accelerator::PositionGlAccelerator;
 
 mod db;
@@ -44,6 +45,7 @@ mod vertex_buffer;
 mod drawlist;
 mod hmd;
 mod pipeline;
+mod query;
 mod compute_accelerator;
 
 
@@ -121,6 +123,9 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                           Drawlist::new(1024*1024)];
     let mut waiting = ~[];
 
+    let mut render_calc = Query::new();
+    let mut render_scene = Query::new();
+
     loop {
         let cmd = if drawlists.len() == 0 || waiting.len() == 0 || scene == 0{
             Some(port.recv())
@@ -152,7 +157,11 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 }
             },
             Some(Complete(mut dl)) => {
+                let time = render_calc.start_time();
                 dl.calc_pos(&accl);
+                time.end();
+
+                let render = render_scene.start_time();
                 let rot = db.current.location(camera).unwrap().get().rot;
                 let camera_trans = db.current.position(camera);
 
@@ -165,8 +174,15 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 let dt = DrawTarget::new(0, (0, 0), display.size());
 
                 pipeline.render(&mut dl, &db, &camera.get_matrices(display.size()), &dt);
+                render.end();
+
                 swap_buffers(&mut display);
                 drawlists.push(dl);
+
+                println!("{} {}", time.time_sync(), render.time_sync());
+
+                render_calc = time.to_query();
+                render_scene = render.to_query();
             },
             Some(Finish) => {
                 return
