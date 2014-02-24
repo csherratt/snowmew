@@ -15,7 +15,6 @@ use cgmath::vector::*;
 
 use default::load_default;
 use position;
-use position::CalcPositionsCl;
 
 use time::precise_time_s;
 
@@ -142,7 +141,7 @@ pub struct Database {
     priv vertex:        BTreeMap<object_key, VertexBuffer>,
     priv material:      BTreeMap<object_key, Material>,
     priv light:         BTreeMap<object_key, Light>,
-    priv position:      CowArc<position::Deltas>,
+    position:           CowArc<position::Deltas>,
 
     // --- indexes ---
     // map all children to a parent
@@ -460,17 +459,8 @@ impl Database {
         UnwrapKey::new(self.draw.iter())
     } 
 
-    pub fn walk_scene<'a>(&'a self, oid: object_key, cl: Option<(&CommandQueue, &mut CalcPositionsCl)>) -> IterObjs<'a>
+    pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
     {
-        let start = precise_time_s();
-        let pos = match cl {
-            Some((q, cl)) => self.position.get().to_positions_cl(q, cl), 
-            None => self.position.get().to_positions()
-        };
-        let end = precise_time_s();
-
-        println!("{:3.2f}ms", 1000. * (end - start));
-
         let stack = match self.index_parent_child.find(&oid) {
             Some(set) => {
                 ~[IterObjsLayer {
@@ -484,8 +474,7 @@ impl Database {
 
         IterObjs {
             db: self,
-            stack: stack,
-            pos: pos
+            stack: stack
         }
     }
 
@@ -519,15 +508,14 @@ struct IterObjsLayer<'a>
 
 pub struct IterObjs<'a>
 {
-    priv pos: position::Positions,
     priv db: &'a Database,
     priv stack: ~[IterObjsLayer<'a>]
 }
 
-impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
+impl<'a> Iterator<(object_key, uint)> for IterObjs<'a>
 {
     #[inline(always)]
-    fn next(&mut self) -> Option<(object_key, Mat4<f32>)>
+    fn next(&mut self) -> Option<(object_key, uint)>
     {
         loop {
             let len = self.stack.len();
@@ -546,7 +534,7 @@ impl<'a> Iterator<(object_key, Mat4<f32>)> for IterObjs<'a>
                         None => ()
                     }
 
-                    return Some((*object_key, self.pos.get_mat(*loc)))
+                    return Some((*object_key, self.db.position.get().get_loc(*loc)))
                 },
                 None => { self.stack.pop(); }
             }

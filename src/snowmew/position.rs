@@ -13,7 +13,6 @@ use OpenCL::CL::CL_MEM_READ_WRITE;
 
 use time::precise_time_ns;
 
-
 static mut delta_reuse_mutex: mutex::StaticMutex = mutex::MUTEX_INIT;
 static mut delta_reuse: Option<~[~[Delta]]> = None;
 
@@ -41,8 +40,8 @@ struct mat4 {
 struct transform
 {
     int parent;
-    float scale;
     q4 rot;
+    float scale;
     f3 pos;
 };
 
@@ -135,8 +134,9 @@ calc_gen(global Transform3D *t, global Mat4 *gen, int offset_last, int offset_th
     Mat4 mat = transform_to_mat4(trans[0]);
     gen[offset_this+id] = mult_m(gen[offset_last+trans->parent], mat);
 }
-
 ";
+
+
 
 fn delta_alloc() -> ~[Delta]
 {
@@ -209,8 +209,10 @@ fn position_free(old: ~[Mat4<f32>])
 
 pub struct Delta
 {
+    priv delta : Transform3D<f32>,
     priv parent: u32,
-    priv delta : Transform3D<f32>
+    priv padd: [u32, ..3]
+
 }
 
 impl Default for Delta
@@ -220,6 +222,7 @@ impl Default for Delta
         Delta {
             parent: 0,
             delta: Transform3D::new(1f32, Quat::zero(), Vec3::zero()),
+            padd: [0, 0, 0]
         }
     }
 }
@@ -233,7 +236,8 @@ impl Clone for Delta
             parent: self.parent.clone(),
             delta: Transform3D::new(tras.scale.clone(),
                                     tras.rot.clone(),
-                                    tras.disp.clone())
+                                    tras.disp.clone()),
+            padd: [0, 0, 0]
         }
     }
 }
@@ -286,7 +290,7 @@ impl Deltas
 
     pub fn root() -> Id {Id(0, 0)}
 
-    fn get_loc(&self, id: Id) -> uint
+    pub fn get_loc(&self, id: Id) -> uint
     {
         let Id(gen, offset) = id;
         let (gen_offset, _) = self.gen[gen];
@@ -323,7 +327,8 @@ impl Deltas
         let (loc, id) = self.add_loc(gen+1);
         self.delta.insert(loc, Delta {
             parent: pid,
-            delta: delta
+            delta: delta,
+            padd: [0, 0, 0]
         });
 
         Id(gen+1, id)
@@ -438,6 +443,21 @@ impl Deltas
             pos: mat
         }
     }
+
+    pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> PositionsGL
+    {
+        for (idx, delta) in self.delta.iter().enumerate() {
+            out_delta[idx] = delta.clone();
+        }
+
+        PositionsGL {
+            gen: self.gen.clone()
+        }
+    }
+}
+
+pub struct PositionsGL {
+    gen: ~[(u32, u32)]
 }
 
 pub struct Positions
@@ -529,3 +549,4 @@ impl CalcPositionsCl
         }
     }
 }
+

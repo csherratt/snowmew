@@ -15,6 +15,7 @@ extern crate ovr = "ovr-rs";
 extern crate collections;
 extern crate extra;
 extern crate native;
+extern crate time;
 
 use std::ptr;
 use std::mem;
@@ -35,7 +36,7 @@ use db::Graphics;
 use pipeline::{DrawTarget, Pipeline};
 use drawlist::Drawlist;
 use OpenCL::hl::{CommandQueue};
-
+use compute_accelerator::PositionGlAccelerator;
 
 mod db;
 mod shader;
@@ -43,6 +44,7 @@ mod vertex_buffer;
 mod drawlist;
 mod hmd;
 mod pipeline;
+mod compute_accelerator;
 
 
 enum RenderCommand {
@@ -113,8 +115,10 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
     db.load();
 
-    let mut drawlists = ~[Drawlist::new(1024*1024, Some((&device, &context))),
-                          Drawlist::new(1024*1024, Some((&device, &context)))];
+    let accl = PositionGlAccelerator::new();
+
+    let mut drawlists = ~[Drawlist::new(1024*1024),
+                          Drawlist::new(1024*1024)];
     let mut waiting = ~[];
 
     loop {
@@ -148,6 +152,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 }
             },
             Some(Complete(mut dl)) => {
+                dl.calc_pos(&accl);
                 let rot = db.current.location(camera).unwrap().get().rot;
                 let camera_trans = db.current.position(camera);
 

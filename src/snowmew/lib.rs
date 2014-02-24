@@ -31,7 +31,7 @@ pub mod camera;
 pub mod input;
 pub mod display;
 pub mod material;
-mod position;
+pub mod position;
 mod timing;
 
 mod default;

@@ -12,6 +12,7 @@ use snowmew::core::{object_key};
 use snowmew::geometry::Geometry;
 use snowmew::core::Drawable;
 use snowmew::CalcPositionsCl;
+use snowmew::position::{Delta, PositionsGL};
 
 use gl;
 use gl::types::{GLuint, GLsizeiptr};
@@ -19,8 +20,11 @@ use cow::join::join_maps;
 
 use OpenCL::hl::{Device, Context, CommandQueue};
 
-
 use collections::treemap::TreeMap;
+
+use compute_accelerator::PositionGlAccelerator;
+
+use time::precise_time_ns;
 
 pub struct ObjectCull<IN>
 {
@@ -182,46 +186,50 @@ struct Indirect {
 pub struct Drawlist
 {
     priv model_matrix: GLuint,
-    priv model_matrix_ptr: *mut Mat4<f32>,
+    priv model_delta: GLuint,
+    priv model_delta_ptr: *mut Delta,
     priv max_size: uint,
     priv bins: TreeMap<Drawable ,~[u32]>,
     priv cmds: ~[DrawCommand],
-    priv cl_ctx: Option<CalcPositionsCl>
+    priv gl_pos: Option<PositionsGL>
 }
 
 impl Drawlist
 {
-    pub fn new(max_size: uint, cl: Option<(&Device, &Context)>) -> Drawlist
+    pub fn new(max_size: uint) -> Drawlist
     {
-        let buffers = &mut [0];
+        let buffers = &mut [0, 0];
 
-        let model_matrix_ptr = unsafe {
+        let delta = unsafe {
             let size = (mem::size_of::<Mat4<f32>>() * max_size) as GLsizeiptr;
             let flags = gl::MAP_WRITE_BIT | gl::MAP_PERSISTENT_BIT | gl::MAP_COHERENT_BIT;
-            gl::GenBuffers(1, buffers.unsafe_mut_ref(0));
+            gl::GenBuffers(2, buffers.unsafe_mut_ref(0));
             gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffers[0]);
             gl::BufferStorage(gl::SHADER_STORAGE_BUFFER, size, ptr::null(), flags);
-            gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0, size, flags) as *mut Mat4<f32>
-        };
+ 
+            gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffers[1]);
+            gl::BufferStorage(gl::SHADER_STORAGE_BUFFER, size, ptr::null(), flags);
+            let delta = gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0, size, flags) as *mut Delta;
 
-        let cl_ctx = match cl {
-            Some((dev, ctx)) => Some(CalcPositionsCl::new(ctx, dev)),
-            None => None
+            delta
         };
 
         Drawlist {
+            model_delta: buffers[1],
+            model_delta_ptr: delta,
             model_matrix: buffers[0],
-            model_matrix_ptr: model_matrix_ptr,
             max_size: 0,
             bins: TreeMap::new(),
             cmds: ~[],
-            cl_ctx: cl_ctx
+            gl_pos: None
         }
     }
 
     // This downloads the positions to the GPU and bins the objects
+    #[inline(never)]
     pub fn setup_scene(&mut self, db: &Graphics, scene: object_key, queue: Option<&CommandQueue>)
     {
+        let start = precise_time_ns();
         let num_drawable = db.current.drawable_count();
         assert!(self.max_size < num_drawable);
 
@@ -232,27 +240,38 @@ impl Drawlist
             }
         }
 
-        unsafe {
-            mut_buf_as_slice(self.model_matrix_ptr, num_drawable, |write| {
-                let list = match (queue, &mut self.cl_ctx) {
-                    (Some(q), &Some(ref mut cl)) => {
-                        println!("cl");
-                        join_maps(db.current.walk_scene(scene, Some((q, cl))), db.current.walk_drawables())
-                    },
-                    (_, _) => join_maps(db.current.walk_scene(scene, None), db.current.walk_drawables())
-                };
-                for (idx, (_, (mat, draw))) in list.enumerate() {
-                    write[idx] = mat;
-                    let empty = match self.bins.find_mut(draw) {
-                        Some(dat) => {dat.push(idx as u32); false},
-                        None => true
-                    };
-                    if empty {
-                        self.bins.insert(draw.clone(), ~[idx as u32]);
-                    }
-                }
-            });
+        self.gl_pos = Some(unsafe {
+            mut_buf_as_slice(self.model_delta_ptr, 1024*1024, |vec| {
+                db.current.position.get().to_positions_gl(vec)
+            })
+        });
+
+        let end = precise_time_ns();
+        println!("{}", end - start);
+
+        let mut list = join_maps(db.current.walk_scene(scene), db.current.walk_drawables());
+        for (_, (mat_idx, draw)) in list {
+            let empty = match self.bins.find_mut(draw) {
+                Some(dat) => {dat.push(mat_idx as u32); false},
+                None => true
+            };
+            if empty {
+                self.bins.insert(draw.clone(), ~[mat_idx as u32]);
+            }
         }
+
+        let end = precise_time_ns();
+        println!("{}", end - start);
+    }
+
+    pub fn calc_pos(&self, accl: &PositionGlAccelerator)
+    {
+        match self.gl_pos.as_ref() {
+            Some(gl_pos) => {
+                accl.calc(gl_pos, self.model_delta, self.model_matrix);
+            },
+            None => ()
+        }  
     }
 
     pub fn render<'a>(&'a mut self, db: &Graphics, camera: Mat4<f32>)

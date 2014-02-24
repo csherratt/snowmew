@@ -11,7 +11,7 @@ use cgmath::ptr::Ptr;
 
 use snowmew::material::{Material, Flat};
 
-fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
+pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
     let shader = gl::CreateShader(ty);
     unsafe {
         src.with_c_str(|ptr| {
