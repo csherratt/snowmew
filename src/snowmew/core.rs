@@ -1,4 +1,6 @@
 
+use std::default::Default;
+
 use sync::CowArc;
 
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};

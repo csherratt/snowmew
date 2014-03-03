@@ -1,3 +1,5 @@
+use std::default::Default;
+
 use cgmath::vector::Vec3;
 
 #[deriving(Clone)]

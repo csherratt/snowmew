@@ -245,8 +245,6 @@ impl Drawlist for DrawlistStandard
 
             shader.set_material(mat);
 
-            println!("draw {:?} geo {:?}", draw, geo);
-
             for v in vals.iter() {
                 shader.set_model(&self.position.as_ref().unwrap().get_mat(*v));
                 unsafe {

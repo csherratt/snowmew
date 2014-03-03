@@ -19,6 +19,7 @@ extern crate native;
 extern crate std;
 extern crate gl;
 extern crate green;
+extern crate collections;
 extern crate ovr = "ovr-rs";
 
 pub use core::{object_key, Database};

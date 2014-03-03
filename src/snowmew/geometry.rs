@@ -1,5 +1,7 @@
 
 use std::vec;
+use std::default::Default;
+
 
 use cgmath::vector::{Vec2, Vec3};
 

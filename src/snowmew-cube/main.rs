@@ -39,7 +39,8 @@ fn start(argc: int, argv: **u8) -> int {
 }
 
 fn main() {
-    snowmew::start_managed_input(proc(im) {
+    snowmew::start_manual_input(proc(im) {
+        println!("Starting");
         let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
 
         let mut db = Database::new();
@@ -57,8 +58,9 @@ fn main() {
             materials.push(oid.clone())
         }
 
-        let size = 20;
+        let size = 10;
 
+        println!("creating");
         for x in range(-size, size) {
             for y in range(-size, size) {
                 for z in range(-size, size) {
@@ -91,15 +93,16 @@ fn main() {
         let mut last_input = display_input.get();
 
         let mut timer = Timer::new().unwrap();
-        let timer_port = timer.periodic(1);
+        let timer_port = timer.periodic(10);
 
         while !last_input.should_close() {
+            im.poll();
             let input_state = display_input.get();
             timer_port.recv();
 
             match input_state.is_focused() {
                 true => {
-                    display.set_cursor_mode(glfw::CursorHidden);
+                    display.set_cursor_mode(glfw::CursorDisabled);
                     match input_state.cursor_delta(last_input.time()) {
                         Some((x, y)) => {
                             let (wx, wy) = display.size();

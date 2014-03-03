@@ -8,7 +8,7 @@ use std::mem;
 use std::comm::Select;
 use std::comm::{Chan, Port};
 use std::comm::{Empty, Disconnected, Data};
-use std::hashmap::HashSet;
+use collections::HashSet;
 
 use cgmath::quaternion::Quat;
 

@@ -1,6 +1,4 @@
-use std::mem;
-
-use sync::mutex;
+use std::default::Default;
 
 use cgmath::transform::Transform3D;
 use cgmath::quaternion::Quat;
@@ -12,9 +10,6 @@ use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
 
 use time::precise_time_ns;
-
-static mut delta_reuse_mutex: mutex::StaticMutex = mutex::MUTEX_INIT;
-static mut delta_reuse: Option<~[~[Delta]]> = None;
 
 static opencl_program: &'static str = "
 struct q4 {
@@ -136,77 +131,6 @@ calc_gen(global Transform3D *t, global Mat4 *gen, int offset_last, int offset_th
 }
 ";
 
-
-
-fn delta_alloc() -> ~[Delta]
-{
-    unsafe {
-        let guard = delta_reuse_mutex.lock();
-        let new = match delta_reuse {
-            Some(ref mut arr) => {
-                match arr.pop() {
-                    Some(new) => new,
-                    None => ~[]
-                }
-            },
-            None => {
-                ~[]
-            }
-        };
-        let _ = guard;
-        new
-    }
-}
-
-fn delta_free(old: ~[Delta])
-{
-    unsafe {
-        let guard = delta_reuse_mutex.lock();
-        if delta_reuse.is_none() {
-            delta_reuse = Some(~[old]);
-        } else {
-            delta_reuse.as_mut().unwrap().push(old);
-        }
-        let _ = guard;
-    }
-}
-
-
-static mut position_reuse_mutex: mutex::StaticMutex = mutex::MUTEX_INIT;
-static mut position_reuse: Option<~[~[Mat4<f32>]]> = None;
-
-fn position_alloc() -> ~[Mat4<f32>]
-{
-    unsafe {
-        let guard = position_reuse_mutex.lock();
-        let new = match position_reuse {
-            Some(ref mut arr) => {
-                match arr.pop() {
-                    Some(new) => new,
-                    None => ~[]
-                }
-            },
-            None => ~[]
-        };
-        let _ = guard;
-        new
-    }
-}
-
-fn position_free(old: ~[Mat4<f32>])
-{
-    unsafe {
-        let guard = position_reuse_mutex.lock();
-        if position_reuse.is_none() {
-            position_reuse = Some(~[old]);
-        } else {
-            position_reuse.as_mut().unwrap().push(old);
-        }
-        let _ = guard;
-    }
-}
-
-
 pub struct Delta
 {
     priv delta : Transform3D<f32>,
@@ -252,7 +176,7 @@ impl Clone for Deltas
 {
     fn clone(&self) -> Deltas
     {
-        let mut vec = delta_alloc();
+        let mut vec = ~[];
         vec.reserve(self.delta.len());
         unsafe {
             vec.set_len(self.delta.len());
@@ -262,16 +186,6 @@ impl Clone for Deltas
             gen: self.gen.clone(),
             delta: vec
         }
-    }
-}
-
-impl Drop for Deltas
-{
-    fn drop(&mut self)
-    {
-        let mut vec = ~[];
-        mem::swap(&mut vec, &mut self.delta);
-        delta_free(vec);
     }
 }
 
@@ -364,7 +278,7 @@ impl Deltas
 
     pub fn to_positions(&self) -> Positions
     {
-        let mut mat = position_alloc();
+        let mut mat = ~[];
         mat.reserve(self.delta.len());
         unsafe {mat.set_len(1);}
         mat[0] = Mat4::identity();
@@ -421,7 +335,7 @@ impl Deltas
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
 
-        let mut mat = position_alloc();
+        let mut mat = ~[];
         mat.reserve(self.delta.len());
         unsafe {mat.set_len(self.delta.len());}
 
@@ -482,7 +396,7 @@ impl Clone for Positions
     #[inline(never)]
     fn clone(&self) -> Positions
     {
-        let mut vec = position_alloc();
+        let mut vec = ~[];
         vec.reserve(self.pos.len());
         unsafe {
             vec.set_len(self.pos.len());
@@ -492,17 +406,6 @@ impl Clone for Positions
             gen: self.gen.clone(),
             pos: vec
         }
-    }
-}
-
-impl Drop for Positions
-{
-    #[inline(never)]
-    fn drop(&mut self)
-    {
-        let mut vec = ~[];
-        mem::swap(&mut vec, &mut self.pos);
-        position_free(vec);
     }
 }
 
