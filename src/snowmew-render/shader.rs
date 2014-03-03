@@ -65,6 +65,13 @@ impl Shader {
         let program = gl::CreateProgram();
         gl::AttachShader(program, vs);
         gl::AttachShader(program, fs);
+ 
+        "color".with_c_str(|ptr| {unsafe {gl::BindFragDataLocation(program, 0, ptr)}});
+
+        "in_position".with_c_str(|ptr|{ unsafe {gl::BindAttribLocation(program, 0, ptr)}});
+        "in_texture".with_c_str(|ptr|{ unsafe {gl::BindAttribLocation(program, 1, ptr)}});
+        "in_normal".with_c_str(|ptr|{ unsafe {gl::BindAttribLocation(program, 2, ptr)}});
+
         gl::LinkProgram(program);
 
         unsafe {
@@ -87,11 +94,8 @@ impl Shader {
         let pos = uniform(program, "mat_model");
         let proj = uniform(program, "mat_proj_view");
 
-        "color".with_c_str(|ptr| {
-            unsafe {
-                gl::BindFragDataLocation(program, 0, ptr);
-            }
-        });
+
+
 
         Shader {
             program: program,

@@ -30,23 +30,24 @@ impl VertexBuffer {
         let (vertex_size, index_size) = unsafe {
             let (addr, size, stride) = match *vertex {
                 Geo(ref data) => {
-                    (cast::transmute(&data[0].position),
+                    (cast::transmute(&data[0]),
                      data.len() * mem::size_of::<VertexGeo>(),
                      mem::size_of::<VertexGeo>())
                 },
                 GeoTex(ref data) => {
-                    (cast::transmute(&data[0].position),
+                    (cast::transmute(&data[0]),
                      data.len() * mem::size_of::<VertexGeoTex>(),
                      mem::size_of::<VertexGeoTex>())
                 },
                 GeoTexNorm(ref data) => {
-                    (cast::transmute(&data[0].position),
+                    (cast::transmute(&data[0]),
                      data.len() * mem::size_of::<VertexGetTexNorm>(),
                      mem::size_of::<VertexGetTexNorm>())
                 },
                 Empty => fail!("Should not be empty"),
             };
             let stride = stride as i32;
+            println!("stride {} {}", stride, size);
 
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
@@ -55,7 +56,7 @@ impl VertexBuffer {
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,
-                           size  as gl::types::GLsizeiptr,
+                           size as gl::types::GLsizeiptr,
                            addr,
                            gl::STATIC_DRAW
             );
@@ -108,8 +109,8 @@ impl VertexBuffer {
     pub fn bind(&self)
     {
         gl::BindVertexArray(self.vertex_array);
-        gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.index_buffer);
+        //gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer);
+        //gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.index_buffer);
     }
 }
 

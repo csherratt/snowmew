@@ -81,7 +81,7 @@ fn render_task(chan: Chan<RenderCommand>)
     chan.send(Waiting(c.clone()));
     loop {
         let mut dl = p.recv();
-        dl.setup_scene();
+        dl.setup_scene_async();
         chan.send(Waiting(c.clone()));
         chan.send(Complete(dl));
     }
@@ -111,10 +111,10 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     // todo move!
     gl::Enable(gl::SCISSOR_TEST);
     gl::Enable(gl::DEPTH_TEST);
-    gl::Enable(gl::CULL_FACE);
+    //gl::Enable(gl::CULL_FACE);
     gl::Enable(gl::LINE_SMOOTH);
     gl::Enable(gl::BLEND);
-    gl::CullFace(gl::BACK);
+    //gl::CullFace(gl::BACK);
     glfw::set_swap_interval(1);
 
     db.load(&cfg);
@@ -158,12 +158,15 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
             },
             Some(Waiting(ch)) => {
                 if scene != 0 && drawlists.len() != 0 {
-                    ch.send(drawlists.pop().unwrap());
+                    let mut dl = drawlists.pop().unwrap();
+                    dl.bind_scene(db.clone(), scene);
+                    ch.send(dl);
                 } else {
                     waiting.push(ch);
                 }
             },
             Some(Complete(mut dl)) => {
+                println!("drawing");
                 let time = render_calc.start_time();
                 //dl.calc_pos(&accl);
                 time.end();
@@ -180,6 +183,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
                 let dt = DrawTarget::new(0, (0, 0), display.size());
 
+                println!("pipeline");
                 pipeline.render(dl, &db, &camera.get_matrices(display.size()), &dt);
                 render.end();
 
@@ -196,6 +200,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
             },
             None => {
                 if drawlists.len() > 0 && waiting.len() > 0 {
+                    println!("sending");
                     let ch = waiting.pop().unwrap();
                     let mut dl = drawlists.pop().unwrap();
                     dl.bind_scene(db.clone(), scene);

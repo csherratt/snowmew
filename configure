@@ -4,6 +4,7 @@
 
 import subprocess
 import os.path
+import platform
 
 class Module:
     def has_tests(self):
@@ -167,6 +168,7 @@ def write_makefile(modules):
         f.write("\n")
         f.write(rules) 
 
+
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
            Bin("snowmew-teapot", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "bitmap-set", "ovr"]),
@@ -175,14 +177,22 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
-           Lib("glfw", ["libglfw3.a"], other_flags="-C link-args='-lglfw3 -lX11 -lGL -lXrandr -lXi'"),
-           Lib("OpenCL"),
-           Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a", "libedid.a"]),
            LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
            LibCMake("libOculusVR.a", "src/ovr/OculusSDK/LibOVR/", "src/ovr/OculusSDK/LibOVR/libOculusVR.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
-           LibCMake("libedid.a", "src/ovr/OculusSDK/3rdParty/EDID/", "src/ovr/OculusSDK/3rdParty/EDID/libedid.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("octtree", ["cow", "cgmath", "OpenCL"]),
            Lib("bitmap-set")]
+
+if platform.system() == "Linux":
+    modules += [Lib("glfw", ["libglfw3.a"], other_flags="-C link-args='-lglfw3 -lX11 -lGL -lXrandr -lXi'"),
+                Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a", "libedid.a"]),
+                LibCMake("libedid.a", "src/ovr/OculusSDK/3rdParty/EDID/", "src/ovr/OculusSDK/3rdParty/EDID/libedid.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
+                Lib("OpenCL"),
+               ]
+elif platform.system() == "Darwin":
+    modules += [Lib("glfw", ["libglfw3.a"], other_flags="-C link-args='-lglfw3 -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo'"),
+                Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
+                Lib("OpenCL", other_flags="-C link-args='-framework OpenCL'"),
+               ]  
 
 write_makefile(modules)

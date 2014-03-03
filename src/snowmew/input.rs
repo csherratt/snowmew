@@ -1,5 +1,5 @@
 use sync::{CowArc, MutexArc};
-use glfw::{WindowEvent, Window, wait_events, Key, MouseButton};
+use glfw::{WindowEvent, Window, wait_events, Key, MouseButton, poll_events};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
 use glfw::{CloseEvent, FocusEvent};
 
@@ -295,8 +295,8 @@ impl ThreadState
     {
         for win in self.windows.iter() {
             if win.id == id {
-                win.window.access(|w| w.set_cursor_pos(x, y));
-                self.state.event(None, CursorPosEvent(x, y));
+                //win.window.access(|w| w.set_cursor_pos(x, y));
+                //self.state.event(None, CursorPosEvent(x, y));
                 return;
             }
         }
@@ -400,6 +400,11 @@ impl InputManager
     pub fn wait(&self)
     {
         wait_events();
+    }
+
+    pub fn poll(&self)
+    {
+        poll_events();
     }
 
     pub fn finish(&self)

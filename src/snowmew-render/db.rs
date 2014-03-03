@@ -14,7 +14,7 @@ static VS_SRC: &'static str =
 uniform mat4 mat_model;
 uniform mat4 mat_proj_view;
 
-in vec3 position;
+in vec3 in_position;
 in vec2 in_texture;
 in vec3 in_normal;
 
@@ -22,7 +22,7 @@ out vec2 fs_texture;
 out vec3 fs_normal;
 
 void main() {
-    gl_Position = mat_proj_view * mat_model * vec4(position, 1.);
+    gl_Position = mat_proj_view * mat_model * vec4(in_position, 1.);
     fs_texture = in_texture;
     fs_normal = in_normal;
 }
@@ -38,7 +38,7 @@ layout(std430, binding = 3) buffer MyBuffer
     mat4 model_matrix[];
 };
 
-in vec3 position;
+in vec3 in_position;
 in vec2 in_texture;
 in vec3 in_normal;
 
@@ -47,7 +47,7 @@ out vec3 fs_normal;
 
 void main() {
     int id = instance[gl_InstanceID];
-    gl_Position = mat_proj_view * model_matrix[id] * vec4(position, 1.);
+    gl_Position = mat_proj_view * model_matrix[id] * vec4(in_position, 1.);
     fs_texture = in_texture;
     fs_normal = in_normal;
 }
@@ -173,7 +173,8 @@ impl Graphics
             self.ovr_shader = Some(Shader::new(VR_VS_SRC, VR_FS_SRC));
         }
         if self.flat_shader.is_none() {
-            self.flat_shader = Some(Shader::new(VS_SRC, FS_FLAT_SRC));
+            let mut shader = Shader::new(VS_SRC, FS_FLAT_SRC);
+            self.flat_shader = Some(shader);
         }
         if cfg.use_bindless() {
             if self.flat_instanced_shader.is_none() {

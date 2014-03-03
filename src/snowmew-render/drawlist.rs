@@ -231,7 +231,6 @@ impl Drawlist for DrawlistStandard
 
     fn render(&mut self, camera: Mat4<f32>)
     {
-        println!("render?");
         let db = self.db.as_ref().unwrap();
         let shader = db.flat_shader.unwrap();
         shader.bind();
@@ -246,13 +245,15 @@ impl Drawlist for DrawlistStandard
 
             shader.set_material(mat);
 
+            println!("draw {:?} geo {:?}", draw, geo);
+
             for v in vals.iter() {
                 shader.set_model(&self.position.as_ref().unwrap().get_mat(*v));
                 unsafe {
                     gl::DrawElements(gl::TRIANGLES,
-                                     geo.count as i32,
+                                     (geo.count) as i32,
                                      gl::UNSIGNED_INT,
-                                     (geo.offset * 32) as *c_void);  
+                                     ptr::null());  
                 } 
             }
 
