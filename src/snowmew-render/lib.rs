@@ -17,11 +17,12 @@ extern crate extra;
 extern crate native;
 extern crate time;
 
+pub use config::Config;
+
 use std::ptr;
 use std::mem;
 use std::comm::{Chan, Port, Empty, Disconnected, Data};
 
-//use drawlist::Drawlist;
 use cgmath::vector::Vec3;
 use cgmath::matrix::{Matrix, ToMat4};
 use cgmath::rotation::Rotation3;
@@ -34,7 +35,7 @@ use snowmew::input::InputHandle;
 
 use db::Graphics;
 use pipeline::{DrawTarget, Pipeline};
-use drawlist::Drawlist;
+use drawlist::{Drawlist, DrawlistBindless, DrawlistStandard};
 use OpenCL::hl::{CommandQueue};
 use query::Query;
 use compute_accelerator::PositionGlAccelerator;
@@ -47,12 +48,12 @@ mod hmd;
 mod pipeline;
 mod query;
 mod compute_accelerator;
-
+mod config;
 
 enum RenderCommand {
     Update(snowmew::core::Database, object_key, object_key),
-    Waiting(Chan<(db::Graphics, Drawlist, object_key)>),
-    Complete(Drawlist),
+    Waiting(Chan<~Drawlist>),
+    Complete(~Drawlist),
     Setup(Chan<Option<CommandQueue>>),
     Finish
 }
@@ -79,8 +80,8 @@ fn render_task(chan: Chan<RenderCommand>)
     let (p, c) = Chan::new();
     chan.send(Waiting(c.clone()));
     loop {
-        let (g, mut dl, oid) = p.recv();
-        dl.setup_scene(&g, oid, queue.as_ref());
+        let mut dl = p.recv();
+        dl.setup_scene();
         chan.send(Waiting(c.clone()));
         chan.send(Complete(dl));
     }
@@ -96,6 +97,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     let mut scene = 0;
     let mut camera = 0;
     let mut display = display;
+    let mut cfg = Config::new(display.get_context_version());
 
     display.make_current();
     gl::load_with(glfw::get_proc_address);
@@ -115,12 +117,17 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     gl::CullFace(gl::BACK);
     glfw::set_swap_interval(1);
 
-    db.load();
+    db.load(&cfg);
 
-    let accl = PositionGlAccelerator::new();
+    //let accl = PositionGlAccelerator::new();
 
-    let mut drawlists = ~[Drawlist::new(1024*1024),
-                          Drawlist::new(1024*1024)];
+    let mut drawlists = if cfg.use_bindless() {
+        ~[]
+    } else {
+        ~[DrawlistStandard::from_config(&cfg),
+          DrawlistStandard::from_config(&cfg)]
+    };
+
     let mut waiting = ~[];
 
     let mut render_calc = Query::new();
@@ -145,20 +152,20 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
             },
             Some(Update(new, s, c)) => {
                 db.update(new);
-                db.load();
+                db.load(&cfg);
                 scene = s;
                 camera = c;
             },
             Some(Waiting(ch)) => {
                 if scene != 0 && drawlists.len() != 0 {
-                    ch.send((db.clone(), drawlists.pop().unwrap(), scene));
+                    ch.send(drawlists.pop().unwrap());
                 } else {
                     waiting.push(ch);
                 }
             },
             Some(Complete(mut dl)) => {
                 let time = render_calc.start_time();
-                dl.calc_pos(&accl);
+                //dl.calc_pos(&accl);
                 time.end();
 
                 let render = render_scene.start_time();
@@ -173,7 +180,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
                 let dt = DrawTarget::new(0, (0, 0), display.size());
 
-                pipeline.render(&mut dl, &db, &camera.get_matrices(display.size()), &dt);
+                pipeline.render(dl, &db, &camera.get_matrices(display.size()), &dt);
                 render.end();
 
                 swap_buffers(&mut display);
@@ -190,7 +197,9 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
             None => {
                 if drawlists.len() > 0 && waiting.len() > 0 {
                     let ch = waiting.pop().unwrap();
-                    ch.send((db.clone(), drawlists.pop().unwrap(), scene));
+                    let mut dl = drawlists.pop().unwrap();
+                    dl.bind_scene(db.clone(), scene);
+                    ch.send(dl);
                 }  
             }
         }

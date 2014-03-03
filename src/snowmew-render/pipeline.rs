@@ -76,7 +76,7 @@ impl Pipeline for Forward
 
         let proj_view = dm.projection.mul_m(&dm.view);
 
-        drawlist.render(db, proj_view);
+        drawlist.render(proj_view);
     }
 }
 

@@ -7,9 +7,10 @@ use vertex_buffer::VertexBuffer;
 use shader::Shader;
 
 use ovr;
+use Config;
 
 static VS_SRC: &'static str =
-"#version 400
+"#version 150
 uniform mat4 mat_model;
 uniform mat4 mat_proj_view;
 
@@ -27,7 +28,7 @@ void main() {
 }
 ";
 
-static VS_INSTANCED_SRC: &'static str =
+static BINDLESS_VS_INSTANCED_SRC: &'static str =
 "#version 430
 layout(location = 0) uniform mat4 mat_proj_view;
 layout(location = 1) uniform int instance[512];
@@ -146,7 +147,7 @@ impl Graphics
 
     }
 
-    fn load_vertex(&mut self)
+    fn load_vertex(&mut self, _: &Config)
     {
         for (oid, vbo) in self.current.walk_vertex_buffers()
         {
@@ -160,7 +161,7 @@ impl Graphics
         }        
     }
 
-    fn load_shaders(&mut self)
+    fn load_shaders(&mut self, cfg: &Config)
     {
         if self.rainbow_normal.is_none() {
             self.rainbow_normal = Some(Shader::new(VS_SRC, FS_RAINBOW_NORMAL_SRC));
@@ -174,14 +175,16 @@ impl Graphics
         if self.flat_shader.is_none() {
             self.flat_shader = Some(Shader::new(VS_SRC, FS_FLAT_SRC));
         }
-        if self.flat_instanced_shader.is_none() {
-            self.flat_instanced_shader = Some(Shader::new(VS_INSTANCED_SRC, FS_FLAT_SRC));
+        if cfg.use_bindless() {
+            if self.flat_instanced_shader.is_none() {
+                self.flat_instanced_shader = Some(Shader::new(BINDLESS_VS_INSTANCED_SRC, FS_FLAT_SRC));
+            }
         }
     }
 
-    pub fn load(&mut self)
+    pub fn load(&mut self, cfg: &Config)
     {
-        self.load_vertex();
-        self.load_shaders();
+        self.load_vertex(cfg);
+        self.load_shaders(cfg);
     }
 }

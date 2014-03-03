@@ -12,7 +12,7 @@ use snowmew::core::{object_key};
 use snowmew::geometry::Geometry;
 use snowmew::core::Drawable;
 use snowmew::CalcPositionsCl;
-use snowmew::position::{Delta, PositionsGL};
+use snowmew::position::{Delta, PositionsGL, Positions};
 
 use gl;
 use gl::types::{GLuint, GLsizeiptr};
@@ -25,6 +25,8 @@ use collections::treemap::TreeMap;
 use compute_accelerator::PositionGlAccelerator;
 
 use time::precise_time_ns;
+
+use Config;
 
 pub struct ObjectCull<IN>
 {
@@ -175,6 +177,89 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCom
     }
 }
 
+pub trait Drawlist
+{
+    // done on the context manager before, Graphics is owned by
+    // the draw list. If there was already a bound scene this
+    // needs to be replaces with the current scene
+    fn bind_scene(&mut self, db: Graphics, scene: object_key);
+
+    // done first on an external thread
+    fn setup_scene_async(&mut self);
+
+    // setup on the render thread, called after setup_scene_async
+    fn setup_scene(&mut self);
+
+    // done many times on the render thread
+    fn render(&mut self, camera: Mat4<f32>);
+}
+
+pub struct DrawlistStandard
+{
+    priv db: Option<Graphics>,
+    priv scene: object_key,
+    priv position: Option<Positions>
+}
+
+impl DrawlistStandard
+{
+    pub fn from_config(cfg: &Config) -> ~Drawlist
+    {
+        ~DrawlistStandard {
+            db: None,
+            scene: 0,
+            position: None
+        } as ~Drawlist
+    }
+}
+
+impl Drawlist for DrawlistStandard
+{
+    fn bind_scene(&mut self, db: Graphics, scene: object_key)
+    {
+        self.db = Some(db);
+        self.scene = scene;
+    }
+
+    fn setup_scene_async(&mut self)
+    {
+        self.position = None;
+        self.position = Some(self.db.as_ref().unwrap().current.position.get().to_positions()); 
+    }
+
+    fn setup_scene(&mut self) {}
+
+    fn render(&mut self, camera: Mat4<f32>)
+    {
+        println!("render?");
+        let db = self.db.as_ref().unwrap();
+        let shader = db.flat_shader.unwrap();
+        shader.bind();
+        shader.set_projection(&camera);
+
+        for (draw, vals) in db.current.draw_bins.iter() {
+            let geo = db.current.geometry(draw.geometry).unwrap();
+            let mat = db.current.material(draw.material).unwrap();
+
+            let vbo = db.vertex.find(&geo.vb);
+            vbo.unwrap().bind();
+
+            shader.set_material(mat);
+
+            for v in vals.iter() {
+                shader.set_model(&self.position.as_ref().unwrap().get_mat(*v));
+                unsafe {
+                    gl::DrawElements(gl::TRIANGLES,
+                                     geo.count as i32,
+                                     gl::UNSIGNED_INT,
+                                     (geo.offset * 32) as *c_void);  
+                } 
+            }
+
+        }
+    }
+}
+
 struct Indirect {
     vertex_count: u32,
     instance_count: u32,
@@ -183,7 +268,7 @@ struct Indirect {
     base_instance: u32
 }
 
-pub struct Drawlist
+pub struct DrawlistBindless
 {
     priv model_matrix: GLuint,
     priv model_delta: GLuint,
@@ -194,9 +279,9 @@ pub struct Drawlist
     priv gl_pos: Option<PositionsGL>
 }
 
-impl Drawlist
+impl DrawlistBindless
 {
-    pub fn new(max_size: uint) -> Drawlist
+    pub fn new(max_size: uint) -> DrawlistBindless
     {
         let buffers = &mut [0, 0];
 
@@ -214,7 +299,7 @@ impl Drawlist
             delta
         };
 
-        Drawlist {
+        DrawlistBindless {
             model_delta: buffers[1],
             model_delta_ptr: delta,
             model_matrix: buffers[0],
@@ -312,7 +397,7 @@ impl Drawlist
     }
 }
 
-impl Drop for Drawlist
+impl Drop for DrawlistBindless
 {
     fn drop(&mut self)
     {

@@ -146,6 +146,15 @@ impl Display
         });
     }
 
+    pub fn get_context_version(&mut self) -> (uint, uint)
+    {
+        self.window.access(|win| {
+            let version = win.get_context_version();
+            println!("{:?}", version);
+            (version.major, version.minor)
+        })
+    }
+
     pub fn make_current(&mut self)
     {
         self.window.access(|win| {
