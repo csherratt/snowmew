@@ -34,10 +34,11 @@ struct mat4 {
 
 struct transform
 {
-    int parent;
     q4 rot;
-    float scale;
     f3 pos;
+    float scale;
+    int parent;
+    int padd[3];
 };
 
 typedef struct mat4 Mat4;
@@ -332,6 +333,7 @@ impl Deltas
             ctx.kernel.set_arg(2, &off);
             let (off, len) = self.gen[idx];
             ctx.kernel.set_arg(3, &off);
+            println!("{} {}", off, len);
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
 
@@ -341,9 +343,7 @@ impl Deltas
 
         let compute_done = precise_time_ns();
 
-        event.wait();
-
-        cq.read(&ctx.output, &mut mat.as_mut_slice(), ());
+        cq.read(&ctx.output, &mut mat.as_mut_slice(), event);
 
         let download = precise_time_ns();
 
