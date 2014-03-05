@@ -425,6 +425,11 @@ impl Database {
         obj
     }
 
+    pub fn material_iter<'a>(&'a self) -> BTreeMapIterator<'a, object_key, Material>
+    {
+        self.material.iter()
+    }
+
     pub fn light<'a>(&'a self, oid: object_key) -> Option<&'a Light>
     {
         self.light.find(&oid)

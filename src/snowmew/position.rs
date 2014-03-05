@@ -413,7 +413,7 @@ impl Positions
 {
     pub fn root() -> Id {Id(0, 0)}
 
-    fn get_loc(&self, id: Id) -> uint
+    pub fn get_loc(&self, id: Id) -> uint
     {
         let Id(gen, offset) = id;
         let (gen_offset, _) = self.gen[gen];

@@ -6,8 +6,10 @@ use std::vec::raw::mut_buf_as_slice;
 
 use cgmath::matrix::{Mat4, Matrix};
 use cgmath::vector::{Vec4, Vector};
+use cgmath::ptr::Ptr;
 use db::Graphics;
 
+use snowmew::material::Material;
 use snowmew::core::{object_key};
 use snowmew::geometry::Geometry;
 use snowmew::core::Drawable;
@@ -192,13 +194,18 @@ pub trait Drawlist
 
     // done many times on the render thread
     fn render(&mut self, camera: Mat4<f32>);
+
+    // get materials
+    fn materials(&self) -> ~[Material];
 }
 
 pub struct DrawlistStandard
 {
     priv db: Option<Graphics>,
     priv scene: object_key,
-    priv position: Option<Positions>
+    priv position: Option<Positions>,
+    priv material_to_id: TreeMap<object_key, u32>,
+    priv id_to_material: TreeMap<u32, object_key>
 }
 
 impl DrawlistStandard
@@ -208,7 +215,9 @@ impl DrawlistStandard
         ~DrawlistStandard {
             db: None,
             scene: 0,
-            position: None
+            position: None,
+            material_to_id: TreeMap::new(),
+            id_to_material: TreeMap::new()
         } as ~Drawlist
     }
 }
@@ -224,7 +233,14 @@ impl Drawlist for DrawlistStandard
     fn setup_scene_async(&mut self)
     {
         self.position = None;
-        self.position = Some(self.db.as_ref().unwrap().current.position.get().to_positions()); 
+        self.position = Some(self.db.as_ref().unwrap().current.position.get().to_positions());
+
+        self.material_to_id.clear();
+
+        for (id, (key, _)) in self.db.as_ref().unwrap().current.material_iter().enumerate() {
+            self.material_to_id.insert(*key, (id+1) as u32);
+            self.id_to_material.insert((id+1) as u32, *key);
+        }
     }
 
     fn setup_scene(&mut self) {}
@@ -233,20 +249,34 @@ impl Drawlist for DrawlistStandard
     {
         let db = self.db.as_ref().unwrap();
         let shader = db.flat_shader.unwrap();
+        let model_matrix = shader.uniform("mat_model");
         shader.bind();
-        shader.set_projection(&camera);
+        unsafe {
+            gl::UniformMatrix4fv(shader.uniform("mat_proj_view"), 1, gl::FALSE, camera.ptr());
+        }
+
+        unsafe {
+            let buffers = &[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1, gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3];
+            gl::DrawBuffers(4, buffers.unsafe_ref(0));
+        }
+
+        let material_id = shader.uniform("material_id");
+        let object_id = shader.uniform("object_id");
 
         for (draw, vals) in db.current.draw_bins.iter() {
             let geo = db.current.geometry(draw.geometry).unwrap();
-            let mat = db.current.material(draw.material).unwrap();
 
             let vbo = db.vertex.find(&geo.vb);
             vbo.unwrap().bind();
 
-            shader.set_material(mat);
+            gl::Uniform1ui(material_id, *self.material_to_id.find(&draw.material).unwrap());
+            println!("set material {}", self.material_to_id.find(&draw.material).unwrap());
 
             for v in vals.iter() {
-                shader.set_model(&self.position.as_ref().unwrap().get_mat(*v));
+                unsafe {
+                    gl::UniformMatrix4fv(model_matrix, 1, gl::FALSE, self.position.as_ref().unwrap().get_mat(*v).ptr());
+                }
+                gl::Uniform1ui(object_id, self.position.as_ref().unwrap().get_loc(*v) as u32);
                 unsafe {
                     gl::DrawElements(gl::TRIANGLES,
                                      (geo.count) as i32,
@@ -256,6 +286,15 @@ impl Drawlist for DrawlistStandard
             }
 
         }
+    }
+
+    fn materials(&self) -> ~[Material]
+    {
+        let mut mats = ~[];
+        for (_, key) in self.id_to_material.iter() {
+            mats.push(self.db.as_ref().unwrap().current.material(*key).unwrap().clone());
+        }
+        mats
     }
 }
 
@@ -349,7 +388,9 @@ impl DrawlistBindless
         let start = precise_time_ns();
         let shader = db.flat_instanced_shader.unwrap();
         shader.bind();
-        shader.set_projection(&camera);
+        unsafe {
+            gl::UniformMatrix4fv(shader.uniform("mat_proj_view"), 1, gl::FALSE, camera.ptr());
+        }
 
         gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 3, self.model_matrix);
 

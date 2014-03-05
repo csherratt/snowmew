@@ -31,7 +31,7 @@ fn start(argc: int, argv: **u8) -> int {
 }
 
 fn main() {
-    snowmew::start_managed_input(proc(im) {
+    snowmew::start_manual_input(proc(im) {
         let mut db = Database::new();
         let teapot = Obj::load(&Path::new("assets/teapot.obj")).unwrap();
 
@@ -64,6 +64,7 @@ fn main() {
 
         let mut last_input = display_input.get();
         while !last_input.should_close() {
+            im.poll();
             let input = display_input.get();
             match input.is_focused() {
                 true => {

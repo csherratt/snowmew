@@ -132,20 +132,6 @@ impl Shader {
         gl::UseProgram(self.program);
     }
 
-    pub fn set_projection(&self, mat: &Mat4<f32>)
-    {
-        unsafe {
-            gl::UniformMatrix4fv(self.uniform("mat_proj_view"), 1, gl::FALSE, mat.ptr());
-        }
-    }
-
-    pub fn set_model(&self, mat: &Mat4<f32>)
-    {
-        unsafe {
-            gl::UniformMatrix4fv(self.uniform("mat_model"), 1, gl::FALSE, mat.ptr());
-        }        
-    }
-
     pub fn set_material(&self, m: &Material)
     {
         match *m {

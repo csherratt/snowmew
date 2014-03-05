@@ -7,6 +7,7 @@ extern crate glfw = "glfw-rs";
 extern crate gl;
 extern crate snowmew;
 extern crate render = "snowmew-render";
+extern crate loader = "snowmew-loader";
 extern crate cgmath;
 extern crate native;
 extern crate green;
@@ -33,6 +34,8 @@ use cgmath::angle::{ToRad, deg};
 
 use std::io::timer::Timer;
 
+use loader::Obj;
+
 #[start]
 fn start(argc: int, argv: **u8) -> int {
     native::start(argc, argv, main)
@@ -46,8 +49,11 @@ fn main() {
         let mut db = Database::new();
         let camera_loc = db.new_object(None, "camera");
 
+        let teapot = Obj::load(&Path::new("assets/teapot.obj")).unwrap();
+        teapot.import(db.add_dir(None, "import"), &mut db);
+
         let scene = db.new_object(None, "scene");
-        let geometry = db.find("core/geometry/cube").unwrap();
+        let geometry = db.find("import/Teapot01").unwrap();
 
         let dir = db.find("core/material/flat").unwrap();
 
@@ -71,7 +77,7 @@ fn main() {
                     let y = y as f32 * 2.5;
                     let z = z as f32 * 2.5;
                     db.update_location(cube_id,
-                        Transform3D::new(0.5f32, Rotation3::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
+                        Transform3D::new(0.05f32, Rotation3::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
                     db.set_draw(cube_id, geometry, material);
                 }
             }

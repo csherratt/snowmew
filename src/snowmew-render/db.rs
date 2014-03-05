@@ -87,29 +87,37 @@ in vec3 fs_normal;
 out vec4 out_position;
 out vec2 out_uv;
 out vec3 out_normal;
-out uvec2 out_material;
+out vec4 out_material;
 
 void main() {
+    uint mask = 0xFFFF;
     out_position = vec4(fs_position, gl_FragCoord.z);
     out_uv = fs_texture;
     out_normal = fs_normal;
-    out_material = uvec2(material_id, object_id);
+    out_material = vec4(float(material_id) / 65535., float(object_id) / 65535., 1., 1.);
 }
 ";
 
 static FS_DEFERED_SRC: &'static str =
 "#version 400
 
+uniform vec3 mat_color[128];
+
 uniform sampler2D position;
 uniform sampler2D uv;
 uniform sampler2D normal;
-uniform usampler2D pixel_drawn_by;
+uniform sampler2D pixel_drawn_by;
 
 in vec2 TexPos;
 out vec4 color;
 
 void main() {
-    color = texture(uv, TexPos);
+    int material = int(texture(pixel_drawn_by, TexPos).x * 65536.);
+    if (material == 0) {
+        color = vec4(0., 0., 0., 0.);
+    } else {
+        color = vec4(mat_color[material-1], 1.);
+    }
 }
 ";
 
