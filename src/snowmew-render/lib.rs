@@ -102,19 +102,21 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     display.make_current();
     gl::load_with(glfw::get_proc_address);
 
+
     let mut pipeline = if display.is_hmd() {
         ~pipeline::Hmd::new(pipeline::Forward::new(), 1.7, &display.hmd()) as ~pipeline::Pipeline
     } else {
-        ~pipeline::Forward::new() as ~pipeline::Pipeline
+        let (width, height) = display.size();
+        ~pipeline::Defered::new(pipeline::Forward::new(), width, height) as ~pipeline::Pipeline
     };
 
     // todo move!
     gl::Enable(gl::SCISSOR_TEST);
     gl::Enable(gl::DEPTH_TEST);
-    //gl::Enable(gl::CULL_FACE);
+    gl::Enable(gl::CULL_FACE);
     gl::Enable(gl::LINE_SMOOTH);
     gl::Enable(gl::BLEND);
-    //gl::CullFace(gl::BACK);
+    gl::CullFace(gl::BACK);
     glfw::set_swap_interval(1);
 
     db.load(&cfg);

@@ -18,11 +18,14 @@ in vec3 in_position;
 in vec2 in_texture;
 in vec3 in_normal;
 
+out vec3 fs_position;
 out vec2 fs_texture;
 out vec3 fs_normal;
 
 void main() {
     gl_Position = mat_proj_view * mat_model * vec4(in_position, 1.);
+    vec4 pos = mat_model * vec4(in_position, 1.);
+    fs_position = pos.xyz / pos.w;
     fs_texture = in_texture;
     fs_normal = in_normal;
 }
@@ -42,46 +45,25 @@ in vec3 in_position;
 in vec2 in_texture;
 in vec3 in_normal;
 
+out vec3 fs_position;
 out vec2 fs_texture;
 out vec3 fs_normal;
 
 void main() {
     int id = instance[gl_InstanceID];
     gl_Position = mat_proj_view * model_matrix[id] * vec4(in_position, 1.);
+    fs_position = model_matrix[id] * vec4(in_position, 1.);
     fs_texture = in_texture;
     fs_normal = in_normal;
+    fs_material_id = material_id;
+    fs_object_id = object_id;
 }
 ";
 
-static FS_RAINBOW_NORMAL_SRC: &'static str =
-"#version 400
-
-in vec2 fs_texture;
-in vec3 fs_normal;
-
-out vec4 color;
-
-void main() {
-    color = vec4(fs_normal, 1);
-}
-";
-
-static FS_RAINBOW_TEXTURE_SRC: &'static str =
-"#version 400
-
-in vec2 fs_texture;
-in vec3 fs_normal;
-
-out vec4 color;
-
-void main() {
-    color = vec4(fs_texture, 0.5, 1);
-}
-";
-
-static VR_VS_SRC: &'static str =
+static VS_PASS_SRC: &'static str =
 "#version 400
 in vec3 pos;
+
 out vec2 TexPos;
 
 void main() {
@@ -94,15 +76,40 @@ static VR_FS_SRC: &'static str = ovr::SHADER_FRAG_CHROMAB;
 
 static FS_FLAT_SRC: &'static str =
 "#version 400
+
+uniform uint object_id;
+uniform uint material_id;
+
+in vec3 fs_position;
 in vec2 fs_texture;
 in vec3 fs_normal;
 
-uniform vec3 ambient;
+out vec4 out_position;
+out vec2 out_uv;
+out vec3 out_normal;
+out uvec2 out_material;
 
+void main() {
+    out_position = vec4(fs_position, gl_FragCoord.z);
+    out_uv = fs_texture;
+    out_normal = fs_normal;
+    out_material = uvec2(material_id, object_id);
+}
+";
+
+static FS_DEFERED_SRC: &'static str =
+"#version 400
+
+uniform sampler2D position;
+uniform sampler2D uv;
+uniform sampler2D normal;
+uniform usampler2D pixel_drawn_by;
+
+in vec2 TexPos;
 out vec4 color;
 
 void main() {
-    color = vec4(ambient, 1);
+    color = texture(uv, TexPos);
 }
 ";
 
@@ -113,11 +120,10 @@ pub struct Graphics
     current: Database,
     vertex: BTreeMap<object_key, VertexBuffer>,
 
-    rainbow_normal: Option<Shader>,
-    rainbow_texture: Option<Shader>,
-
     flat_shader: Option<Shader>,
     flat_instanced_shader: Option<Shader>,
+
+    defered_shader: Option<Shader>,
 
     ovr_shader: Option<Shader>,
 }
@@ -130,11 +136,11 @@ impl Graphics
             current: db.clone(),
             last: db,
             vertex: BTreeMap::new(),
-            rainbow_normal: None,
-            rainbow_texture: None,
             flat_shader: None,
+            flat_instanced_shader: None,
+            defered_shader: None,
             ovr_shader: None,
-            flat_instanced_shader: None
+
         }
     }
 
@@ -163,22 +169,30 @@ impl Graphics
 
     fn load_shaders(&mut self, cfg: &Config)
     {
-        if self.rainbow_normal.is_none() {
-            self.rainbow_normal = Some(Shader::new(VS_SRC, FS_RAINBOW_NORMAL_SRC));
-        }
-        if self.rainbow_texture.is_none() {
-            self.rainbow_texture = Some(Shader::new(VS_SRC, FS_RAINBOW_TEXTURE_SRC));
-        }
         if self.ovr_shader.is_none() {
-            self.ovr_shader = Some(Shader::new(VR_VS_SRC, VR_FS_SRC));
+            self.ovr_shader = Some(
+                Shader::new(VS_PASS_SRC, VR_FS_SRC,
+                    &[(0, "pos")],
+                    &[(0, "color")]
+            ));
         }
         if self.flat_shader.is_none() {
-            let mut shader = Shader::new(VS_SRC, FS_FLAT_SRC);
-            self.flat_shader = Some(shader);
+            self.flat_shader = Some(
+                Shader::new(VS_SRC, FS_FLAT_SRC,
+                    &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
+                    &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]
+            ));
+        }
+        if self.defered_shader.is_none() {
+            self.defered_shader = Some(Shader::new(VS_PASS_SRC, FS_DEFERED_SRC, &[], &[(0, "color")]));
         }
         if cfg.use_bindless() {
             if self.flat_instanced_shader.is_none() {
-                self.flat_instanced_shader = Some(Shader::new(BINDLESS_VS_INSTANCED_SRC, FS_FLAT_SRC));
+                self.flat_instanced_shader = Some(
+                    Shader::new(BINDLESS_VS_INSTANCED_SRC, FS_FLAT_SRC,
+                        &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
+                        &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]
+                ));
             }
         }
     }

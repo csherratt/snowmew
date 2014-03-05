@@ -4,7 +4,7 @@ use material::Material;
 
 use cgmath::vector::{Vec3, Vec2};
 
-static VERTEX_DATA: [VertexGeoTex, ..12] = [
+static VERTEX_DATA: [VertexGeoTex, ..8] = [
     // CUBE
     VertexGeoTex{position: Vec3{x: -1., y: -1., z:  1.}, texture: Vec2{x: -1., y: -1.}}, // 0
     VertexGeoTex{position: Vec3{x: -1., y:  1., z:  1.}, texture: Vec2{x: -1., y:  1.}},
@@ -14,15 +14,9 @@ static VERTEX_DATA: [VertexGeoTex, ..12] = [
     VertexGeoTex{position: Vec3{x: -1., y:  1., z: -1.}, texture: Vec2{x: -1., y:  1.}},
     VertexGeoTex{position: Vec3{x:  1., y: -1., z: -1.}, texture: Vec2{x:  1., y: -1.}},
     VertexGeoTex{position: Vec3{x:  1., y:  1., z: -1.}, texture: Vec2{x:  1., y:  1.}},
-
-     // BILL BOARD
-    VertexGeoTex{position: Vec3{x: -1., y: -1., z:  0.}, texture: Vec2{x: -1., y: -1.}}, // 8
-    VertexGeoTex{position: Vec3{x: -1., y:  1., z:  0.}, texture: Vec2{x: -1., y:  1.}}, 
-    VertexGeoTex{position: Vec3{x:  1., y: -1., z:  0.}, texture: Vec2{x:  1., y: -1.}},
-    VertexGeoTex{position: Vec3{x:  1., y:  1., z:  0.}, texture: Vec2{x:  1., y:  1.}},
 ];
 
-static INDEX_DATA: [u32, ..42] = [
+static INDEX_DATA: [u32, ..36] = [
     // cube top
     0, 2, 1,
     2, 3, 1,
@@ -41,10 +35,6 @@ static INDEX_DATA: [u32, ..42] = [
     // cube back
     2, 6, 3,
     6, 7, 3,
-
-    // billboard
-    8,  10, 9,
-    10, 12, 9
 ];
 
 
@@ -81,5 +71,5 @@ pub fn load_default(db: &mut core::Database)
     let vbo = VertexBuffer::new_position_texture(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
     let vbo = db.new_vertex_buffer(geo_dir, "vbo", vbo);
     db.new_geometry(geo_dir, "cube", Geometry::triangles(vbo, 0, 36));
-    db.new_geometry(geo_dir, "billboard", Geometry::triangles(vbo, 36, 6));
+    db.new_geometry(geo_dir, "billboard", Geometry::triangles(vbo, 0, 6));
 }

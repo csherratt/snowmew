@@ -80,6 +80,177 @@ impl Pipeline for Forward
     }
 }
 
+pub struct Defered<PIPELINE>
+{
+    input: PIPELINE,
+
+    width: i32,
+    height: i32,
+
+    pos_texture: GLuint,
+    uv_texture: GLuint,
+    normals_texture: GLuint,
+    material_texture: GLuint,
+
+    framebuffer: GLuint,
+    renderbuffer: GLuint,
+}
+
+impl<PIPELINE: Pipeline> Defered<PIPELINE>
+{
+    pub fn new(input: PIPELINE, width: uint, height: uint) -> Defered<PIPELINE>
+    {
+        let (w, h) = (width as i32, height as i32);
+        let textures: &mut [GLuint] = &mut [0, 0, 0, 0  ];
+        let mut framebuffer: GLuint = 0;
+        let mut renderbuffer: GLuint = 0;
+
+        unsafe {
+            gl::GenTextures(textures.len() as i32, textures.unsafe_mut_ref(0));
+            gl::GenFramebuffers(1, &mut framebuffer);
+            gl::GenRenderbuffers(1, &mut renderbuffer);
+
+            gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer);
+            assert!(0 == gl::GetError());
+
+            // setup pos 
+            gl::BindTexture(gl::TEXTURE_2D, textures[0]);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA32F as i32, w, h, 0, gl::RGBA, gl::FLOAT, ptr::null());
+            assert!(0 == gl::GetError());
+
+            // setup UV texture
+            gl::BindTexture(gl::TEXTURE_2D, textures[1]);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RG16F as i32, w, h, 0, gl::RG, gl::FLOAT, ptr::null());
+            assert!(0 == gl::GetError());
+
+            // setup normals
+            gl::BindTexture(gl::TEXTURE_2D, textures[2]);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB16F as i32, w, h, 0, gl::RGB, gl::FLOAT, ptr::null());
+            assert!(0 == gl::GetError());
+
+            // setup material texture
+            gl::BindTexture(gl::TEXTURE_2D, textures[3]);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA16 as i32, w, h, 0, gl::RGBA, gl::UNSIGNED_SHORT, ptr::null());
+            assert!(0 == gl::GetError());
+
+            gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer);
+            gl::RenderbufferStorage(gl::RENDERBUFFER, gl::DEPTH_COMPONENT32F, w, h);
+            gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::RENDERBUFFER, renderbuffer);
+            assert!(0 == gl::GetError());
+
+            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, textures[0], 0);
+            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, textures[1], 0);
+            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, textures[2], 0);
+            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT3, textures[3], 0);
+            assert!(0 == gl::GetError());
+
+            let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
+            if (status != gl::FRAMEBUFFER_COMPLETE) {
+                fail!("Failed to setup framebuffer {}", status);
+            }
+        }
+
+        Defered {
+            input: input,
+
+            width: w,
+            height: h,
+
+            pos_texture: textures[0],
+            uv_texture: textures[1],
+            normals_texture: textures[2],
+            material_texture: textures[3],
+
+            framebuffer: framebuffer,
+            renderbuffer: renderbuffer
+        }
+    }
+
+    fn draw_target(&self) -> DrawTarget
+    {
+        DrawTarget {
+            framebuffer: self.framebuffer,
+            x: 0,
+            y: 0,
+            width: self.width,
+            height: self.height
+        }
+    }
+}
+
+impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE>
+{
+    fn render(&mut self, drawlist: &mut Drawlist, db: &Graphics, dm: &DrawMatrices, ddt: &DrawTarget)
+    {
+        let dt = self.draw_target();
+        gl::Scissor(0, 0, self.width as i32, self.height as i32);
+        gl::Viewport(0, 0, self.width as i32, self.height as i32);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+        self.input.render(drawlist, db, dm, &dt);
+
+        let billboard = db.current.find("core/geometry/billboard").unwrap();
+        let billboard = db.current.geometry(billboard).unwrap();
+
+        let shader = db.defered_shader.as_ref().unwrap();
+
+        let vbo = db.vertex.find(&billboard.vb).unwrap();
+        vbo.bind();
+
+        shader.bind();
+        unsafe {
+            let buffers = &[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1, gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3];
+            gl::DrawBuffers(4, buffers.unsafe_ref(0));
+        }
+        
+        assert!(0 == gl::GetError());
+        vbo.bind();
+        assert!(0 == gl::GetError());
+
+        gl::ActiveTexture(gl::TEXTURE0);
+        gl::BindTexture(gl::TEXTURE_2D, self.pos_texture);
+        gl::Uniform1i(shader.uniform("position"), 0);
+        gl::ActiveTexture(gl::TEXTURE0+1);
+        gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
+        gl::Uniform1i(shader.uniform("uv"), 1);
+        gl::ActiveTexture(gl::TEXTURE0+2);
+        gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
+        gl::Uniform1i(shader.uniform("normal"), 2);
+        gl::ActiveTexture(gl::TEXTURE0+3);
+        gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
+        gl::Uniform1i(shader.uniform("pixel_drawn_by"), 3);
+        assert!(0 == gl::GetError());
+
+        ddt.bind();
+        gl::Scissor(0, 0, self.width as i32, self.height as i32);
+        gl::Viewport(0, 0, self.width as i32, self.height as i32);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        unsafe {
+            let buffers = &[gl::BACK_LEFT];
+            gl::DrawBuffers(1, buffers.unsafe_ref(0));
+            assert!(0 == gl::GetError());
+            gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
+            assert!(0 == gl::GetError());
+        }
+    }
+}
+
 pub struct Hmd<PIPELINE>
 {
     input: PIPELINE,

@@ -43,6 +43,8 @@ fn setup_glfw()
     glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
     glfw::window_hint::opengl_forward_compat(true);
     glfw::window_hint::visible(false);
+    glfw::window_hint::depth_bits(0);
+    glfw::window_hint::stencil_bits(0);
     glfw::set_swap_interval(0);
 }
 

@@ -11,6 +11,13 @@ use cgmath::ptr::Ptr;
 
 use snowmew::material::{Material, Flat};
 
+pub static MATRIX_PROJECTION: i32 = 0;
+pub static MATRIX_MODEL: i32 = 1;
+
+pub static ATTR_POISTION: i32 = 0;
+pub static ATTR_TEXTURE: i32 = 1;
+pub static ATTR_NORMAL: i32 = 2;
+
 pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
     let shader = gl::CreateShader(ty);
     unsafe {
@@ -53,24 +60,24 @@ pub struct Shader {
     program: GLuint,
     fs: GLuint,
     vs: GLuint,
-    gs: GLuint,
-
-    uniform_position: i32,
-    uniform_projection: i32
+    gs: GLuint
 }
 
 impl Shader {
-    fn _new(vs: GLuint, gs: GLuint, fs: GLuint) -> Shader
+    fn _new(vs: GLuint, gs: GLuint, fs: GLuint, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader
     {
         let program = gl::CreateProgram();
         gl::AttachShader(program, vs);
         gl::AttachShader(program, fs);
  
-        "color".with_c_str(|ptr| {unsafe {gl::BindFragDataLocation(program, 0, ptr)}});
-
-        "in_position".with_c_str(|ptr|{ unsafe {gl::BindAttribLocation(program, 0, ptr)}});
-        "in_texture".with_c_str(|ptr|{ unsafe {gl::BindAttribLocation(program, 1, ptr)}});
-        "in_normal".with_c_str(|ptr|{ unsafe {gl::BindAttribLocation(program, 2, ptr)}});
+        unsafe {
+            for &(idx, name) in bind_attr.iter() {
+                name.with_c_str(|ptr| gl::BindAttribLocation(program, idx, ptr));
+            }
+            for &(idx, name) in bind_frag.iter() {
+                name.with_c_str(|ptr| gl::BindFragDataLocation(program, idx, ptr));
+            }
+        }
 
         gl::LinkProgram(program);
 
@@ -91,35 +98,28 @@ impl Shader {
             }
         }
 
-        let pos = uniform(program, "mat_model");
-        let proj = uniform(program, "mat_proj_view");
-
-
-
 
         Shader {
             program: program,
             fs: fs,
             vs: vs,
-            gs: gs,
-            uniform_position: pos,
-            uniform_projection: proj
+            gs: gs
         }
     }
 
-    pub fn new(vert: &str, frag: &str) -> Shader
+    pub fn new(vert: &str, frag: &str, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader
     {
         let vert = compile_shader(vert, gl::VERTEX_SHADER);
         let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
-        Shader::_new(vert, 0, frag)
+        Shader::_new(vert, 0, frag, bind_attr, bind_frag)
     }
 
-    pub fn new_geo(vert: &str, frag: &str, geo: &str) -> Shader
+    pub fn new_geo(vert: &str, frag: &str, geo: &str, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader
     {
         let vert = compile_shader(vert, gl::VERTEX_SHADER);
         let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
         let geo = compile_shader(geo, gl::GEOMETRY_SHADER);
-        Shader::_new(vert, geo, frag)
+        Shader::_new(vert, geo, frag, bind_attr, bind_frag)
     }
 
     pub fn uniform(&self, s: &str) -> i32
@@ -135,14 +135,14 @@ impl Shader {
     pub fn set_projection(&self, mat: &Mat4<f32>)
     {
         unsafe {
-            gl::UniformMatrix4fv(self.uniform_projection, 1, gl::FALSE, mat.ptr());
+            gl::UniformMatrix4fv(self.uniform("mat_proj_view"), 1, gl::FALSE, mat.ptr());
         }
     }
 
     pub fn set_model(&self, mat: &Mat4<f32>)
     {
         unsafe {
-            gl::UniformMatrix4fv(self.uniform_position, 1, gl::FALSE, mat.ptr());
+            gl::UniformMatrix4fv(self.uniform("mat_model"), 1, gl::FALSE, mat.ptr());
         }        
     }
 
