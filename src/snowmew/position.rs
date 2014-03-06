@@ -425,6 +425,11 @@ impl Positions
     {
         self.pos[self.get_loc(id)].clone()
     }
+
+    pub fn all_mats<'a>(&'a self) -> &'a [Mat4<f32>]
+    {
+        self.pos.as_slice()
+    }
 }
 
 pub struct CalcPositionsCl

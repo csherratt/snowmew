@@ -4,7 +4,7 @@ use std::default::Default;
 use sync::CowArc;
 
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
-use cow::join::{join_set_to_map, JoinMapSetIterator};
+use cow::join::{join_set_to_map, join_maps, JoinMapSetIterator, JoinMapIterator};
 
 use geometry::{Geometry, VertexBuffer};
 use material::Material;
@@ -148,7 +148,7 @@ pub struct Database {
     // --- indexes ---
     // map all children to a parent
     priv index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
-    draw_bins: BTreeMap<Drawable, BTreeSet<position::Id>>,
+    draw_bins: BTreeMap<object_key, BTreeSet<position::Id>>,
 
     // other
     priv timing: Timing
@@ -452,7 +452,7 @@ impl Database {
         self.draw.insert(oid, draw.clone());
 
         let pid = self.get_position_id(oid);
-        let create = match self.draw_bins.find_mut(&draw) {
+        let create = match self.draw_bins.find_mut(&draw.geometry) {
             Some(draw_bin) => {
                 draw_bin.insert(pid.clone());
                 false
@@ -463,7 +463,7 @@ impl Database {
         if create {
             let mut set = BTreeSet::new();
             set.insert(pid.clone());
-            self.draw_bins.insert(draw, set);
+            self.draw_bins.insert(draw.geometry, set);
         }
     }
 
@@ -482,7 +482,13 @@ impl Database {
     pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, object_key, Drawable>>
     {
         UnwrapKey::new(self.draw.iter())
-    } 
+    }
+
+    pub fn walk_drawables_and_pos<'a>(&'a self) -> 
+        JoinMapIterator<BTreeMapIterator<'a, object_key, Drawable>, BTreeMapIterator<'a, object_key, position::Id>>
+    {
+        join_maps(self.draw.iter(), self.location.iter())
+    }
 
     pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
     {

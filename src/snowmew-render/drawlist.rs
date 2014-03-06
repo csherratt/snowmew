@@ -1,7 +1,7 @@
 use std::mem;
 use std::ptr;
 use std::cast;
-use std::libc::c_void;
+use std::libc::{c_void, };
 use std::vec::raw::mut_buf_as_slice;
 
 use cgmath::matrix::{Mat4, Matrix};
@@ -17,7 +17,7 @@ use snowmew::CalcPositionsCl;
 use snowmew::position::{Delta, PositionsGL, Positions};
 
 use gl;
-use gl::types::{GLuint, GLsizeiptr};
+use gl::types::{GLint, GLuint, GLsizeiptr};
 use cow::join::join_maps;
 
 use OpenCL::hl::{Device, Context, CommandQueue};
@@ -204,18 +204,64 @@ pub struct DrawlistStandard
     priv db: Option<Graphics>,
     priv scene: object_key,
     priv position: Option<Positions>,
+
     priv material_to_id: TreeMap<object_key, u32>,
-    priv id_to_material: TreeMap<u32, object_key>
+    priv id_to_material: TreeMap<u32, object_key>,
+
+    priv size: uint,
+
+    // one array for each component
+    priv model_matrix: [GLuint, ..4],
+    priv model_info: GLuint,
+
+    priv text_model_matrix: [GLuint, ..4],
+    priv text_model_info: GLuint,
+
+    priv ptr_model_matrix: [*mut Vec4<f32>, ..4],
+    priv ptr_model_info: *mut (u32, u32, u32, u32),
 }
 
 impl DrawlistStandard
 {
     pub fn from_config(cfg: &Config) -> ~Drawlist
     {
+        let buffer = &mut [0, 0, 0, 0, 0];
+        let texture = &mut [0, 0, 0, 0, 0];
+
+        unsafe {
+            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
+            gl::GenTextures(buffer.len() as i32, texture.unsafe_mut_ref(0));
+      
+            for i in range(0, 4) {
+                gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[i]);
+                gl::BindTexture(gl::TEXTURE_BUFFER, texture[i]);
+                gl::TexBuffer(gl::TEXTURE_BUFFER, gl::RGBA32F, buffer[i]);
+                gl::BufferData(gl::TEXTURE_BUFFER,
+                               (mem::size_of::<Vec4<f32>>()*cfg.max_size()) as GLsizeiptr,
+                               ptr::null(), gl::DYNAMIC_DRAW);
+            }
+
+            gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[4]);
+            gl::BindTexture(gl::TEXTURE_BUFFER, texture[4]);
+            gl::TexBuffer(gl::TEXTURE_BUFFER, gl::RGBA32UI, buffer[4]);
+            assert!(0 == gl::GetError());
+            gl::BufferData(gl::TEXTURE_BUFFER,
+                           (mem::size_of::<(u32, u32, u32, u32)>()*cfg.max_size()) as GLsizeiptr,
+                           ptr::null(), gl::DYNAMIC_DRAW);
+            assert!(0 == gl::GetError());
+        }
+
         ~DrawlistStandard {
             db: None,
             scene: 0,
             position: None,
+            size: cfg.max_size(),
+            model_matrix: [buffer[0], buffer[1], buffer[2], buffer[3]],
+            model_info: buffer[4],
+            text_model_matrix: [texture[0], texture[1], texture[2], texture[3]],
+            text_model_info: texture[4],
+            ptr_model_matrix: [ptr::mut_null(), ptr::mut_null(), ptr::mut_null(), ptr::mut_null()],
+            ptr_model_info: ptr::mut_null(),
             material_to_id: TreeMap::new(),
             id_to_material: TreeMap::new()
         } as ~Drawlist
@@ -228,6 +274,24 @@ impl Drawlist for DrawlistStandard
     {
         self.db = Some(db);
         self.scene = scene;
+
+        unsafe {
+            for i in range(0, 4) {
+                gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
+                self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
+                        (mem::size_of::<Vec4<f32>>()*self.size) as GLsizeiptr,
+                        gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+                ) as *mut Vec4<f32>;
+                assert!(0 == gl::GetError());
+            }
+
+            gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
+            self.ptr_model_info = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
+                    (mem::size_of::<(u32, u32, u32, u32)>()*self.size) as GLsizeiptr,
+                    gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+            ) as *mut (u32, u32, u32, u32);
+            assert!(0 == gl::GetError());
+        }
     }
 
     fn setup_scene_async(&mut self)
@@ -241,18 +305,76 @@ impl Drawlist for DrawlistStandard
             self.material_to_id.insert(*key, (id+1) as u32);
             self.id_to_material.insert((id+1) as u32, *key);
         }
+
+        unsafe {
+            mut_buf_as_slice(self.ptr_model_matrix[0], self.size, |mat0| {
+            mut_buf_as_slice(self.ptr_model_matrix[1], self.size, |mat1| {
+            mut_buf_as_slice(self.ptr_model_matrix[2], self.size, |mat2| {
+            mut_buf_as_slice(self.ptr_model_matrix[3], self.size, |mat3| {
+                let mats = self.position.as_ref().unwrap().all_mats();
+                for (idx, m) in mats.iter().enumerate() {
+                    mat0[idx] = m.x;
+                    mat1[idx] = m.y;
+                    mat2[idx] = m.z;
+                    mat3[idx] = m.w;
+                }
+            })})})});
+        
+            mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
+                for (idx, (id, (draw, pos))) in self.db.as_ref().unwrap().current.walk_drawables_and_pos().enumerate() {
+                    info[idx] = (id.clone(),
+                                 self.position.as_ref().unwrap().get_loc(*pos) as u32,
+                                 self.material_to_id.find(&draw.material).unwrap().clone(),
+                                 0u32);
+                }
+            });
+        }
     }
 
-    fn setup_scene(&mut self) {}
+    fn setup_scene(&mut self)
+    {
+        for i in range(0, 4) {
+            gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
+            gl::UnmapBuffer(gl::TEXTURE_BUFFER);
+            assert!(0 == gl::GetError());
+            self.ptr_model_matrix[i] = ptr::mut_null();
+        }
+
+        gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
+        gl::UnmapBuffer(gl::TEXTURE_BUFFER);
+        assert!(0 == gl::GetError());
+        self.ptr_model_info = ptr::mut_null();;
+    }
 
     fn render(&mut self, camera: Mat4<f32>)
     {
         let db = self.db.as_ref().unwrap();
-        let shader = db.flat_shader.unwrap();
+        let shader = db.flat_instance_shader.unwrap();
         let model_matrix = shader.uniform("mat_model");
         shader.bind();
+
         unsafe {
             gl::UniformMatrix4fv(shader.uniform("mat_proj_view"), 1, gl::FALSE, camera.ptr());
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[0]);
+            gl::Uniform1i(shader.uniform("mat_model0"), 0);
+
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[1]);
+            gl::Uniform1i(shader.uniform("mat_model1"), 1);
+
+            gl::ActiveTexture(gl::TEXTURE2);
+            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[2]);
+            gl::Uniform1i(shader.uniform("mat_model2"), 2);
+
+            gl::ActiveTexture(gl::TEXTURE3);
+            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[3]);
+            gl::Uniform1i(shader.uniform("mat_model3"), 3);
+
+            gl::ActiveTexture(gl::TEXTURE4);
+            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_info);
+            gl::Uniform1i(shader.uniform("info"), 4);
         }
 
         unsafe {
@@ -260,32 +382,57 @@ impl Drawlist for DrawlistStandard
             gl::DrawBuffers(4, buffers.unsafe_ref(0));
         }
 
-        let material_id = shader.uniform("material_id");
-        let object_id = shader.uniform("object_id");
+        let mut range = (0u, 0u);
+        let mut last_geo: Option<u32> = None;
+        for (idx, (id, draw)) in self.db.as_ref().unwrap().current.walk_drawables().enumerate() {
+            if last_geo.is_some() {
+                if last_geo.unwrap() == draw.geometry {
+                    let (start, _) = range;
+                    range = (start, idx);
+                } else {
+                    let draw_geo = db.current.geometry(last_geo.unwrap()).unwrap();
+                    let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
 
-        for (draw, vals) in db.current.draw_bins.iter() {
-            let geo = db.current.geometry(draw.geometry).unwrap();
+                    draw_vbo.bind();
+                    let (start, end) = range;
 
-            let vbo = db.vertex.find(&geo.vb);
-            vbo.unwrap().bind();
+                    unsafe {
+                        gl::Uniform1i(shader.uniform("instance_offset"), start as i32);
+                        gl::DrawElementsInstanced(gl::TRIANGLES,
+                            draw_geo.count as GLint,
+                            gl::UNSIGNED_INT,
+                            ptr::null(),
+                            (end - start + 1) as GLint
+                        );
+                    }
 
-            gl::Uniform1ui(material_id, *self.material_to_id.find(&draw.material).unwrap());
-            println!("set material {}", self.material_to_id.find(&draw.material).unwrap());
-
-            for v in vals.iter() {
-                unsafe {
-                    gl::UniformMatrix4fv(model_matrix, 1, gl::FALSE, self.position.as_ref().unwrap().get_mat(*v).ptr());
+                    range = (idx, idx);
+                    last_geo = Some(draw.geometry);
                 }
-                gl::Uniform1ui(object_id, self.position.as_ref().unwrap().get_loc(*v) as u32);
-                unsafe {
-                    gl::DrawElements(gl::TRIANGLES,
-                                     (geo.count) as i32,
-                                     gl::UNSIGNED_INT,
-                                     ptr::null());  
-                } 
+            } else {
+                range = (idx, idx);
+                last_geo = Some(draw.geometry);
             }
-
         }
+
+        if last_geo.is_some() {
+            let draw_geo = db.current.geometry(last_geo.unwrap()).unwrap();
+            let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
+            let (start, end) = range;
+
+            draw_vbo.bind();
+
+            unsafe {
+                gl::Uniform1i(shader.uniform("instance_offset"), start as i32);
+                gl::DrawElementsInstanced(gl::TRIANGLES,
+                    draw_geo.count as GLint,
+                    gl::UNSIGNED_INT,
+                    ptr::null(),
+                    (end - start + 1) as GLint
+                );
+            }
+        }
+
     }
 
     fn materials(&self) -> ~[Material]
@@ -316,6 +463,7 @@ pub struct DrawlistBindless
     priv cmds: ~[DrawCommand],
     priv gl_pos: Option<PositionsGL>
 }
+
 
 impl DrawlistBindless
 {
@@ -386,7 +534,7 @@ impl DrawlistBindless
     pub fn render<'a>(&'a mut self, db: &Graphics, camera: Mat4<f32>)
     {
         let start = precise_time_ns();
-        let shader = db.flat_instanced_shader.unwrap();
+        let shader = db.flat_bindless_shader.unwrap();
         shader.bind();
         unsafe {
             gl::UniformMatrix4fv(shader.uniform("mat_proj_view"), 1, gl::FALSE, camera.ptr());
@@ -396,14 +544,14 @@ impl DrawlistBindless
 
         let mut buffer = ~[];
 
-        for (draw, vals) in db.current.draw_bins.iter() {
-            let geo = db.current.geometry(draw.geometry).unwrap();
-            let mat = db.current.material(draw.material).unwrap();
+        for (geo, vals) in db.current.draw_bins.iter() {
+            let geo = db.current.geometry(*geo).unwrap();
+            //let mat = db.current.material(draw.material).unwrap();
 
             let vbo = db.vertex.find(&geo.vb);
             vbo.unwrap().bind();
 
-            shader.set_material(mat);
+            //shader.set_material(mat);
 
             for v in vals.iter() {
                 buffer.push(self.gl_pos.as_ref().unwrap().get_loc(*v) as i32);

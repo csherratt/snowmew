@@ -70,7 +70,7 @@ impl Forward
 
 impl Pipeline for Forward
 {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &Graphics, dm: &DrawMatrices, dt: &DrawTarget)
+    fn render(&mut self, drawlist: &mut Drawlist, _: &Graphics, dm: &DrawMatrices, dt: &DrawTarget)
     {
         dt.bind();
         gl::ClearColor(0., 0., 0., 1.);
@@ -163,7 +163,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE>
             assert!(0 == gl::GetError());
 
             let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
-            if (status != gl::FRAMEBUFFER_COMPLETE) {
+            if status != gl::FRAMEBUFFER_COMPLETE {
                 fail!("Failed to setup framebuffer {}", status);
             }
         }

@@ -13,6 +13,8 @@ static VS_SRC: &'static str =
 "#version 150
 uniform mat4 mat_model;
 uniform mat4 mat_proj_view;
+uniform uint object_id;
+uniform uint material_id;
 
 in vec3 in_position;
 in vec2 in_texture;
@@ -21,10 +23,59 @@ in vec3 in_normal;
 out vec3 fs_position;
 out vec2 fs_texture;
 out vec3 fs_normal;
+flat out uint fs_object_id;
+flat out uint fs_material_id;
 
 void main() {
     gl_Position = mat_proj_view * mat_model * vec4(in_position, 1.);
     vec4 pos = mat_model * vec4(in_position, 1.);
+    fs_position = pos.xyz / pos.w;
+    fs_texture = in_texture;
+    fs_normal = in_normal;
+    fs_object_id = object_id;
+    fs_material_id = material_id;
+}
+";
+
+static VS_INSTANCE_SRC: &'static str =
+"#version 400
+uniform int instance_offset;
+uniform mat4 mat_proj_view;
+
+uniform samplerBuffer mat_model0;
+uniform samplerBuffer mat_model1;
+uniform samplerBuffer mat_model2;
+uniform samplerBuffer mat_model3;
+
+uniform usamplerBuffer info;
+
+in vec3 in_position;
+in vec2 in_texture;
+in vec3 in_normal;
+
+out vec3 fs_position;
+out vec2 fs_texture;
+out vec3 fs_normal;
+flat out uint fs_object_id;
+flat out uint fs_material_id;
+
+void main() {
+    int instance = gl_InstanceID + instance_offset;
+    uvec4 info = texelFetch(info, instance);
+
+    int matrix_id = int(info.y);
+    fs_material_id = info.z;
+    fs_object_id = info.x;
+
+
+    mat4 mat_model = mat4(texelFetch(mat_model0, matrix_id),
+                          texelFetch(mat_model1, matrix_id),
+                          texelFetch(mat_model2, matrix_id),
+                          texelFetch(mat_model3, matrix_id));
+
+
+    vec4 pos = mat_model * vec4(in_position, 1.);
+    gl_Position = mat_proj_view * pos;
     fs_position = pos.xyz / pos.w;
     fs_texture = in_texture;
     fs_normal = in_normal;
@@ -77,12 +128,11 @@ static VR_FS_SRC: &'static str = ovr::SHADER_FRAG_CHROMAB;
 static FS_FLAT_SRC: &'static str =
 "#version 400
 
-uniform uint object_id;
-uniform uint material_id;
-
 in vec3 fs_position;
 in vec2 fs_texture;
 in vec3 fs_normal;
+flat in uint fs_object_id;
+flat in uint fs_material_id;
 
 out vec4 out_position;
 out vec2 out_uv;
@@ -94,7 +144,7 @@ void main() {
     out_position = vec4(fs_position, gl_FragCoord.z);
     out_uv = fs_texture;
     out_normal = fs_normal;
-    out_material = vec4(float(material_id) / 65535., float(object_id) / 65535., 1., 1.);
+    out_material = vec4(float(fs_material_id) / 65535., float(fs_object_id) / 65535., 1., 1.);
 }
 ";
 
@@ -129,7 +179,8 @@ pub struct Graphics
     vertex: BTreeMap<object_key, VertexBuffer>,
 
     flat_shader: Option<Shader>,
-    flat_instanced_shader: Option<Shader>,
+    flat_instance_shader: Option<Shader>,
+    flat_bindless_shader: Option<Shader>,
 
     defered_shader: Option<Shader>,
 
@@ -145,7 +196,8 @@ impl Graphics
             last: db,
             vertex: BTreeMap::new(),
             flat_shader: None,
-            flat_instanced_shader: None,
+            flat_instance_shader: None,
+            flat_bindless_shader: None,
             defered_shader: None,
             ovr_shader: None,
 
@@ -194,9 +246,16 @@ impl Graphics
         if self.defered_shader.is_none() {
             self.defered_shader = Some(Shader::new(VS_PASS_SRC, FS_DEFERED_SRC, &[], &[(0, "color")]));
         }
+        if self.flat_instance_shader.is_none() {
+            self.flat_instance_shader = Some(
+                Shader::new(VS_INSTANCE_SRC, FS_FLAT_SRC, 
+                    &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
+                    &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]
+            ));
+        }
         if cfg.use_bindless() {
-            if self.flat_instanced_shader.is_none() {
-                self.flat_instanced_shader = Some(
+            if self.flat_bindless_shader.is_none() {
+                self.flat_bindless_shader = Some(
                     Shader::new(BINDLESS_VS_INSTANCED_SRC, FS_FLAT_SRC,
                         &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
                         &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]

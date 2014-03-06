@@ -73,9 +73,7 @@ fn render_task(chan: Chan<RenderCommand>)
 {
     let (p, c) = Chan::new();
     chan.send(Setup(c.clone()));
-    let queue = p.recv();
-
-    println!("queue {:?}", queue);
+    let _ = p.recv();
 
     let (p, c) = Chan::new();
     chan.send(Waiting(c.clone()));
@@ -89,7 +87,7 @@ fn render_task(chan: Chan<RenderCommand>)
 
 fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display: Display, ih: InputHandle)
 {
-    let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
+    let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
 
     let mut queue = Some(queue);
 
@@ -97,7 +95,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     let mut scene = 0;
     let mut camera = 0;
     let mut display = display;
-    let mut cfg = Config::new(display.get_context_version());
+    let cfg = Config::new(display.get_context_version());
 
     display.make_current();
     gl::load_with(glfw::get_proc_address);
@@ -168,9 +166,8 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 }
             },
             Some(Complete(mut dl)) => {
-                println!("drawing");
                 let time = render_calc.start_time();
-                //dl.calc_pos(&accl);
+                dl.setup_scene();
                 time.end();
 
                 let render = render_scene.start_time();
@@ -185,7 +182,6 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
                 let dt = DrawTarget::new(0, (0, 0), display.size());
 
-                println!("pipeline");
                 pipeline.render(dl, &db, &camera.get_matrices(display.size()), &dt);
                 render.end();
 

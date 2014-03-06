@@ -1,6 +1,6 @@
 
 use gl;
-use gl::types::{GLuint, GLsizeiptr};
+use gl::types::{GLuint};
 
 pub struct Query
 {
