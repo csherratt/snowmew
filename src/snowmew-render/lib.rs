@@ -52,10 +52,10 @@ mod config;
 
 enum RenderCommand {
     Update(snowmew::core::Database, object_key, object_key),
-    Waiting(Chan<~Drawlist>),
+    Waiting(Chan<Option<~Drawlist>>),
     Complete(~Drawlist),
     Setup(Chan<Option<CommandQueue>>),
-    Finish
+    Finish(Chan<()>)
 }
 
 fn swap_buffers(disp: &mut Display)
@@ -78,10 +78,20 @@ fn render_task(chan: Chan<RenderCommand>)
     let (p, c) = Chan::new();
     chan.send(Waiting(c.clone()));
     loop {
-        let mut dl = p.recv();
-        dl.setup_scene_async();
-        chan.send(Waiting(c.clone()));
-        chan.send(Complete(dl));
+        for dl in p.iter() {
+            match dl {
+                Some(mut dl) => {
+                    dl.setup_scene_async();
+                    chan.send(Waiting(c.clone()));
+                    chan.send(Complete(dl));                    
+                },
+                None => {
+                    println!("render task: exiting");
+                    return
+                }
+            }
+
+        }
     }
 }
 
@@ -99,7 +109,6 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
     display.make_current();
     gl::load_with(glfw::get_proc_address);
-
 
     let mut pipeline = if display.is_hmd() {
         ~pipeline::Hmd::new(pipeline::Forward::new(), 1.7, &display.hmd()) as ~pipeline::Pipeline
@@ -128,13 +137,11 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
           DrawlistStandard::from_config(&cfg)]
     };
 
+    let mut num_workers = 1;
     let mut waiting = ~[];
 
-    let mut render_calc = Query::new();
-    let mut render_scene = Query::new();
-
     loop {
-        let cmd = if drawlists.len() == 0 || waiting.len() == 0 || scene == 0{
+        let cmd = if drawlists.len() == 0 || waiting.len() == 0 || scene == 0 {
             Some(port.recv())
         } else {
             match port.try_recv() {
@@ -160,17 +167,13 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 if scene != 0 && drawlists.len() != 0 {
                     let mut dl = drawlists.pop().unwrap();
                     dl.bind_scene(db.clone(), scene);
-                    ch.send(dl);
+                    ch.send(Some(dl));
                 } else {
                     waiting.push(ch);
                 }
             },
             Some(Complete(mut dl)) => {
-                let time = render_calc.start_time();
                 dl.setup_scene();
-                time.end();
-
-                let render = render_scene.start_time();
                 let rot = db.current.location(camera).unwrap().get().rot;
                 let camera_trans = db.current.position(camera);
 
@@ -183,18 +186,32 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 let dt = DrawTarget::new(0, (0, 0), display.size());
 
                 pipeline.render(dl, &db, &camera.get_matrices(display.size()), &dt);
-                render.end();
 
                 swap_buffers(&mut display);
                 drawlists.push(dl);
-
-                println!("{} {}", time.time_sync(), render.time_sync());
-
-                render_calc = time.to_query();
-                render_scene = render.to_query();
             },
-            Some(Finish) => {
-                return
+            Some(Finish(ack)) => {
+                // flush the port, this should release any
+                // async drawlist workers
+                println!("render: dropping waiting");
+                while waiting.len() > 0 {
+                    let c = waiting.pop().unwrap();
+                    c.send(None);
+                    num_workers -= 1;
+                }
+                println!("render: waiting for open connections to close");
+                while num_workers > 0 {
+                    match port.recv() {
+                        Waiting(ch) => {
+                            num_workers -= 1;
+                            ch.send(None)
+                        },
+                        _ => ()
+                    }
+                }
+                ack.send(());
+                println!("render: exiting");
+                return;
             },
             None => {
                 if drawlists.len() > 0 && waiting.len() > 0 {
@@ -202,11 +219,12 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                     let ch = waiting.pop().unwrap();
                     let mut dl = drawlists.pop().unwrap();
                     dl.bind_scene(db.clone(), scene);
-                    ch.send(dl);
+                    ch.send(Some(dl));
                 }  
             }
         }
     }
+
 }
 
 pub struct RenderManager
@@ -254,6 +272,9 @@ impl RenderManager
 impl Drop for RenderManager
 {
     fn drop(&mut self) {
-        self.ch.send(Finish)
+        let (p, c) = Chan::new();
+        self.ch.send(Finish(c));
+        let _ = self.ch;
+        p.recv();
     }
 }
