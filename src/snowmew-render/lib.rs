@@ -39,6 +39,7 @@ use drawlist::{Drawlist, DrawlistBindless, DrawlistStandard};
 use OpenCL::hl::{CommandQueue};
 use query::Query;
 use compute_accelerator::PositionGlAccelerator;
+use time::precise_time_s;
 
 mod db;
 mod shader;
@@ -124,7 +125,7 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
     gl::Enable(gl::LINE_SMOOTH);
     gl::Enable(gl::BLEND);
     gl::CullFace(gl::BACK);
-    glfw::set_swap_interval(1);
+    glfw::set_swap_interval(0);
 
     db.load(&cfg);
 
@@ -139,6 +140,8 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
     let mut num_workers = 1;
     let mut waiting = ~[];
+
+    let mut time = precise_time_s();
 
     loop {
         let cmd = if drawlists.len() == 0 || waiting.len() == 0 || scene == 0 {
@@ -188,6 +191,11 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
                 pipeline.render(dl, &db, &camera.get_matrices(display.size()), &dt);
 
                 swap_buffers(&mut display);
+                
+                let end = precise_time_s();
+                print!("\rfps: {:3.2f}", 1./(end-time));
+                time = end;
+
                 drawlists.push(dl);
             },
             Some(Finish(ack)) => {
@@ -258,9 +266,7 @@ impl RenderManager
             render_task(task_c);
         });
         
-        RenderManager {
-            ch: chan
-        }
+        RenderManager { ch: chan }
     }
 
     pub fn update(&mut self, db: snowmew::core::Database, scene: object_key, camera: object_key)

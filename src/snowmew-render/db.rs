@@ -162,11 +162,25 @@ in vec2 TexPos;
 out vec4 color;
 
 void main() {
-    int material = int(texture(pixel_drawn_by, TexPos).x * 65536.);
-    if (material == 0) {
-        color = vec4(0., 0., 0., 0.);
+    ivec2 material = ivec2(texture(pixel_drawn_by, TexPos).xy * 65536.);
+    bool edge = 
+            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 0,  1)).xy * 65536.)) ||
+            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 0, -1)).xy * 65536.)) ||
+            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 1,  0)).xy * 65536.)) ||
+            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2(-1,  0)).xy * 65536.)) ||
+            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 1,  1)).xy * 65536.)) ||
+            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2(-1, -1)).xy * 65536.)) ||
+            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 1, -1)).xy * 65536.)) ||
+            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2(-1,  1)).xy * 65536.));
+
+    if (material.x == 0) {
+        color = vec4(0., 0., 0., 1.);
     } else {
-        color = vec4(mat_color[material-1], 1.);
+        color = vec4(mat_color[material.x], 1.);
+    }
+
+    if (edge) {
+        color *= 0.5;
     }
 }
 ";
