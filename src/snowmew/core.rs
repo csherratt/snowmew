@@ -78,6 +78,19 @@ pub struct Drawable
     material: object_key
 }
 
+impl Ord for Drawable
+{
+    fn lt(&self, other: &Drawable) -> bool
+    {
+        let order = self.geometry.cmp(&other.geometry);
+        match order {
+            Equal => self.material.cmp(&other.material) == Less,
+            Greater => false,
+            Less => true
+        }        
+    }
+}
+
 impl TotalEq for Drawable {
     fn equals(&self, other: &Drawable) -> bool
     {

@@ -44,16 +44,20 @@ fn start(argc: int, argv: **u8) -> int {
 fn main() {
     snowmew::start_manual_input(proc(im) {
         println!("Starting");
-        let (mut display, mut display_input) = Display::new_window(im, (1280, 800)).unwrap();
+        let (mut display, mut display_input) = Display::new_window(im, (1280, 800))
+                .expect("Could not create a display");
 
         let mut db = Database::new();
         let camera_loc = db.new_object(None, "camera");
 
-        let teapot = Obj::load(&Path::new("assets/suzanne.obj")).unwrap();
+        let teapot = Obj::load(&Path::new("assets/suzanne.obj"))
+                .expect("Could not fetch suzanne");
+
         teapot.import(db.add_dir(None, "import"), &mut db);
 
         let scene = db.new_object(None, "scene");
-        let geometry = db.find("import/Suzanne").unwrap();
+        let geometry = db.find("import/Suzanne")
+                .expect("Could not find Suzanne");
 
         let dir = db.find("core/material/flat").unwrap();
 
@@ -64,7 +68,7 @@ fn main() {
             materials.push(oid.clone())
         }
 
-        let size = 5;
+        let size = 10;
 
         println!("creating");
         for x in range(-size, size) {

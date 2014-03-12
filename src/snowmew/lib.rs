@@ -39,7 +39,7 @@ mod default;
 
 fn setup_glfw()
 {
-    glfw::window_hint::context_version(3, 2);
+    glfw::window_hint::context_version(4, 1);
     glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
     glfw::window_hint::opengl_forward_compat(true);
     glfw::window_hint::visible(false);

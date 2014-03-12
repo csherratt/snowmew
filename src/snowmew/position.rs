@@ -190,7 +190,7 @@ impl Clone for Deltas
     }
 }
 
-#[deriving(Clone, Default, Eq, TotalOrd, TotalEq)]
+#[deriving(Clone, Default, Eq, TotalOrd, TotalEq, Ord)]
 pub struct Id(u32, u32);
 
 impl Deltas
