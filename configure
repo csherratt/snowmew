@@ -49,6 +49,11 @@ class Module:
         how += "\t./test/%s && touch test/.%s.check\n" % (self.name, self.name)
         return how
 
+    def pre_setup(self):
+        if self.setup:
+            p = subprocess.Popen(["sh", "-c", self.setup])
+            p.wait()
+
 class cd:
     """Context manager for changing the current working directory, creating if necessary"""
     def __init__(self, newPath):
@@ -68,10 +73,11 @@ class Lib(Module):
     ext = "lib.rs"
     dir = "lib"
     flags = ""
-    def __init__(self, name, dep_modules=None, other_flags=""):
+    def __init__(self, name, dep_modules=None, other_flags="", setup=None):
         self.name = name
         self.ename = "lib/%s" % self.get_name()
         self.other_flags = other_flags
+        self.setup = setup
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -81,10 +87,11 @@ class Bin(Module):
     ext = "main.rs"
     dir = "bin"
     flags = "-Zlto"
-    def __init__(self, name, dep_modules=None, other_flags=""):
+    def __init__(self, name, dep_modules=None, other_flags="", setup=None):
         self.name = name
         self.ename = "bin/%s" % self.get_name()
         self.other_flags = other_flags
+        self.setup = setup
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -104,6 +111,7 @@ class LibMakefile(Module):
         self.other_flags = other_flags
         self.path_to_makefile_dir = path_to_makefile_dir
         self.path_to_output = path_to_output
+        self.setup = None
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -129,6 +137,7 @@ class LibCMake(Module):
         self.path_to_makefile_dir = path_to_makefile_dir
         self.path_to_output = path_to_output
         self.cmake_flags = cmake_flags
+        self.setup = None
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -144,6 +153,9 @@ class LibCMake(Module):
 
 def write_makefile(modules):
     modules = {m.name: m for m in modules}
+
+    for m in modules.values():
+        m.pre_setup()
 
     rules = "\n".join(m.make_rule(modules) for m in modules.values()) + "\n"
     rules += "\n".join(m.make_test_rules(modules) for m in modules.values() if m.has_tests())
@@ -170,27 +182,25 @@ def write_makefile(modules):
 
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "bitmap-set", "ovr"]),
+           Bin("city", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
            Lib("snowmew-loader", ["snowmew"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
            LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
-           LibCMake("libOculusVR.a", "src/ovr/OculusSDK/LibOVR/", "src/ovr/OculusSDK/LibOVR/libOculusVR.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("octtree", ["cow", "cgmath", "OpenCL"]),
-           Lib("bitmap-set")]
+           Lib("glfw", ["libglfw3.a"], setup="sh modules/glfw-rs/etc/link-rs.sh \"`sh modules/glfw-rs/etc/glfw-link-args.sh`\" > modules/glfw-rs/src/lib/link.rs")]
 
 if platform.system() == "Linux":
-    modules += [Lib("glfw", ["libglfw3.a"], other_flags="-C link-args='-lglfw3 -lX11 -lGL -lXrandr -lXi'"),
-                Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a", "libedid.a"]),
-                LibCMake("libedid.a", "src/ovr/OculusSDK/3rdParty/EDID/", "src/ovr/OculusSDK/3rdParty/EDID/libedid.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
+    modules += [Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
+                LibCMake("libOculusVR.a", "src/OculusSDK/LibOVR/", "src/OculusSDK/LibOVR/Lib/Linux/Release/x86_64/libovr.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
                 Lib("OpenCL"),
                ]
 elif platform.system() == "Darwin":
-    modules += [Lib("glfw", ["libglfw3.a"], other_flags="-C link-args='-lglfw3 -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo'"),
-                Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
+    modules += [Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
                 Lib("OpenCL", other_flags="-C link-args='-framework OpenCL'"),
                ]  
 
