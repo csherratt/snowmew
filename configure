@@ -192,7 +192,7 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
            LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
            LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("octtree", ["cow", "cgmath", "OpenCL"]),
-           Lib("glfw", ["libglfw3.a"], setup="sh modules/glfw-rs/etc/link-rs.sh \"`sh modules/glfw-rs/etc/glfw-link-args.sh`\" > modules/glfw-rs/src/lib/link.rs")]
+           Lib("glfw", ["libglfw3.a"], setup="sh modules/glfw-rs/etc/link-rs.sh \"`PKG_CONFIG_PATH=modules/glfw/src  sh modules/glfw-rs/etc/glfw-link-args.sh`\" > modules/glfw-rs/src/lib/link.rs")]
 
 if platform.system() == "Linux":
     modules += [Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
