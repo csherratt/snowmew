@@ -1,5 +1,5 @@
 
-use std::vec;
+use std::slice;
 use std::default::Default;
 
 
@@ -104,7 +104,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX
 
 pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> ~[IDX]
 {
-    vec::build(Some(index.len() * 2), |emit| {
+    slice::build(Some(index.len() * 2), |emit| {
         for i in range(0, index.len()/3) {
             let a = &index[i*3];
             let b = &index[i*3+1];

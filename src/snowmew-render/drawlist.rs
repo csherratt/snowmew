@@ -2,7 +2,7 @@ use std::mem;
 use std::ptr;
 use std::cast;
 use std::libc::{c_void, };
-use std::vec::raw::mut_buf_as_slice;
+use std::slice::raw::mut_buf_as_slice;
 
 use cgmath::matrix::{Mat4, Matrix};
 use cgmath::vector::{Vec4, Vector};
@@ -297,7 +297,7 @@ impl Drawlist for DrawlistStandard
     fn setup_scene_async(&mut self)
     {
         self.position = None;
-        self.position = Some(self.db.as_ref().unwrap().current.position.get().to_positions());
+        self.position = Some(self.db.as_ref().unwrap().current.position.deref().to_positions());
 
         self.material_to_id.clear();
 
@@ -401,7 +401,7 @@ impl Drawlist for DrawlistStandard
                         gl::DrawElementsInstanced(gl::TRIANGLES,
                             draw_geo.count as GLint,
                             gl::UNSIGNED_INT,
-                            ptr::null(),
+                            (draw_geo.offset * 4) as *c_void,
                             (end - start + 1) as GLint
                         );
                     }
@@ -427,7 +427,7 @@ impl Drawlist for DrawlistStandard
                 gl::DrawElementsInstanced(gl::TRIANGLES,
                     draw_geo.count as GLint,
                     gl::UNSIGNED_INT,
-                    ptr::null(),
+                    (draw_geo.offset * 4) as *c_void,
                     (end - start + 1) as GLint
                 );
             }
@@ -513,7 +513,7 @@ impl DrawlistBindless
 
         self.gl_pos = Some(unsafe {
             mut_buf_as_slice(self.model_delta_ptr, 1024*1024, |vec| {
-                db.current.position.get().to_positions_gl(vec)
+                db.current.position.deref().to_positions_gl(vec)
             })
         });
 

@@ -5,15 +5,14 @@
 #[allow(dead_code)];
 
 extern crate std;
-extern crate glfw = "glfw-rs";
+extern crate glfw;
 extern crate cgmath;
 extern crate snowmew;
 extern crate cow;
 extern crate gl;
 extern crate OpenCL;
-extern crate ovr = "ovr-rs";
+extern crate ovr = "oculus-vr";
 extern crate collections;
-extern crate extra;
 extern crate native;
 extern crate time;
 
@@ -21,7 +20,7 @@ pub use config::Config;
 
 use std::ptr;
 use std::mem;
-use std::comm::{Chan, Port, Empty, Disconnected, Data};
+use std::comm::{Receiver, Sender, Empty, Disconnected, Data};
 
 use cgmath::vector::Vec3;
 use cgmath::matrix::{Matrix, ToMat4};
@@ -53,10 +52,10 @@ mod config;
 
 enum RenderCommand {
     Update(snowmew::core::Database, object_key, object_key),
-    Waiting(Chan<Option<~Drawlist>>),
+    Waiting(Sender<Option<~Drawlist>>),
     Complete(~Drawlist),
-    Setup(Chan<Option<CommandQueue>>),
-    Finish(Chan<()>)
+    Setup(Sender<Option<CommandQueue>>),
+    Finish(Sender<()>)
 }
 
 fn swap_buffers(disp: &mut Display)
@@ -70,20 +69,20 @@ fn swap_buffers(disp: &mut Display)
     }
 }
 
-fn render_task(chan: Chan<RenderCommand>)
+fn render_task(chan: Sender<RenderCommand>)
 {
-    let (p, c) = Chan::new();
-    chan.send(Setup(c.clone()));
-    let _ = p.recv();
+    let (sender, receiver) = channel();
+    chan.send(Setup(sender));
+    let _ = receiver.recv();
 
-    let (p, c) = Chan::new();
-    chan.send(Waiting(c.clone()));
+    let (sender, receiver) = channel();
+    chan.send(Waiting(sender.clone()));
     loop {
-        for dl in p.iter() {
+        for dl in receiver.iter() {
             match dl {
                 Some(mut dl) => {
                     dl.setup_scene_async();
-                    chan.send(Waiting(c.clone()));
+                    chan.send(Waiting(sender.clone()));
                     chan.send(Complete(dl));                    
                 },
                 None => {
@@ -96,9 +95,9 @@ fn render_task(chan: Chan<RenderCommand>)
     }
 }
 
-fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display: Display, ih: InputHandle)
+fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, display: Display, ih: InputHandle)
 {
-    let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
+    let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
     let mut queue = Some(queue);
 
@@ -237,14 +236,14 @@ fn render_server(port: Port<RenderCommand>, db: snowmew::core::Database, display
 
 pub struct RenderManager
 {
-    priv ch: Chan<RenderCommand>
+    priv ch: Sender<RenderCommand>
 }
 
 impl RenderManager
 {
     pub fn new(db: snowmew::core::Database, display: Display, ih: InputHandle) -> RenderManager
     {
-        let (port, chan) = Chan::new();
+        let (sender, receiver) = channel();
 
         let mut taskopts = std::task::TaskOpts::new();
         taskopts.name = Some("render-main".into_maybe_owned());
@@ -254,19 +253,19 @@ impl RenderManager
             let display = display;
             let ih = ih;
 
-            render_server(port, db, display, ih);
+            render_server(receiver, db, display, ih);
         });
 
 
         let mut taskopts = std::task::TaskOpts::new();
         taskopts.name = Some("render worker #0".into_maybe_owned());
 
-        let task_c = chan.clone();
+        let task_c = sender.clone();
         native::task::spawn_opts(taskopts, proc() {
             render_task(task_c);
         });
         
-        RenderManager { ch: chan }
+        RenderManager { ch: sender }
     }
 
     pub fn update(&mut self, db: snowmew::core::Database, scene: object_key, camera: object_key)
@@ -278,7 +277,7 @@ impl RenderManager
 impl Drop for RenderManager
 {
     fn drop(&mut self) {
-        let (p, c) = Chan::new();
+        let (c, p) = channel();
         self.ch.send(Finish(c));
         let _ = self.ch;
         p.recv();

@@ -1,5 +1,5 @@
 use std::ptr;
-use std::vec;
+use std::slice;
 use std::str;
 use std::cast;
 
@@ -34,7 +34,7 @@ pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
         if status != (gl::TRUE as gl::types::GLint) {
             let mut len = 0;
             gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-            let mut buf = vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
+            let mut buf = slice::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
             gl::GetShaderInfoLog(shader,
                                  len,
                                  ptr::mut_null(),
@@ -89,7 +89,7 @@ impl Shader {
             if status != (gl::TRUE as gl::types::GLint) {
                 let mut len = 0;
                 gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
-                let mut buf = vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
+                let mut buf = slice::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
                 gl::GetProgramInfoLog(program,
                                       len,
                                       ptr::mut_null(),

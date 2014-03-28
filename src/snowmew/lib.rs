@@ -8,19 +8,18 @@
 
 extern crate std;
 extern crate time;
-extern crate glfw = "glfw-rs";
+extern crate glfw;
 extern crate cgmath;
 extern crate cow;
 extern crate octtree;
 extern crate sync;
-extern crate bitmap = "bitmap-set";
 extern crate OpenCL;
 extern crate native;
 extern crate std;
 extern crate gl;
 extern crate green;
 extern crate collections;
-extern crate ovr = "ovr-rs";
+extern crate ovr = "oculus-vr";
 
 pub use core::{object_key, Database};
 pub use geometry::{VertexBuffer};
@@ -39,12 +38,12 @@ mod default;
 
 fn setup_glfw()
 {
-    glfw::window_hint::context_version(4, 1);
-    glfw::window_hint::opengl_profile(glfw::OpenGlCoreProfile);
-    glfw::window_hint::opengl_forward_compat(true);
-    glfw::window_hint::visible(false);
-    glfw::window_hint::depth_bits(0);
-    glfw::window_hint::stencil_bits(0);
+    glfw::window_hint(glfw::ContextVersion(4, 1));
+    glfw::window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
+    glfw::window_hint(glfw::OpenglForwardCompat(true));
+    glfw::window_hint(glfw::Visible(false));
+    glfw::window_hint(glfw::DepthBits(0));
+    glfw::window_hint(glfw::StencilBits(0));
     glfw::set_swap_interval(0);
 }
 
@@ -54,7 +53,7 @@ pub fn start_managed_input(f: proc(&mut input::InputManager))
         setup_glfw();
         let f = f;
         let im = input::InputManager::new();
-        let (p, c) = std::comm::Chan::new();
+        let (send, recv) = channel();
 
         let task = std::task::task().named("game task");
 
@@ -64,13 +63,13 @@ pub fn start_managed_input(f: proc(&mut input::InputManager))
                 println!("game- starting")
                 f(&mut im);
                 println!("game- completed");
-                c.send(im);
+                send.send(im);
             });
         });
 
         loop {
             glfw::wait_events();
-            match p.try_recv() {
+            match recv.try_recv() {
                 std::comm::Empty => (),
                 std::comm::Disconnected => fail!("Should not have received Disconnected"),
                 std::comm::Data(im) => {

@@ -3,7 +3,7 @@
 #[feature(macro_rules)];
 #[feature(globs)];
 
-extern crate glfw = "glfw-rs";
+extern crate glfw;
 extern crate gl;
 extern crate snowmew;
 extern crate render = "snowmew-render";
@@ -11,12 +11,11 @@ extern crate loader = "snowmew-loader";
 extern crate cgmath;
 extern crate native;
 extern crate green;
-extern crate extra;
-extern crate ovr = "ovr-rs";
+extern crate ovr = "oculus-vr";
+extern crate rand;
 
-use std::rand::{StdRng, Rng};
+use rand::{StdRng, Rng};
 use std::vec::*;
-use std::cmp::{max, min};
 
 use snowmew::core::Database;
 use snowmew::display::Display;
@@ -50,13 +49,13 @@ fn main() {
         let mut db = Database::new();
         let camera_loc = db.new_object(None, "camera");
 
-        let teapot = Obj::load(&Path::new("assets/suzanne.obj"))
+        let import = Obj::load(&Path::new("assets/suzanne.obj"))
                 .expect("Could not fetch suzanne");
 
-        teapot.import(db.add_dir(None, "import"), &mut db);
+        import.import(db.add_dir(None, "import"), &mut db);
 
         let scene = db.new_object(None, "scene");
-        let geometry = db.find("import/Suzanne")
+        let geometry = db.find("import/geometry/Suzanne")
                 .expect("Could not find Suzanne");
 
         let dir = db.find("core/material/flat").unwrap();
@@ -106,7 +105,7 @@ fn main() {
         let timer_port = timer.periodic(10);
 
         while !last_input.should_close() {
-            im.poll();
+            im.wait();
             let input_state = display_input.get();
             timer_port.recv();
 
@@ -122,7 +121,7 @@ fn main() {
                             rot_x += x / 3.;
                             rot_y += y / 3.;
 
-                            rot_y = min(max(rot_y, -90.), 90.);
+                            rot_y = rot_y.max(-90.).min(90.);
                             if rot_x > 360. {
                                 rot_x -= 360.
                             } else if rot_x < -360. {

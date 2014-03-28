@@ -1,12 +1,12 @@
-use sync::{CowArc, MutexArc};
+use sync::{Arc, Mutex};
 use glfw::{WindowEvent, Window, wait_events, Key, MouseButton, poll_events};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
-use glfw::{CloseEvent, FocusEvent};
+use glfw::{CloseEvent, FocusEvent, EventReceiver};
 
 use std::task;
 use std::mem;
 use std::comm::Select;
-use std::comm::{Chan, Port};
+use std::comm::{Sender, Receiver};
 use std::comm::{Empty, Disconnected, Data};
 use collections::HashSet;
 
@@ -17,10 +17,9 @@ use ovr;
 pub type window_id = uint;
 
 enum Command {
-    AddPort(Port<(f64, WindowEvent)>, MutexArc<Window>, proc(window_id)),
-    RemovePort(window_id, proc(bool)),
+    AddReceiver(Receiver<(f64, WindowEvent)>, Arc<Mutex<Window>>, proc(window_id)),
+    RemoveReceiver(window_id, proc(bool)),
 
-    AddOVR(Port<ovr::Message>),
     ResetOvr,
 
     Get(proc(InputState)),
@@ -35,7 +34,7 @@ enum Command {
 #[deriving(Clone)]
 struct InputHistory
 {
-    older: Option<CowArc<InputHistory>>,
+    older: Option<Arc<InputHistory>>,
     time: Option<f64>,
     event: WindowEvent
 }
@@ -43,7 +42,7 @@ struct InputHistory
 #[deriving(Clone)]
 pub struct InputState
 {
-    priv history: Option<CowArc<InputHistory>>,
+    priv history: Option<Arc<InputHistory>>,
     priv keyboard: HashSet<Key>,
     priv mouse: HashSet<MouseButton>,
     priv should_close: bool,
@@ -53,7 +52,7 @@ pub struct InputState
 
 struct InputHistoryIterator
 {
-    current: Option<CowArc<InputHistory>>
+    current: Option<Arc<InputHistory>>
 }
 
 impl Iterator<(Option<f64>, WindowEvent)> for InputHistoryIterator
@@ -62,7 +61,7 @@ impl Iterator<(Option<f64>, WindowEvent)> for InputHistoryIterator
     {
         let (next, res) = match self.current {
             Some(ref next) => {
-                let next = next.get();
+                let next = next.deref();
                 (next.older.clone(), Some((next.time.clone(), next.event.clone())))
             },
             None => (None, None)
@@ -89,7 +88,7 @@ impl InputState
 
     fn event(&mut self, time: Option<f64>, event: WindowEvent)
     {
-        self.history = Some(CowArc::new( InputHistory{
+        self.history = Some(Arc::new( InputHistory{
             older: self.history.clone(),
             time: time,
             event: event.clone()
@@ -192,20 +191,19 @@ impl InputState
 
 struct OVR
 {
-    port: Port<ovr::Message>,
     sensor: ovr::SensorFusion
 }
 
 struct WindowHandle
 {
     id: uint,
-    window: MutexArc<Window>,
-    port: Port<(f64, WindowEvent)>,
+    window: Arc<Mutex<Window>>,
+    receiver: Receiver<(f64, WindowEvent)>,
 }
 
 struct ThreadState
 {
-    cmd: Port<Command>,
+    cmd: Receiver<Command>,
     state: InputState,
     max_id: uint,
     windows: ~[WindowHandle],
@@ -214,7 +212,7 @@ struct ThreadState
 
 impl ThreadState
 {
-    fn new(cmd: Port<Command>) -> ThreadState
+    fn new(cmd: Receiver<Command>) -> ThreadState
     {
         ThreadState {
             cmd: cmd,
@@ -231,7 +229,7 @@ impl ThreadState
         let mut cmd_handle = select.handle(&self.cmd);
         let mut win_handles = ~[];
         for win in self.windows.iter() {
-            win_handles.push(select.handle(&win.port));
+            win_handles.push(select.handle(&win.receiver));
         }
 
         unsafe {  
@@ -243,7 +241,8 @@ impl ThreadState
             select.wait();
 
             for p in self.windows.iter() {
-                match p.port.try_recv() {
+                let dat = p.receiver.try_recv();
+                match dat {
                     Empty | Disconnected => (),
                     Data((time, data)) => {
                         self.state.event(Some(time), data);
@@ -261,14 +260,14 @@ impl ThreadState
         }
     }
 
-    fn add_window(&mut self, win: MutexArc<Window>, port: Port<(f64, WindowEvent)>) -> uint
+    fn add_window(&mut self, win: Arc<Mutex<Window>>, receiver: Receiver<(f64, WindowEvent)>) -> uint
     {
         let id = self.max_id;
         self.max_id += 1;
         self.windows.push(WindowHandle {
             id: id,
             window: win,
-            port: port
+            receiver: receiver
         });
         id
     }
@@ -303,7 +302,7 @@ impl ThreadState
     }
 }
 
-fn thread(cmd: Port<Command>)
+fn thread(cmd: Receiver<Command>)
 {
     let mut ts = ThreadState::new(cmd);
 
@@ -311,20 +310,13 @@ fn thread(cmd: Port<Command>)
         let cmd = ts.wait();
 
         match cmd {
-            AddPort(port, window, reply) => {
-                reply(ts.add_window(window, port));
-            },
-            AddOVR(port) => {
-                println!("adding ovr");
-                ts.ovr = Some(OVR {
-                    port: port,
-                    sensor: ovr::SensorFusion::new().unwrap(),
-                });
+            AddReceiver(receiver, window, reply) => {
+                reply(ts.add_window(window, receiver));
             },
             SetPos(id, (x, y)) => {
                  ts.set_pos(id, x, y);
             }
-            RemovePort(id, reply) => {
+            RemoveReceiver(id, reply) => {
                 reply(ts.remove(id));
             },
             Finish(reply) => {
@@ -350,7 +342,7 @@ fn thread(cmd: Port<Command>)
 
 pub struct InputManager
 {
-    priv cmd: Chan<Command>,
+    priv cmd: Sender<Command>,
     priv ovr_sensor_device: Option<ovr::SensorDevice>,
     priv ovr_hmd_device: Option<ovr::HMDDevice>,
     priv ovr_device_manager: Option<ovr::DeviceManager>,
@@ -360,40 +352,34 @@ impl InputManager
 {
     pub fn new() -> InputManager
     {
-        let (port, conn) = Chan::new();
+        let (sender, receiver) = channel();
 
         let task = task::task().named("input");
 
         // prime the channel to avoid a bug in Select
-        conn.send(Ack);
+        sender.send(Ack);
 
         task.spawn(proc() {
-            thread(port)
+            thread(receiver)
         });
 
         InputManager {
-            cmd: conn,
+            cmd: sender,
             ovr_device_manager: None,
             ovr_hmd_device: None,
             ovr_sensor_device: None,
         }
     }
 
-    pub fn add_window(&self, window: MutexArc<Window>) -> InputHandle
+    pub fn add_window(&self, window: Arc<Mutex<Window>>, er: EventReceiver) -> InputHandle
     {
-        let (p, c) = Chan::new();
-        let mut port = None;
+        let (send, recv) = channel();
 
-        window.access(|window| {
-            mem::swap(&mut port, &mut window.event_port);
-            window.set_all_polling(true);
-        });
-        
-        self.cmd.send(AddPort(port.unwrap(), window, proc(id) c.send(id)));
+        self.cmd.send(AddReceiver(er.to_receiver(), window, proc(id) send.send(id)));
 
         InputHandle {
             cmd: self.cmd.clone(),
-            handle: p.recv()
+            handle: recv.recv()
         }
     }
 
@@ -409,9 +395,9 @@ impl InputManager
 
     pub fn finish(&self)
     {
-        let (p, c) = Chan::new();
-        self.cmd.send(Finish(proc() c.send(())));
-        p.recv()     
+        let (send, recv) = channel();
+        self.cmd.send(Finish(proc() send.send(())));
+        recv.recv()     
     }
 
     pub fn setup_ovr(&mut self) -> bool
@@ -443,9 +429,7 @@ impl InputManager
 
         match self.ovr_sensor_device {
             Some(ref mut sd) => {
-                let (port, chan) = Chan::new();
-                sd.register_chan(~chan);
-                self.cmd.send(AddOVR(port));
+                fail!("todo");
             },
             None => return false
         }
@@ -467,7 +451,7 @@ impl InputManager
 #[deriving(Clone)]
 pub struct InputHandle
 {
-    priv cmd: Chan<Command>,
+    priv cmd: Sender<Command>,
     priv handle: window_id,
 }
 
@@ -475,9 +459,9 @@ impl InputHandle
 {
     pub fn get(&self) -> InputState
     {
-        let (p, c) = Chan::new();
-        self.cmd.send(Get(proc(state) c.send(state)));
-        p.recv()
+        let (send, recv) = channel();
+        self.cmd.send(Get(proc(state) send.send(state)));
+        recv.recv()
     }
 
     pub fn set_cursor(&mut self, x: f64, y: f64)

@@ -1,4 +1,5 @@
-use sync::MutexArc;
+use std::cell::Cell;
+use sync::{Arc, Mutex};
 use glfw::{Window, Windowed, FullScreen, Monitor, WindowMode};
 use input::{InputManager, InputHandle};
 
@@ -10,7 +11,7 @@ use ovr;
 #[deriving(Clone)]
 pub struct Display
 {
-    priv window: MutexArc<Window>,
+    priv window: Arc<Mutex<Window>>,
     priv handle: InputHandle,
     priv hmd_info: Option<ovr::HMDInfo>
 }
@@ -25,9 +26,9 @@ impl Display
     fn window(im: &mut InputManager, size: (u32, u32), win: WindowMode) -> Option<(Display, InputHandle)>
     {
         let (width, height) = size;
-        let window = Window::create(width, height, "Snowmew", win);
-        let window = match window {
-            Some(window) => window,
+        let win_opt = Window::create(width, height, "Snowmew", win);
+        let (window, events) = match win_opt {
+            Some((window, events)) => (window, events),
             None => return None
         };
 
@@ -35,9 +36,10 @@ impl Display
 
         gl::load_with(glfw::get_proc_address);
 
+        window.set_all_polling(true);
         window.show();
-        let window = MutexArc::new(window);
-        let handle = im.add_window(window.clone());
+        let window = Arc::new(Mutex::new(window));
+        let handle = im.add_window(window.clone(), events);
 
         Some((Display {
             window: window,
@@ -116,17 +118,15 @@ impl Display
 
     pub fn size(&self) -> (uint, uint)
     {
-        self.window.access(|window| {
-            let (w, h) = window.get_size();
-            (w as uint, h as uint)
-        })
+        let win = self.window.deref().lock();
+        let (w, h) = win.deref().get_size();
+        (w as uint, h as uint)
     }
 
     pub fn swap_buffers(&self)
     {
-        self.window.access(|window| {
-            window.swap_buffers();
-        })
+        let win = self.window.deref().lock();
+        win.deref().swap_buffers()
     }
 
     pub fn is_hmd(&self) -> bool
@@ -141,40 +141,37 @@ impl Display
 
     pub fn set_cursor_mode(&mut self, cm: glfw::CursorMode)
     {
-        self.window.access(|win| {
-            win.set_cursor_mode(cm);
-        });
+        let win = self.window.deref().lock();
+        win.deref().set_cursor_mode(cm);
     }
 
     pub fn get_context_version(&mut self) -> (uint, uint)
     {
-        self.window.access(|win| {
-            let version = win.get_context_version();
-            println!("{:?}", version);
-            (version.major, version.minor)
-        })
+        let win = self.window.deref().lock();
+         let version = win.deref().get_context_version();
+        println!("{:?}", version);
+        (version.major, version.minor)
     }
 
     pub fn make_current(&mut self)
     {
-        self.window.access(|win| {
-            win.make_context_current();
-        });
+        let win = self.window.deref().lock();
+        win.deref().make_context_current();
     }
 
     pub fn make_render_context(&mut self) -> Option<RenderContext>
     {
-        self.window.access(|win| {
-            let window = win.create_shared(0, 0, "Render Context", glfw::Windowed);
-            match window {
-                Some(win) => {
-                    Some(RenderContext {
-                        context: win
-                    })
-                },
-                None => None
-            }
-        })
+        let win = self.window.deref().lock();
+
+        let window = win.deref().create_shared(0, 0, "Render Context", glfw::Windowed);
+        match window {
+            Some((win, evt)) => {
+                Some(RenderContext {
+                    context: win
+                })
+            },
+            None => None
+        }
     }
 }
 

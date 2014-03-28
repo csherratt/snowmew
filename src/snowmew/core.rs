@@ -1,7 +1,7 @@
 
 use std::default::Default;
 
-use sync::CowArc;
+use sync::Arc;
 
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_set_to_map, join_maps, JoinMapSetIterator, JoinMapIterator};
@@ -91,13 +91,7 @@ impl Ord for Drawable
     }
 }
 
-impl TotalEq for Drawable {
-    fn equals(&self, other: &Drawable) -> bool
-    {
-        self.geometry == other.geometry &&
-        self.material == other.material
-    }
-}
+impl TotalEq for Drawable {}
 
 impl TotalOrd for Drawable {
     fn cmp(&self, other: &Drawable) -> Ordering
@@ -156,7 +150,7 @@ pub struct Database {
     priv vertex:        BTreeMap<object_key, VertexBuffer>,
     priv material:      BTreeMap<object_key, Material>,
     priv light:         BTreeMap<object_key, Light>,
-    position:           CowArc<position::Deltas>,
+    position:           Arc<position::Deltas>,
 
     // --- indexes ---
     // map all children to a parent
@@ -191,7 +185,7 @@ impl Database {
             vertex:             BTreeMap::new(),
             material:           BTreeMap::new(),
             light:              BTreeMap::new(),
-            position:           CowArc::new(position::Deltas::new()),
+            position:           Arc::new(position::Deltas::new()),
 
             // --- indexes ---
             // map all children to a parent
@@ -308,7 +302,7 @@ impl Database {
 
             let poid = self.objects.find(&key).unwrap().parent;
             let pid = self.get_position_id(poid);
-            let id = self.position.get_mut().insert(pid, Transform3D::new(1f32, Quat::identity(), Vec3::new(0f32, 0f32, 0f32)));
+            let id = self.position.make_unique().insert(pid, Transform3D::new(1f32, Quat::identity(), Vec3::new(0f32, 0f32, 0f32)));
             self.location.insert(key, id);
             id
         }
@@ -317,13 +311,13 @@ impl Database {
     pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
     {
         let id = self.get_position_id(key);
-        self.position.get_mut().update(id, location);
+        self.position.make_unique().update(id, location);
     }
 
     pub fn location(&self, key: object_key) -> Option<Transform3D<f32>>
     {
         match self.location.find(&key) {
-            Some(id) => Some(self.position.get().get_delta(*id)),
+            Some(id) => Some(self.position.deref().get_delta(*id)),
             None => None
         }
     }
@@ -363,6 +357,16 @@ impl Database {
         }
 
         None
+    }
+
+    pub fn last_name(&self, key: object_key) -> ~str
+    {
+        match self.objects.find(&key) {
+            Some(node) => {
+                self.strings.find(&node.name).unwrap().to_owned()
+            },
+            None => ~"base"
+        }
     }
 
     pub fn name(&self, key: object_key) -> ~str
@@ -578,7 +582,7 @@ impl<'a> Iterator<(object_key, uint)> for IterObjs<'a>
                         None => ()
                     }
 
-                    return Some((*object_key, self.db.position.get().get_loc(*loc)))
+                    return Some((*object_key, self.db.position.deref().get_loc(*loc)))
                 },
                 None => { self.stack.pop(); }
             }
