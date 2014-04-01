@@ -29,8 +29,7 @@ use cgmath::angle::{ToRad, deg};
 
 use snowmew::core::{object_key};
 use snowmew::camera::Camera;
-use snowmew::display::Display;
-use snowmew::input::InputHandle;
+use snowmew::io::Window;
 
 use db::Graphics;
 use pipeline::{DrawTarget, Pipeline};
@@ -58,7 +57,7 @@ enum RenderCommand {
     Finish(Sender<()>)
 }
 
-fn swap_buffers(disp: &mut Display)
+fn swap_buffers(disp: &mut Window)
 {
     disp.swap_buffers();
     unsafe {
@@ -95,7 +94,7 @@ fn render_task(chan: Sender<RenderCommand>)
     }
 }
 
-fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, display: Display, ih: InputHandle)
+fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, window: Window, size: (i32, i32))
 {
     let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
@@ -104,17 +103,16 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, dis
     let mut db = db::Graphics::new(db);
     let mut scene = 0;
     let mut camera = 0;
-    let mut display = display;
-    let cfg = Config::new(display.get_context_version());
+    let mut window = window;
+    let cfg = Config::new(window.get_context_version());
 
-    display.make_current();
-    gl::load_with(glfw::get_proc_address);
+    window.make_context_current();
 
-    let mut pipeline = if display.is_hmd() {
-        ~pipeline::Hmd::new(pipeline::Forward::new(), 1.7, &display.hmd()) as ~pipeline::Pipeline
-    } else {
-        let (width, height) = display.size();
-        ~pipeline::Defered::new(pipeline::Forward::new(), width, height) as ~pipeline::Pipeline
+    let mut pipeline = //if window.is_hmd() {
+        //~pipeline::Hmd::new(pipeline::Forward::new(), 1.7, &window.hmd()) as ~pipeline::Pipeline
+    /*} else */ {
+        let (width, height) = size;
+        ~pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint) as ~pipeline::Pipeline
     };
 
     // todo move!
@@ -124,7 +122,6 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, dis
     gl::Enable(gl::LINE_SMOOTH);
     gl::Enable(gl::BLEND);
     gl::CullFace(gl::BACK);
-    glfw::set_swap_interval(0);
 
     db.load(&cfg);
 
@@ -179,17 +176,17 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, dis
                 let rot = db.current.location(camera).unwrap().get().rot;
                 let camera_trans = db.current.position(camera);
 
-                let input = ih.get();
-                let rift = input.predicted;
-                let rift = rift.mul_q(&Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
+                //let input = ih.get();
+                //let rift = input.predicted;
+                //et rift = rift.mul_q(&Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
 
-                let camera = Camera::new(rot.mul_q(&rift), camera_trans.mul_m(&rift.to_mat4()));
+                let camera = Camera::new(rot, camera_trans);
 
-                let dt = DrawTarget::new(0, (0, 0), display.size());
+                let dt = DrawTarget::new(0, (0, 0), (1920, 1080));
 
-                pipeline.render(dl, &db, &camera.get_matrices(display.size()), &dt);
+                pipeline.render(dl, &db, &camera.get_matrices(size), &dt);
 
-                swap_buffers(&mut display);
+                swap_buffers(&mut window);
                 
                 let end = precise_time_s();
                 print!("\rfps: {:3.2f}", 1./(end-time));
@@ -241,7 +238,7 @@ pub struct RenderManager
 
 impl RenderManager
 {
-    pub fn new(db: snowmew::core::Database, display: Display, ih: InputHandle) -> RenderManager
+    pub fn new(db: snowmew::core::Database, window: Window, size: (i32, i32)) -> RenderManager
     {
         let (sender, receiver) = channel();
 
@@ -250,10 +247,9 @@ impl RenderManager
 
         native::task::spawn_opts(taskopts, proc() {
             let db = db;
-            let display = display;
-            let ih = ih;
+            let window = window;
 
-            render_server(receiver, db, display, ih);
+            render_server(receiver, db, window, size);
         });
 
 

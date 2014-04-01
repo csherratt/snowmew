@@ -6,6 +6,7 @@
 #[feature(macro_rules)];
 #[feature(globs)];
 
+extern crate semver;
 extern crate std;
 extern crate time;
 extern crate glfw;
@@ -28,69 +29,35 @@ pub use position::{Positions, Deltas, CalcPositionsCl};
 pub mod core;
 pub mod geometry;
 pub mod camera;
-pub mod input;
-pub mod display;
+pub mod io;
+//pub mod display;
 pub mod material;
 pub mod position;
 mod timing;
 
 mod default;
 
-fn setup_glfw()
+fn setup_glfw() -> (glfw::Glfw, Receiver<glfw::Error>)
 {
-    glfw::window_hint(glfw::ContextVersion(4, 1));
-    glfw::window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
-    glfw::window_hint(glfw::OpenglForwardCompat(true));
-    glfw::window_hint(glfw::Visible(false));
-    glfw::window_hint(glfw::DepthBits(0));
-    glfw::window_hint(glfw::StencilBits(0));
-    glfw::set_swap_interval(0);
+    let (glfw, erros) = glfw::init().ok().unwrap();
+
+    glfw.window_hint(glfw::ContextVersion(4, 1));
+    glfw.window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
+    glfw.window_hint(glfw::OpenglForwardCompat(true));
+    glfw.window_hint(glfw::Visible(false));
+    glfw.window_hint(glfw::DepthBits(0));
+    glfw.window_hint(glfw::StencilBits(0));
+
+    (glfw, erros)
 }
 
-pub fn start_managed_input(f: proc(&mut input::InputManager))
+
+pub fn start_manual_input(f: proc(&mut io::IOManager))
 {
-    glfw::start(proc() {
-        setup_glfw();
-        let f = f;
-        let im = input::InputManager::new();
-        let (send, recv) = channel();
+    let (glfw, errors) = setup_glfw();
 
-        let task = std::task::task().named("game task");
-
-        task.spawn(proc() {
-            green::run(proc() {
-                let mut im = im;
-                println!("game- starting")
-                f(&mut im);
-                println!("game- completed");
-                send.send(im);
-            });
-        });
-
-        loop {
-            glfw::wait_events();
-            match recv.try_recv() {
-                std::comm::Empty => (),
-                std::comm::Disconnected => fail!("Should not have received Disconnected"),
-                std::comm::Data(im) => {
-                    im.finish();
-                    return
-                }
-            }
-        }
-    });
-}
-
-pub fn start_manual_input(f: proc(&mut input::InputManager))
-{
-    glfw::start(proc() {
-        setup_glfw();
-
-        let f = f;
-        let mut im = input::InputManager::new();
-        f(&mut im);
-        println!("Cleaning up input manager");
-        im.finish();
-        println!("done");
-    });
+    let f = f;
+    let mut im = io::IOManager::new(glfw);
+    f(&mut im);
+    println!("done");
 }

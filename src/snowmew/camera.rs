@@ -48,7 +48,7 @@ impl Camera {
         Mat4::look_at(&eye, &target, &up)
     }
 
-    pub fn get_matrices(&self, size: (uint, uint)) -> DrawMatrices
+    pub fn get_matrices(&self, size: (i32, i32)) -> DrawMatrices
     {
         let (w, h) = size;
         let (w, h) = (w as f32, h as f32);
