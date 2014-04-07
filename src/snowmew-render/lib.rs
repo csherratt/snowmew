@@ -15,6 +15,7 @@ extern crate ovr = "oculus-vr";
 extern crate collections;
 extern crate native;
 extern crate time;
+extern crate libc;
 
 pub use config::Config;
 
@@ -51,8 +52,8 @@ mod config;
 
 enum RenderCommand {
     Update(snowmew::core::Database, object_key, object_key),
-    Waiting(Sender<Option<~Drawlist>>),
-    Complete(~Drawlist),
+    Waiting(Sender<Option<~DrawlistStandard>>),
+    Complete(~DrawlistStandard),
     Setup(Sender<Option<CommandQueue>>),
     Finish(Sender<()>)
 }
@@ -184,7 +185,7 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
 
                 let dt = DrawTarget::new(0, (0, 0), (1920, 1080));
 
-                pipeline.render(dl, &db, &camera.get_matrices(size), &dt);
+                pipeline.render(&mut *dl as &mut Drawlist, &db, &camera.get_matrices(size), &dt);
 
                 swap_buffers(&mut window);
                 
@@ -233,7 +234,7 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
 
 pub struct RenderManager
 {
-    priv ch: Sender<RenderCommand>
+    ch: Sender<RenderCommand>
 }
 
 impl RenderManager

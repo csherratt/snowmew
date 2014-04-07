@@ -16,8 +16,8 @@ pub struct Camera
 
 pub struct DrawMatrices
 {
-    projection: Mat4<f32>,
-    view: Mat4<f32>
+    pub projection: Mat4<f32>,
+    pub view: Mat4<f32>
 }
 
 impl Camera {

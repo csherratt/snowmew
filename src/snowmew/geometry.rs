@@ -18,22 +18,22 @@ pub enum Primative {
 #[deriving(Clone)]
 pub struct VertexGeo
 {
-    position: Vec3<f32>
+    pub position: Vec3<f32>
 }
 
 #[deriving(Clone)]
 pub struct VertexGeoTex
 {
-    position: Vec3<f32>,
-    texture: Vec2<f32>
+    pub position: Vec3<f32>,
+    pub texture: Vec2<f32>
 }
 
 #[deriving(Clone)]
 pub struct VertexGetTexNorm
 {
-    position: Vec3<f32>,
-    texture: Vec2<f32>,
-    normal: Vec3<f32>
+    pub position: Vec3<f32>,
+    pub texture: Vec2<f32>,
+    pub normal: Vec3<f32>
 }
 
 #[deriving(Clone)]
@@ -54,17 +54,17 @@ impl Default for Vertex
 
 #[deriving(Clone, Default)]
 pub struct VertexBuffer {
-    vertex: Vertex,
-    index: ~[u32]
+    pub vertex: Vertex,
+    pub index: ~[u32]
 }
 
 
 #[deriving(Clone, Default)]
 pub struct Geometry {
-    vb: object_key,
-    count: uint, // number of index elements
-    offset: uint, // offset into the index buffer
-    prim: Primative
+    pub vb: object_key,
+    pub count: uint, // number of index elements
+    pub offset: uint, // offset into the index buffer
+    pub prim: Primative
 }
 
 impl Default for Primative {
@@ -80,10 +80,10 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX
             let mut found_a = -1;
             let mut found_b = -1;
             for j in range(0, 3) {
-                if a == index[i*3+j] {
+                if a == index[(i*3+j) as uint] {
                     found_a = j;
                 }
-                if b == index[i*3+j] {
+                if b == index[(i*3+j) as uint] {
                     found_b = j;
                 }
             }
@@ -92,7 +92,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX
             if found_a != -1 && found_b != -1  {
                 for j in range(0, 3) {
                     if j != found_a && j != found_b {
-                        return index[i*3+j].clone();
+                        return index[(i*3+j) as uint].clone();
                     }
                 }
             }

@@ -31,13 +31,13 @@ struct InputHistory
 #[deriving(Clone)]
 pub struct InputState
 {
-    priv history: Option<Arc<InputHistory>>,
-    priv keyboard: HashSet<Key>,
-    priv mouse: HashSet<MouseButton>,
-    priv should_close: bool,
-    priv focus: bool,
-    priv framebuffer_size: (i32, i32),
-    priv screen_size: (i32, i32),
+    history: Option<Arc<InputHistory>>,
+    keyboard: HashSet<Key>,
+    mouse: HashSet<MouseButton>,
+    should_close: bool,
+    focus: bool,
+    framebuffer_size: (i32, i32),
+    screen_size: (i32, i32),
     predicted: Quat<f32>,
 }
 
@@ -206,19 +206,19 @@ struct WindowHandle
 
 pub struct IOManager
 {
-    priv glfw: Glfw,
-    priv ovr_sensor_device: Option<ovr::SensorDevice>,
-    priv ovr_hmd_device: Option<ovr::HMDDevice>,
-    priv ovr_device_manager: Option<ovr::DeviceManager>,
-    priv windows: TrieMap<WindowHandle>,
-    priv window_id: uint
+    glfw: Glfw,
+    ovr_sensor_device: Option<ovr::SensorDevice>,
+    ovr_hmd_device: Option<ovr::HMDDevice>,
+    ovr_device_manager: Option<ovr::DeviceManager>,
+    windows: TrieMap<WindowHandle>,
+    window_id: uint
 }
 
 pub struct Window
 {
-    priv handle: InputHandle,
-    priv render: RenderContext,
-    priv version: semver::Version
+    handle: InputHandle,
+    render: RenderContext,
+    version: semver::Version
 }
 
 impl IOManager
@@ -264,14 +264,14 @@ impl IOManager
 
         println!("{:?}", window.get_context_version());
 
-        window.make_context_current();
+        window.make_current();
         gl::load_with(|name| self.glfw.get_proc_address(name));
         glfw::make_context_current(None);
 
         window.set_all_polling(true);
         window.show();
         let version = window.get_context_version();
-        let rc = window.render_context().unwrap();
+        let rc = window.render_context();
         let handle = self.add_window(window, events);
 
         Some(Window {
@@ -357,7 +357,7 @@ impl IOManager
 #[deriving(Clone)]
 pub struct InputHandle
 {
-    priv handle: uint,
+    handle: uint,
 }
 
 impl Window
@@ -369,7 +369,7 @@ impl Window
 
     pub fn make_context_current(&self)
     {
-        self.render.make_context_current()
+        self.render.make_current()
     }
 
     pub fn get_context_version(&self) -> (uint, uint)

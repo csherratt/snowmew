@@ -188,17 +188,17 @@ void main() {
 #[deriving(Clone)]
 pub struct Graphics
 {
-    last: Database,
-    current: Database,
-    vertex: BTreeMap<object_key, VertexBuffer>,
+    pub last: Database,
+    pub current: Database,
+    pub vertex: BTreeMap<object_key, VertexBuffer>,
 
-    flat_shader: Option<Shader>,
-    flat_instance_shader: Option<Shader>,
-    flat_bindless_shader: Option<Shader>,
+    pub flat_shader: Option<Shader>,
+    pub flat_instance_shader: Option<Shader>,
+    pub flat_bindless_shader: Option<Shader>,
 
-    defered_shader: Option<Shader>,
+    pub defered_shader: Option<Shader>,
 
-    ovr_shader: Option<Shader>,
+    pub ovr_shader: Option<Shader>,
 }
 
 impl Graphics

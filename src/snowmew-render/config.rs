@@ -20,8 +20,8 @@ impl ConfigOption
 
 pub struct Config
 {
-    priv max_size: uint,
-    priv bindless: ConfigOption
+    max_size: uint,
+    bindless: ConfigOption
 }
 
 impl Config

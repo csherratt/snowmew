@@ -4,12 +4,12 @@ use gl::types::{GLuint};
 
 pub struct Query
 {
-    priv id: GLuint
+    id: GLuint
 }
 
 pub struct TimeQuery
 {
-    priv quary: Query
+    quary: Query
 }
 
 impl Query

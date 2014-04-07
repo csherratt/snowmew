@@ -60,7 +60,7 @@ fn main() {
 
         let dir = db.find("core/material/flat").unwrap();
 
-        let mut rng = StdRng::new();
+        let mut rng = StdRng::new().unwrap();
 
         let mut materials = ~[];
         for oid in db.walk_dir(dir) {

@@ -134,9 +134,9 @@ calc_gen(global Transform3D *t, global Mat4 *gen, int offset_last, int offset_th
 
 pub struct Delta
 {
-    priv delta : Transform3D<f32>,
-    priv parent: u32,
-    priv padd: [u32, ..3]
+    delta : Transform3D<f32>,
+    parent: u32,
+    padd: [u32, ..3]
 
 }
 
@@ -169,8 +169,8 @@ impl Clone for Delta
 
 pub struct Deltas
 {
-    priv gen: ~[(u32, u32)],
-    priv delta: ~[Delta],
+    gen: ~[(u32, u32)],
+    delta: ~[Delta],
 }
 
 impl Clone for Deltas
@@ -208,7 +208,7 @@ impl Deltas
     pub fn get_loc(&self, id: Id) -> uint
     {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen];
+        let (gen_offset, _) = self.gen[gen as uint];
 
         (gen_offset + offset) as uint
     }
@@ -216,7 +216,7 @@ impl Deltas
     fn add_loc(&mut self, gen: u32) -> (uint, u32)
     {
         if gen as uint == self.gen.len() {
-            let (s, len) = self.gen[gen-1];
+            let (s, len) = self.gen[(gen-1) as uint];
             self.gen.push((s+len, 1));
 
             ((s+len) as uint, 0)
@@ -226,8 +226,8 @@ impl Deltas
                 *t = (off+1, len);
             }
 
-            let (off, len) = self.gen[gen];
-            self.gen[gen] = (off, len+1);
+            let (off, len) = self.gen[gen as uint];
+            self.gen[gen as uint] = (off, len+1);
 
             ((off+len) as uint, len)
         }
@@ -287,8 +287,8 @@ impl Deltas
         let mut last_gen_off = 0;
         for &(gen_off, len) in self.gen.slice_from(1).iter() {
             for off in range(gen_off, gen_off+len) {
-                let ploc = last_gen_off + self.delta[off].parent;
-                let nmat = mat[ploc].mul_m(&self.delta[off].delta.to_mat4());
+                let ploc = last_gen_off + self.delta[off as uint].parent;
+                let nmat = mat[ploc as uint].mul_m(&self.delta[off as uint].delta.to_mat4());
                 mat.push(nmat);
             }
             last_gen_off = gen_off;
@@ -371,7 +371,7 @@ impl Deltas
 }
 
 pub struct PositionsGL {
-    gen: ~[(u32, u32)]
+    pub gen: ~[(u32, u32)]
 }
 
 impl PositionsGL
@@ -379,7 +379,7 @@ impl PositionsGL
     pub fn get_loc(&self, id: Id) -> uint
     {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen];
+        let (gen_offset, _) = self.gen[gen as uint];
 
         (gen_offset + offset) as uint
     }
@@ -387,8 +387,8 @@ impl PositionsGL
 
 pub struct Positions
 {
-    priv gen: ~[(u32, u32)],
-    priv pos: ~[Mat4<f32>],
+    gen: ~[(u32, u32)],
+    pos: ~[Mat4<f32>],
 }
 
 impl Clone for Positions
@@ -416,7 +416,7 @@ impl Positions
     pub fn get_loc(&self, id: Id) -> uint
     {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen];
+        let (gen_offset, _) = self.gen[gen as uint];
 
         (gen_offset + offset) as uint
     }

@@ -37,9 +37,9 @@ mod timing;
 
 mod default;
 
-fn setup_glfw() -> (glfw::Glfw, Receiver<glfw::Error>)
+fn setup_glfw() -> glfw::Glfw
 {
-    let (glfw, erros) = glfw::init().ok().unwrap();
+    let glfw = glfw::init(glfw::FAIL_ON_ERRORS).ok().unwrap();
 
     glfw.window_hint(glfw::ContextVersion(4, 1));
     glfw.window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
@@ -48,13 +48,13 @@ fn setup_glfw() -> (glfw::Glfw, Receiver<glfw::Error>)
     glfw.window_hint(glfw::DepthBits(0));
     glfw.window_hint(glfw::StencilBits(0));
 
-    (glfw, erros)
+    glfw
 }
 
 
 pub fn start_manual_input(f: proc(&mut io::IOManager))
 {
-    let (glfw, errors) = setup_glfw();
+    let glfw = setup_glfw();
 
     let f = f;
     let mut im = io::IOManager::new(glfw);

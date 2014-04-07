@@ -5,7 +5,7 @@ use std::mem;
 use std::cast;
 use std::ptr;
 
-use std::libc::c_void;
+use libc::c_void;
 
 use snowmew::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGetTexNorm};
 use snowmew::geometry::{Geo, GeoTex, GeoTexNorm, Empty};

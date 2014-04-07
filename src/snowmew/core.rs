@@ -48,8 +48,8 @@ impl Default for ObjectType
 #[deriving(Clone)]
 pub struct Light
 {
-    color: Vec3<f32>,
-    intensity: f32
+    pub color: Vec3<f32>,
+    pub intensity: f32
 }
 
 impl Default for Light
@@ -66,16 +66,16 @@ impl Default for Light
 #[deriving(Clone, Default)]
 pub struct Object
 {
-    obj_type: ObjectType,
-    parent: object_key,
-    name: object_key,
+    pub obj_type: ObjectType,
+    pub parent: object_key,
+    pub name: object_key,
 }
 
 #[deriving(Clone, Default, Eq)]
 pub struct Drawable
 {
-    geometry: object_key,
-    material: object_key
+    pub geometry: object_key,
+    pub material: object_key
 }
 
 impl Ord for Drawable
@@ -109,7 +109,7 @@ pub type object_key = u32;
 pub type string_key = u32;
 
 pub struct Location {
-    priv trans: Transform3D<f32>
+    trans: Transform3D<f32>
 }
 
 impl Default for Location
@@ -137,28 +137,28 @@ impl Clone for Location
 
 #[deriving(Clone)]
 pub struct Database {
-    priv last_sid:      string_key,
-    priv strings:       BTreeMap<string_key, ~str>,
-    priv string_to_key: BTreeMap<~str, string_key>,
+    last_sid:      string_key,
+    strings:       BTreeMap<string_key, ~str>,
+    string_to_key: BTreeMap<~str, string_key>,
 
     // raw data
-    priv last_oid:      object_key,
-    priv objects:       BTreeMap<object_key, Object>,
-    priv location:      BTreeMap<object_key, position::Id>,
-    priv draw:          BTreeMap<object_key, Drawable>,
-    priv geometry:      BTreeMap<object_key, Geometry>,
-    priv vertex:        BTreeMap<object_key, VertexBuffer>,
-    priv material:      BTreeMap<object_key, Material>,
-    priv light:         BTreeMap<object_key, Light>,
-    position:           Arc<position::Deltas>,
+    last_oid:      object_key,
+    objects:       BTreeMap<object_key, Object>,
+    location:      BTreeMap<object_key, position::Id>,
+    draw:          BTreeMap<object_key, Drawable>,
+    geometry:      BTreeMap<object_key, Geometry>,
+    vertex:        BTreeMap<object_key, VertexBuffer>,
+    material:      BTreeMap<object_key, Material>,
+    light:         BTreeMap<object_key, Light>,
+    pub position:  Arc<position::Deltas>,
 
     // --- indexes ---
     // map all children to a parent
-    priv index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
-    draw_bins: BTreeMap<object_key, BTreeSet<position::Id>>,
+    index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
+    pub draw_bins: BTreeMap<object_key, BTreeSet<position::Id>>,
 
     // other
-    priv timing: Timing
+    timing: Timing
 }
 
 impl Database {
@@ -556,8 +556,8 @@ struct IterObjsLayer<'a>
 
 pub struct IterObjs<'a>
 {
-    priv db: &'a Database,
-    priv stack: ~[IterObjsLayer<'a>]
+    db: &'a Database,
+    stack: ~[IterObjsLayer<'a>]
 }
 
 impl<'a> Iterator<(object_key, uint)> for IterObjs<'a>

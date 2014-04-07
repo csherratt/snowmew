@@ -1,7 +1,7 @@
 use std::mem;
 use std::ptr;
 use std::cast;
-use std::libc::{c_void, };
+use libc::{c_void};
 use std::slice::raw::mut_buf_as_slice;
 
 use cgmath::matrix::{Mat4, Matrix};
@@ -32,8 +32,8 @@ use Config;
 
 pub struct ObjectCull<IN>
 {
-    priv input: IN,
-    priv camera: Mat4<f32>
+    input: IN,
+    camera: Mat4<f32>
 }
 
 impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> ObjectCull<IN>
@@ -94,14 +94,14 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>)>>
 
 pub struct Expand<'a, IN>
 {
-    priv input: IN,
-    priv material_id: object_key,
-    priv vb_id: object_key,
-    priv last_material_id: object_key,
-    priv last_vb_id: object_key,
-    priv mat: Option<Mat4<f32>>,
-    priv geometry: Option<&'a Geometry>,
-    priv db: &'a Graphics
+    input: IN,
+    material_id: object_key,
+    vb_id: object_key,
+    last_material_id: object_key,
+    last_vb_id: object_key,
+    mat: Option<Mat4<f32>>,
+    geometry: Option<&'a Geometry>,
+    db: &'a Graphics
 }
 
 impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Expand<'a, IN>
@@ -201,29 +201,29 @@ pub trait Drawlist
 
 pub struct DrawlistStandard
 {
-    priv db: Option<Graphics>,
-    priv scene: object_key,
-    priv position: Option<Positions>,
+    db: Option<Graphics>,
+    scene: object_key,
+    position: Option<Positions>,
 
-    priv material_to_id: TreeMap<object_key, u32>,
-    priv id_to_material: TreeMap<u32, object_key>,
+    material_to_id: TreeMap<object_key, u32>,
+    id_to_material: TreeMap<u32, object_key>,
 
-    priv size: uint,
+    size: uint,
 
     // one array for each component
-    priv model_matrix: [GLuint, ..4],
-    priv model_info: GLuint,
+    model_matrix: [GLuint, ..4],
+    model_info: GLuint,
 
-    priv text_model_matrix: [GLuint, ..4],
-    priv text_model_info: GLuint,
+    text_model_matrix: [GLuint, ..4],
+    text_model_info: GLuint,
 
-    priv ptr_model_matrix: [*mut Vec4<f32>, ..4],
-    priv ptr_model_info: *mut (u32, u32, u32, u32),
+    ptr_model_matrix: [*mut Vec4<f32>, ..4],
+    ptr_model_info: *mut (u32, u32, u32, u32),
 }
 
 impl DrawlistStandard
 {
-    pub fn from_config(cfg: &Config) -> ~Drawlist
+    pub fn from_config(cfg: &Config) -> ~DrawlistStandard
     {
         let buffer = &mut [0, 0, 0, 0, 0];
         let texture = &mut [0, 0, 0, 0, 0];
@@ -232,7 +232,7 @@ impl DrawlistStandard
             gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
             gl::GenTextures(buffer.len() as i32, texture.unsafe_mut_ref(0));
       
-            for i in range(0, 4) {
+            for i in range(0u, 4) {
                 gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[i]);
                 gl::BindTexture(gl::TEXTURE_BUFFER, texture[i]);
                 gl::TexBuffer(gl::TEXTURE_BUFFER, gl::RGBA32F, buffer[i]);
@@ -264,7 +264,7 @@ impl DrawlistStandard
             ptr_model_info: ptr::mut_null(),
             material_to_id: TreeMap::new(),
             id_to_material: TreeMap::new()
-        } as ~Drawlist
+        }
     }
 }
 
@@ -276,7 +276,7 @@ impl Drawlist for DrawlistStandard
         self.scene = scene;
 
         unsafe {
-            for i in range(0, 4) {
+            for i in range(0u, 4) {
                 gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
                 self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
                         (mem::size_of::<Vec4<f32>>()*self.size) as GLsizeiptr,
@@ -333,7 +333,7 @@ impl Drawlist for DrawlistStandard
 
     fn setup_scene(&mut self)
     {
-        for i in range(0, 4) {
+        for i in range(0u, 4) {
             gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
             gl::UnmapBuffer(gl::TEXTURE_BUFFER);
             assert!(0 == gl::GetError());
@@ -455,13 +455,13 @@ struct Indirect {
 
 pub struct DrawlistBindless
 {
-    priv model_matrix: GLuint,
-    priv model_delta: GLuint,
-    priv model_delta_ptr: *mut Delta,
-    priv max_size: uint,
-    priv bins: TreeMap<Drawable ,~[u32]>,
-    priv cmds: ~[DrawCommand],
-    priv gl_pos: Option<PositionsGL>
+    model_matrix: GLuint,
+    model_delta: GLuint,
+    model_delta_ptr: *mut Delta,
+    max_size: uint,
+    bins: TreeMap<Drawable ,~[u32]>,
+    cmds: ~[DrawCommand],
+    gl_pos: Option<PositionsGL>
 }
 
 

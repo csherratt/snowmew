@@ -4,7 +4,7 @@ use time::precise_time_s;
 #[deriving(Clone)]
 pub struct Timing
 {
-    priv time: ~[(f64, ~str)]
+    time: ~[(f64, ~str)]
 }
 
 impl Timing
