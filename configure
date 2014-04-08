@@ -182,9 +182,11 @@ def write_makefile(modules):
 
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
+           Bin("snowmew-editor", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
            Lib("snowmew-loader", ["snowmew"]),
+           Lib("snowmew-gui"),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),

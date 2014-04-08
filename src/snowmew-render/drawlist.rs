@@ -501,9 +501,7 @@ impl DrawlistBindless
 
         // clear bins
         for (_, data) in self.bins.mut_iter() {
-            unsafe {
-                data.set_len(0);
-            }
+            unsafe {data.set_len(0);}
         }
 
         self.gl_pos = Some(unsafe {
