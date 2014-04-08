@@ -5,9 +5,9 @@ use cgmath::vector::Vec3;
 #[deriving(Clone)]
 pub struct PhongMat
 {
-    Ks: Vec3<f32>,
-    Kd: Vec3<f32>,
-    Ka: Vec3<f32>,
+    ks: Vec3<f32>,
+    kd: Vec3<f32>,
+    ka: Vec3<f32>,
     alpha: f32
 }
 
@@ -34,13 +34,13 @@ impl Material
         Flat(color)
     }
 
-    pub fn phong(Ks: Vec3<f32>, Kd: Vec3<f32>, Ka: Vec3<f32>, alpha: f32) -> Material
+    pub fn phong(ks: Vec3<f32>, kd: Vec3<f32>, ka: Vec3<f32>, alpha: f32) -> Material
     {
         Phong(
             PhongMat {
-                Ks: Ks,
-                Kd: Kd,
-                Ka: Ka,
+                ks: ks,
+                kd: kd,
+                ka: ka,
                 alpha: alpha
             }
         )

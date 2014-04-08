@@ -1,10 +1,11 @@
-#[crate_id = "github.com/csherratt/snowmew#snowmew:0.1"];
-#[license = "ASL2"];
-#[crate_type = "lib"];
-#[comment = "A game engine in rust"];
+#![crate_id = "github.com/csherratt/snowmew#snowmew:0.1"]
+#![license = "ASL2"]
+#![crate_type = "lib"]
+#![comment = "A game engine in rust"]
 
-#[feature(macro_rules)];
-#[feature(globs)];
+#![feature(macro_rules)]
+#![feature(globs)]
+#![allow(experimental)]
 
 extern crate semver;
 extern crate std;
@@ -22,7 +23,7 @@ extern crate green;
 extern crate collections;
 extern crate ovr = "oculus-vr";
 
-pub use core::{object_key, Database};
+pub use core::{ObjectKey, Database};
 pub use geometry::{VertexBuffer};
 pub use position::{Positions, Deltas, CalcPositionsCl};
 

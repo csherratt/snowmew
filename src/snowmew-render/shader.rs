@@ -6,9 +6,6 @@ use std::cast;
 use gl;
 use gl::types::GLuint;
 
-use cgmath::matrix::Mat4;
-use cgmath::ptr::Ptr;
-
 use snowmew::material::{Material, Flat};
 
 pub static MATRIX_PROJECTION: i32 = 0;

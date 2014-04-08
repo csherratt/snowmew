@@ -1,7 +1,6 @@
-#[crate_id = "snowmew-cube"];
-
-#[feature(macro_rules)];
-#[feature(globs)];
+#![crate_id = "snowmew-cube"]
+#![feature(macro_rules)]
+#![feature(globs)]
 
 extern crate glfw;
 extern crate gl;
@@ -15,10 +14,8 @@ extern crate ovr = "oculus-vr";
 extern crate rand;
 
 use rand::{StdRng, Rng};
-use std::vec::*;
 
 use snowmew::core::Database;
-use snowmew::io::Window;
 use snowmew::camera::Camera;
 
 use render::RenderManager;
@@ -43,7 +40,7 @@ fn start(argc: int, argv: **u8) -> int {
 fn main() {
     snowmew::start_manual_input(proc(im) {
         println!("Starting");
-        let mut display = im.window((1280, 800))
+        let display = im.window((1280, 800))
                 .expect("Could not create a display");
 
         let mut db = Database::new();
@@ -92,7 +89,7 @@ fn main() {
                              Vec3::new(0f32, 0f32, 0f32)));
 
         let ih = display.handle();
-        let mut last_input = im.get(&ih);
+        let last_input = im.get(&ih);
         let (wx, wy) = last_input.screen_size();
 
         let mut ren = RenderManager::new(db.clone(), display, (wx, wy));
@@ -116,8 +113,8 @@ fn main() {
                     //display.set_cursor_mode(glfw::CursorDisabled);
                     match input_state.cursor_delta(last_input.time()) {
                         Some((x, y)) => {
-                            let (wx, wy) = input_state.screen_size();
-                            let (wx, wy) = (wx as f64, wy as f64);
+                            //let (wx, wy) = input_state.screen_size();
+                            //let (wx, wy) = (wx as f64, wy as f64);
                             //display_input.set_cursor(wx/2., wy/2.);
 
                             rot_x += x / 3.;

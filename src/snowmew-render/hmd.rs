@@ -131,10 +131,10 @@ impl HMD
 
         unsafe {
             let distortion_K = hmd.distortion_K();
-            let ChromAbParam = hmd.chroma_ab_correction();
+            let chromabparam = hmd.chroma_ab_correction();
             gl::Uniform1i(shader.uniform("Texture0"), 0);
             gl::Uniform4fv(shader.uniform("HmdWarpParam"), 1, distortion_K.unsafe_ref(0));
-            gl::Uniform4fv(shader.uniform("ChromAbParam"), 1, ChromAbParam.unsafe_ref(0));
+            gl::Uniform4fv(shader.uniform("ChromAbParam"), 1, chromabparam.unsafe_ref(0));
 
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
 

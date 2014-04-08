@@ -18,10 +18,6 @@ use cgmath::vector::*;
 use default::load_default;
 use position;
 
-use time::precise_time_s;
-
-use OpenCL::hl::CommandQueue;
-
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
     count: uint,  /* unique frame identifier */
@@ -30,7 +26,7 @@ pub struct FrameInfo {
 }
 
 #[deriving(Clone)]
-enum ObjectType {
+pub enum ObjectType {
     Invalid,
     Directory,
     Draw,
@@ -67,15 +63,15 @@ impl Default for Light
 pub struct Object
 {
     pub obj_type: ObjectType,
-    pub parent: object_key,
-    pub name: object_key,
+    pub parent: ObjectKey,
+    pub name: ObjectKey,
 }
 
 #[deriving(Clone, Default, Eq)]
 pub struct Drawable
 {
-    pub geometry: object_key,
-    pub material: object_key
+    pub geometry: ObjectKey,
+    pub material: ObjectKey
 }
 
 impl Ord for Drawable
@@ -105,8 +101,8 @@ impl TotalOrd for Drawable {
     }
 }
 
-pub type object_key = u32;
-pub type string_key = u32;
+pub type ObjectKey = u32;
+pub type StringKey = u32;
 
 pub struct Location {
     trans: Transform3D<f32>
@@ -137,25 +133,25 @@ impl Clone for Location
 
 #[deriving(Clone)]
 pub struct Database {
-    last_sid:      string_key,
-    strings:       BTreeMap<string_key, ~str>,
-    string_to_key: BTreeMap<~str, string_key>,
+    last_sid:      StringKey,
+    strings:       BTreeMap<StringKey, ~str>,
+    string_to_key: BTreeMap<~str, StringKey>,
 
     // raw data
-    last_oid:      object_key,
-    objects:       BTreeMap<object_key, Object>,
-    location:      BTreeMap<object_key, position::Id>,
-    draw:          BTreeMap<object_key, Drawable>,
-    geometry:      BTreeMap<object_key, Geometry>,
-    vertex:        BTreeMap<object_key, VertexBuffer>,
-    material:      BTreeMap<object_key, Material>,
-    light:         BTreeMap<object_key, Light>,
+    last_oid:      ObjectKey,
+    objects:       BTreeMap<ObjectKey, Object>,
+    location:      BTreeMap<ObjectKey, position::Id>,
+    draw:          BTreeMap<ObjectKey, Drawable>,
+    geometry:      BTreeMap<ObjectKey, Geometry>,
+    vertex:        BTreeMap<ObjectKey, VertexBuffer>,
+    material:      BTreeMap<ObjectKey, Material>,
+    light:         BTreeMap<ObjectKey, Light>,
     pub position:  Arc<position::Deltas>,
 
     // --- indexes ---
     // map all children to a parent
-    index_parent_child: BTreeMap<object_key, BTreeSet<object_key>>,
-    pub draw_bins: BTreeMap<object_key, BTreeSet<position::Id>>,
+    index_parent_child: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
+    pub draw_bins: BTreeMap<ObjectKey, BTreeSet<position::Id>>,
 
     // other
     timing: Timing
@@ -196,7 +192,7 @@ impl Database {
         }
     }
 
-    fn new_string(&mut self, s: &str) -> string_key
+    fn new_string(&mut self, s: &str) -> StringKey
     {
         let (update, name) = match self.string_to_key.find(&s.to_owned()) {
             None => {
@@ -218,14 +214,14 @@ impl Database {
         name
     }
 
-    fn new_key(&mut self) -> object_key
+    fn new_key(&mut self) -> ObjectKey
     {
         let new_key = self.last_oid;
         self.last_oid += 1;
         new_key        
     }
 
-    fn update_parent_child(&mut self, parent: object_key, child: object_key)
+    fn update_parent_child(&mut self, parent: ObjectKey, child: ObjectKey)
     {
         let new = match self.index_parent_child.find_mut(&parent) {
             Some(child_list) => {
@@ -245,12 +241,12 @@ impl Database {
         }
     }
 
-    pub fn object<'a>(&'a self, oid: object_key) -> Option<&'a Object>
+    pub fn object<'a>(&'a self, oid: ObjectKey) -> Option<&'a Object>
     {
         self.objects.find(&oid)
     }
 
-    pub fn new_object(&mut self, parent: Option<object_key>, name: &str) -> object_key
+    pub fn new_object(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey
     {
         let new_key = self.new_key();
         let parent = match parent {
@@ -270,12 +266,12 @@ impl Database {
         new_key
     }
 
-    pub fn add_dir(&mut self, parent: Option<object_key>, name: &str) -> object_key
+    pub fn add_dir(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey
     {
         self.new_object(parent, name)
     }
 
-    pub fn position(&self, oid: object_key) -> Mat4<f32>
+    pub fn position(&self, oid: ObjectKey) -> Mat4<f32>
     {
         let obj = self.objects.find(&oid);
         let p_mat = match obj {
@@ -290,7 +286,7 @@ impl Database {
         p_mat.mul_m(&loc)
     }
 
-    fn get_position_id(&mut self, key: object_key) -> position::Id
+    fn get_position_id(&mut self, key: ObjectKey) -> position::Id
     {
         if key == 0 {
             position::Deltas::root()
@@ -308,13 +304,13 @@ impl Database {
         }
     }
 
-    pub fn update_location(&mut self, key: object_key, location: Transform3D<f32>)
+    pub fn update_location(&mut self, key: ObjectKey, location: Transform3D<f32>)
     {
         let id = self.get_position_id(key);
         self.position.make_unique().update(id, location);
     }
 
-    pub fn location(&self, key: object_key) -> Option<Transform3D<f32>>
+    pub fn location(&self, key: ObjectKey) -> Option<Transform3D<f32>>
     {
         match self.location.find(&key) {
             Some(id) => Some(self.position.deref().get_delta(*id)),
@@ -322,18 +318,18 @@ impl Database {
         }
     }
 
-    pub fn update_drawable(&mut self, key: object_key, draw: Drawable)
+    pub fn update_drawable(&mut self, key: ObjectKey, draw: Drawable)
     {
         self.draw.insert(key, draw.clone());
 
     }
 
-    pub fn drawable<'a>(&'a self, key: object_key) -> Option<&'a Drawable>
+    pub fn drawable<'a>(&'a self, key: ObjectKey) -> Option<&'a Drawable>
     {
         self.draw.find(&key)
     }
 
-    fn ifind(&self, node: Option<object_key>, str_key: &str) -> Option<object_key>
+    fn ifind(&self, node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey>
     {
         let node = match node {
             Some(key) => key,
@@ -359,7 +355,7 @@ impl Database {
         None
     }
 
-    pub fn last_name(&self, key: object_key) -> ~str
+    pub fn last_name(&self, key: ObjectKey) -> ~str
     {
         match self.objects.find(&key) {
             Some(node) => {
@@ -369,7 +365,7 @@ impl Database {
         }
     }
 
-    pub fn name(&self, key: object_key) -> ~str
+    pub fn name(&self, key: ObjectKey) -> ~str
     {
         match self.objects.find(&key) {
             Some(node) => {
@@ -379,7 +375,7 @@ impl Database {
         }
     }
 
-    pub fn find(&self, str_key: &str) -> Option<object_key>
+    pub fn find(&self, str_key: &str) -> Option<ObjectKey>
     {
         let mut node = None;
         for s in str_key.split('/') {
@@ -392,7 +388,7 @@ impl Database {
         node
     }
 
-    fn idump(&self, depth: int, node: object_key)
+    fn idump(&self, depth: int, node: ObjectKey)
     {
         let child = match self.index_parent_child.find(&node) {
             Some(children) => children,
@@ -411,55 +407,55 @@ impl Database {
         self.idump(0, 0);
     }
 
-    pub fn new_vertex_buffer(&mut self, parent: object_key, name: &str, vb: VertexBuffer) -> object_key
+    pub fn new_vertex_buffer(&mut self, parent: ObjectKey, name: &str, vb: VertexBuffer) -> ObjectKey
     {
         let oid = self.new_object(Some(parent), name);
         self.vertex.insert(oid, vb);
         oid
     }
 
-    pub fn new_geometry(&mut self, parent: object_key, name: &str, geo: Geometry) -> object_key
+    pub fn new_geometry(&mut self, parent: ObjectKey, name: &str, geo: Geometry) -> ObjectKey
     {
         let oid = self.new_object(Some(parent), name);
         self.geometry.insert(oid, geo);
         oid
     }
 
-    pub fn geometry<'a>(&'a self, oid: object_key) -> Option<&'a Geometry>
+    pub fn geometry<'a>(&'a self, oid: ObjectKey) -> Option<&'a Geometry>
     {
         self.geometry.find(&oid)
     }
 
-    pub fn material<'a>(&'a self, oid: object_key) -> Option<&'a Material>
+    pub fn material<'a>(&'a self, oid: ObjectKey) -> Option<&'a Material>
     {
         self.material.find(&oid)
     }
 
-    pub fn new_material(&mut self, parent: object_key, name: &str, material: Material) -> object_key
+    pub fn new_material(&mut self, parent: ObjectKey, name: &str, material: Material) -> ObjectKey
     {
         let obj = self.new_object(Some(parent), name);
         self.material.insert(obj, material);
         obj
     }
 
-    pub fn material_iter<'a>(&'a self) -> BTreeMapIterator<'a, object_key, Material>
+    pub fn material_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Material>
     {
         self.material.iter()
     }
 
-    pub fn light<'a>(&'a self, oid: object_key) -> Option<&'a Light>
+    pub fn light<'a>(&'a self, oid: ObjectKey) -> Option<&'a Light>
     {
         self.light.find(&oid)
     }
 
-    pub fn new_light(&mut self, parent: object_key, name: &str, light: Light) -> object_key
+    pub fn new_light(&mut self, parent: ObjectKey, name: &str, light: Light) -> ObjectKey
     {
         let obj = self.new_object(Some(parent), name);
         self.light.insert(obj, light);
         obj
     }
 
-    pub fn set_draw(&mut self, oid: object_key, geo: object_key, material: object_key)
+    pub fn set_draw(&mut self, oid: ObjectKey, geo: ObjectKey, material: ObjectKey)
     {
         let draw = Drawable {
             geometry: geo,
@@ -484,7 +480,7 @@ impl Database {
         }
     }
 
-    pub fn walk_dir<'a>(&'a self, oid: object_key) -> BTreeSetIterator<'a, object_key>
+    pub fn walk_dir<'a>(&'a self, oid: ObjectKey) -> BTreeSetIterator<'a, ObjectKey>
     {
         let dir = self.index_parent_child.find(&oid).unwrap();
 
@@ -496,18 +492,18 @@ impl Database {
         self.draw.len()
     }
 
-    pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, object_key, Drawable>>
+    pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, ObjectKey, Drawable>>
     {
         UnwrapKey::new(self.draw.iter())
     }
 
     pub fn walk_drawables_and_pos<'a>(&'a self) -> 
-        JoinMapIterator<BTreeMapIterator<'a, object_key, Drawable>, BTreeMapIterator<'a, object_key, position::Id>>
+        JoinMapIterator<BTreeMapIterator<'a, ObjectKey, Drawable>, BTreeMapIterator<'a, ObjectKey, position::Id>>
     {
         join_maps(self.draw.iter(), self.location.iter())
     }
 
-    pub fn walk_scene<'a>(&'a self, oid: object_key) -> IterObjs<'a>
+    pub fn walk_scene<'a>(&'a self, oid: ObjectKey) -> IterObjs<'a>
     {
         let stack = match self.index_parent_child.find(&oid) {
             Some(set) => {
@@ -526,7 +522,7 @@ impl Database {
         }
     }
 
-    pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, object_key, VertexBuffer>
+    pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, VertexBuffer>
     {
         self.vertex.iter()
     }
@@ -550,8 +546,8 @@ impl Database {
 struct IterObjsLayer<'a>
 {
     child_iter: JoinMapSetIterator<
-                    BTreeSetIterator<'a, object_key>,
-                    BTreeMapIterator<'a, object_key, position::Id>>
+                    BTreeSetIterator<'a, ObjectKey>,
+                    BTreeMapIterator<'a, ObjectKey, position::Id>>
 }
 
 pub struct IterObjs<'a>
@@ -560,10 +556,10 @@ pub struct IterObjs<'a>
     stack: ~[IterObjsLayer<'a>]
 }
 
-impl<'a> Iterator<(object_key, uint)> for IterObjs<'a>
+impl<'a> Iterator<(ObjectKey, uint)> for IterObjs<'a>
 {
     #[inline(always)]
-    fn next(&mut self) -> Option<(object_key, uint)>
+    fn next(&mut self) -> Option<(ObjectKey, uint)>
     {
         loop {
             let len = self.stack.len();
@@ -572,8 +568,8 @@ impl<'a> Iterator<(object_key, uint)> for IterObjs<'a>
             }
 
             match self.stack[len-1].child_iter.next() {
-                Some((object_key, loc)) => {
-                    match self.db.index_parent_child.find(object_key) {
+                Some((oid, loc)) => {
+                    match self.db.index_parent_child.find(oid) {
                         Some(set) => {
                             self.stack.push(IterObjsLayer {
                                 child_iter: join_set_to_map(set.iter(), self.db.location.iter())
@@ -582,7 +578,7 @@ impl<'a> Iterator<(object_key, uint)> for IterObjs<'a>
                         None => ()
                     }
 
-                    return Some((*object_key, self.db.position.deref().get_loc(*loc)))
+                    return Some((*oid, self.db.position.deref().get_loc(*loc)))
                 },
                 None => { self.stack.pop(); }
             }
@@ -590,7 +586,7 @@ impl<'a> Iterator<(object_key, uint)> for IterObjs<'a>
     }
 }
 
-struct UnwrapKey<IN>
+pub struct UnwrapKey<IN>
 {
     input: IN
 }

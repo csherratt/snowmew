@@ -402,10 +402,10 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE>
         let (width, height) = (width as f32, height as f32);
         unsafe {
             let distortion_K = self.hmd.distortion_K();
-            let ChromAbParam = self.hmd.chroma_ab_correction();
+            let chrom_ab_param = self.hmd.chroma_ab_correction();
             gl::Uniform1i(shader.uniform("Texture0"), 0);
             gl::Uniform4fv(shader.uniform("HmdWarpParam"), 1, distortion_K.unsafe_ref(0));
-            gl::Uniform4fv(shader.uniform("ChromAbParam"), 1, ChromAbParam.unsafe_ref(0));
+            gl::Uniform4fv(shader.uniform("ChromAbParam"), 1, chrom_ab_param.unsafe_ref(0));
 
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
 

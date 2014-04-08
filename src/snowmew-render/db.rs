@@ -1,7 +1,7 @@
 use std::mem;
 
 use cow::btree::BTreeMap;
-use snowmew::core::{Database, object_key};
+use snowmew::core::{Database, ObjectKey};
 
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
@@ -190,7 +190,7 @@ pub struct Graphics
 {
     pub last: Database,
     pub current: Database,
-    pub vertex: BTreeMap<object_key, VertexBuffer>,
+    pub vertex: BTreeMap<ObjectKey, VertexBuffer>,
 
     pub flat_shader: Option<Shader>,
     pub flat_instance_shader: Option<Shader>,

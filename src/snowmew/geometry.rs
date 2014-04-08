@@ -5,7 +5,7 @@ use std::default::Default;
 
 use cgmath::vector::{Vec2, Vec3};
 
-use core::object_key;
+use core::ObjectKey;
 
 #[deriving(Clone)]
 pub enum Primative {
@@ -61,7 +61,7 @@ pub struct VertexBuffer {
 
 #[deriving(Clone, Default)]
 pub struct Geometry {
-    pub vb: object_key,
+    pub vb: ObjectKey,
     pub count: uint, // number of index elements
     pub offset: uint, // offset into the index buffer
     pub prim: Primative
@@ -121,7 +121,7 @@ pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> ~[IDX]
 }
 
 impl Geometry {
-    pub fn triangles(vb: object_key, offset: uint, count: uint) -> Geometry
+    pub fn triangles(vb: ObjectKey, offset: uint, count: uint) -> Geometry
     {
         Geometry {
             vb: vb,
@@ -131,7 +131,7 @@ impl Geometry {
         }
     }
 
-    pub fn triangles_adjacency(vb: object_key, offset: uint, count: uint) -> Geometry
+    pub fn triangles_adjacency(vb: ObjectKey, offset: uint, count: uint) -> Geometry
     {
         Geometry {
             vb: vb,
@@ -141,7 +141,7 @@ impl Geometry {
         }
     }
 
-    pub fn lines(vb: object_key, offset: uint, count: uint) -> Geometry
+    pub fn lines(vb: ObjectKey, offset: uint, count: uint) -> Geometry
     {
         Geometry {
             vb: vb,
@@ -151,7 +151,7 @@ impl Geometry {
         }
     }
 
-    pub fn points(vb: object_key, offset: uint, count: uint) -> Geometry
+    pub fn points(vb: ObjectKey, offset: uint, count: uint) -> Geometry
     {
         Geometry {
             vb: vb,

@@ -1,16 +1,11 @@
-use sync::{Arc, Mutex};
-use glfw::{WindowEvent, Window, Key, MouseButton, Glfw, Context};
+use sync::Arc;
+use glfw::{WindowEvent, Key, MouseButton, Glfw, Context};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
 use glfw::{CloseEvent, FocusEvent};
-use glfw::{Windowed, FullScreen, Monitor, WindowMode, Glfw, RenderContext};
+use glfw::{Windowed, RenderContext};
 use glfw;
 use gl;
 
-use std::task;
-use std::mem;
-use std::comm::Select;
-use std::comm::{Sender, Receiver};
-use std::comm::{Empty, Disconnected, Data};
 use semver;
 use collections::{HashSet, TrieMap};
 
@@ -18,7 +13,7 @@ use cgmath::quaternion::Quat;
 
 use ovr;
 
-pub type window_id = uint;
+pub type WindowId = uint;
 
 #[deriving(Clone)]
 struct InputHistory
@@ -192,11 +187,6 @@ impl InputState
     }
 }
 
-struct OVR
-{
-    sensor: ovr::SensorFusion
-}
-
 struct WindowHandle
 {
     window: glfw::Window,
@@ -288,7 +278,7 @@ impl IOManager
 
     fn update(&mut self)
     {
-        for (id, win) in self.windows.mut_iter() {
+        for (_, win) in self.windows.mut_iter() {
             for (time, event) in glfw::flush_messages(&win.receiver) {
                 win.state.event(Some(time), event);
             }
@@ -335,13 +325,11 @@ impl IOManager
         }
 
         match self.ovr_sensor_device {
-            Some(ref mut sd) => {
+            Some(_) => {
                 fail!("todo");
             },
             None => return false
         }
-
-        true
     }
 
     pub fn ovr_manager<'a>(&'a mut self) -> Option<&'a ovr::DeviceManager>

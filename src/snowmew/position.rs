@@ -5,7 +5,7 @@ use cgmath::quaternion::Quat;
 use cgmath::vector::Vec3;
 use cgmath::matrix::{Mat4, ToMat4, Matrix};
 
-use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel, EventList};
+use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
 

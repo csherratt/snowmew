@@ -1,8 +1,8 @@
-#[crate_id = "github.com/csherratt/snowmew#snowmew-render:0.1"];
-#[license = "ASL2"];
-#[crate_type = "lib"];
-#[comment = "A game engine in rust"];
-#[allow(dead_code)];
+#![crate_id = "github.com/csherratt/snowmew#snowmew-render:0.1"]
+#![license = "ASL2"]
+#![crate_type = "lib"]
+#![comment = "A game engine in rust"]
+#![allow(dead_code)]
 
 extern crate std;
 extern crate glfw;
@@ -23,21 +23,13 @@ use std::ptr;
 use std::mem;
 use std::comm::{Receiver, Sender, Empty, Disconnected, Data};
 
-use cgmath::vector::Vec3;
-use cgmath::matrix::{Matrix, ToMat4};
-use cgmath::rotation::Rotation3;
-use cgmath::angle::{ToRad, deg};
-
-use snowmew::core::{object_key};
+use snowmew::core::{ObjectKey};
 use snowmew::camera::Camera;
 use snowmew::io::Window;
 
-use db::Graphics;
 use pipeline::{DrawTarget, Pipeline};
-use drawlist::{Drawlist, DrawlistBindless, DrawlistStandard};
+use drawlist::{Drawlist, DrawlistStandard};
 use OpenCL::hl::{CommandQueue};
-use query::Query;
-use compute_accelerator::PositionGlAccelerator;
 use time::precise_time_s;
 
 mod db;
@@ -51,7 +43,7 @@ mod compute_accelerator;
 mod config;
 
 enum RenderCommand {
-    Update(snowmew::core::Database, object_key, object_key),
+    Update(snowmew::core::Database, ObjectKey, ObjectKey),
     Waiting(Sender<Option<~DrawlistStandard>>),
     Complete(~DrawlistStandard),
     Setup(Sender<Option<CommandQueue>>),
@@ -265,7 +257,7 @@ impl RenderManager
         RenderManager { ch: sender }
     }
 
-    pub fn update(&mut self, db: snowmew::core::Database, scene: object_key, camera: object_key)
+    pub fn update(&mut self, db: snowmew::core::Database, scene: ObjectKey, camera: ObjectKey)
     {
         self.ch.send(Update(db, scene, camera));
     }

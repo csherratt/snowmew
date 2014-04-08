@@ -10,17 +10,15 @@ use cgmath::ptr::Ptr;
 use db::Graphics;
 
 use snowmew::material::Material;
-use snowmew::core::{object_key};
+use snowmew::core::{ObjectKey};
 use snowmew::geometry::Geometry;
 use snowmew::core::Drawable;
-use snowmew::CalcPositionsCl;
 use snowmew::position::{Delta, PositionsGL, Positions};
 
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
-use cow::join::join_maps;
 
-use OpenCL::hl::{Device, Context, CommandQueue};
+use OpenCL::hl::{CommandQueue};
 
 use collections::treemap::TreeMap;
 
@@ -36,7 +34,7 @@ pub struct ObjectCull<IN>
     camera: Mat4<f32>
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> ObjectCull<IN>
+impl<'a, IN: Iterator<(ObjectKey, Mat4<f32>)>> ObjectCull<IN>
 {
     pub fn new(input: IN, camera: Mat4<f32>) -> ObjectCull<IN>
     {
@@ -47,11 +45,11 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>)>> ObjectCull<IN>
     }
 }
 
-impl<'a, IN: Iterator<(object_key, Mat4<f32>)>>
-     Iterator<(object_key, Mat4<f32>)> for ObjectCull<IN>
+impl<'a, IN: Iterator<(ObjectKey, Mat4<f32>)>>
+     Iterator<(ObjectKey, Mat4<f32>)> for ObjectCull<IN>
 {
     #[inline]
-    fn next(&mut self) -> Option<(object_key, Mat4<f32>)>
+    fn next(&mut self) -> Option<(ObjectKey, Mat4<f32>)>
     {
         static cube_points: &'static [Vec4<f32>] = &'static [
             Vec4{x:1., y:  1., z:  1., w: 1.}, Vec4{x:-1., y:  1., z:  1., w: 1.},
@@ -95,16 +93,16 @@ impl<'a, IN: Iterator<(object_key, Mat4<f32>)>>
 pub struct Expand<'a, IN>
 {
     input: IN,
-    material_id: object_key,
-    vb_id: object_key,
-    last_material_id: object_key,
-    last_vb_id: object_key,
+    material_id: ObjectKey,
+    vb_id: ObjectKey,
+    last_material_id: ObjectKey,
+    last_vb_id: ObjectKey,
     mat: Option<Mat4<f32>>,
     geometry: Option<&'a Geometry>,
     db: &'a Graphics
 }
 
-impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Expand<'a, IN>
+impl<'a, IN: Iterator<(ObjectKey, (Mat4<f32>, &'a Drawable))>> Expand<'a, IN>
 {
     pub fn new(input: IN, db: &'a Graphics) -> Expand<'a, IN>
     {
@@ -124,15 +122,15 @@ impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Expand<'a, IN>
 pub enum DrawCommand
 {
     Draw(Geometry),
-    BindMaterial(object_key),
-    BindVertexBuffer(object_key),
+    BindMaterial(ObjectKey),
+    BindVertexBuffer(ObjectKey),
     SetModelMatrix(Mat4<f32>),
-    MultiDraw(object_key, u32, u32, u32, u32),
-    DrawElements(object_key, u32, i32, u32, i32, u32, i32),
-    DrawElements2(object_key, Geometry, u32, ~[u32])
+    MultiDraw(ObjectKey, u32, u32, u32, u32),
+    DrawElements(ObjectKey, u32, i32, u32, i32, u32, i32),
+    DrawElements2(ObjectKey, Geometry, u32, ~[u32])
 }
 
-impl<'a, IN: Iterator<(object_key, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCommand> for Expand<'a, IN>
+impl<'a, IN: Iterator<(ObjectKey, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCommand> for Expand<'a, IN>
 {
     #[inline]
     fn next(&mut self) -> Option<DrawCommand>
@@ -184,7 +182,7 @@ pub trait Drawlist
     // done on the context manager before, Graphics is owned by
     // the draw list. If there was already a bound scene this
     // needs to be replaces with the current scene
-    fn bind_scene(&mut self, db: Graphics, scene: object_key);
+    fn bind_scene(&mut self, db: Graphics, scene: ObjectKey);
 
     // done first on an external thread
     fn setup_scene_async(&mut self);
@@ -202,11 +200,11 @@ pub trait Drawlist
 pub struct DrawlistStandard
 {
     db: Option<Graphics>,
-    scene: object_key,
+    scene: ObjectKey,
     position: Option<Positions>,
 
-    material_to_id: TreeMap<object_key, u32>,
-    id_to_material: TreeMap<u32, object_key>,
+    material_to_id: TreeMap<ObjectKey, u32>,
+    id_to_material: TreeMap<u32, ObjectKey>,
 
     size: uint,
 
@@ -270,28 +268,26 @@ impl DrawlistStandard
 
 impl Drawlist for DrawlistStandard
 {
-    fn bind_scene(&mut self, db: Graphics, scene: object_key)
+    fn bind_scene(&mut self, db: Graphics, scene: ObjectKey)
     {
         self.db = Some(db);
         self.scene = scene;
 
-        unsafe {
-            for i in range(0u, 4) {
-                gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
-                self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                        (mem::size_of::<Vec4<f32>>()*self.size) as GLsizeiptr,
-                        gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
-                ) as *mut Vec4<f32>;
-                assert!(0 == gl::GetError());
-            }
-
-            gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
-            self.ptr_model_info = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                    (mem::size_of::<(u32, u32, u32, u32)>()*self.size) as GLsizeiptr,
+        for i in range(0u, 4) {
+            gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
+            self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
+                    (mem::size_of::<Vec4<f32>>()*self.size) as GLsizeiptr,
                     gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
-            ) as *mut (u32, u32, u32, u32);
+            ) as *mut Vec4<f32>;
             assert!(0 == gl::GetError());
         }
+
+        gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
+        self.ptr_model_info = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
+                (mem::size_of::<(u32, u32, u32, u32)>()*self.size) as GLsizeiptr,
+                gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+        ) as *mut (u32, u32, u32, u32);
+        assert!(0 == gl::GetError());
     }
 
     fn setup_scene_async(&mut self)
@@ -350,7 +346,6 @@ impl Drawlist for DrawlistStandard
     {
         let db = self.db.as_ref().unwrap();
         let shader = db.flat_instance_shader.unwrap();
-        let model_matrix = shader.uniform("mat_model");
         shader.bind();
 
         unsafe {
@@ -375,7 +370,7 @@ impl Drawlist for DrawlistStandard
             gl::ActiveTexture(gl::TEXTURE4);
             gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_info);
             gl::Uniform1i(shader.uniform("info"), 4);
-        }
+    }
 
         unsafe {
             let buffers = &[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1, gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3];
@@ -384,7 +379,7 @@ impl Drawlist for DrawlistStandard
 
         let mut range = (0u, 0u);
         let mut last_geo: Option<u32> = None;
-        for (idx, (id, draw)) in self.db.as_ref().unwrap().current.walk_drawables().enumerate() {
+        for (idx, (_, draw)) in self.db.as_ref().unwrap().current.walk_drawables().enumerate() {
             if last_geo.is_some() {
                 if last_geo.unwrap() == draw.geometry {
                     let (start, _) = range;
@@ -498,7 +493,7 @@ impl DrawlistBindless
 
     // This downloads the positions to the GPU and bins the objects
     #[inline(never)]
-    pub fn setup_scene(&mut self, db: &Graphics, scene: object_key, queue: Option<&CommandQueue>)
+    pub fn setup_scene(&mut self, db: &Graphics, _: ObjectKey, _: Option<&CommandQueue>)
     {
         let start = precise_time_ns();
         let num_drawable = db.current.drawable_count();
