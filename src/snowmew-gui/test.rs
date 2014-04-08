@@ -38,4 +38,14 @@ mod Layout {
         assert!(Some(11) == layout.get_item(25., 25.))
         assert!(Some(11) == layout.get_item(99., 99.))
     }
+
+    #[test]
+    fn get_pos() {
+        let mut layout = gui::Layout::new();
+        layout.add((0., 0.), (100., 100.), 1., 10);
+        layout.add((25., 25.), (75., 75.), 2., 11);
+
+        assert!(Some((0., 0.)) == layout.pos(10))
+        assert!(Some((25., 25.)) == layout.pos(11))
+    }
 }
