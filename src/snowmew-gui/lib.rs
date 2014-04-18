@@ -14,8 +14,36 @@ mod manager;
 
 pub type ItemId = uint;
 
+pub struct Mouse {
+    pub pos: (f32, f32),
+    pub global: (f32, f32),
+    pub button: [bool, ..8]
+}
+
+impl Mouse {
+    pub fn new() -> Mouse {
+        Mouse {
+            pos: (0., 0.),
+            global: (0., 0.),
+            button: [false, false, false, false,
+                     false, false, false, false]
+        }
+    }
+
+    pub fn next(&self, pos: (f32, f32)) -> Mouse {
+        let (x, y) = pos;
+        let (ox, oy) = self.pos;
+
+        Mouse {
+            pos: (ox-x, oy-y),
+            global: self.global,
+            button: self.button
+        }
+    }
+}
+
 pub enum Event {
-    MouseMove((f32, f32), (f32, f32))
+    MouseEvent(Mouse)
 }
 
 pub trait Handler {

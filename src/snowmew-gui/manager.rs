@@ -2,12 +2,12 @@ use collections::deque::Deque;
 use collections::ringbuf::RingBuf;
 use collections::trie::TrieMap;
 
-use {ItemId, Event, Handler, MouseMove};
+use {ItemId, Event, Handler};
 use glfw;
 
 pub struct Manager {
     events: Option<RingBuf<(ItemId, Event)>>,
-    widgets: TrieMap<~Handler>,
+    widgets: TrieMap<~Handler:Send+Share>,
     root: ItemId,
     count: ItemId
 }
@@ -27,8 +27,8 @@ impl Manager {
         self.flush()
     }
 
-    pub fn event_glfw(&mut self, evt: glfw::WindowEvent) {
-        let evt = match evt {
+    pub fn event_glfw(&mut self, _: glfw::WindowEvent) {
+        /*let evt = match evt {
             glfw::PosEvent(x, y) => {
                 Some(MouseMove((x as f32, y as f32), (x as f32, y as f32)))
             }
@@ -38,7 +38,7 @@ impl Manager {
         match evt {
             Some(evt) => self.event(evt),
             None => ()
-        }
+        }*/
     }
 
     fn flush(&mut self) {
@@ -67,14 +67,14 @@ impl Manager {
         self.events = Some(events);
     }
 
-    pub fn add(&mut self, handler: ~Handler) -> ItemId {
+    pub fn add(&mut self, handler: ~Handler:Send+Share) -> ItemId {
         let id = self.count;
         self.count += 1;
         self.widgets.insert(id, handler);
         id
     }
 
-    pub fn set_root(&mut self, root: ItemId) {
+    pub fn root(&mut self, root: ItemId) {
         self.root = root;
     }
 }

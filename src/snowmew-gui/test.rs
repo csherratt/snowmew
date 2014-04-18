@@ -1,9 +1,37 @@
 
-extern crate gui = "snowmew-gui";
 
-#[test]
-fn create() {
-    let _ = gui::Manager::new();
+mod Manager {
+    extern crate gui = "snowmew-gui";
+    extern crate sync;
+
+    struct Pinged {
+        count: sync::Arc<sync::Mutex<uint>>
+    }
+
+    impl gui::Handler for Pinged {
+        fn handle(&mut self, _: gui::Event, _: |id: gui::ItemId, evt: gui::Event|) {
+            let mut guard = self.count.lock();
+            *guard += 1;
+        }
+    }
+
+    #[test]
+    fn add() {
+        let count = sync::Arc::new(sync::Mutex::new(0));
+        let mut manager = gui::Manager::new();
+        
+        let widget = ~Pinged {
+            count: count.clone()
+        };
+
+        let id = manager.add(widget);
+        manager.root(id);
+
+        manager.event(gui::MouseEvent(gui::Mouse::new()));
+
+        let guard = count.lock();
+        assert!(*guard == 1);
+    }
 }
 
 mod Layout {
