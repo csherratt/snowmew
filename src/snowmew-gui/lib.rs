@@ -20,6 +20,16 @@ pub struct Mouse {
     pub button: [bool, ..8]
 }
 
+impl Clone for Mouse {
+    fn clone(&self) -> Mouse {
+        Mouse {
+            pos: self.pos,
+            global: self.global,
+            button: self.button
+        }
+    }
+}
+
 impl Mouse {
     pub fn new() -> Mouse {
         Mouse {
@@ -28,6 +38,10 @@ impl Mouse {
             button: [false, false, false, false,
                      false, false, false, false]
         }
+    }
+
+    pub fn pos(&mut self, pos: (f32, f32)) {
+        self.pos = pos;
     }
 
     pub fn next(&self, pos: (f32, f32)) -> Mouse {
