@@ -21,7 +21,7 @@ pub use config::Config;
 
 use std::ptr;
 use std::mem;
-use std::comm::{Receiver, Sender, Empty, Disconnected, Data};
+use std::comm::{Receiver, Sender, Empty, Disconnected};
 
 use snowmew::core::{ObjectKey};
 use snowmew::camera::Camera;
@@ -137,9 +137,9 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
             Some(port.recv())
         } else {
             match port.try_recv() {
-                Empty => None,
-                Disconnected => return,
-                Data(dat) => Some(dat)
+                Err(Empty) => None,
+                Err(Disconnected) => return,
+                Ok(dat) => Some(dat)
             }
         };
 
