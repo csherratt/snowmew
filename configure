@@ -37,7 +37,10 @@ class Module:
     def make_rule(self, mods):
         dep = self.get_dep() + " "
         dep +=  " ".join(mods[m].ename for m in self.dep_modules)
-        how = "%s\n\trustc $(RUST_FLAGS) --out-dir=%s %s src/%s/%s\n" % (dep, self.dir, self.get_flags(mods), self.name, self.ext)
+        setup = ""
+        if self.setup:
+            setup = "\tsh -c \"%s\"\n" % self.setup
+        how = "%s\n%s\trustc $(RUST_FLAGS) --out-dir=%s %s src/%s/%s\n" % (dep, setup, self.dir, self.get_flags(mods), self.name, self.ext)
         return how
 
     def make_test_rules(self, mods):
@@ -50,8 +53,8 @@ class Module:
         return how
 
     def pre_setup(self):
-        if self.setup:
-            p = subprocess.Popen(["sh", "-c", self.setup])
+        if self.presetup:
+            p = subprocess.Popen(["sh", "-c", self.presetup])
             p.wait()
 
 class cd:
@@ -73,11 +76,12 @@ class Lib(Module):
     ext = "lib.rs"
     dir = "lib"
     flags = ""
-    def __init__(self, name, dep_modules=None, other_flags="", setup=None):
+    def __init__(self, name, dep_modules=None, other_flags="", setup=None, presetup=None):
         self.name = name
         self.ename = "lib/%s" % self.get_name()
         self.other_flags = other_flags
         self.setup = setup
+        self.presetup = presetup
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -87,11 +91,12 @@ class Bin(Module):
     ext = "main.rs"
     dir = "bin"
     flags = "-Zlto"
-    def __init__(self, name, dep_modules=None, other_flags="", setup=None):
+    def __init__(self, name, dep_modules=None, other_flags="", setup=None, presetup=None):
         self.name = name
         self.ename = "bin/%s" % self.get_name()
         self.other_flags = other_flags
         self.setup = setup
+        self.presetup = presetup
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -112,6 +117,7 @@ class LibMakefile(Module):
         self.path_to_makefile_dir = path_to_makefile_dir
         self.path_to_output = path_to_output
         self.setup = None
+        self.presetup = None
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -138,6 +144,7 @@ class LibCMake(Module):
         self.path_to_output = path_to_output
         self.cmake_flags = cmake_flags
         self.setup = None
+        self.presetup = None
         if dep_modules:
             self.dep_modules = dep_modules
         else:
@@ -186,14 +193,16 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
            Lib("snowmew-loader", ["snowmew"]),
-           Lib("snowmew-gui"),
+           Lib("snowmew-gui", ["glfw"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
            LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
            LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("octtree", ["cow", "cgmath", "OpenCL"]),
-           Lib("glfw", ["libglfw3.a"], setup="sh modules/glfw-rs/etc/link-rs.sh \"`PKG_CONFIG_PATH=modules/glfw/src  sh modules/glfw-rs/etc/glfw-link-args.sh`\" > modules/glfw-rs/src/lib/link.rs")]
+           Lib("glfw", ["libglfw3.a"], 
+                setup="sh modules/glfw-rs/etc/link-rs.sh \\\"`PKG_CONFIG_PATH=modules/glfw/src  sh modules/glfw-rs/etc/glfw-link-args.sh`\\\" > modules/glfw-rs/src/lib/link.rs",
+                presetup="touch modules/glfw-rs/src/lib/link.rs")]
 
 if platform.system() == "Linux":
     modules += [Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
