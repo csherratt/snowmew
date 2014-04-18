@@ -57,6 +57,9 @@ class Module:
             p = subprocess.Popen(["sh", "-c", self.presetup])
             p.wait()
 
+    def write_cleanup(self, f):
+        pass
+
 class cd:
     """Context manager for changing the current working directory, creating if necessary"""
     def __init__(self, newPath):
@@ -125,8 +128,11 @@ class LibMakefile(Module):
 
     def make_rule(self, mods):
         out  = "%s: %s\n" % (self.ename, self.path_to_makefile_dir + "Makefile")
-        out += "\tmake -C %s && cp %s %s\n" % (self.path_to_makefile_dir, self.path_to_output, self.ename)
+        out += "\tmake -C %s\n\tcp %s %s\n" % (self.path_to_makefile_dir, self.path_to_output, self.ename)
         return out
+
+    def write_cleanup(self, f):
+        f.write("\t-make -C %s clean\n" % self.path_to_makefile_dir)
 
 class LibCMake(Module):
     ext = ""
@@ -157,6 +163,9 @@ class LibCMake(Module):
         out += "\tmake -C %s && cp %s %s\n" % (self.path_to_makefile_dir, self.path_to_output, self.ename)
         return out
 
+    def write_cleanup(self, f):
+        f.write("\t-make -C %s clean\n" % self.path_to_makefile_dir)
+        f.write("\t-rm %s\n" % (self.path_to_makefile_dir + "Makefile"))
 
 def write_makefile(modules):
     modules = {m.name: m for m in modules}
@@ -183,7 +192,9 @@ def write_makefile(modules):
         f.write("\n")
         f.write("test/.check: lib test %s\n" % " ".join("test/.%s.check" % m.name for m in modules.values() if m.has_tests()))
         f.write("\n")
-        f.write("clean:\n\trm -r lib bin test\n")
+        f.write("clean:\n\t-rm -r lib bin test\n")
+        for m in modules.values():
+            m.write_cleanup(f)
         f.write("\n")
         f.write(rules) 
 
@@ -206,7 +217,7 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
 
 if platform.system() == "Linux":
     modules += [Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
-                LibCMake("libOculusVR.a", "src/OculusSDK/LibOVR/", "src/OculusSDK/LibOVR/Lib/Linux/Release/x86_64/libovr.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
+                LibMakefile("libOculusVR.a", "src/OculusSDK/LibOVR/", "src/OculusSDK/LibOVR/Lib/Linux/Release/x86_64/libovr.a"),
                 Lib("OpenCL"),
                ]
 elif platform.system() == "Darwin":
