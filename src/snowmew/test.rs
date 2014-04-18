@@ -1,5 +1,5 @@
-#[feature(macro_rules)];
-#[feature(globs)];
+#![feature(macro_rules)]
+#![feature(globs)]
 
 extern crate snowmew;
 extern crate cgmath;
@@ -159,7 +159,7 @@ mod position {
     #[test]
     fn calc_positions_opencl()
     {
-        let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
+        let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
         let mut ctx = CalcPositionsCl::new(&context, &device);
 
         let mut pos = Deltas::new();
@@ -190,7 +190,7 @@ mod position {
     #[test]
     fn calc_positions_opencl_tree()
     {
-        let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPU_PREFERED).unwrap();
+        let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
         let mut ctx = CalcPositionsCl::new(&context, &device);
 
         let mut pos = Deltas::new();

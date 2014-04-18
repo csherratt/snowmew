@@ -120,15 +120,11 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
 
     //let accl = PositionGlAccelerator::new();
 
-    let mut drawlists = if cfg.use_bindless() {
-        ~[]
-    } else {
-        ~[DrawlistStandard::from_config(&cfg),
-          DrawlistStandard::from_config(&cfg)]
-    };
+    let mut drawlists = ~[DrawlistStandard::from_config(&cfg),
+                          DrawlistStandard::from_config(&cfg)];
 
     let mut num_workers = 1;
-    let mut waiting = ~[];
+    let mut waiting = Vec::new();
 
     let mut time = precise_time_s();
 
