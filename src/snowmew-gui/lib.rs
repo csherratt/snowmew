@@ -44,7 +44,7 @@ impl Mouse {
         self.pos = pos;
     }
 
-    pub fn next(&self, pos: (f32, f32)) -> Mouse {
+    pub fn offset(&self, pos: (f32, f32)) -> Mouse {
         let (x, y) = pos;
         let (ox, oy) = self.pos;
 

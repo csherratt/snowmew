@@ -7,13 +7,16 @@ extern crate gl;
 extern crate snowmew;
 extern crate render = "snowmew-render";
 extern crate loader = "snowmew-loader";
+extern crate gui = "snowmew-gui";
 extern crate cgmath;
 extern crate native;
 extern crate green;
 extern crate ovr = "oculus-vr";
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use snowmew::core::Database;
-use snowmew::camera::Camera;
 
 use render::RenderManager;
 
@@ -22,7 +25,6 @@ use cgmath::vector::*;
 use cgmath::rotation::*;
 use cgmath::point::{Point, Point3};
 use cgmath::quaternion::Quat;
-use cgmath::matrix::{ToMat4};
 use cgmath::angle::{ToRad, deg};
 
 use loader::Obj;
@@ -72,16 +74,32 @@ fn main() {
         let mut ren = RenderManager::new(db.clone(), display, (wx, wy));
         let mut last_input = im.get(&ih);
 
-        let (mut rot_x, mut rot_y) = (45_f64, 45_f64);
-        let mut pos = Point3::new(5f32, 5f32, -5f32);
+        let (rot_x, rot_y) = (45_f64, 45_f64);
+        let pos = Point3::new(5f32, 5f32, -5f32);
+
+        let mut gui = gui::Manager::new();
+        let layout = Rc::new(RefCell::new(gui::Layout::new()));
+        let layout2 = Rc::new(RefCell::new(gui::Layout::new()));
+
+        let id = gui.add(~(layout.clone()));
+        gui.root(id);
+
+        let id2 = gui.add(~(layout2.clone()));
+
+        layout.borrow_mut().add((0., 0.), (10., 10.), 1., id2);
 
         while !last_input.should_close() {
             im.wait();
             let input_state = im.get(&ih);
 
-            let rot: Quat<f32> =  Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
+            for (time, evt) in input_state.iter_delta(&last_input) {
+                if time.is_some() {
+                    gui.event_glfw(time.unwrap(), evt);
+                }
+            }
+
+            let rot: Quat<f32> = Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
             let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));
-            let camera = Camera::new(rot.clone(), Transform3D::new(1f32, rot, pos.to_vec()).to_mat4());
             let head_trans = Transform3D::new(1f32, rot, pos.to_vec());
 
             db.update_location(camera_loc, head_trans);

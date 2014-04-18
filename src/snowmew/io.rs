@@ -58,6 +58,39 @@ impl Iterator<(Option<f64>, WindowEvent)> for InputHistoryIterator
     }
 }
 
+pub struct DeltaIterator {
+    current: Option<Arc<InputHistory>>,
+    origin: Option<Arc<InputHistory>>
+}
+
+
+impl Iterator<(Option<f64>, WindowEvent)> for DeltaIterator
+{
+    fn next(&mut self) -> Option<(Option<f64>, WindowEvent)>
+    {
+        match (&self.current, &self.origin) {
+            (&None, &None) => return None,
+            (&Some(ref a), &Some(ref b)) => {
+                if a.deref() as *InputHistory == b.deref() as *InputHistory {
+                    return None
+                }
+            }
+            _ => ()
+        }
+
+        let (next, res) = match self.current {
+            Some(ref next) => {
+                let next = next.deref();
+                (next.older.clone(), Some((next.time.clone(), next.event.clone())))
+            },
+            None => (None, None)
+        };
+
+        self.current = next;
+        res
+    }
+}
+
 impl InputState
 {
     fn new(win: &glfw::Window) -> InputState
@@ -184,6 +217,13 @@ impl InputState
     pub fn framebuffer_size(&self) -> (i32, i32)
     {
         self.framebuffer_size.clone()
+    }
+
+    pub fn iter_delta(&self, old: &InputState) -> DeltaIterator {
+        DeltaIterator {
+            current: self.history.clone(),
+            origin: old.history.clone()
+        }
     }
 }
 

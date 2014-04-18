@@ -1,4 +1,6 @@
 use std::vec::Vec;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use {ItemId, Handler, Event, MouseEvent};
 
@@ -23,6 +25,10 @@ impl Layout {
         }
     }
 
+    pub fn default(&mut self, id: ItemId) {
+        self.default = Some(id);
+    }
+
     pub fn add(&mut self, start: (f32, f32), size: (f32, f32), z: f32, id: ItemId) {
         self.items.push(Item {
             start: start,
@@ -42,7 +48,7 @@ impl Layout {
     }
 
     pub fn get_item(&self, x: f32, y: f32) -> Option<ItemId> {
-        let mut found_item = None;
+        let mut found_item = self.default;
         let mut item_z = 0.;
 
         for item in self.items.iter() {
@@ -63,6 +69,12 @@ impl Layout {
     }
 }
 
+impl<H: Handler> Handler for Rc<RefCell<H>> {
+    fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|) {
+        self.deref().borrow_mut().handle(evt, queue);
+    }
+}
+
 impl Handler for Layout {
     fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|) {
         match evt {
@@ -70,8 +82,11 @@ impl Handler for Layout {
                 let (lx, ly) = evt.pos;
                 match self.get_item(lx, ly) {
                     Some(id) => {
-                        let old = self.pos(id).unwrap();
-                        queue(id, MouseEvent(evt.next(old)))
+                        let old = self.pos(id);
+                        match old {
+                            Some(old) => queue(id, MouseEvent(evt.offset(old))),
+                            None => queue(id, MouseEvent(evt)) 
+                        }
                     }
                     None => ()
                 }

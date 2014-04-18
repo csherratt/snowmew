@@ -7,10 +7,23 @@ use glfw;
 
 pub struct Manager {
     events: Option<RingBuf<(ItemId, Event)>>,
-    widgets: TrieMap<~Handler:Send+Share>,
+    widgets: TrieMap<~Handler>,
     root: ItemId,
     count: ItemId,
     mouse: Mouse
+}
+
+fn to_index(button: glfw::MouseButton) -> uint {
+    match button {
+        glfw::MouseButton1 => 0,
+        glfw::MouseButton2 => 1,
+        glfw::MouseButton3 => 2,
+        glfw::MouseButton4 => 3,
+        glfw::MouseButton5 => 4,
+        glfw::MouseButton6 => 5,
+        glfw::MouseButton7 => 6,
+        glfw::MouseButton8 => 7
+    }
 }
 
 impl Manager {
@@ -29,13 +42,28 @@ impl Manager {
         self.flush()
     }
 
-    pub fn event_glfw(&mut self, evt: glfw::WindowEvent) {
+    pub fn event_glfw(&mut self, _: f64, evt: glfw::WindowEvent) {
         let evt = match evt {
-            glfw::PosEvent(x, y) => {
+            glfw::CursorPosEvent(x, y) => {
                 self.mouse.pos((x as f32, y as f32));
                 Some(MouseEvent(self.mouse.clone()))
-            }
-            _ => None
+            },
+            glfw::MouseButtonEvent(button, direction, _) => {
+                match direction {
+                    glfw::Press | glfw::Repeat => {
+                        self.mouse.button[to_index(button)] = true;
+                    },
+                    glfw::Release => {
+                        self.mouse.button[to_index(button)] = false;
+                    }
+                }
+                Some(MouseEvent(self.mouse.clone()))
+            },
+            glfw::PosEvent(_, _) => None,
+            glfw::CursorEnterEvent(_) => None,
+            glfw::FocusEvent(_) => None,
+            glfw::RefreshEvent => None,
+            evt => fail!("unsupported {:?}", evt)
         };
 
         match evt {
@@ -62,7 +90,11 @@ impl Manager {
                     });
                 }
                 None => {
-                    fail!("Could not find handler for {}", id);
+                    if id != 0 {
+                        fail!("Could not find handler for {}", id);
+                    } else {
+                        println!("No handlers installed!");
+                    }
                 }
             }
         }
@@ -70,7 +102,7 @@ impl Manager {
         self.events = Some(events);
     }
 
-    pub fn add(&mut self, handler: ~Handler:Send+Share) -> ItemId {
+    pub fn add(&mut self, handler: ~Handler) -> ItemId {
         let id = self.count;
         self.count += 1;
         self.widgets.insert(id, handler);
