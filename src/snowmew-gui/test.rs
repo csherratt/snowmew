@@ -102,9 +102,7 @@ mod Button {
             event = Some((id, evt));
         });
 
-        if event.is_none() {
-            fail!("Missing event")
-        }
+        event.expect("Missing event");
 
         button.handle(gui::MouseEvent(mouse.clone()), |id, evt| {
             fail!("Should not have got and event on mouse hold {:?} {:?}", id, evt)
@@ -116,8 +114,6 @@ mod Button {
             event = Some((id, evt));
         });
 
-        if event.is_none() {
-            fail!("Missing event")
-        }
+        event.expect("Missing event");
     }
 }
