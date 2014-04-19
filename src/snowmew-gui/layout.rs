@@ -1,6 +1,6 @@
 use std::vec::Vec;
 
-use {ItemId, Handler, Event, MouseEvent, WindowEvent};
+use {ItemId, Handler, Event, MouseEvent};
 
 
 struct Item {
@@ -70,7 +70,6 @@ impl Layout {
 impl Handler for Layout {
     fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|) {
         match evt {
-            WindowEvent(_) => (),
             MouseEvent(evt) => {
                 let (lx, ly) = evt.pos;
                 match self.get_item(lx, ly) {
@@ -83,7 +82,8 @@ impl Handler for Layout {
                     }
                     None => ()
                 }
-            }
+            },
+            _ => ()
         }
     }
 }

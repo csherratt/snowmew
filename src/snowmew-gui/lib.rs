@@ -106,6 +106,8 @@ impl Window {
 pub enum Event {
     MouseEvent(Mouse),
     WindowEvent(Window),
+    ButtonPressed,
+    ButtonReleased
 }
 
 pub trait Handler {

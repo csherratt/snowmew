@@ -1,8 +1,10 @@
+extern crate gui = "snowmew-gui";
+extern crate sync;
 
 
 mod Manager {
-    extern crate gui = "snowmew-gui";
-    extern crate sync;
+    use gui;
+    use sync;
 
     struct Pinged {
         count: sync::Arc<sync::Mutex<uint>>
@@ -35,7 +37,7 @@ mod Manager {
 }
 
 mod Layout {
-    extern crate gui = "snowmew-gui";
+    use gui;
 
     #[test]
     fn item() {
@@ -75,5 +77,47 @@ mod Layout {
 
         assert!(Some((0., 0.)) == layout.pos(10))
         assert!(Some((25., 25.)) == layout.pos(11))
+    }
+}
+
+mod Button {
+    use gui;
+
+    #[test]
+    fn button_press() {
+        use gui::Handler;
+        let mut button = gui::Button::new();
+        let mut mouse = gui::Mouse::new();
+        let mut event = None;
+
+        button.setup(10);
+
+        button.handle(gui::MouseEvent(mouse.clone()), |id, evt| {
+            fail!("Should not have got and event {:?} {:?}", id, evt)
+        });
+ 
+
+        mouse.button[0] = true;
+        button.handle(gui::MouseEvent(mouse.clone()), |id, evt| {
+            event = Some((id, evt));
+        });
+
+        if event.is_none() {
+            fail!("Missing event")
+        }
+
+        button.handle(gui::MouseEvent(mouse.clone()), |id, evt| {
+            fail!("Should not have got and event on mouse hold {:?} {:?}", id, evt)
+        });
+
+        mouse.button[0] = false;
+        event = None;
+        button.handle(gui::MouseEvent(mouse.clone()), |id, evt| {
+            event = Some((id, evt));
+        });
+
+        if event.is_none() {
+            fail!("Missing event")
+        }
     }
 }
