@@ -10,5 +10,5 @@ install:
   - git submodule update --init --recursive
 script:
   - ./configure
-  - make
-  - make check
+  - make -j 4
+  - make -j 4 check
