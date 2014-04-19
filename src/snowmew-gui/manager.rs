@@ -2,7 +2,7 @@ use collections::deque::Deque;
 use collections::ringbuf::RingBuf;
 use collections::trie::TrieMap;
 
-use {ItemId, Event, Handler, Mouse, MouseEvent};
+use {ItemId, Event, Handler, Mouse, MouseEvent, Window};
 use glfw;
 
 pub struct Manager {
@@ -10,7 +10,8 @@ pub struct Manager {
     widgets: TrieMap<~Handler>,
     root: ItemId,
     count: ItemId,
-    mouse: Mouse
+    mouse: Mouse,
+    window: Window
 }
 
 fn to_index(button: glfw::MouseButton) -> uint {
@@ -30,6 +31,7 @@ impl Manager {
     pub fn new() -> Manager {
         Manager {
             mouse: Mouse::new(),
+            window: Window::new(),
             events: Some(RingBuf::new()),
             widgets: TrieMap::new(),
             root: 0,
@@ -59,11 +61,20 @@ impl Manager {
                 }
                 Some(MouseEvent(self.mouse.clone()))
             },
+            glfw::ScrollEvent(x, y) => {
+                self.mouse.scroll((x as f32, y as f32));
+                Some(MouseEvent(self.mouse.clone()))
+            },
+            glfw::CharEvent(_) => None,
+            glfw::KeyEvent(_, _, _, _) => None,
+            glfw::FramebufferSizeEvent(_, _) => None,
+            glfw::IconifyEvent(_) => None,
+            glfw::CloseEvent => None,
+            glfw::SizeEvent(_, _) => None,
             glfw::PosEvent(_, _) => None,
             glfw::CursorEnterEvent(_) => None,
             glfw::FocusEvent(_) => None,
             glfw::RefreshEvent => None,
-            evt => fail!("unsupported {:?}", evt)
         };
 
         match evt {
