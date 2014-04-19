@@ -8,8 +8,15 @@ extern crate glfw;
 
 pub use manager::Manager;
 pub use layout::Layout;
+pub use button::Button;
+pub use repeater::Repeater;
+
+use std::rc::Rc;
+use std::cell::RefCell;
 
 mod layout;
+mod button;
+mod repeater;
 mod manager;
 
 pub type ItemId = uint;
@@ -105,3 +112,9 @@ pub trait Handler {
     fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|);
 }
 
+
+impl<H: Handler> Handler for Rc<RefCell<H>> {
+    fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|) {
+        self.deref().borrow_mut().handle(evt, queue);
+    }
+}

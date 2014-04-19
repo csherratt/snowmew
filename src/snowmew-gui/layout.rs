@@ -1,6 +1,4 @@
 use std::vec::Vec;
-use std::rc::Rc;
-use std::cell::RefCell;
 
 use {ItemId, Handler, Event, MouseEvent, WindowEvent};
 
@@ -66,12 +64,6 @@ impl Layout {
         }
 
         found_item
-    }
-}
-
-impl<H: Handler> Handler for Rc<RefCell<H>> {
-    fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|) {
-        self.deref().borrow_mut().handle(evt, queue);
     }
 }
 
