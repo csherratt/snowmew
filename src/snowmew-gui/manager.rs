@@ -7,7 +7,7 @@ use glfw;
 
 pub struct Manager {
     events: Option<RingBuf<(ItemId, Event)>>,
-    widgets: TrieMap<~Handler>,
+    widgets: TrieMap<~Handler<Event>>,
     root: ItemId,
     count: ItemId,
     mouse: Mouse,
@@ -89,9 +89,7 @@ impl Manager {
         'event_loop: loop {
             let (id, evt) = match events.pop_front() {
                 Some(dat) => dat,
-                None => {
-                    break 'event_loop
-                }
+                None => break 'event_loop
             };
 
             match self.widgets.find_mut(&id) {
@@ -113,7 +111,7 @@ impl Manager {
         self.events = Some(events);
     }
 
-    pub fn add(&mut self, handler: ~Handler) -> ItemId {
+    pub fn add(&mut self, handler: ~Handler<Event>) -> ItemId {
         let id = self.count;
         self.count += 1;
         self.widgets.insert(id, handler);

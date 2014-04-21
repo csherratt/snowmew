@@ -67,7 +67,7 @@ impl Layout {
     }
 }
 
-impl Handler for Layout {
+impl Handler<Event> for Layout {
     fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|) {
         match evt {
             MouseEvent(evt) => {

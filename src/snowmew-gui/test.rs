@@ -10,7 +10,7 @@ mod Manager {
         count: sync::Arc<sync::Mutex<uint>>
     }
 
-    impl gui::Handler for Pinged {
+    impl gui::Handler<gui::Event> for Pinged {
         fn handle(&mut self, _: gui::Event, _: |id: gui::ItemId, evt: gui::Event|) {
             let mut guard = self.count.lock();
             *guard += 1;

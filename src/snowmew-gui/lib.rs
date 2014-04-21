@@ -110,13 +110,13 @@ pub enum Event {
     ButtonReleased
 }
 
-pub trait Handler {
-    fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|);
+pub trait Handler<T> {
+    fn handle(&mut self, evt: T, queue: |id: ItemId, evt: T|);
 }
 
 
-impl<H: Handler> Handler for Rc<RefCell<H>> {
-    fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|) {
+impl<T, H: Handler<T>> Handler<T> for Rc<RefCell<H>> {
+    fn handle(&mut self, evt: T, queue: |id: ItemId, evt: T|) {
         self.deref().borrow_mut().handle(evt, queue);
     }
 }

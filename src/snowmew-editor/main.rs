@@ -16,7 +16,7 @@ extern crate ovr = "oculus-vr";
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use snowmew::core::Database;
+use snowmew::core::{Database, ObjectKey};
 
 use render::RenderManager;
 
@@ -28,6 +28,48 @@ use cgmath::quaternion::Quat;
 use cgmath::angle::{ToRad, deg};
 
 use loader::Obj;
+
+use gui::{Event, ItemId, Handler};
+
+struct Viewport {
+    db: Database,
+    key: ObjectKey
+}
+
+impl Viewport {
+    pub fn new(db: Database, key: ObjectKey) -> Viewport {
+        Viewport {
+            db: db,
+            key: key
+        }
+    }
+
+    pub fn update(&mut self, db: Database) {
+        self.db = db;
+    }
+
+    pub fn fetch(&self) -> Database {
+        self.db.clone()
+    }
+}
+
+impl Handler<Event> for Viewport {
+    fn handle(&mut self, evt: Event, _: |id: ItemId, evt: Event|) {
+        match evt {
+            gui::MouseEvent(m) => {
+                let (x, y) = m.pos;
+                let x = (x - 640.) / 320.;
+                let y = (y - 360.) / 180.;
+                self.db.update_location(self.key,
+                    Transform3D::new(1f32,
+                                    Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
+                                    Vec3::new(x as f32, y as f32, 0f32)));
+            },
+            _ => ()
+        }
+
+    }
+}
 
 #[start]
 fn start(argc: int, argv: **u8) -> int {
@@ -78,25 +120,23 @@ fn main() {
         let pos = Point3::new(5f32, 5f32, -5f32);
 
         let mut gui = gui::Manager::new();
-        let layout = Rc::new(RefCell::new(gui::Layout::new()));
-        let layout2 = Rc::new(RefCell::new(gui::Layout::new()));
-
-        let id = gui.add(~(layout.clone()));
+        let viewport = Rc::new(RefCell::new(Viewport::new(db.clone(), rcube)));
+        let id = gui.add(~viewport.clone());
         gui.root(id);
-
-        let id2 = gui.add(~(layout2.clone()));
-
-        layout.borrow_mut().add((0., 0.), (10., 10.), 1., id2);
 
         while !last_input.should_close() {
             im.wait();
             let input_state = im.get(&ih);
+
+            viewport.deref().borrow_mut().update(db.clone());
 
             for (time, evt) in input_state.iter_delta(&last_input) {
                 if time.is_some() {
                     gui.event_glfw(time.unwrap(), evt);
                 }
             }
+
+            db = viewport.deref().borrow().fetch();
 
             let rot: Quat<f32> = Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
             let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));

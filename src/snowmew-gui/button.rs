@@ -23,7 +23,7 @@ impl Button {
     }
 }
 
-impl Handler for Button {
+impl Handler<Event> for Button {
     fn handle(&mut self, evt: Event, queue: |id: ItemId, evt: Event|) {
         match (evt, self.state) {
             (MouseEvent(m), Released) => {
