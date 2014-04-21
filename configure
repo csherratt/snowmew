@@ -201,7 +201,7 @@ def write_makefile(modules):
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
            Bin("snowmew-editor", ["snowmew", "snowmew-render", "glfw", "snowmew-loader", "snowmew-gui"]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "ovr"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL"]),
            Lib("snowmew-loader", ["snowmew"]),
            Lib("snowmew-gui", ["glfw"]),
@@ -216,13 +216,11 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
                 presetup="touch modules/glfw-rs/src/lib/link.rs")]
 
 if platform.system() == "Linux":
-    modules += [Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
-                LibMakefile("libOculusVR.a", "src/OculusSDK/LibOVR/", "src/OculusSDK/LibOVR/Lib/Linux/Release/x86_64/libovr.a"),
-                Lib("OpenCL"),
-               ]
+    modules += [Lib("OpenCL")]
+
 elif platform.system() == "Darwin":
-    modules += [Lib("ovr", ["cgmath", "libOculusVR.a", "libovr_wrapper.a"]),
-                Lib("OpenCL", other_flags="-C link-args='-framework OpenCL'"),
-               ]  
+    modules += [Lib("OpenCL", other_flags="-C link-args='-framework OpenCL'"),
+                Lib("ovr", ["libOculusVR.a"]),
+                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]  
 
 write_makefile(modules)
