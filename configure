@@ -216,7 +216,10 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
                 presetup="touch modules/glfw-rs/src/lib/link.rs")]
 
 if platform.system() == "Linux":
-    modules += [Lib("OpenCL")]
+    modules += [Lib("OpenCL"),
+                Lib("ovr", ["libOculusVR.a", "libedid.a"]),
+                LibCMake("libedid.a", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/libedid.a"),
+                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]
 
 elif platform.system() == "Darwin":
     modules += [Lib("OpenCL", other_flags="-C link-args='-framework OpenCL'"),
