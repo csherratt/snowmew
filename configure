@@ -217,13 +217,13 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
 
 if platform.system() == "Linux":
     modules += [Lib("OpenCL"),
-                Lib("ovr", ["libOculusVR.a", "libedid.a"]),
-                LibCMake("libedid.a", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/libedid.a"),
-                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]
+                Lib("ovr", ["libOculusVR.a", "libedid.a", "cgmath"]),
+                LibCMake("libedid.a", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/libedid.a"),
+                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK/LibOVR/", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]
 
 elif platform.system() == "Darwin":
     modules += [Lib("OpenCL", other_flags="-C link-args='-framework OpenCL'"),
-                Lib("ovr", ["libOculusVR.a"]),
-                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]  
+                Lib("ovr", ["libOculusVR.a", "cgmath"]),
+                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK/LibOVR/", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]  
 
 write_makefile(modules)
