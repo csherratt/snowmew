@@ -4,7 +4,7 @@ use std::default::Default;
 use sync::Arc;
 
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
-use cow::join::{join_set_to_map, join_maps, JoinMapSetIterator, JoinMapIterator};
+use cow::join::{join_maps, JoinMapIterator};
 
 use geometry::{Geometry, VertexBuffer};
 use material::Material;
@@ -159,20 +159,51 @@ impl CommonData {
             index_parent_child: BTreeMap::new(),
         }   
     }
-}
 
-pub trait Common {
-    fn get<'a>(&'a self) -> &'a CommonData;
-    fn get_mut<'a>(&'a mut self) -> &'a mut CommonData;
+    fn ifind(&self, node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey> {
+        let node = match node {
+            Some(key) => key,
+            None => 0
+        };
+
+        let child = match self.index_parent_child.find(&node) {
+            Some(children) => children,
+            None => return None,
+        };
+
+        for key in child.iter() {
+            match self.objects.find(key) {
+                Some(obj) => {
+                    if self.strings.find(&obj.name)
+                        .expect("Could not find str key").as_slice() == str_key {
+                        return Some(*key);
+                    }
+                },
+                _ => ()
+            }
+        }
+
+        None
+    }
+
+    fn name(&self, key: ObjectKey) -> ~str {
+        match self.objects.find(&key) {
+            Some(node) => {
+                format!("{:s}/{:s}", self.name(node.parent), *self.strings.find(&node.name).unwrap())
+            },
+            None => ~"base"
+        }
+    }
+
 
     fn new_key(&mut self) -> ObjectKey {
-        let new_key = self.get().last_oid;
-        self.get_mut().last_oid += 1;
+        let new_key = self.last_oid;
+        self.last_oid += 1;
         new_key        
     }
 
     fn update_parent_child(&mut self, parent: ObjectKey, child: ObjectKey) {
-        let new = match self.get_mut().index_parent_child.find_mut(&parent) {
+        let new = match self.index_parent_child.find_mut(&parent) {
             Some(child_list) => {
                 child_list.insert(child);
                 None
@@ -185,13 +216,13 @@ pub trait Common {
         };
 
         match new {
-            Some(child_list) => {self.get_mut().index_parent_child.insert(parent, child_list);},
+            Some(child_list) => {self.index_parent_child.insert(parent, child_list);},
             None => (),
         }
     }
 
     fn new_string(&mut self, s: &str) -> StringKey {
-        let (update, name) = match self.get().string_to_key.find(&s.to_owned()) {
+        let (update, name) = match self.string_to_key.find(&s.to_owned()) {
             None => {
                 (true, 0)
             }
@@ -201,30 +232,35 @@ pub trait Common {
         };
 
         if update {
-            let name = self.get().last_sid;
-            self.get_mut().last_sid += 1;
-            self.get_mut().strings.insert(name, s.to_owned());
-            self.get_mut().string_to_key.insert(s.to_owned(), name);
+            let name = self.last_sid;
+            self.last_sid += 1;
+            self.strings.insert(name, s.to_owned());
+            self.string_to_key.insert(s.to_owned(), name);
             name
         } else {
             name
         }
     }
+}
+
+pub trait Common {
+    fn get<'a>(&'a self) -> &'a CommonData;
+    fn get_mut<'a>(&'a mut self) -> &'a mut CommonData;
 
     fn new_object(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
-        let new_key = self.new_key();
+        let new_key = self.get_mut().new_key();
         let parent = match parent {
             Some(key) => key,
             None => 0
         };
 
         let object = Object {
-            name: self.new_string(name),
+            name: self.get_mut().new_string(name),
             parent: parent
         };
 
         self.get_mut().objects.insert(new_key, object);
-        self.update_parent_child(parent, new_key);
+        self.get_mut().update_parent_child(parent, new_key);
 
         new_key
     }
@@ -233,46 +269,10 @@ pub trait Common {
         self.get().objects.find(&oid)
     }
 
-    fn name(&self, key: ObjectKey) -> ~str {
-        match self.get().objects.find(&key) {
-            Some(node) => {
-                //format!("{:s}/{:s}", self.name(node.parent), *self.strings.find(&node.name).unwrap())
-                ~"kitten"
-            },
-            None => ~"base"
-        }
-    }
-
-    fn ifind(&self, node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey> {
-        let node = match node {
-            Some(key) => key,
-            None => 0
-        };
-
-        let child = match self.get().index_parent_child.find(&node) {
-            Some(children) => children,
-            None => return None,
-        };
-
-        for key in child.iter() {
-            match self.get().objects.find(key) {
-                Some(obj) => {
-                    if self.get().strings.find(&obj.name)
-                        .expect("Could not find str key").as_slice() == str_key {
-                        return Some(*key);
-                    }
-                },
-                _ => ()
-            }
-        }
-
-        None
-    }
-
     fn find(&self, str_key: &str) -> Option<ObjectKey> {
         let mut node = None;
         for s in str_key.split('/') {
-            let next = self.ifind(node, s);
+            let next = self.get().ifind(node, s);
             if next == None {
                 return None
             }
@@ -281,19 +281,12 @@ pub trait Common {
         node
     }
 
-    fn last_name(&self, key: ObjectKey) -> ~str {
-        match self.get().objects.find(&key) {
-            Some(node) => {
-                self.get().strings.find(&node.name).unwrap().to_owned()
-            },
-            None => ~"base"
-        }
-    }
-
     fn walk_dir<'a>(&'a self, oid: ObjectKey) -> BTreeSetIterator<'a, ObjectKey> {
         let dir = self.get().index_parent_child.find(&oid).unwrap();
         dir.iter()
     }
+
+    fn name(&self, key: ObjectKey) -> ~str { self.get().name(key) }
 }
 
 impl Common for Database {

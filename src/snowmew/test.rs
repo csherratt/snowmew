@@ -41,16 +41,6 @@ mod core {
     }
 }
 
-mod table {
-    use cow::btree::BTreeMap;
-    use snowmew::table::*;
-
-    database!(TestDb {
-        name: ~str,
-        name2: ~str
-    })
-}
-
 mod position {
     use OpenCL;
     use snowmew::{Deltas, CalcPositionsCl};
