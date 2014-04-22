@@ -29,8 +29,10 @@ use cgmath::rotation::*;
 use cgmath::angle::{ToRad, deg};
 
 use std::io::timer::Timer;
-
 use loader::Obj;
+
+use snowmew::core::Common;
+
 
 #[start]
 fn start(argc: int, argv: **u8) -> int {
@@ -55,7 +57,7 @@ fn main() {
         let geometry = db.find("import/geometry/Suzanne")
                 .expect("Could not find Suzanne");
 
-        let dir = db.find("core/material/flat").unwrap();
+        let dir = db.find("core/material/flat").expect("Could not find flat");
 
         let mut rng = StdRng::new().unwrap();
 

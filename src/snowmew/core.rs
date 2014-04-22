@@ -25,21 +25,6 @@ pub struct FrameInfo {
     delta: f64,   /* time from last frame */
 }
 
-#[deriving(Clone)]
-pub enum ObjectType {
-    Invalid,
-    Directory,
-    Draw,
-    VertexBuffer
-}
-
-impl Default for ObjectType
-{
-    fn default() -> ObjectType
-    {
-        Invalid
-    }
-}
 
 #[deriving(Clone)]
 pub struct Light
@@ -62,7 +47,6 @@ impl Default for Light
 #[deriving(Clone, Default)]
 pub struct Object
 {
-    pub obj_type: ObjectType,
     pub parent: ObjectKey,
     pub name: ObjectKey,
 }
@@ -133,13 +117,9 @@ impl Clone for Location
 
 #[deriving(Clone)]
 pub struct Database {
-    last_sid:      StringKey,
-    strings:       BTreeMap<StringKey, ~str>,
-    string_to_key: BTreeMap<~str, StringKey>,
+    common:        CommonData,
 
     // raw data
-    last_oid:      ObjectKey,
-    objects:       BTreeMap<ObjectKey, Object>,
     location:      BTreeMap<ObjectKey, position::Id>,
     draw:          BTreeMap<ObjectKey, Drawable>,
     geometry:      BTreeMap<ObjectKey, Geometry>,
@@ -150,11 +130,180 @@ pub struct Database {
 
     // --- indexes ---
     // map all children to a parent
-    index_parent_child: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
     pub draw_bins: BTreeMap<ObjectKey, BTreeSet<position::Id>>,
 
     // other
     timing: Timing
+}
+
+#[deriving(Clone)]
+pub struct CommonData {
+    last_sid:      StringKey,
+    strings:       BTreeMap<StringKey, ~str>,
+    string_to_key: BTreeMap<~str, StringKey>,
+
+    last_oid:      ObjectKey,
+    objects:       BTreeMap<ObjectKey, Object>,
+    index_parent_child: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
+}
+
+impl CommonData {
+    pub fn new() -> CommonData {
+        CommonData {
+            last_sid:           1,
+            strings:            BTreeMap::new(),
+            string_to_key:      BTreeMap::new(),
+
+            last_oid:           1,
+            objects:            BTreeMap::new(),
+            index_parent_child: BTreeMap::new(),
+        }   
+    }
+}
+
+pub trait Common {
+    fn get<'a>(&'a self) -> &'a CommonData;
+    fn get_mut<'a>(&'a mut self) -> &'a mut CommonData;
+
+    fn new_key(&mut self) -> ObjectKey {
+        let new_key = self.get().last_oid;
+        self.get_mut().last_oid += 1;
+        new_key        
+    }
+
+    fn update_parent_child(&mut self, parent: ObjectKey, child: ObjectKey) {
+        let new = match self.get_mut().index_parent_child.find_mut(&parent) {
+            Some(child_list) => {
+                child_list.insert(child);
+                None
+            },
+            None => {
+                let mut child_list = BTreeSet::new();
+                child_list.insert(child);
+                Some(child_list)
+            }
+        };
+
+        match new {
+            Some(child_list) => {self.get_mut().index_parent_child.insert(parent, child_list);},
+            None => (),
+        }
+    }
+
+    fn new_string(&mut self, s: &str) -> StringKey {
+        let (update, name) = match self.get().string_to_key.find(&s.to_owned()) {
+            None => {
+                (true, 0)
+            }
+            Some(key) => {
+                (false, key.clone())
+            }
+        };
+
+        if update {
+            let name = self.get().last_sid;
+            self.get_mut().last_sid += 1;
+            self.get_mut().strings.insert(name, s.to_owned());
+            self.get_mut().string_to_key.insert(s.to_owned(), name);
+            name
+        } else {
+            name
+        }
+    }
+
+    fn new_object(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
+        let new_key = self.new_key();
+        let parent = match parent {
+            Some(key) => key,
+            None => 0
+        };
+
+        let object = Object {
+            name: self.new_string(name),
+            parent: parent
+        };
+
+        self.get_mut().objects.insert(new_key, object);
+        self.update_parent_child(parent, new_key);
+
+        new_key
+    }
+
+    fn object<'a>(&'a self, oid: ObjectKey) -> Option<&'a Object> {
+        self.get().objects.find(&oid)
+    }
+
+    fn name(&self, key: ObjectKey) -> ~str {
+        match self.get().objects.find(&key) {
+            Some(node) => {
+                //format!("{:s}/{:s}", self.name(node.parent), *self.strings.find(&node.name).unwrap())
+                ~"kitten"
+            },
+            None => ~"base"
+        }
+    }
+
+    fn ifind(&self, node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey> {
+        let node = match node {
+            Some(key) => key,
+            None => 0
+        };
+
+        let child = match self.get().index_parent_child.find(&node) {
+            Some(children) => children,
+            None => return None,
+        };
+
+        for key in child.iter() {
+            match self.get().objects.find(key) {
+                Some(obj) => {
+                    if self.get().strings.find(&obj.name)
+                        .expect("Could not find str key").as_slice() == str_key {
+                        return Some(*key);
+                    }
+                },
+                _ => ()
+            }
+        }
+
+        None
+    }
+
+    fn find(&self, str_key: &str) -> Option<ObjectKey> {
+        let mut node = None;
+        for s in str_key.split('/') {
+            let next = self.ifind(node, s);
+            if next == None {
+                return None
+            }
+            node = next;
+        }
+        node
+    }
+
+    fn last_name(&self, key: ObjectKey) -> ~str {
+        match self.get().objects.find(&key) {
+            Some(node) => {
+                self.get().strings.find(&node.name).unwrap().to_owned()
+            },
+            None => ~"base"
+        }
+    }
+
+    fn walk_dir<'a>(&'a self, oid: ObjectKey) -> BTreeSetIterator<'a, ObjectKey> {
+        let dir = self.get().index_parent_child.find(&oid).unwrap();
+        dir.iter()
+    }
+}
+
+impl Common for Database {
+    fn get<'a>(&'a self) -> &'a CommonData {
+        &self.common
+    }
+
+    fn get_mut<'a>(&'a mut self) -> &'a mut CommonData {
+        &mut self.common
+    }
 }
 
 impl Database {
@@ -169,12 +318,8 @@ impl Database {
     pub fn empty() -> Database
     {
         Database {
-            last_sid:           1,
-            strings:            BTreeMap::new(),
-            string_to_key:      BTreeMap::new(),
+            common:             CommonData::new(),
 
-            last_oid:           1,
-            objects:            BTreeMap::new(),
             location:           BTreeMap::new(),
             draw:               BTreeMap::new(),
             geometry:           BTreeMap::new(),
@@ -185,85 +330,10 @@ impl Database {
 
             // --- indexes ---
             // map all children to a parent
-            index_parent_child: BTreeMap::new(),
             draw_bins: BTreeMap::new(),
 
             timing: Timing::new()
         }
-    }
-
-    fn new_string(&mut self, s: &str) -> StringKey
-    {
-        let (update, name) = match self.string_to_key.find(&s.to_owned()) {
-            None => {
-                let id = self.last_sid;
-                self.last_sid += 1;
-
-                self.strings.insert(id, s.to_owned());
-
-                (true, id)
-            }
-            Some(key) => {
-                (false, key.clone())
-            }
-        };
-
-        if update {
-            self.string_to_key.insert(s.to_owned(), name);
-        }
-        name
-    }
-
-    fn new_key(&mut self) -> ObjectKey
-    {
-        let new_key = self.last_oid;
-        self.last_oid += 1;
-        new_key        
-    }
-
-    fn update_parent_child(&mut self, parent: ObjectKey, child: ObjectKey)
-    {
-        let new = match self.index_parent_child.find_mut(&parent) {
-            Some(child_list) => {
-                child_list.insert(child);
-                None
-            },
-            None => {
-                let mut child_list = BTreeSet::new();
-                child_list.insert(child);
-                Some(child_list)
-            }
-        };
-
-        match new {
-            Some(child_list) => {self.index_parent_child.insert(parent, child_list);},
-            None => (),
-        }
-    }
-
-    pub fn object<'a>(&'a self, oid: ObjectKey) -> Option<&'a Object>
-    {
-        self.objects.find(&oid)
-    }
-
-    pub fn new_object(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey
-    {
-        let new_key = self.new_key();
-        let parent = match parent {
-            Some(key) => key,
-            None => 0
-        };
-
-        let object = Object {
-            obj_type: Invalid,
-            name: self.new_string(name),
-            parent: parent
-        };
-
-        self.objects.insert(new_key, object);
-        self.update_parent_child(parent, new_key);
-
-        new_key
     }
 
     pub fn add_dir(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey
@@ -273,7 +343,7 @@ impl Database {
 
     pub fn position(&self, oid: ObjectKey) -> Mat4<f32>
     {
-        let obj = self.objects.find(&oid);
+        let obj = self.object(oid);
         let p_mat = match obj {
             Some(obj) => self.position(obj.parent),
             None => Mat4::identity()
@@ -296,7 +366,7 @@ impl Database {
                 None => ()
             }
 
-            let poid = self.objects.find(&key).unwrap().parent;
+            let poid = self.object(key).unwrap().parent;
             let pid = self.get_position_id(poid);
             let id = self.position.make_unique().insert(pid, Transform3D::new(1f32, Quat::identity(), Vec3::new(0f32, 0f32, 0f32)));
             self.location.insert(key, id);
@@ -327,84 +397,6 @@ impl Database {
     pub fn drawable<'a>(&'a self, key: ObjectKey) -> Option<&'a Drawable>
     {
         self.draw.find(&key)
-    }
-
-    fn ifind(&self, node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey>
-    {
-        let node = match node {
-            Some(key) => key,
-            None => 0
-        };
-
-        let child = match self.index_parent_child.find(&node) {
-            Some(children) => children,
-            None => return None,
-        };
-
-        for key in child.iter() {
-            match self.objects.find(key) {
-                Some(obj) => {
-                    if self.strings.find(&obj.name).unwrap().as_slice() == str_key {
-                        return Some(*key);
-                    }
-                },
-                _ => ()
-            }
-        }
-
-        None
-    }
-
-    pub fn last_name(&self, key: ObjectKey) -> ~str
-    {
-        match self.objects.find(&key) {
-            Some(node) => {
-                self.strings.find(&node.name).unwrap().to_owned()
-            },
-            None => ~"base"
-        }
-    }
-
-    pub fn name(&self, key: ObjectKey) -> ~str
-    {
-        match self.objects.find(&key) {
-            Some(node) => {
-                format!("{:s}/{:s}", self.name(node.parent), *self.strings.find(&node.name).unwrap())
-            },
-            None => ~"base"
-        }
-    }
-
-    pub fn find(&self, str_key: &str) -> Option<ObjectKey>
-    {
-        let mut node = None;
-        for s in str_key.split('/') {
-            let next = self.ifind(node, s);
-            if next == None {
-                return None
-            }
-            node = next;
-        }
-        node
-    }
-
-    fn idump(&self, depth: int, node: ObjectKey)
-    {
-        let child = match self.index_parent_child.find(&node) {
-            Some(children) => children,
-            None => return,
-        };
-
-
-        for key in child.iter() {
-            println!("{:5}: {:s}", *key, self.name(*key));
-            self.idump(depth+1, *key);
-        }
-    }
-
-    pub fn dump(&self)
-    {
-        self.idump(0, 0);
     }
 
     pub fn new_vertex_buffer(&mut self, parent: ObjectKey, name: &str, vb: VertexBuffer) -> ObjectKey
@@ -480,13 +472,6 @@ impl Database {
         }
     }
 
-    pub fn walk_dir<'a>(&'a self, oid: ObjectKey) -> BTreeSetIterator<'a, ObjectKey>
-    {
-        let dir = self.index_parent_child.find(&oid).unwrap();
-
-        dir.iter()
-    }
-
     pub fn drawable_count(&self) -> uint
     {
         self.draw.len()
@@ -501,25 +486,6 @@ impl Database {
         JoinMapIterator<BTreeMapIterator<'a, ObjectKey, Drawable>, BTreeMapIterator<'a, ObjectKey, position::Id>>
     {
         join_maps(self.draw.iter(), self.location.iter())
-    }
-
-    pub fn walk_scene<'a>(&'a self, oid: ObjectKey) -> IterObjs<'a>
-    {
-        let stack = match self.index_parent_child.find(&oid) {
-            Some(set) => {
-                ~[IterObjsLayer {
-                    child_iter: join_set_to_map(
-                                    set.iter(),
-                                    self.location.iter())
-                }]
-            },
-            None => ~[]
-        };
-
-        IterObjs {
-            db: self,
-            stack: stack
-        }
     }
 
     pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, VertexBuffer>
@@ -543,7 +509,7 @@ impl Database {
     }
 }
 
-struct IterObjsLayer<'a>
+/*struct IterObjsLayer<'a>
 {
     child_iter: JoinMapSetIterator<
                     BTreeSetIterator<'a, ObjectKey>,
@@ -552,7 +518,7 @@ struct IterObjsLayer<'a>
 
 pub struct IterObjs<'a>
 {
-    db: &'a Database,
+    db: &'a Common,
     stack: ~[IterObjsLayer<'a>]
 }
 
@@ -569,7 +535,7 @@ impl<'a> Iterator<(ObjectKey, uint)> for IterObjs<'a>
 
             match self.stack[len-1].child_iter.next() {
                 Some((oid, loc)) => {
-                    match self.db.index_parent_child.find(oid) {
+                    match self.db.get().index_parent_child.find(oid) {
                         Some(set) => {
                             self.stack.push(IterObjsLayer {
                                 child_iter: join_set_to_map(set.iter(), self.db.location.iter())
@@ -584,7 +550,7 @@ impl<'a> Iterator<(ObjectKey, uint)> for IterObjs<'a>
             }
         }
     }
-}
+}*/
 
 pub struct UnwrapKey<IN>
 {

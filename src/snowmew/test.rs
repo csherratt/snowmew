@@ -1,9 +1,11 @@
 #![feature(macro_rules)]
 #![feature(globs)]
+#![feature(phase)]
 
-extern crate snowmew;
+#[phase(syntax, link)] extern crate snowmew;
 extern crate cgmath;
 extern crate OpenCL;
+extern crate cow;
 
 mod core {
     use snowmew::core::Database;
@@ -37,6 +39,16 @@ mod core {
 
         assert!(db.location(id).unwrap().get().to_mat4() == trans.get().to_mat4());
     }
+}
+
+mod table {
+    use cow::btree::BTreeMap;
+    use snowmew::table::*;
+
+    database!(TestDb {
+        name: ~str,
+        name2: ~str
+    })
 }
 
 mod position {

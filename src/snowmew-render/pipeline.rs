@@ -15,6 +15,7 @@ use snowmew::material::{NoMaterial, Phong, Flat};
 use db::Graphics;
 use drawlist::Drawlist;
 
+use snowmew::core::Common;
 
 pub struct DrawTarget
 {

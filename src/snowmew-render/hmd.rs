@@ -6,6 +6,8 @@ use ovr::{HMDInfo};
 
 use shader::Shader; 
 
+use snowmew::core::Common;
+
 pub struct HMD
 {
     scale: f32,

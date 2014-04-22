@@ -35,6 +35,7 @@ pub mod io;
 pub mod material;
 pub mod position;
 mod timing;
+pub mod table;
 
 mod default;
 
