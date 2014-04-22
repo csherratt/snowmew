@@ -9,8 +9,6 @@ use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
 
-use time::precise_time_ns;
-
 static opencl_program: &'static str = "
 struct q4 {
     float s, x, y, z;
@@ -132,18 +130,15 @@ calc_gen(global Transform3D *t, global Mat4 *gen, int offset_last, int offset_th
 }
 ";
 
-pub struct Delta
-{
+pub struct Delta {
     delta : Transform3D<f32>,
     parent: u32,
     padd: [u32, ..3]
 
 }
 
-impl Default for Delta
-{
-    fn default() -> Delta
-    {
+impl Default for Delta {
+    fn default() -> Delta {
         Delta {
             parent: 0,
             delta: Transform3D::new(1f32, Quat::zero(), Vec3::zero()),
@@ -152,10 +147,8 @@ impl Default for Delta
     }
 }
 
-impl Clone for Delta
-{
-    fn clone(&self) -> Delta
-    {
+impl Clone for Delta {
+    fn clone(&self) -> Delta {
         let tras = self.delta.get();
         Delta {
             parent: self.parent.clone(),
@@ -167,16 +160,13 @@ impl Clone for Delta
     }
 }
 
-pub struct Deltas
-{
+pub struct Deltas {
     gen: ~[(u32, u32)],
     delta: ~[Delta],
 }
 
-impl Clone for Deltas
-{
-    fn clone(&self) -> Deltas
-    {
+impl Clone for Deltas {
+    fn clone(&self) -> Deltas {
         let mut vec = ~[];
         vec.reserve(self.delta.len());
         unsafe {
@@ -193,10 +183,8 @@ impl Clone for Deltas
 #[deriving(Clone, Default, Eq, TotalOrd, TotalEq, Ord)]
 pub struct Id(u32, u32);
 
-impl Deltas
-{
-    pub fn new() -> Deltas
-    {
+impl Deltas {
+    pub fn new() -> Deltas {
         Deltas {
             gen: ~[(0, 1)],
             delta: ~[Default::default()],
@@ -205,16 +193,14 @@ impl Deltas
 
     pub fn root() -> Id {Id(0, 0)}
 
-    pub fn get_loc(&self, id: Id) -> uint
-    {
+    pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
         let (gen_offset, _) = self.gen[gen as uint];
 
         (gen_offset + offset) as uint
     }
 
-    fn add_loc(&mut self, gen: u32) -> (uint, u32)
-    {
+    fn add_location(&mut self, gen: u32) -> (uint, u32) {
         if gen as uint == self.gen.len() {
             let (s, len) = self.gen[(gen-1) as uint];
             self.gen.push((s+len, 1));
@@ -233,13 +219,12 @@ impl Deltas
         }
     }
 
-    pub fn insert(&mut self, parent: Id, delta: Transform3D<f32>) -> Id
-    {
+    pub fn insert(&mut self, parent: Id, delta: Transform3D<f32>) -> Id {
         let Id(gen, pid) = parent;
 
         assert!((gen as uint) < self.gen.len());
 
-        let (loc, id) = self.add_loc(gen+1);
+        let (loc, id) = self.add_location(gen+1);
         self.delta.insert(loc, Delta {
             parent: pid,
             delta: delta,
@@ -249,20 +234,17 @@ impl Deltas
         Id(gen+1, id)
     }
 
-    pub fn update(&mut self, id: Id, delta: Transform3D<f32>)
-    {
+    pub fn update(&mut self, id: Id, delta: Transform3D<f32>) {
         let loc = self.get_loc(id);
         self.delta[loc].delta = delta;
     }
 
-    pub fn get_delta(&self, id :Id) -> Transform3D<f32>
-    {
+    pub fn get_delta(&self, id :Id) -> Transform3D<f32> {
         let loc = self.get_loc(id);
         self.delta[loc].delta
     }
 
-    pub fn get_mat(&self, id :Id) -> Mat4<f32>
-    {
+    pub fn get_mat(&self, id :Id) -> Mat4<f32> {
         let loc = self.get_loc(id);
         match id {
             Id(0, _) => {
@@ -277,8 +259,7 @@ impl Deltas
         }
     }
 
-    pub fn to_positions(&self) -> Positions
-    {
+    pub fn to_positions(&self) -> Positions {
         let mut mat = ~[];
         mat.reserve(self.delta.len());
         unsafe {mat.set_len(1);}
@@ -300,8 +281,7 @@ impl Deltas
         }
     }
 
-    pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> Positions
-    {
+    pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> Positions {
         let default: &[Mat4<f32>] = &[Mat4::identity()];
 
         if self.gen.len() == 1 {
@@ -311,12 +291,8 @@ impl Deltas
             };
         }
 
-        let start = precise_time_ns();
-
         cq.write(&ctx.input, &self.delta.as_slice(), ());
         cq.write(&ctx.output, &default, ());
-
-        let write_end = precise_time_ns();
 
         ctx.kernel.set_arg(0, &ctx.input);
         ctx.kernel.set_arg(1, &ctx.output);
@@ -333,7 +309,6 @@ impl Deltas
             ctx.kernel.set_arg(2, &off);
             let (off, len) = self.gen[idx];
             ctx.kernel.set_arg(3, &off);
-            println!("{} {}", off, len);
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
 
@@ -341,16 +316,7 @@ impl Deltas
         mat.reserve(self.delta.len());
         unsafe {mat.set_len(self.delta.len());}
 
-        let compute_done = precise_time_ns();
-
         cq.read(&ctx.output, &mut mat.as_mut_slice(), event);
-
-        let download = precise_time_ns();
-
-        println!("{} {} {}",
-            write_end - start,
-            compute_done - write_end,
-            download - compute_done);
 
         Positions {
             gen: self.gen.clone(),
@@ -358,8 +324,7 @@ impl Deltas
         }
     }
 
-    pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> PositionsGL
-    {
+    pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> PositionsGL {
         for (idx, delta) in self.delta.iter().enumerate() {
             out_delta[idx] = delta.clone();
         }
@@ -374,10 +339,8 @@ pub struct PositionsGL {
     pub gen: ~[(u32, u32)]
 }
 
-impl PositionsGL
-{
-    pub fn get_loc(&self, id: Id) -> uint
-    {
+impl PositionsGL {
+    pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
         let (gen_offset, _) = self.gen[gen as uint];
 
@@ -385,14 +348,12 @@ impl PositionsGL
     }
 }
 
-pub struct Positions
-{
+pub struct Positions {
     gen: ~[(u32, u32)],
     pos: ~[Mat4<f32>],
 }
 
-impl Clone for Positions
-{
+impl Clone for Positions {
     #[inline(never)]
     fn clone(&self) -> Positions
     {
@@ -409,41 +370,34 @@ impl Clone for Positions
     }
 }
 
-impl Positions
-{
+impl Positions {
     pub fn root() -> Id {Id(0, 0)}
 
-    pub fn get_loc(&self, id: Id) -> uint
-    {
+    pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
         let (gen_offset, _) = self.gen[gen as uint];
 
         (gen_offset + offset) as uint
     }
 
-    pub fn get_mat(&self, id :Id) -> Mat4<f32>
-    {
+    pub fn get_mat(&self, id :Id) -> Mat4<f32> {
         self.pos[self.get_loc(id)].clone()
     }
 
-    pub fn all_mats<'a>(&'a self) -> &'a [Mat4<f32>]
-    {
+    pub fn all_mats<'a>(&'a self) -> &'a [Mat4<f32>] {
         self.pos.as_slice()
     }
 }
 
-pub struct CalcPositionsCl
-{
+pub struct CalcPositionsCl {
     program: Program,
     kernel: Kernel,
     input: CLBuffer<Delta>,
     output: CLBuffer<Mat4<f32>>
 }
 
-impl CalcPositionsCl
-{
-    pub fn new(ctx: &Context, device: &Device) -> CalcPositionsCl
-    {
+impl CalcPositionsCl {
+    pub fn new(ctx: &Context, device: &Device) -> CalcPositionsCl {
         let program = ctx.create_program_from_source(opencl_program);
     
         match program.build(device) {
