@@ -8,7 +8,7 @@ extern crate OpenCL;
 extern crate cow;
 
 mod core {
-    use snowmew::core::Database;
+    use snowmew::core::{Database, Common};
     use cgmath::transform::*;
     use cgmath::vector::*;
     use cgmath::quaternion::*;
