@@ -11,8 +11,10 @@ use shader::Shader;
 
 use snowmew::camera::DrawMatrices;
 use snowmew::material::{NoMaterial, Phong, Flat};
+use snowmew::graphics::Graphics;
 
-use db::Graphics;
+
+use db::GlState;
 use drawlist::Drawlist;
 
 use snowmew::core::Common;
@@ -56,7 +58,7 @@ impl DrawTarget
 
 pub trait Pipeline
 {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &Graphics, dm: &DrawMatrices, dt: &DrawTarget);
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget);
 }
 
 pub struct Forward;
@@ -71,7 +73,7 @@ impl Forward
 
 impl Pipeline for Forward
 {
-    fn render(&mut self, drawlist: &mut Drawlist, _: &Graphics, dm: &DrawMatrices, dt: &DrawTarget)
+    fn render(&mut self, drawlist: &mut Drawlist, _: &GlState, dm: &DrawMatrices, dt: &DrawTarget)
     {
         dt.bind();
         gl::ClearColor(0., 0., 0., 1.);
@@ -199,7 +201,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE>
 
 impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE>
 {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &Graphics, dm: &DrawMatrices, ddt: &DrawTarget)
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget)
     {
         let dt = self.draw_target();
         gl::Scissor(0, 0, self.width as i32, self.height as i32);
@@ -377,7 +379,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE>
         gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
     }
 
-    fn draw_screen(&self, db: &Graphics, dt: &DrawTarget)
+    fn draw_screen(&self, db: &GlState, dt: &DrawTarget)
     {
         let billboard = db.current.find("core/geometry/billboard").unwrap();
         let billboard = db.current.geometry(billboard).unwrap();
@@ -421,7 +423,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE>
 
 impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE>
 {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &Graphics, dm: &DrawMatrices, dt: &DrawTarget)
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget)
     {
         let (left_dm, right_dm) = dm.ovr(&self.hmd);
 

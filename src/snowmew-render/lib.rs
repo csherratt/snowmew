@@ -95,7 +95,7 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
 
     let mut queue = Some(queue);
 
-    let mut db = db::Graphics::new(db);
+    let mut db = db::GlState::new(db);
     let mut scene = 0;
     let mut camera = 0;
     let mut window = window;

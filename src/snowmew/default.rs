@@ -1,6 +1,7 @@
 use core;
 use geometry::{VertexBuffer, Geometry, VertexGeoTex};
 use material::Material;
+use graphics::Graphics;
 
 use cgmath::vector::{Vec3, Vec2};
 
@@ -57,7 +58,7 @@ static WEB_COLORS: [(&'static str, Vec3<f32>), ..16] = [
     ("pruple",  Vec3{x: 0.5,   y: 0.,   z: 0.5}),
 ];
 
-pub fn load_default(db: &mut core::Database)
+pub fn load_default(db: &mut Graphics)
 {
     let core_dir = db.add_dir(None, "core");
     let mat_dir = db.add_dir(Some(core_dir), "material");

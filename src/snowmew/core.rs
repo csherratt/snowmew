@@ -4,9 +4,6 @@ use std::default::Default;
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_maps, JoinMapIterator};
 
-use geometry::{Geometry, VertexBuffer};
-use material::Material;
-
 use cgmath::transform::*;
 use cgmath::quaternion::*;
 use cgmath::vector::*;
@@ -14,6 +11,12 @@ use cgmath::vector::*;
 use default::load_default;
 use position;
 use position::Position;
+
+use graphics;
+use graphics::{Graphics, Drawable};
+
+use geometry::{Geometry, VertexBuffer};
+
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -28,40 +31,6 @@ pub struct Object
 {
     pub parent: ObjectKey,
     pub name: ObjectKey,
-}
-
-#[deriving(Clone, Default, Eq)]
-pub struct Drawable
-{
-    pub geometry: ObjectKey,
-    pub material: ObjectKey
-}
-
-impl Ord for Drawable
-{
-    fn lt(&self, other: &Drawable) -> bool
-    {
-        let order = self.geometry.cmp(&other.geometry);
-        match order {
-            Equal => self.material.cmp(&other.material) == Less,
-            Greater => false,
-            Less => true
-        }        
-    }
-}
-
-impl TotalEq for Drawable {}
-
-impl TotalOrd for Drawable {
-    fn cmp(&self, other: &Drawable) -> Ordering
-    {
-        let order = self.geometry.cmp(&other.geometry);
-        match order {
-            Equal => self.material.cmp(&other.material),
-            Greater => Greater,
-            Less => Less
-        }
-    }
 }
 
 pub type ObjectKey = u32;
@@ -96,13 +65,9 @@ impl Clone for Location
 
 #[deriving(Clone)]
 pub struct Database {
-    common:        CommonData,
-    position:      position::PositionData,
-
-    draw:          BTreeMap<ObjectKey, Drawable>,
-    geometry:      BTreeMap<ObjectKey, Geometry>,
-    vertex:        BTreeMap<ObjectKey, VertexBuffer>,
-    material:      BTreeMap<ObjectKey, Material>,
+    common:   CommonData,
+    position: position::PositionData,
+    graphics: graphics::GraphicsData
 }
 
 #[deriving(Clone)]
@@ -216,6 +181,10 @@ pub trait Common {
     fn get_common<'a>(&'a self) -> &'a CommonData;
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData;
 
+    fn add_dir(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
+        self.new_object(parent, name)
+    }
+
     fn new_object(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
         let new_key = self.get_common_mut().new_key();
         let parent = match parent {
@@ -280,93 +249,35 @@ impl Database {
 
     pub fn empty() -> Database {
         Database {
-            common:             CommonData::new(),
-            position:           position::PositionData::new(),
-
-            draw:               BTreeMap::new(),
-            geometry:           BTreeMap::new(),
-            vertex:             BTreeMap::new(),
-            material:           BTreeMap::new(),
+            common:   CommonData::new(),
+            position: position::PositionData::new(),
+            graphics: graphics::GraphicsData::new(),
         }
-    }
-
-    pub fn add_dir(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
-        self.new_object(parent, name)
-    }
-
-    pub fn update_drawable(&mut self, key: ObjectKey, draw: Drawable) {
-        self.draw.insert(key, draw.clone());
-
-    }
-
-    pub fn drawable<'a>(&'a self, key: ObjectKey) -> Option<&'a Drawable> {
-        self.draw.find(&key)
-    }
-
-    pub fn new_vertex_buffer(&mut self, parent: ObjectKey, name: &str, vb: VertexBuffer) -> ObjectKey {
-        let oid = self.new_object(Some(parent), name);
-        self.vertex.insert(oid, vb);
-        oid
-    }
-
-    pub fn new_geometry(&mut self, parent: ObjectKey, name: &str, geo: Geometry) -> ObjectKey {
-        let oid = self.new_object(Some(parent), name);
-        self.geometry.insert(oid, geo);
-        oid
-    }
-
-    pub fn geometry<'a>(&'a self, oid: ObjectKey) -> Option<&'a Geometry> {
-        self.geometry.find(&oid)
-    }
-
-    pub fn material<'a>(&'a self, oid: ObjectKey) -> Option<&'a Material> {
-        self.material.find(&oid)
-    }
-
-    pub fn new_material(&mut self, parent: ObjectKey, name: &str, material: Material) -> ObjectKey {
-        let obj = self.new_object(Some(parent), name);
-        self.material.insert(obj, material);
-        obj
-    }
-
-    pub fn material_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Material> {
-        self.material.iter()
-    }
-
-    pub fn set_draw(&mut self, oid: ObjectKey, geo: ObjectKey, material: ObjectKey) {
-        let draw = Drawable {
-            geometry: geo,
-            material: material
-        };
-
-        self.draw.insert(oid, draw.clone());
-    }
-
-    pub fn drawable_count(&self) -> uint {
-        self.draw.len()
-    }
-
-    pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, ObjectKey, Drawable>> {
-        UnwrapKey::new(self.draw.iter())
     }
 
     pub fn walk_drawables_and_pos<'a>(&'a self) -> 
         JoinMapIterator<BTreeMapIterator<'a, ObjectKey, Drawable>, BTreeMapIterator<'a, ObjectKey, position::Id>> {
-        join_maps(self.draw.iter(), self.location_iter())
-    }
-
-    pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, VertexBuffer> {
-        self.vertex.iter()
+        join_maps(self.drawable_iter(), self.location_iter())
     }
 }
 
-impl position::Position for Database {
+impl Position for Database {
     fn get_position<'a>(&'a self) -> &'a position::PositionData {
         &self.position
     }
 
     fn get_position_mut<'a>(&'a mut self) -> &'a mut position::PositionData {
         &mut self.position
+    }
+}
+
+impl Graphics for Database {
+    fn get_graphics<'a>(&'a self) -> &'a graphics::GraphicsData {
+        &self.graphics
+    }
+
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut graphics::GraphicsData {
+        &mut self.graphics
     }
 }
 
@@ -412,29 +323,3 @@ impl<'a> Iterator<(ObjectKey, uint)> for IterObjs<'a>
         }
     }
 }*/
-
-pub struct UnwrapKey<IN>
-{
-    input: IN
-}
-
-impl<IN> UnwrapKey<IN> {
-    fn new(input: IN) -> UnwrapKey<IN>
-    {
-        UnwrapKey {
-            input: input
-        }
-    }
-}
-
-impl<'a, K: Clone, V, IN: Iterator<(&'a K, &'a V)>> Iterator<(K, &'a V)> for UnwrapKey<IN>
-{
-    #[inline(always)]
-    fn next(&mut self) -> Option<(K, &'a V)>
-    {
-        match self.input.next() {
-            Some((k, v)) => Some((k.clone(), v)),
-            None => None
-        }
-    }
-}

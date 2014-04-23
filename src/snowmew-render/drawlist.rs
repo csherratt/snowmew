@@ -3,16 +3,15 @@ use std::ptr;
 use libc::{c_void};
 use std::slice::raw::mut_buf_as_slice;
 
-use cgmath::matrix::{Mat4, Matrix};
-use cgmath::vector::{Vec4, Vector};
+use cgmath::matrix::Mat4;
+use cgmath::vector::Vec4;
 use cgmath::ptr::Ptr;
-use db::Graphics;
+use db::GlState;
 
 use snowmew::material::Material;
 use snowmew::core::{ObjectKey};
-use snowmew::geometry::Geometry;
-use snowmew::core::Drawable;
-use snowmew::position::{Delta, PositionsGL, Positions, Position};
+use snowmew::position::{Positions, Position};
+use snowmew::graphics::Graphics;
 
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
@@ -21,161 +20,12 @@ use collections::treemap::TreeMap;
 
 use Config;
 
-pub struct ObjectCull<IN>
-{
-    input: IN,
-    camera: Mat4<f32>
-}
-
-impl<'a, IN: Iterator<(ObjectKey, Mat4<f32>)>> ObjectCull<IN>
-{
-    pub fn new(input: IN, camera: Mat4<f32>) -> ObjectCull<IN>
-    {
-        ObjectCull {
-            input: input,
-            camera: camera
-        }
-    }
-}
-
-impl<'a, IN: Iterator<(ObjectKey, Mat4<f32>)>>
-     Iterator<(ObjectKey, Mat4<f32>)> for ObjectCull<IN>
-{
-    #[inline]
-    fn next(&mut self) -> Option<(ObjectKey, Mat4<f32>)>
-    {
-        static cube_points: &'static [Vec4<f32>] = &'static [
-            Vec4{x:1., y:  1., z:  1., w: 1.}, Vec4{x:-1., y:  1., z:  1., w: 1.},
-            Vec4{x:1., y: -1., z:  1., w: 1.}, Vec4{x:-1., y: -1., z:  1., w: 1.},
-            Vec4{x:1., y:  1., z: -1., w: 1.}, Vec4{x:-1., y:  1., z: -1., w: 1.},
-            Vec4{x:1., y: -1., z: -1., w: 1.}, Vec4{x:-1., y: -1., z: -1., w: 1.},
-        ];
-
-        loop {
-            match self.input.next() {
-                Some((oid, mat)) => {
-                    let proj = self.camera.mul_m(&mat);
-
-                    let mut behind_camera = true;
-                    let mut right_of_camera = true;
-                    let mut left_of_camera = true;
-                    let mut above_camera = true;
-                    let mut below_camera = true;
-
-                    for p in cube_points.iter() {
-                        let point = proj.mul_v(p);
-                        let point = point.mul_s(1./point.w);
-
-                        behind_camera &= point.z > 1.;
-                        right_of_camera &= point.x > 1.;
-                        left_of_camera &= point.x < -1.;
-                        above_camera &= point.y > 1.;
-                        below_camera &= point.y < -1.;
-                    }
-
-                    if !(behind_camera|right_of_camera|left_of_camera|above_camera|below_camera) {
-                        return Some((oid, mat));
-                    }
-                },
-                None => return None
-            }
-        }
-    }
-}
-
-pub struct Expand<'a, IN>
-{
-    input: IN,
-    material_id: ObjectKey,
-    vb_id: ObjectKey,
-    last_material_id: ObjectKey,
-    last_vb_id: ObjectKey,
-    mat: Option<Mat4<f32>>,
-    geometry: Option<&'a Geometry>,
-    db: &'a Graphics
-}
-
-impl<'a, IN: Iterator<(ObjectKey, (Mat4<f32>, &'a Drawable))>> Expand<'a, IN>
-{
-    pub fn new(input: IN, db: &'a Graphics) -> Expand<'a, IN>
-    {
-        Expand {
-            input: input,
-            material_id: 0,
-            vb_id: 0,
-            last_material_id: 0,
-            last_vb_id: 0,
-            mat: None,
-            geometry: None,
-            db: db
-        }
-    }
-}
-
-pub enum DrawCommand
-{
-    Draw(Geometry),
-    BindMaterial(ObjectKey),
-    BindVertexBuffer(ObjectKey),
-    SetModelMatrix(Mat4<f32>),
-    MultiDraw(ObjectKey, u32, u32, u32, u32),
-    DrawElements(ObjectKey, u32, i32, u32, i32, u32, i32),
-    DrawElements2(ObjectKey, Geometry, u32, ~[u32])
-}
-
-impl<'a, IN: Iterator<(ObjectKey, (Mat4<f32>, &'a Drawable))>> Iterator<DrawCommand> for Expand<'a, IN>
-{
-    #[inline]
-    fn next(&mut self) -> Option<DrawCommand>
-    {
-        loop {
-            if self.material_id != self.last_material_id {
-                self.last_material_id = self.material_id;
-                return Some(BindMaterial(self.material_id));
-            }
-
-            if self.vb_id != self.last_vb_id {
-                self.last_vb_id = self.vb_id;
-                return Some(BindVertexBuffer(self.vb_id));
-            }
-
-            match self.mat {
-                Some(mat) => {
-                    let out = SetModelMatrix(mat);
-                    self.mat = None;
-                    return Some(out);
-                },
-                None => ()
-            }
-
-            match self.geometry {
-                Some(geometry) => {
-                    let out = Draw(geometry.clone());
-                    self.geometry = None;
-                    return Some(out);
-                },
-                None => ()
-            }
-
-            match self.input.next() {
-                Some((_, (mat, draw))) => {
-                    self.mat = Some(mat);
-                    self.material_id = draw.material;
-                    self.geometry = self.db.current.geometry(draw.geometry);
-                    self.vb_id = self.geometry.unwrap().vb;
-                },
-                None => return None,
-            }
-        }
-    }
-}
-
 pub trait Drawlist
 {
     // done on the context manager before, Graphics is owned by
     // the draw list. If there was already a bound scene this
     // needs to be replaces with the current scene
-    fn bind_scene(&mut self, db: Graphics, scene: ObjectKey);
+    fn bind_scene(&mut self, db: GlState, scene: ObjectKey);
 
     // done first on an external thread
     fn setup_scene_async(&mut self);
@@ -192,7 +42,7 @@ pub trait Drawlist
 
 pub struct DrawlistStandard
 {
-    db: Option<Graphics>,
+    db: Option<GlState>,
     scene: ObjectKey,
     position: Option<Positions>,
 
@@ -261,7 +111,7 @@ impl DrawlistStandard
 
 impl Drawlist for DrawlistStandard
 {
-    fn bind_scene(&mut self, db: Graphics, scene: ObjectKey)
+    fn bind_scene(&mut self, db: GlState, scene: ObjectKey)
     {
         self.db = Some(db);
         self.scene = scene;
@@ -372,7 +222,7 @@ impl Drawlist for DrawlistStandard
 
         let mut range = (0u, 0u);
         let mut last_geo: Option<u32> = None;
-        for (idx, (_, draw)) in self.db.as_ref().unwrap().current.walk_drawables().enumerate() {
+        for (idx, (_, draw)) in self.db.as_ref().unwrap().current.drawable_iter().enumerate() {
             if last_geo.is_some() {
                 if last_geo.unwrap() == draw.geometry {
                     let (start, _) = range;
@@ -433,6 +283,8 @@ impl Drawlist for DrawlistStandard
     }
 }
 
+/*
+
 struct Indirect {
     vertex_count: u32,
     instance_count: u32,
@@ -448,12 +300,9 @@ pub struct DrawlistBindless
     model_delta_ptr: *mut Delta,
     max_size: uint,
     bins: TreeMap<Drawable ,~[u32]>,
-    cmds: ~[DrawCommand],
     gl_pos: Option<PositionsGL>
 }
 
-
-/*
 impl DrawlistBindless
 {
     pub fn new(max_size: uint) -> DrawlistBindless

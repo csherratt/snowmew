@@ -1,12 +1,13 @@
 use gl;
 use gl::types::GLuint;
-use db::Graphics;
+use db::GlState;
 use std::ptr;
 use ovr::{HMDInfo};
 
 use shader::Shader; 
 
 use snowmew::core::Common;
+use snowmew::graphics::Graphics;
 
 pub struct HMD
 {
@@ -59,7 +60,7 @@ impl HMD
         }
     }
 
-    pub fn set_left(&self, _: &Graphics, hmd: &HMDInfo)
+    pub fn set_left(&self, _: &GlState, hmd: &HMDInfo)
     {
         let (w, h) = hmd.resolution();
         let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
@@ -72,7 +73,7 @@ impl HMD
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    pub fn set_right(&self, _: &Graphics, hmd: &HMDInfo)
+    pub fn set_right(&self, _: &GlState, hmd: &HMDInfo)
     {
         let (w, h) = hmd.resolution();
         let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
@@ -108,7 +109,7 @@ impl HMD
         gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
     }
 
-    pub fn draw_screen(&self, db: &Graphics, hmd: &HMDInfo)
+    pub fn draw_screen(&self, db: &GlState, hmd: &HMDInfo)
     {
         let billboard = db.current.find("core/geometry/billboard").unwrap();
         let billboard = db.current.geometry(billboard).unwrap();

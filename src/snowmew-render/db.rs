@@ -1,6 +1,7 @@
 use std::mem;
 
 use cow::btree::BTreeMap;
+use snowmew::graphics::Graphics;
 use snowmew::core::{Database, ObjectKey};
 
 use vertex_buffer::VertexBuffer;
@@ -186,7 +187,7 @@ void main() {
 ";
 
 #[deriving(Clone)]
-pub struct Graphics
+pub struct GlState
 {
     pub last: Database,
     pub current: Database,
@@ -201,11 +202,9 @@ pub struct Graphics
     pub ovr_shader: Option<Shader>,
 }
 
-impl Graphics
-{
-    pub fn new(db: Database) -> Graphics
-    {
-        Graphics {
+impl GlState {
+    pub fn new(db: Database) -> GlState{
+        GlState {
             current: db.clone(),
             last: db,
             vertex: BTreeMap::new(),
@@ -218,8 +217,7 @@ impl Graphics
         }
     }
 
-    pub fn update(&mut self, db: Database) -> Database
-    {
+    pub fn update(&mut self, db: Database) -> Database{
         let mut db = db;
         mem::swap(&mut self.last, &mut self.current);
         mem::swap(&mut self.current, &mut db);
@@ -227,10 +225,8 @@ impl Graphics
 
     }
 
-    fn load_vertex(&mut self, _: &Config)
-    {
-        for (oid, vbo) in self.current.walk_vertex_buffers()
-        {
+    fn load_vertex(&mut self, _: &Config) {
+        for (oid, vbo) in self.current.vertex_buffer_iter() {
             match self.vertex.find(oid) {
                 Some(_) => (),
                 None => {
@@ -241,8 +237,7 @@ impl Graphics
         }        
     }
 
-    fn load_shaders(&mut self, cfg: &Config)
-    {
+    fn load_shaders(&mut self, cfg: &Config) {
         if self.ovr_shader.is_none() {
             self.ovr_shader = Some(
                 Shader::new(VS_PASS_SRC, VR_FS_SRC,
@@ -265,7 +260,7 @@ impl Graphics
                 Shader::new(VS_INSTANCE_SRC, FS_FLAT_SRC, 
                     &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
                     &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]
-            ));
+            )); 
         }
         if cfg.use_bindless() {
             if self.flat_bindless_shader.is_none() {
@@ -278,8 +273,7 @@ impl Graphics
         }
     }
 
-    pub fn load(&mut self, cfg: &Config)
-    {
+    pub fn load(&mut self, cfg: &Config) {
         self.load_vertex(cfg);
         self.load_shaders(cfg);
     }
