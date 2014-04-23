@@ -1,6 +1,5 @@
 use std::mem;
 use std::ptr;
-use std::cast;
 use libc::{c_void};
 use std::slice::raw::mut_buf_as_slice;
 
@@ -18,13 +17,7 @@ use snowmew::position::{Delta, PositionsGL, Positions, Position};
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
 
-use OpenCL::hl::{CommandQueue};
-
 use collections::treemap::TreeMap;
-
-use compute_accelerator::PositionGlAccelerator;
-
-use time::precise_time_ns;
 
 use Config;
 

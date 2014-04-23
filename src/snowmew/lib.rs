@@ -34,7 +34,6 @@ pub mod io;
 //pub mod display;
 pub mod material;
 pub mod position;
-mod timing;
 
 mod default;
 

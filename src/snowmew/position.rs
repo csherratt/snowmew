@@ -361,8 +361,7 @@ pub struct Positions {
 
 impl Clone for Positions {
     #[inline(never)]
-    fn clone(&self) -> Positions
-    {
+    fn clone(&self) -> Positions {
         let mut vec = ~[];
         vec.reserve(self.pos.len());
         unsafe {
@@ -500,7 +499,6 @@ pub trait Position: Common {
     fn to_positions_gl(&self, out_delta: &mut [Delta]) -> PositionsGL {
         self.get_position().position.to_positions_gl(out_delta)
     }
-
 
     fn location_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Id> {
         self.get_position().location.iter()

@@ -1,17 +1,13 @@
 
 use std::default::Default;
 
-use sync::Arc;
-
 use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
 use cow::join::{join_maps, JoinMapIterator};
 
 use geometry::{Geometry, VertexBuffer};
 use material::Material;
-use timing::Timing;
 
 use cgmath::transform::*;
-use cgmath::matrix::*;
 use cgmath::quaternion::*;
 use cgmath::vector::*;
 
@@ -26,24 +22,6 @@ pub struct FrameInfo {
     delta: f64,   /* time from last frame */
 }
 
-
-#[deriving(Clone)]
-pub struct Light
-{
-    pub color: Vec3<f32>,
-    pub intensity: f32
-}
-
-impl Default for Light
-{
-    fn default() -> Light
-    {
-        Light {
-            color: Vec3::new(0f32, 0f32, 0f32),
-            intensity: 0.
-        }
-    }
-}
 
 #[deriving(Clone, Default)]
 pub struct Object
@@ -121,21 +99,10 @@ pub struct Database {
     common:        CommonData,
     position:      position::PositionData,
 
-    // raw data
-    //location:      BTreeMap<ObjectKey, position::Id>,
     draw:          BTreeMap<ObjectKey, Drawable>,
     geometry:      BTreeMap<ObjectKey, Geometry>,
     vertex:        BTreeMap<ObjectKey, VertexBuffer>,
     material:      BTreeMap<ObjectKey, Material>,
-    light:         BTreeMap<ObjectKey, Light>,
-    //pub position:  Arc<position::Deltas>,
-
-    // --- indexes ---
-    // map all children to a parent
-    //pub draw_bins: BTreeMap<ObjectKey, BTreeSet<position::Id>>,
-
-    // other
-    timing: Timing
 }
 
 #[deriving(Clone)]
@@ -320,12 +287,6 @@ impl Database {
             geometry:           BTreeMap::new(),
             vertex:             BTreeMap::new(),
             material:           BTreeMap::new(),
-            light:              BTreeMap::new(),
-
-            // --- indexes ---
-            // map all children to a parent
-
-            timing: Timing::new()
         }
     }
 
@@ -372,16 +333,6 @@ impl Database {
         self.material.iter()
     }
 
-    pub fn light<'a>(&'a self, oid: ObjectKey) -> Option<&'a Light> {
-        self.light.find(&oid)
-    }
-
-    pub fn new_light(&mut self, parent: ObjectKey, name: &str, light: Light) -> ObjectKey {
-        let obj = self.new_object(Some(parent), name);
-        self.light.insert(obj, light);
-        obj
-    }
-
     pub fn set_draw(&mut self, oid: ObjectKey, geo: ObjectKey, material: ObjectKey) {
         let draw = Drawable {
             geometry: geo,
@@ -406,18 +357,6 @@ impl Database {
 
     pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, VertexBuffer> {
         self.vertex.iter()
-    }
-
-    pub fn reset_time(&mut self) {
-        self.timing.reset()
-    }
-
-    pub fn mark_time(&mut self, name: ~str) {
-        self.timing.mark(name)
-    }
-
-    pub fn dump_time(&mut self) {
-        self.timing.dump()
     }
 }
 
