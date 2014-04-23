@@ -1,8 +1,7 @@
 
 use std::default::Default;
 
-use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator, BTreeMapIterator};
-use cow::join::{join_maps, JoinMapIterator};
+use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator};
 
 use cgmath::transform::*;
 use cgmath::quaternion::*;
@@ -13,9 +12,7 @@ use position;
 use position::Position;
 
 use graphics;
-use graphics::{Graphics, Drawable};
-
-use geometry::{Geometry, VertexBuffer};
+use graphics::{Graphics};
 
 
 #[deriving(Clone, Default)]
@@ -253,11 +250,6 @@ impl Database {
             position: position::PositionData::new(),
             graphics: graphics::GraphicsData::new(),
         }
-    }
-
-    pub fn walk_drawables_and_pos<'a>(&'a self) -> 
-        JoinMapIterator<BTreeMapIterator<'a, ObjectKey, Drawable>, BTreeMapIterator<'a, ObjectKey, position::Id>> {
-        join_maps(self.drawable_iter(), self.location_iter())
     }
 }
 

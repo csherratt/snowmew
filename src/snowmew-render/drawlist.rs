@@ -3,6 +3,8 @@ use std::ptr;
 use libc::{c_void};
 use std::slice::raw::mut_buf_as_slice;
 
+use cow::join::join_maps;
+
 use cgmath::matrix::Mat4;
 use cgmath::vector::Vec4;
 use cgmath::ptr::Ptr;
@@ -159,8 +161,10 @@ impl Drawlist for DrawlistStandard
                 }
             })})})});
         
+            let db = &self.db.as_ref().unwrap().current;
+
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
-                for (idx, (id, (draw, pos))) in self.db.as_ref().unwrap().current.walk_drawables_and_pos().enumerate() {
+                for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
                     info[idx] = (id.clone(),
                                  self.position.as_ref().unwrap().get_loc(*pos) as u32,
                                  self.material_to_id.find(&draw.material).unwrap().clone(),

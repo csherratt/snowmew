@@ -1,4 +1,3 @@
-use core;
 use geometry::{VertexBuffer, Geometry, VertexGeoTex};
 use material::Material;
 use graphics::Graphics;
