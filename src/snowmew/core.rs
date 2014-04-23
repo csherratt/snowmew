@@ -17,6 +17,7 @@ use cgmath::vector::*;
 
 use default::load_default;
 use position;
+use position::Position;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -118,19 +119,20 @@ impl Clone for Location
 #[deriving(Clone)]
 pub struct Database {
     common:        CommonData,
+    position:      position::PositionData,
 
     // raw data
-    location:      BTreeMap<ObjectKey, position::Id>,
+    //location:      BTreeMap<ObjectKey, position::Id>,
     draw:          BTreeMap<ObjectKey, Drawable>,
     geometry:      BTreeMap<ObjectKey, Geometry>,
     vertex:        BTreeMap<ObjectKey, VertexBuffer>,
     material:      BTreeMap<ObjectKey, Material>,
     light:         BTreeMap<ObjectKey, Light>,
-    pub position:  Arc<position::Deltas>,
+    //pub position:  Arc<position::Deltas>,
 
     // --- indexes ---
     // map all children to a parent
-    pub draw_bins: BTreeMap<ObjectKey, BTreeSet<position::Id>>,
+    //pub draw_bins: BTreeMap<ObjectKey, BTreeSet<position::Id>>,
 
     // other
     timing: Timing
@@ -244,35 +246,35 @@ impl CommonData {
 }
 
 pub trait Common {
-    fn get<'a>(&'a self) -> &'a CommonData;
-    fn get_mut<'a>(&'a mut self) -> &'a mut CommonData;
+    fn get_common<'a>(&'a self) -> &'a CommonData;
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData;
 
     fn new_object(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
-        let new_key = self.get_mut().new_key();
+        let new_key = self.get_common_mut().new_key();
         let parent = match parent {
             Some(key) => key,
             None => 0
         };
 
         let object = Object {
-            name: self.get_mut().new_string(name),
+            name: self.get_common_mut().new_string(name),
             parent: parent
         };
 
-        self.get_mut().objects.insert(new_key, object);
-        self.get_mut().update_parent_child(parent, new_key);
+        self.get_common_mut().objects.insert(new_key, object);
+        self.get_common_mut().update_parent_child(parent, new_key);
 
         new_key
     }
 
     fn object<'a>(&'a self, oid: ObjectKey) -> Option<&'a Object> {
-        self.get().objects.find(&oid)
+        self.get_common().objects.find(&oid)
     }
 
     fn find(&self, str_key: &str) -> Option<ObjectKey> {
         let mut node = None;
         for s in str_key.split('/') {
-            let next = self.get().ifind(node, s);
+            let next = self.get_common().ifind(node, s);
             if next == None {
                 return None
             }
@@ -282,223 +284,150 @@ pub trait Common {
     }
 
     fn walk_dir<'a>(&'a self, oid: ObjectKey) -> BTreeSetIterator<'a, ObjectKey> {
-        let dir = self.get().index_parent_child.find(&oid).unwrap();
+        let dir = self.get_common().index_parent_child.find(&oid).unwrap();
         dir.iter()
     }
 
-    fn name(&self, key: ObjectKey) -> ~str { self.get().name(key) }
+    fn name(&self, key: ObjectKey) -> ~str {
+        self.get_common().name(key)
+    }
 }
 
 impl Common for Database {
-    fn get<'a>(&'a self) -> &'a CommonData {
+    fn get_common<'a>(&'a self) -> &'a CommonData {
         &self.common
     }
 
-    fn get_mut<'a>(&'a mut self) -> &'a mut CommonData {
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {
         &mut self.common
     }
 }
 
 impl Database {
-    pub fn new() -> Database
-    {
+    pub fn new() -> Database {
         let mut new = Database::empty();
         load_default(&mut new);
         new
         
     }
 
-    pub fn empty() -> Database
-    {
+    pub fn empty() -> Database {
         Database {
             common:             CommonData::new(),
+            position:           position::PositionData::new(),
 
-            location:           BTreeMap::new(),
             draw:               BTreeMap::new(),
             geometry:           BTreeMap::new(),
             vertex:             BTreeMap::new(),
             material:           BTreeMap::new(),
             light:              BTreeMap::new(),
-            position:           Arc::new(position::Deltas::new()),
 
             // --- indexes ---
             // map all children to a parent
-            draw_bins: BTreeMap::new(),
 
             timing: Timing::new()
         }
     }
 
-    pub fn add_dir(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey
-    {
+    pub fn add_dir(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
         self.new_object(parent, name)
     }
 
-    pub fn position(&self, oid: ObjectKey) -> Mat4<f32>
-    {
-        let obj = self.object(oid);
-        let p_mat = match obj {
-            Some(obj) => self.position(obj.parent),
-            None => Mat4::identity()
-        };
-
-        let loc = match self.location(oid) {
-            Some(t) => {t.get().to_mat4()},
-            None => Mat4::identity()
-        };
-        p_mat.mul_m(&loc)
-    }
-
-    fn get_position_id(&mut self, key: ObjectKey) -> position::Id
-    {
-        if key == 0 {
-            position::Deltas::root()
-        } else {
-            match self.location.find(&key) {
-                Some(id) =>  return *id,
-                None => ()
-            }
-
-            let poid = self.object(key).unwrap().parent;
-            let pid = self.get_position_id(poid);
-            let id = self.position.make_unique().insert(pid, Transform3D::new(1f32, Quat::identity(), Vec3::new(0f32, 0f32, 0f32)));
-            self.location.insert(key, id);
-            id
-        }
-    }
-
-    pub fn update_location(&mut self, key: ObjectKey, location: Transform3D<f32>)
-    {
-        let id = self.get_position_id(key);
-        self.position.make_unique().update(id, location);
-    }
-
-    pub fn location(&self, key: ObjectKey) -> Option<Transform3D<f32>>
-    {
-        match self.location.find(&key) {
-            Some(id) => Some(self.position.deref().get_delta(*id)),
-            None => None
-        }
-    }
-
-    pub fn update_drawable(&mut self, key: ObjectKey, draw: Drawable)
-    {
+    pub fn update_drawable(&mut self, key: ObjectKey, draw: Drawable) {
         self.draw.insert(key, draw.clone());
 
     }
 
-    pub fn drawable<'a>(&'a self, key: ObjectKey) -> Option<&'a Drawable>
-    {
+    pub fn drawable<'a>(&'a self, key: ObjectKey) -> Option<&'a Drawable> {
         self.draw.find(&key)
     }
 
-    pub fn new_vertex_buffer(&mut self, parent: ObjectKey, name: &str, vb: VertexBuffer) -> ObjectKey
-    {
+    pub fn new_vertex_buffer(&mut self, parent: ObjectKey, name: &str, vb: VertexBuffer) -> ObjectKey {
         let oid = self.new_object(Some(parent), name);
         self.vertex.insert(oid, vb);
         oid
     }
 
-    pub fn new_geometry(&mut self, parent: ObjectKey, name: &str, geo: Geometry) -> ObjectKey
-    {
+    pub fn new_geometry(&mut self, parent: ObjectKey, name: &str, geo: Geometry) -> ObjectKey {
         let oid = self.new_object(Some(parent), name);
         self.geometry.insert(oid, geo);
         oid
     }
 
-    pub fn geometry<'a>(&'a self, oid: ObjectKey) -> Option<&'a Geometry>
-    {
+    pub fn geometry<'a>(&'a self, oid: ObjectKey) -> Option<&'a Geometry> {
         self.geometry.find(&oid)
     }
 
-    pub fn material<'a>(&'a self, oid: ObjectKey) -> Option<&'a Material>
-    {
+    pub fn material<'a>(&'a self, oid: ObjectKey) -> Option<&'a Material> {
         self.material.find(&oid)
     }
 
-    pub fn new_material(&mut self, parent: ObjectKey, name: &str, material: Material) -> ObjectKey
-    {
+    pub fn new_material(&mut self, parent: ObjectKey, name: &str, material: Material) -> ObjectKey {
         let obj = self.new_object(Some(parent), name);
         self.material.insert(obj, material);
         obj
     }
 
-    pub fn material_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Material>
-    {
+    pub fn material_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Material> {
         self.material.iter()
     }
 
-    pub fn light<'a>(&'a self, oid: ObjectKey) -> Option<&'a Light>
-    {
+    pub fn light<'a>(&'a self, oid: ObjectKey) -> Option<&'a Light> {
         self.light.find(&oid)
     }
 
-    pub fn new_light(&mut self, parent: ObjectKey, name: &str, light: Light) -> ObjectKey
-    {
+    pub fn new_light(&mut self, parent: ObjectKey, name: &str, light: Light) -> ObjectKey {
         let obj = self.new_object(Some(parent), name);
         self.light.insert(obj, light);
         obj
     }
 
-    pub fn set_draw(&mut self, oid: ObjectKey, geo: ObjectKey, material: ObjectKey)
-    {
+    pub fn set_draw(&mut self, oid: ObjectKey, geo: ObjectKey, material: ObjectKey) {
         let draw = Drawable {
             geometry: geo,
             material: material
         };
 
         self.draw.insert(oid, draw.clone());
-
-        let pid = self.get_position_id(oid);
-        let create = match self.draw_bins.find_mut(&draw.geometry) {
-            Some(draw_bin) => {
-                draw_bin.insert(pid.clone());
-                false
-            },
-            None => true
-        };
-
-        if create {
-            let mut set = BTreeSet::new();
-            set.insert(pid.clone());
-            self.draw_bins.insert(draw.geometry, set);
-        }
     }
 
-    pub fn drawable_count(&self) -> uint
-    {
+    pub fn drawable_count(&self) -> uint {
         self.draw.len()
     }
 
-    pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, ObjectKey, Drawable>>
-    {
+    pub fn walk_drawables<'a>(&'a self) -> UnwrapKey<BTreeMapIterator<'a, ObjectKey, Drawable>> {
         UnwrapKey::new(self.draw.iter())
     }
 
     pub fn walk_drawables_and_pos<'a>(&'a self) -> 
-        JoinMapIterator<BTreeMapIterator<'a, ObjectKey, Drawable>, BTreeMapIterator<'a, ObjectKey, position::Id>>
-    {
-        join_maps(self.draw.iter(), self.location.iter())
+        JoinMapIterator<BTreeMapIterator<'a, ObjectKey, Drawable>, BTreeMapIterator<'a, ObjectKey, position::Id>> {
+        join_maps(self.draw.iter(), self.location_iter())
     }
 
-    pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, VertexBuffer>
-    {
+    pub fn walk_vertex_buffers<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, VertexBuffer> {
         self.vertex.iter()
     }
 
-    pub fn reset_time(&mut self)
-    {
+    pub fn reset_time(&mut self) {
         self.timing.reset()
     }
 
-    pub fn mark_time(&mut self, name: ~str)
-    {
+    pub fn mark_time(&mut self, name: ~str) {
         self.timing.mark(name)
     }
 
-    pub fn dump_time(&mut self)
-    {
+    pub fn dump_time(&mut self) {
         self.timing.dump()
+    }
+}
+
+impl position::Position for Database {
+    fn get_position<'a>(&'a self) -> &'a position::PositionData {
+        &self.position
+    }
+
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut position::PositionData {
+        &mut self.position
     }
 }
 

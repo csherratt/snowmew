@@ -13,7 +13,7 @@ use snowmew::material::Material;
 use snowmew::core::{ObjectKey};
 use snowmew::geometry::Geometry;
 use snowmew::core::Drawable;
-use snowmew::position::{Delta, PositionsGL, Positions};
+use snowmew::position::{Delta, PositionsGL, Positions, Position};
 
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
@@ -293,7 +293,7 @@ impl Drawlist for DrawlistStandard
     fn setup_scene_async(&mut self)
     {
         self.position = None;
-        self.position = Some(self.db.as_ref().unwrap().current.position.deref().to_positions());
+        self.position = Some(self.db.as_ref().unwrap().current.to_positions());
 
         self.material_to_id.clear();
 
@@ -460,6 +460,7 @@ pub struct DrawlistBindless
 }
 
 
+/*
 impl DrawlistBindless
 {
     pub fn new(max_size: uint) -> DrawlistBindless
@@ -588,3 +589,4 @@ impl Drop for DrawlistBindless
         //gl::DeleteBuffers(1, buffers.unsafe_ref(0));
     }
 }
+*/

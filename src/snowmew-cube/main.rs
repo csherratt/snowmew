@@ -17,6 +17,8 @@ use rand::{StdRng, Rng};
 
 use snowmew::core::Database;
 use snowmew::camera::Camera;
+use snowmew::position::{Position};
+
 
 use render::RenderManager;
 

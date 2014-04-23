@@ -26,6 +26,8 @@ use std::comm::{Receiver, Sender, Empty, Disconnected};
 use snowmew::core::{ObjectKey};
 use snowmew::camera::Camera;
 use snowmew::io::Window;
+use snowmew::position::{Position};
+
 
 use pipeline::{DrawTarget, Pipeline};
 use drawlist::{Drawlist, DrawlistStandard};

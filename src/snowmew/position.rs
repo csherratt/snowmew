@@ -9,6 +9,12 @@ use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
 
+use sync::Arc;
+use cow::btree::{BTreeMap, BTreeMapIterator};
+
+use core::{ObjectKey, Common};
+
+
 static opencl_program: &'static str = "
 struct q4 {
     float s, x, y, z;
@@ -423,3 +429,80 @@ impl CalcPositionsCl {
     }
 }
 
+#[deriving(Clone)]
+pub struct PositionData {
+    location: BTreeMap<ObjectKey, Id>,
+    position: Arc<Deltas>
+}
+
+impl PositionData {
+    pub fn new() -> PositionData {
+        PositionData {
+            location: BTreeMap::new(),
+            position: Arc::new(Deltas::new())
+        }
+    }
+}
+
+pub trait Position: Common {
+    fn get_position<'a>(&'a self) -> &'a PositionData;
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData;
+
+    fn position_id(&mut self, key: ObjectKey) -> Id {
+        if key == 0 {
+            Deltas::root()
+        } else {
+            match self.get_position().location.find(&key) {
+                Some(id) =>  return *id,
+                None => ()
+            }
+
+            let poid = self.object(key).unwrap().parent;
+            let pid = self.position_id(poid);
+            let id = self.get_position_mut().position.make_unique().insert(pid,
+                Transform3D::new(1f32, Quat::identity(), Vec3::new(0f32, 0f32, 0f32))
+            );
+            self.get_position_mut().location.insert(key, id);
+            id
+        }
+    }
+
+    fn update_location(&mut self, key: ObjectKey, location: Transform3D<f32>) {
+        let id = self.position_id(key);
+        self.get_position_mut().position.make_unique().update(id, location);
+    }
+
+    fn location(&self, key: ObjectKey) -> Option<Transform3D<f32>> {
+        match self.get_position().location.find(&key) {
+            Some(id) => Some(self.get_position().position.deref().get_delta(*id)),
+            None => None
+        }
+    }
+
+    fn position(&self, oid: ObjectKey) -> Mat4<f32> {
+        let obj = self.object(oid);
+        let p_mat = match obj {
+            Some(obj) => self.position(obj.parent),
+            None => Mat4::identity()
+        };
+
+        let loc = match self.location(oid) {
+            Some(t) => {t.get().to_mat4()},
+            None => Mat4::identity()
+        };
+        p_mat.mul_m(&loc)
+    }
+
+    fn to_positions(&self) -> Positions {
+        self.get_position().position.to_positions()
+    }
+
+    fn to_positions_gl(&self, out_delta: &mut [Delta]) -> PositionsGL {
+        self.get_position().position.to_positions_gl(out_delta)
+    }
+
+
+    fn location_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Id> {
+        self.get_position().location.iter()
+    }
+}
