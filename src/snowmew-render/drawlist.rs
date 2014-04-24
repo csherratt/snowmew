@@ -9,10 +9,11 @@ use cgmath::matrix::Mat4;
 use cgmath::vector::Vec4;
 use cgmath::ptr::Ptr;
 use db::GlState;
+use RenderData;
 
 use snowmew::material::Material;
 use snowmew::core::{ObjectKey};
-use snowmew::position::{Positions, Position};
+use snowmew::position::{ComputedPosition, Positions};
 use snowmew::graphics::Graphics;
 
 use gl;
@@ -22,12 +23,11 @@ use collections::treemap::TreeMap;
 
 use Config;
 
-pub trait Drawlist
-{
+pub trait Drawlist<RD> {
     // done on the context manager before, Graphics is owned by
     // the draw list. If there was already a bound scene this
     // needs to be replaces with the current scene
-    fn bind_scene(&mut self, db: GlState, scene: ObjectKey);
+    fn bind_scene(&mut self, db: GlState<RD>, scene: ObjectKey);
 
     // done first on an external thread
     fn setup_scene_async(&mut self);
@@ -39,14 +39,13 @@ pub trait Drawlist
     fn render(&mut self, camera: Mat4<f32>);
 
     // get materials
-    fn materials(&self) -> ~[Material];
+    fn materials(&self) -> Vec<Material>;
 }
 
-pub struct DrawlistStandard
-{
-    db: Option<GlState>,
+pub struct DrawlistStandard<RD> {
+    db: Option<GlState<RD>>,
     scene: ObjectKey,
-    position: Option<Positions>,
+    position: Option<ComputedPosition>,
 
     material_to_id: TreeMap<ObjectKey, u32>,
     id_to_material: TreeMap<u32, ObjectKey>,
@@ -64,10 +63,8 @@ pub struct DrawlistStandard
     ptr_model_info: *mut (u32, u32, u32, u32),
 }
 
-impl DrawlistStandard
-{
-    pub fn from_config(cfg: &Config) -> ~DrawlistStandard
-    {
+impl<RD> DrawlistStandard<RD> {
+    pub fn from_config(cfg: &Config) -> DrawlistStandard<RD> {
         let buffer = &mut [0, 0, 0, 0, 0];
         let texture = &mut [0, 0, 0, 0, 0];
 
@@ -94,7 +91,7 @@ impl DrawlistStandard
             assert!(0 == gl::GetError());
         }
 
-        ~DrawlistStandard {
+        DrawlistStandard {
             db: None,
             scene: 0,
             position: None,
@@ -111,10 +108,8 @@ impl DrawlistStandard
     }
 }
 
-impl Drawlist for DrawlistStandard
-{
-    fn bind_scene(&mut self, db: GlState, scene: ObjectKey)
-    {
+impl<RD: RenderData> Drawlist<RD> for DrawlistStandard<RD> {
+    fn bind_scene(&mut self, db: GlState<RD>, scene: ObjectKey) {
         self.db = Some(db);
         self.scene = scene;
 
@@ -135,8 +130,7 @@ impl Drawlist for DrawlistStandard
         assert!(0 == gl::GetError());
     }
 
-    fn setup_scene_async(&mut self)
-    {
+    fn setup_scene_async(&mut self) {
         self.position = None;
         self.position = Some(self.db.as_ref().unwrap().current.to_positions());
 
@@ -277,9 +271,8 @@ impl Drawlist for DrawlistStandard
 
     }
 
-    fn materials(&self) -> ~[Material]
-    {
-        let mut mats = ~[];
+    fn materials(&self) -> Vec<Material> {
+        let mut mats = Vec::new();
         for (_, key) in self.id_to_material.iter() {
             mats.push(self.db.as_ref().unwrap().current.material(*key).unwrap().clone());
         }

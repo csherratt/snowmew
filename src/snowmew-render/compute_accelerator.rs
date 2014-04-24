@@ -1,12 +1,12 @@
 use std::ptr;
-use std::slice;
+use std::vec::Vec;
 use std::str;
 use std::cast;
 
 use gl;
 use gl::types::GLuint;
 
-use snowmew::position::PositionsGL;
+use snowmew::position::ComputedPositionGL;
 use shader::compile_shader;
 
 use time::precise_time_ns;
@@ -112,11 +112,11 @@ impl PositionGlAccelerator
             if status != (gl::TRUE as gl::types::GLint) {
                 let mut len = 0;
                 gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
-                let mut buf = slice::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
+                let mut buf = Vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
                 gl::GetProgramInfoLog(program,
                                       len,
                                       ptr::mut_null(),
-                                      cast::transmute(buf.unsafe_mut_ref(0)));
+                                      cast::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
                 fail!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
             }
         }
@@ -127,7 +127,7 @@ impl PositionGlAccelerator
         }
     }
 
-    pub fn calc(&self, pos_gl: &PositionsGL, delta: GLuint, pos: GLuint)
+    pub fn calc(&self, pos_gl: &ComputedPositionGL, delta: GLuint, pos: GLuint)
     {
         let start = precise_time_ns();
 

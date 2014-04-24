@@ -117,25 +117,3 @@ pub trait Graphics: Common {
         self.get_graphics().vertex.iter()
     }
 }
-
-pub struct UnwrapKey<IN> {
-    input: IN
-}
-
-impl<IN> UnwrapKey<IN> {
-    fn new(input: IN) -> UnwrapKey<IN> {
-        UnwrapKey {
-            input: input
-        }
-    }
-}
-
-impl<'a, K: Clone, V, IN: Iterator<(&'a K, &'a V)>> Iterator<(K, &'a V)> for UnwrapKey<IN> {
-    #[inline(always)]
-    fn next(&mut self) -> Option<(K, &'a V)> {
-        match self.input.next() {
-            Some((k, v)) => Some((k.clone(), v)),
-            None => None
-        }
-    }
-}

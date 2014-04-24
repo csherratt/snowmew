@@ -9,7 +9,7 @@ use cgmath::vector::*;
 
 use default::load_default;
 use position;
-use position::Position;
+use position::Positions;
 
 use graphics;
 use graphics::{Graphics};
@@ -253,7 +253,7 @@ impl Database {
     }
 }
 
-impl Position for Database {
+impl Positions for Database {
     fn get_position<'a>(&'a self) -> &'a position::PositionData {
         &self.position
     }

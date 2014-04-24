@@ -2,7 +2,8 @@ use std::mem;
 
 use cow::btree::BTreeMap;
 use snowmew::graphics::Graphics;
-use snowmew::core::{Database, ObjectKey};
+use snowmew::core::ObjectKey;
+use {RenderData};
 
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
@@ -187,10 +188,9 @@ void main() {
 ";
 
 #[deriving(Clone)]
-pub struct GlState
-{
-    pub last: Database,
-    pub current: Database,
+pub struct GlState<RD> {
+    pub last: RD,
+    pub current: RD,
     pub vertex: BTreeMap<ObjectKey, VertexBuffer>,
 
     pub flat_shader: Option<Shader>,
@@ -202,8 +202,8 @@ pub struct GlState
     pub ovr_shader: Option<Shader>,
 }
 
-impl GlState {
-    pub fn new(db: Database) -> GlState{
+impl<RD: RenderData> GlState<RD> {
+    pub fn new(db: RD) -> GlState<RD> {
         GlState {
             current: db.clone(),
             last: db,
@@ -217,7 +217,7 @@ impl GlState {
         }
     }
 
-    pub fn update(&mut self, db: Database) -> Database{
+    pub fn update(&mut self, db: RD) -> RD {
         let mut db = db;
         mem::swap(&mut self.last, &mut self.current);
         mem::swap(&mut self.current, &mut db);

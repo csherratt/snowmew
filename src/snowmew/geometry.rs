@@ -1,7 +1,5 @@
 
-use std::slice;
 use std::default::Default;
-
 
 use cgmath::vector::{Vec2, Vec3};
 
@@ -39,9 +37,9 @@ pub struct VertexGetTexNorm
 #[deriving(Clone)]
 pub enum Vertex {
     Empty,
-    Geo(~[VertexGeo]),
-    GeoTex(~[VertexGeoTex]),
-    GeoTexNorm(~[VertexGetTexNorm])
+    Geo(Vec<VertexGeo>),
+    GeoTex(Vec<VertexGeoTex>),
+    GeoTexNorm(Vec<VertexGetTexNorm>)
 }
 
 impl Default for Vertex
@@ -55,7 +53,7 @@ impl Default for Vertex
 #[deriving(Clone, Default)]
 pub struct VertexBuffer {
     pub vertex: Vertex,
-    pub index: ~[u32]
+    pub index: Vec<u32>
 }
 
 
@@ -102,22 +100,22 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX
 }
 
 
-pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> ~[IDX]
+pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX>
 {
-    slice::build(Some(index.len() * 2), |emit| {
-        for i in range(0, index.len()/3) {
-            let a = &index[i*3];
-            let b = &index[i*3+1];
-            let c = &index[i*3+2];
+    let mut vec = Vec::with_capacity(index.len()*2);
+    for i in range(0, index.len()/3) {
+        let a = &index[i*3];
+        let b = &index[i*3+1];
+        let c = &index[i*3+2];
 
-            emit(a.clone());
-            emit(find_trig(index, i, a.clone(), b.clone()).clone());
-            emit(b.clone());
-            emit(find_trig(index, i, b.clone(), c.clone()).clone());
-            emit(c.clone());
-            emit(find_trig(index, i, c.clone(), a.clone()).clone());
-        }
-    })
+        vec.push(a.clone());
+        vec.push(find_trig(index, i, a.clone(), b.clone()).clone());
+        vec.push(b.clone());
+        vec.push(find_trig(index, i, b.clone(), c.clone()).clone());
+        vec.push(c.clone());
+        vec.push(find_trig(index, i, c.clone(), a.clone()).clone());
+    }
+    vec
 }
 
 impl Geometry {
@@ -163,21 +161,21 @@ impl Geometry {
 }
 
 impl VertexBuffer {
-    pub fn new_position(vert: ~[VertexGeo], idx: ~[u32]) -> VertexBuffer {
+    pub fn new_position(vert: Vec<VertexGeo>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
             vertex: Geo(vert),
             index: idx
         }
     }
 
-    pub fn new_position_texture(vert: ~[VertexGeoTex], idx: ~[u32]) -> VertexBuffer {
+    pub fn new_position_texture(vert: Vec<VertexGeoTex>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
             vertex: GeoTex(vert),
             index: idx
         }
     }
 
-    pub fn new_position_texture_normal(vert: ~[VertexGetTexNorm], idx: ~[u32]) -> VertexBuffer {
+    pub fn new_position_texture_normal(vert: Vec<VertexGetTexNorm>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
             vertex: GeoTexNorm(vert),
             index: idx

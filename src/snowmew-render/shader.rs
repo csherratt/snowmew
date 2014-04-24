@@ -1,5 +1,5 @@
 use std::ptr;
-use std::slice;
+use std::vec::Vec;
 use std::str;
 use std::cast;
 
@@ -31,11 +31,11 @@ pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
         if status != (gl::TRUE as gl::types::GLint) {
             let mut len = 0;
             gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-            let mut buf = slice::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
+            let mut buf = Vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
             gl::GetShaderInfoLog(shader,
                                  len,
                                  ptr::mut_null(),
-                                 cast::transmute(buf.unsafe_mut_ref(0)));
+                                 cast::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
             fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf.as_slice()));
         }
     }
@@ -86,11 +86,11 @@ impl Shader {
             if status != (gl::TRUE as gl::types::GLint) {
                 let mut len = 0;
                 gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
-                let mut buf = slice::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
+                let mut buf = Vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
                 gl::GetProgramInfoLog(program,
                                       len,
                                       ptr::mut_null(),
-                                      cast::transmute(buf.unsafe_mut_ref(0)));
+                                      cast::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
                 fail!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
             }
         }

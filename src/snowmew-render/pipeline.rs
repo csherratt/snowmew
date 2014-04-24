@@ -13,7 +13,7 @@ use snowmew::camera::DrawMatrices;
 use snowmew::material::{NoMaterial, Phong, Flat};
 use snowmew::graphics::Graphics;
 
-
+use RenderData;
 use db::GlState;
 use drawlist::Drawlist;
 
@@ -30,8 +30,7 @@ pub struct DrawTarget
 
 impl DrawTarget
 {
-    pub fn new(framebuffer: GLuint, offset: (int, int), size: (uint, uint)) -> DrawTarget
-    {
+    pub fn new(framebuffer: GLuint, offset: (int, int), size: (uint, uint)) -> DrawTarget {
         let (x, y) = offset;
         let (width, height) = size;
         DrawTarget {
@@ -43,38 +42,29 @@ impl DrawTarget
         }
     }
 
-    pub fn bind(&self)
-    {
+    pub fn bind(&self) {
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
         gl::Viewport(self.x, self.y, self.width, self.height);
         gl::Scissor(self.x, self.y, self.width, self.height);
     }
 
-    pub fn size(&self) -> (uint, uint)
-    {
+    pub fn size(&self) -> (uint, uint) {
         (self.width as uint, self.height as uint)
     }
 }
 
-pub trait Pipeline
-{
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget);
+pub trait Pipeline {
+    fn render<RD: RenderData>(&mut self, drawlist: &mut Drawlist<RD>, db: &GlState<RD>, dm: &DrawMatrices, dt: &DrawTarget);
 }
 
 pub struct Forward;
 
-impl Forward
-{
-    pub fn new() -> Forward
-    {
-        Forward
-    }
+impl Forward {
+    pub fn new() -> Forward { Forward }
 }
 
-impl Pipeline for Forward
-{
-    fn render(&mut self, drawlist: &mut Drawlist, _: &GlState, dm: &DrawMatrices, dt: &DrawTarget)
-    {
+impl Pipeline for Forward {
+    fn render<RD: RenderData>(&mut self, drawlist: &mut Drawlist<RD>, _: &GlState<RD>, dm: &DrawMatrices, dt: &DrawTarget) {
         dt.bind();
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -85,8 +75,7 @@ impl Pipeline for Forward
     }
 }
 
-pub struct Defered<PIPELINE>
-{
+pub struct Defered<PIPELINE> {
     input: PIPELINE,
 
     width: i32,
@@ -199,10 +188,8 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE>
     }
 }
 
-impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE>
-{
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget)
-    {
+impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
+    fn render<RD: RenderData>(&mut self, drawlist: &mut Drawlist<RD>, db: &GlState<RD>, dm: &DrawMatrices, ddt: &DrawTarget) {
         let dt = self.draw_target();
         gl::Scissor(0, 0, self.width as i32, self.height as i32);
         gl::Viewport(0, 0, self.width as i32, self.height as i32);
@@ -239,7 +226,7 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE>
         assert!(0 == gl::GetError());
 
         let materials = drawlist.materials();
-        let mut gl_materials = ~[];
+        let mut gl_materials = Vec::new();
 
         for m in materials.iter() {
             match *m {
@@ -249,7 +236,7 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE>
         }
 
         unsafe {
-            gl::Uniform3fv(shader.uniform("mat_color"), gl_materials.len() as i32, &gl_materials[0].x);
+            gl::Uniform3fv(shader.uniform("mat_color"), gl_materials.len() as i32, &gl_materials.get(0).x);
         }
 
         ddt.bind();
@@ -271,8 +258,7 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE>
     }
 }
 
-pub struct Hmd<PIPELINE>
-{
+pub struct Hmd<PIPELINE> {
     input: PIPELINE,
 
     scale: f32,
@@ -283,10 +269,8 @@ pub struct Hmd<PIPELINE>
     hmd: HMDInfo
 }
 
-impl<PIPELINE: Pipeline> Hmd<PIPELINE>
-{
-    pub fn new(input: PIPELINE, scale: f32, hmd: &HMDInfo) -> Hmd<PIPELINE>
-    {
+impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
+    pub fn new(input: PIPELINE, scale: f32, hmd: &HMDInfo) -> Hmd<PIPELINE> {
         let (w, h) = hmd.resolution();
         let (w, h) = ((w as f32 * scale) as i32, (h as f32 * scale) as i32);
         let textures: &mut [GLuint] = &mut [0];
@@ -328,8 +312,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE>
         }        
     }
 
-    fn left(&self) -> DrawTarget
-    {
+    fn left(&self) -> DrawTarget {
         let (w, h) = self.hmd.resolution();
         let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
 
@@ -342,8 +325,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE>
         }
     }
 
-    fn right(&self) -> DrawTarget
-    {
+    fn right(&self) -> DrawTarget {
         let (w, h) = self.hmd.resolution();
         let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
 
@@ -356,8 +338,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE>
         }
     }
 
-    fn setup_viewport(&self, shader: &Shader, vp: (f32, f32, f32, f32), ws: (f32, f32), offset: f32)
-    {
+    fn setup_viewport(&self, shader: &Shader, vp: (f32, f32, f32, f32), ws: (f32, f32), offset: f32) {
         let scale = 1./self.scale;
 
         let (vpx, vpy, vpw, vph) = vp;
@@ -379,8 +360,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE>
         gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
     }
 
-    fn draw_screen(&self, db: &GlState, dt: &DrawTarget)
-    {
+    fn draw_screen<RD: RenderData>(&self, db: &GlState<RD>, dt: &DrawTarget) {
         let billboard = db.current.find("core/geometry/billboard").unwrap();
         let billboard = db.current.geometry(billboard).unwrap();
 
@@ -421,10 +401,8 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE>
     }
 }
 
-impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE>
-{
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget)
-    {
+impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE> {
+    fn render<RD: RenderData>(&mut self, drawlist: &mut Drawlist<RD>, db: &GlState<RD>, dm: &DrawMatrices, dt: &DrawTarget) {
         let (left_dm, right_dm) = dm.ovr(&self.hmd);
 
         let left = self.left();

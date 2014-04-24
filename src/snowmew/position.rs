@@ -167,17 +167,17 @@ impl Clone for Delta {
 }
 
 pub struct Deltas {
-    gen: ~[(u32, u32)],
-    delta: ~[Delta],
+    gen: Vec<(u32, u32)>,
+    delta: Vec<Delta>,
 }
 
 impl Clone for Deltas {
     fn clone(&self) -> Deltas {
-        let mut vec = ~[];
+        let mut vec = Vec::new();
         vec.reserve(self.delta.len());
         unsafe {
             vec.set_len(self.delta.len());
-            vec.copy_memory(self.delta.as_slice())
+            vec.as_mut_slice().copy_memory(self.delta.as_slice())
         }
         Deltas {
             gen: self.gen.clone(),
@@ -192,8 +192,8 @@ pub struct Id(u32, u32);
 impl Deltas {
     pub fn new() -> Deltas {
         Deltas {
-            gen: ~[(0, 1)],
-            delta: ~[Default::default()],
+            gen: vec!((0, 1)),
+            delta: vec!(Default::default()),
         }
     }
 
@@ -201,14 +201,14 @@ impl Deltas {
 
     pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen as uint];
+        let (gen_offset, _) = *self.gen.get(gen as uint);
 
         (gen_offset + offset) as uint
     }
 
     fn add_location(&mut self, gen: u32) -> (uint, u32) {
         if gen as uint == self.gen.len() {
-            let (s, len) = self.gen[(gen-1) as uint];
+            let (s, len) = *self.gen.get((gen-1) as uint);
             self.gen.push((s+len, 1));
 
             ((s+len) as uint, 0)
@@ -218,8 +218,8 @@ impl Deltas {
                 *t = (off+1, len);
             }
 
-            let (off, len) = self.gen[gen as uint];
-            self.gen[gen as uint] = (off, len+1);
+            let (off, len) = *self.gen.get(gen as uint);
+            *self.gen.get_mut(gen as uint) = (off, len+1);
 
             ((off+len) as uint, len)
         }
@@ -242,58 +242,58 @@ impl Deltas {
 
     pub fn update(&mut self, id: Id, delta: Transform3D<f32>) {
         let loc = self.get_loc(id);
-        self.delta[loc].delta = delta;
+        self.delta.get_mut(loc).delta = delta;
     }
 
     pub fn get_delta(&self, id :Id) -> Transform3D<f32> {
         let loc = self.get_loc(id);
-        self.delta[loc].delta
+        self.delta.get(loc).delta
     }
 
     pub fn get_mat(&self, id :Id) -> Mat4<f32> {
         let loc = self.get_loc(id);
         match id {
             Id(0, _) => {
-                self.delta[loc].delta.to_mat4()
+                self.delta.get(loc).delta.to_mat4()
             },
             Id(gen, _) => {
-                let mat = self.delta[loc].delta.to_mat4();
-                let parent = Id(gen-1, self.delta[loc].parent);
+                let mat = self.delta.get(loc).delta.to_mat4();
+                let parent = Id(gen-1, self.delta.get(loc).parent);
 
                 self.get_mat(parent).mul_m(&mat)
             }
         }
     }
 
-    pub fn to_positions(&self) -> Positions {
-        let mut mat = ~[];
+    pub fn to_positions(&self) -> ComputedPosition {
+        let mut mat = Vec::new();
         mat.reserve(self.delta.len());
         unsafe {mat.set_len(1);}
-        mat[0] = Mat4::identity();
+        *mat.get_mut(0) = Mat4::identity();
 
         let mut last_gen_off = 0;
         for &(gen_off, len) in self.gen.slice_from(1).iter() {
             for off in range(gen_off, gen_off+len) {
-                let ploc = last_gen_off + self.delta[off as uint].parent;
-                let nmat = mat[ploc as uint].mul_m(&self.delta[off as uint].delta.to_mat4());
+                let ploc = last_gen_off + self.delta.get(off as uint).parent;
+                let nmat = mat.get(ploc as uint).mul_m(&self.delta.get(off as uint).delta.to_mat4());
                 mat.push(nmat);
             }
             last_gen_off = gen_off;
         }
 
-        Positions {
+        ComputedPosition {
             gen: self.gen.clone(),
             pos: mat
         }
     }
 
-    pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> Positions {
+    pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> ComputedPosition {
         let default: &[Mat4<f32>] = &[Mat4::identity()];
 
         if self.gen.len() == 1 {
-            return Positions {
+            return ComputedPosition {
                 gen: self.gen.clone(),
-                pos: ~[Mat4::identity()]
+                pos: vec!(Mat4::identity())
             };
         }
 
@@ -303,90 +303,90 @@ impl Deltas {
         ctx.kernel.set_arg(0, &ctx.input);
         ctx.kernel.set_arg(1, &ctx.output);
 
-        let (off, _) = self.gen[0];
+        let (off, _) = *self.gen.get(0);
         ctx.kernel.set_arg(2, &off);
-        let (off, len) = self.gen[1];
+        let (off, len) = *self.gen.get(1);
         ctx.kernel.set_arg(3, &off);
 
         let mut event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, ());
 
         for idx in range(2, self.gen.len()) {
-            let (off, _) = self.gen[idx-1];
+            let (off, _) = *self.gen.get(idx-1);
             ctx.kernel.set_arg(2, &off);
-            let (off, len) = self.gen[idx];
+            let (off, len) = *self.gen.get(idx);
             ctx.kernel.set_arg(3, &off);
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
 
-        let mut mat = ~[];
+        let mut mat = Vec::new();
         mat.reserve(self.delta.len());
         unsafe {mat.set_len(self.delta.len());}
 
         cq.read(&ctx.output, &mut mat.as_mut_slice(), event);
 
-        Positions {
+        ComputedPosition {
             gen: self.gen.clone(),
             pos: mat
         }
     }
 
-    pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> PositionsGL {
+    pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
         for (idx, delta) in self.delta.iter().enumerate() {
             out_delta[idx] = delta.clone();
         }
 
-        PositionsGL {
+        ComputedPositionGL {
             gen: self.gen.clone()
         }
     }
 }
 
-pub struct PositionsGL {
-    pub gen: ~[(u32, u32)]
+pub struct ComputedPositionGL {
+    pub gen: Vec<(u32, u32)>
 }
 
-impl PositionsGL {
+impl ComputedPositionGL {
     pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen as uint];
+        let (gen_offset, _) = *self.gen.get(gen as uint);
 
         (gen_offset + offset) as uint
     }
 }
 
-pub struct Positions {
-    gen: ~[(u32, u32)],
-    pos: ~[Mat4<f32>],
+pub struct ComputedPosition {
+    gen: Vec<(u32, u32)>,
+    pos: Vec<Mat4<f32>>,
 }
 
-impl Clone for Positions {
+impl Clone for ComputedPosition {
     #[inline(never)]
-    fn clone(&self) -> Positions {
-        let mut vec = ~[];
+    fn clone(&self) -> ComputedPosition {
+        let mut vec = Vec::new();
         vec.reserve(self.pos.len());
         unsafe {
             vec.set_len(self.pos.len());
-            vec.copy_memory(self.pos.as_slice())
+            vec.as_mut_slice().copy_memory(self.pos.as_slice())
         }
-        Positions {
+        ComputedPosition {
             gen: self.gen.clone(),
             pos: vec
         }
     }
 }
 
-impl Positions {
+impl ComputedPosition {
     pub fn root() -> Id {Id(0, 0)}
 
     pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen as uint];
+        let (gen_offset, _) = *self.gen.get(gen as uint);
 
         (gen_offset + offset) as uint
     }
 
     pub fn get_mat(&self, id :Id) -> Mat4<f32> {
-        self.pos[self.get_loc(id)].clone()
+        self.pos.get(self.get_loc(id)).clone()
     }
 
     pub fn all_mats<'a>(&'a self) -> &'a [Mat4<f32>] {
@@ -443,7 +443,7 @@ impl PositionData {
     }
 }
 
-pub trait Position: Common {
+pub trait Positions: Common {
     fn get_position<'a>(&'a self) -> &'a PositionData;
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData;
 
@@ -492,11 +492,11 @@ pub trait Position: Common {
         p_mat.mul_m(&loc)
     }
 
-    fn to_positions(&self) -> Positions {
+    fn to_positions(&self) -> ComputedPosition {
         self.get_position().position.to_positions()
     }
 
-    fn to_positions_gl(&self, out_delta: &mut [Delta]) -> PositionsGL {
+    fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
         self.get_position().position.to_positions_gl(out_delta)
     }
 

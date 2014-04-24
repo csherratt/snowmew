@@ -9,18 +9,17 @@ use shader::Shader;
 use snowmew::core::Common;
 use snowmew::graphics::Graphics;
 
-pub struct HMD
-{
+use RenderData;
+
+pub struct HMD {
     scale: f32,
     texture: GLuint,
     framebuffer: GLuint,
     renderbuffers: GLuint
 }
 
-impl HMD
-{
-    pub fn new(scale: f32, hmd: &HMDInfo) -> HMD
-    {
+impl HMD {
+    pub fn new(scale: f32, hmd: &HMDInfo) -> HMD {
         let (w, h) = hmd.resolution();
         let (w, h) = ((w as f32 * scale) as i32, (h as f32 * scale) as i32);
         let textures: &mut [GLuint] = &mut [0];
@@ -60,8 +59,7 @@ impl HMD
         }
     }
 
-    pub fn set_left(&self, _: &GlState, hmd: &HMDInfo)
-    {
+    pub fn set_left<RD>(&self, _: &GlState<RD>, hmd: &HMDInfo) {
         let (w, h) = hmd.resolution();
         let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
@@ -73,8 +71,7 @@ impl HMD
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    pub fn set_right(&self, _: &GlState, hmd: &HMDInfo)
-    {
+    pub fn set_right<RD>(&self, _: &GlState<RD>, hmd: &HMDInfo) {
         let (w, h) = hmd.resolution();
         let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
@@ -86,8 +83,7 @@ impl HMD
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    fn setup_viewport(&self, shader: &Shader, vp: (f32, f32, f32, f32), ws: (f32, f32), offset: f32)
-    {
+    fn setup_viewport(&self, shader: &Shader, vp: (f32, f32, f32, f32), ws: (f32, f32), offset: f32) {
         let scale = 1./self.scale;
 
         let (vpx, vpy, vpw, vph) = vp;
@@ -109,8 +105,7 @@ impl HMD
         gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
     }
 
-    pub fn draw_screen(&self, db: &GlState, hmd: &HMDInfo)
-    {
+    pub fn draw_screen<RD: RenderData>(&self, db: &GlState<RD>, hmd: &HMDInfo) {
         let billboard = db.current.find("core/geometry/billboard").unwrap();
         let billboard = db.current.geometry(billboard).unwrap();
 

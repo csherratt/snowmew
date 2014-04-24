@@ -68,7 +68,7 @@ pub fn load_default(db: &mut Graphics)
     }
 
     let geo_dir = db.add_dir(Some(core_dir), "geometry");
-    let vbo = VertexBuffer::new_position_texture(VERTEX_DATA.into_owned(), INDEX_DATA.into_owned());
+    let vbo = VertexBuffer::new_position_texture(Vec::from_slice(VERTEX_DATA), Vec::from_slice(INDEX_DATA));
     let vbo = db.new_vertex_buffer(geo_dir, "vbo", vbo);
     db.new_geometry(geo_dir, "cube", Geometry::triangles(vbo, 0, 36));
     db.new_geometry(geo_dir, "billboard", Geometry::triangles(vbo, 0, 6));

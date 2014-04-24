@@ -23,11 +23,11 @@ use std::ptr;
 use std::mem;
 use std::comm::{Receiver, Sender, Empty, Disconnected};
 
-use snowmew::core::{ObjectKey};
+use snowmew::core::ObjectKey;
 use snowmew::camera::Camera;
 use snowmew::io::Window;
-use snowmew::position::{Position};
-
+use snowmew::position::Positions;
+use snowmew::graphics::Graphics;
 
 use pipeline::{DrawTarget, Pipeline};
 use drawlist::{Drawlist, DrawlistStandard};
@@ -44,16 +44,17 @@ mod query;
 mod compute_accelerator;
 mod config;
 
-enum RenderCommand {
-    Update(snowmew::core::Database, ObjectKey, ObjectKey),
-    Waiting(Sender<Option<~DrawlistStandard>>),
-    Complete(~DrawlistStandard),
+trait RenderData : Graphics + Positions + Clone {}
+
+enum RenderCommand<RD> {
+    Update(RD, ObjectKey, ObjectKey),
+    Waiting(Sender<Option<DrawlistStandard<RD>>>),
+    Complete(DrawlistStandard<RD>),
     Setup(Sender<Option<CommandQueue>>),
     Finish(Sender<()>)
 }
 
-fn swap_buffers(disp: &mut Window)
-{
+fn swap_buffers(disp: &mut Window) {
     disp.swap_buffers();
     unsafe {
         gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
@@ -63,8 +64,7 @@ fn swap_buffers(disp: &mut Window)
     }
 }
 
-fn render_task(chan: Sender<RenderCommand>)
-{
+fn render_task<RD: RenderData+Send>(chan: Sender<RenderCommand<RD>>) {
     let (sender, receiver) = channel();
     chan.send(Setup(sender));
     let _ = receiver.recv();
@@ -89,8 +89,7 @@ fn render_task(chan: Sender<RenderCommand>)
     }
 }
 
-fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, window: Window, size: (i32, i32))
-{
+fn render_server<RD: RenderData+Send>(port: Receiver<RenderCommand<RD>>, db: RD, window: Window, size: (i32, i32)) {
     let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
     let mut queue = Some(queue);
@@ -103,11 +102,9 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
 
     window.make_context_current();
 
-    let mut pipeline = //if window.is_hmd() {
-        //~pipeline::Hmd::new(pipeline::Forward::new(), 1.7, &window.hmd()) as ~pipeline::Pipeline
-    /*} else */ {
+    let mut pipeline = {
         let (width, height) = size;
-        ~pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint) as ~pipeline::Pipeline
+        pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint)
     };
 
     // todo move!
@@ -122,8 +119,8 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
 
     //let accl = PositionGlAccelerator::new();
 
-    let mut drawlists = ~[DrawlistStandard::from_config(&cfg),
-                          DrawlistStandard::from_config(&cfg)];
+    let mut drawlists = vec!(DrawlistStandard::from_config(&cfg),
+                             DrawlistStandard::from_config(&cfg));
 
     let mut num_workers = 1;
     let mut waiting = Vec::new();
@@ -175,7 +172,7 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
 
                 let dt = DrawTarget::new(0, (0, 0), (1920, 1080));
 
-                pipeline.render(&mut *dl as &mut Drawlist, &db, &camera.get_matrices(size), &dt);
+                pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
 
                 swap_buffers(&mut window);
                 
@@ -222,15 +219,12 @@ fn render_server(port: Receiver<RenderCommand>, db: snowmew::core::Database, win
 
 }
 
-pub struct RenderManager
-{
-    ch: Sender<RenderCommand>
+pub struct RenderManager<RD> {
+    ch: Sender<RenderCommand<RD>>
 }
 
-impl RenderManager
-{
-    pub fn new(db: snowmew::core::Database, window: Window, size: (i32, i32)) -> RenderManager
-    {
+impl<RD: RenderData+Send> RenderManager<RD> {
+    pub fn new(db: RD, window: Window, size: (i32, i32)) -> RenderManager<RD> {
         let (sender, receiver) = channel();
 
         let mut taskopts = std::task::TaskOpts::new();
@@ -255,14 +249,13 @@ impl RenderManager
         RenderManager { ch: sender }
     }
 
-    pub fn update(&mut self, db: snowmew::core::Database, scene: ObjectKey, camera: ObjectKey)
-    {
+    pub fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
         self.ch.send(Update(db, scene, camera));
     }
 }
 
-impl Drop for RenderManager
-{
+#[unsafe_destructor]
+impl<RD: RenderData+Send> Drop for RenderManager<RD> {
     fn drop(&mut self) {
         let (c, p) = channel();
         self.ch.send(Finish(c));
