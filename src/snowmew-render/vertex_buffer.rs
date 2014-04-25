@@ -30,24 +30,23 @@ impl VertexBuffer {
         let (vertex_size, index_size) = unsafe {
             let (addr, size, stride) = match *vertex {
                 Geo(ref data) => {
-                    (cast::transmute(&data.get(0)),
+                    (cast::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGeo>(),
                      mem::size_of::<VertexGeo>())
                 },
                 GeoTex(ref data) => {
-                    (cast::transmute(&data.get(0)),
+                    (cast::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGeoTex>(),
                      mem::size_of::<VertexGeoTex>())
                 },
                 GeoTexNorm(ref data) => {
-                    (cast::transmute(&data.get(0)),
+                    (cast::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGetTexNorm>(),
                      mem::size_of::<VertexGetTexNorm>())
                 },
                 Empty => fail!("Should not be empty"),
             };
             let stride = stride as i32;
-            println!("stride {} {}", stride, size);
 
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);

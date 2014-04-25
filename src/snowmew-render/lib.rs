@@ -172,7 +172,7 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
 
                 let camera = Camera::new(rot, camera_trans);
 
-                let dt = DrawTarget::new(0, (0, 0), (1280, 800));
+                let dt = DrawTarget::new(0, (0, 0), (1920, 1080));
 
                 pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
 

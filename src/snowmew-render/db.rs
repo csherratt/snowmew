@@ -245,7 +245,6 @@ impl GlState {
         let mut vertex = self.vertex.clone();
 
         for (oid, vbo) in self.vertex_buffer_iter() {
-            println!("{:?}, {:?}", oid, vbo);
             match vertex.find(oid) {
                 Some(_) => (),
                 None => {
