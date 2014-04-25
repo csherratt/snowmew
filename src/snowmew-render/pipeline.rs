@@ -13,14 +13,12 @@ use snowmew::camera::DrawMatrices;
 use snowmew::material::{NoMaterial, Phong, Flat};
 use snowmew::graphics::Graphics;
 
-use RenderData;
 use db::GlState;
 use drawlist::Drawlist;
 
 use snowmew::core::Common;
 
-pub struct DrawTarget
-{
+pub struct DrawTarget {
     framebuffer: GLuint,
     width: GLint,
     height: GLint,
@@ -28,8 +26,7 @@ pub struct DrawTarget
     y: GLint
 }
 
-impl DrawTarget
-{
+impl DrawTarget {
     pub fn new(framebuffer: GLuint, offset: (int, int), size: (uint, uint)) -> DrawTarget {
         let (x, y) = offset;
         let (width, height) = size;
@@ -54,7 +51,7 @@ impl DrawTarget
 }
 
 pub trait Pipeline {
-    fn render<RD: RenderData>(&mut self, drawlist: &mut Drawlist<RD>, db: &GlState<RD>, dm: &DrawMatrices, dt: &DrawTarget);
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget);
 }
 
 pub struct Forward;
@@ -64,7 +61,7 @@ impl Forward {
 }
 
 impl Pipeline for Forward {
-    fn render<RD: RenderData>(&mut self, drawlist: &mut Drawlist<RD>, _: &GlState<RD>, dm: &DrawMatrices, dt: &DrawTarget) {
+    fn render(&mut self, drawlist: &mut Drawlist, _: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
         dt.bind();
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -176,8 +173,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE>
         }
     }
 
-    fn draw_target(&self) -> DrawTarget
-    {
+    fn draw_target(&self) -> DrawTarget {
         DrawTarget {
             framebuffer: self.framebuffer,
             x: 0,
@@ -189,16 +185,12 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE>
 }
 
 impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
-    fn render<RD: RenderData>(&mut self, drawlist: &mut Drawlist<RD>, db: &GlState<RD>, dm: &DrawMatrices, ddt: &DrawTarget) {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget) {
         let dt = self.draw_target();
-        gl::Scissor(0, 0, self.width as i32, self.height as i32);
-        gl::Viewport(0, 0, self.width as i32, self.height as i32);
-        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
         self.input.render(drawlist, db, dm, &dt);
 
-        let billboard = db.current.find("core/geometry/billboard").unwrap();
-        let billboard = db.current.geometry(billboard).unwrap();
+        let billboard = db.find("core/geometry/billboard").unwrap();
+        let billboard = db.geometry(billboard).unwrap();
 
         let shader = db.defered_shader.as_ref().unwrap();
 
@@ -360,9 +352,9 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
         gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
     }
 
-    fn draw_screen<RD: RenderData>(&self, db: &GlState<RD>, dt: &DrawTarget) {
-        let billboard = db.current.find("core/geometry/billboard").unwrap();
-        let billboard = db.current.geometry(billboard).unwrap();
+    fn draw_screen(&self, db: &GlState, dt: &DrawTarget) {
+        let billboard = db.find("core/geometry/billboard").unwrap();
+        let billboard = db.geometry(billboard).unwrap();
 
         let shader = db.ovr_shader.as_ref().unwrap();
 
@@ -402,7 +394,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
 }
 
 impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE> {
-    fn render<RD: RenderData>(&mut self, drawlist: &mut Drawlist<RD>, db: &GlState<RD>, dm: &DrawMatrices, dt: &DrawTarget) {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
         let (left_dm, right_dm) = dm.ovr(&self.hmd);
 
         let left = self.left();

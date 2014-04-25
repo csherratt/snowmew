@@ -17,8 +17,6 @@ extern crate native;
 extern crate time;
 extern crate libc;
 
-pub use config::Config;
-
 use std::ptr;
 use std::mem;
 use std::comm::{Receiver, Sender, Empty, Disconnected};
@@ -28,6 +26,8 @@ use snowmew::camera::Camera;
 use snowmew::io::Window;
 use snowmew::position::Positions;
 use snowmew::graphics::Graphics;
+
+pub use config::Config;
 
 use pipeline::{DrawTarget, Pipeline};
 use drawlist::{Drawlist, DrawlistStandard};
@@ -46,10 +46,12 @@ mod config;
 
 trait RenderData : Graphics + Positions + Clone {}
 
-enum RenderCommand<RD> {
-    Update(RD, ObjectKey, ObjectKey),
-    Waiting(Sender<Option<DrawlistStandard<RD>>>),
-    Complete(DrawlistStandard<RD>),
+impl RenderData for snowmew::core::Database {}
+
+enum RenderCommand {
+    Update(~RenderData:Send, ObjectKey, ObjectKey),
+    Waiting(Sender<Option<DrawlistStandard>>),
+    Complete(DrawlistStandard),
     Setup(Sender<Option<CommandQueue>>),
     Finish(Sender<()>)
 }
@@ -64,7 +66,7 @@ fn swap_buffers(disp: &mut Window) {
     }
 }
 
-fn render_task<RD: RenderData+Send>(chan: Sender<RenderCommand<RD>>) {
+fn render_task(chan: Sender<RenderCommand>) {
     let (sender, receiver) = channel();
     chan.send(Setup(sender));
     let _ = receiver.recv();
@@ -89,7 +91,7 @@ fn render_task<RD: RenderData+Send>(chan: Sender<RenderCommand<RD>>) {
     }
 }
 
-fn render_server<RD: RenderData+Send>(port: Receiver<RenderCommand<RD>>, db: RD, window: Window, size: (i32, i32)) {
+fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window, size: (i32, i32)) {
     let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
     let mut queue = Some(queue);
@@ -161,8 +163,8 @@ fn render_server<RD: RenderData+Send>(port: Receiver<RenderCommand<RD>>, db: RD,
             },
             Some(Complete(mut dl)) => {
                 dl.setup_scene();
-                let rot = db.current.location(camera).unwrap().get().rot;
-                let camera_trans = db.current.position(camera);
+                let rot = db.location(camera).unwrap().get().rot;
+                let camera_trans = db.position(camera);
 
                 //let input = ih.get();
                 //let rift = input.predicted;
@@ -170,7 +172,7 @@ fn render_server<RD: RenderData+Send>(port: Receiver<RenderCommand<RD>>, db: RD,
 
                 let camera = Camera::new(rot, camera_trans);
 
-                let dt = DrawTarget::new(0, (0, 0), (1920, 1080));
+                let dt = DrawTarget::new(0, (0, 0), (1280, 800));
 
                 pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
 
@@ -219,12 +221,12 @@ fn render_server<RD: RenderData+Send>(port: Receiver<RenderCommand<RD>>, db: RD,
 
 }
 
-pub struct RenderManager<RD> {
-    ch: Sender<RenderCommand<RD>>
+pub struct RenderManager {
+    ch: Sender<RenderCommand>
 }
 
-impl<RD: RenderData+Send> RenderManager<RD> {
-    pub fn new(db: RD, window: Window, size: (i32, i32)) -> RenderManager<RD> {
+impl RenderManager {
+    pub fn new(db: ~RenderData:Send, window: Window, size: (i32, i32)) -> RenderManager{
         let (sender, receiver) = channel();
 
         let mut taskopts = std::task::TaskOpts::new();
@@ -249,13 +251,12 @@ impl<RD: RenderData+Send> RenderManager<RD> {
         RenderManager { ch: sender }
     }
 
-    pub fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
+    pub fn update(&mut self, db: ~RenderData:Send, scene: ObjectKey, camera: ObjectKey) {
         self.ch.send(Update(db, scene, camera));
     }
 }
 
-#[unsafe_destructor]
-impl<RD: RenderData+Send> Drop for RenderManager<RD> {
+impl Drop for RenderManager {
     fn drop(&mut self) {
         let (c, p) = channel();
         self.ch.send(Finish(c));

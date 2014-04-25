@@ -1,7 +1,7 @@
-use std::mem;
-
 use cow::btree::BTreeMap;
-use snowmew::graphics::Graphics;
+use snowmew::position::{Positions, PositionData};
+use snowmew::graphics::{Graphics, GraphicsData};
+use snowmew::core::{Common, CommonData};
 use snowmew::core::ObjectKey;
 use {RenderData};
 
@@ -188,9 +188,11 @@ void main() {
 ";
 
 #[deriving(Clone)]
-pub struct GlState<RD> {
-    pub last: RD,
-    pub current: RD,
+pub struct GlState {
+    pub common: CommonData,
+    pub position: PositionData,
+    pub graphics: GraphicsData,
+
     pub vertex: BTreeMap<ObjectKey, VertexBuffer>,
 
     pub flat_shader: Option<Shader>,
@@ -202,11 +204,27 @@ pub struct GlState<RD> {
     pub ovr_shader: Option<Shader>,
 }
 
-impl<RD: RenderData> GlState<RD> {
-    pub fn new(db: RD) -> GlState<RD> {
+impl Common for GlState {
+    fn get_common<'a>(&'a self) -> &'a CommonData { &self.common }
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { &mut self.common }
+}
+
+impl Graphics for GlState {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { &self.graphics }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.graphics }
+}
+
+impl Positions for GlState {
+    fn get_position<'a>(&'a self) -> &'a PositionData { &self.position }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.position }
+}
+
+impl GlState {
+    pub fn new(db: &RenderData) -> GlState {
         GlState {
-            current: db.clone(),
-            last: db,
+            common: db.get_common().clone(),
+            position: db.get_position().clone(),
+            graphics: db.get_graphics().clone(),
             vertex: BTreeMap::new(),
             flat_shader: None,
             flat_instance_shader: None,
@@ -217,24 +235,27 @@ impl<RD: RenderData> GlState<RD> {
         }
     }
 
-    pub fn update(&mut self, db: RD) -> RD {
-        let mut db = db;
-        mem::swap(&mut self.last, &mut self.current);
-        mem::swap(&mut self.current, &mut db);
-        db
-
+    pub fn update(&mut self, db: &RenderData) {
+        self.common = db.get_common().clone();
+        self.position = db.get_position().clone();
+        self.graphics = db.get_graphics().clone();
     }
 
     fn load_vertex(&mut self, _: &Config) {
-        for (oid, vbo) in self.current.vertex_buffer_iter() {
-            match self.vertex.find(oid) {
+        let mut vertex = self.vertex.clone();
+
+        for (oid, vbo) in self.vertex_buffer_iter() {
+            println!("{:?}, {:?}", oid, vbo);
+            match vertex.find(oid) {
                 Some(_) => (),
                 None => {
                     let vb = VertexBuffer::new(&vbo.vertex, vbo.index.as_slice());
-                    self.vertex.insert(*oid, vb);
+                    vertex.insert(*oid, vb);
                 }
             }
-        }        
+        }
+
+        self.vertex = vertex; 
     }
 
     fn load_shaders(&mut self, cfg: &Config) {

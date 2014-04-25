@@ -9,7 +9,6 @@ use cgmath::matrix::Mat4;
 use cgmath::vector::Vec4;
 use cgmath::ptr::Ptr;
 use db::GlState;
-use RenderData;
 
 use snowmew::material::Material;
 use snowmew::core::{ObjectKey};
@@ -23,11 +22,11 @@ use collections::treemap::TreeMap;
 
 use Config;
 
-pub trait Drawlist<RD> {
+pub trait Drawlist {
     // done on the context manager before, Graphics is owned by
     // the draw list. If there was already a bound scene this
     // needs to be replaces with the current scene
-    fn bind_scene(&mut self, db: GlState<RD>, scene: ObjectKey);
+    fn bind_scene(&mut self, db: GlState, scene: ObjectKey);
 
     // done first on an external thread
     fn setup_scene_async(&mut self);
@@ -42,8 +41,8 @@ pub trait Drawlist<RD> {
     fn materials(&self) -> Vec<Material>;
 }
 
-pub struct DrawlistStandard<RD> {
-    db: Option<GlState<RD>>,
+pub struct DrawlistStandard {
+    db: Option<GlState>,
     scene: ObjectKey,
     position: Option<ComputedPosition>,
 
@@ -63,8 +62,8 @@ pub struct DrawlistStandard<RD> {
     ptr_model_info: *mut (u32, u32, u32, u32),
 }
 
-impl<RD> DrawlistStandard<RD> {
-    pub fn from_config(cfg: &Config) -> DrawlistStandard<RD> {
+impl DrawlistStandard {
+    pub fn from_config(cfg: &Config) -> DrawlistStandard {
         let buffer = &mut [0, 0, 0, 0, 0];
         let texture = &mut [0, 0, 0, 0, 0];
 
@@ -108,8 +107,8 @@ impl<RD> DrawlistStandard<RD> {
     }
 }
 
-impl<RD: RenderData> Drawlist<RD> for DrawlistStandard<RD> {
-    fn bind_scene(&mut self, db: GlState<RD>, scene: ObjectKey) {
+impl Drawlist for DrawlistStandard {
+    fn bind_scene(&mut self, db: GlState, scene: ObjectKey) {
         self.db = Some(db);
         self.scene = scene;
 
@@ -131,12 +130,14 @@ impl<RD: RenderData> Drawlist<RD> for DrawlistStandard<RD> {
     }
 
     fn setup_scene_async(&mut self) {
+        let db = self.db.as_ref().unwrap();
+
         self.position = None;
-        self.position = Some(self.db.as_ref().unwrap().current.to_positions());
+        self.position = Some(db.to_positions());
 
         self.material_to_id.clear();
 
-        for (id, (key, _)) in self.db.as_ref().unwrap().current.material_iter().enumerate() {
+        for (id, (key, _)) in db.material_iter().enumerate() {
             self.material_to_id.insert(*key, (id+1) as u32);
             self.id_to_material.insert((id+1) as u32, *key);
         }
@@ -155,8 +156,6 @@ impl<RD: RenderData> Drawlist<RD> for DrawlistStandard<RD> {
                 }
             })})})});
         
-            let db = &self.db.as_ref().unwrap().current;
-
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
                 for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
                     info[idx] = (id.clone(),
@@ -220,13 +219,13 @@ impl<RD: RenderData> Drawlist<RD> for DrawlistStandard<RD> {
 
         let mut range = (0u, 0u);
         let mut last_geo: Option<u32> = None;
-        for (idx, (_, draw)) in self.db.as_ref().unwrap().current.drawable_iter().enumerate() {
+        for (idx, (_, draw)) in db.drawable_iter().enumerate() {
             if last_geo.is_some() {
                 if last_geo.unwrap() == draw.geometry {
                     let (start, _) = range;
                     range = (start, idx);
                 } else {
-                    let draw_geo = db.current.geometry(last_geo.unwrap()).unwrap();
+                    let draw_geo = db.geometry(last_geo.unwrap()).unwrap();
                     let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
 
                     draw_vbo.bind();
@@ -252,7 +251,7 @@ impl<RD: RenderData> Drawlist<RD> for DrawlistStandard<RD> {
         }
 
         if last_geo.is_some() {
-            let draw_geo = db.current.geometry(last_geo.unwrap()).unwrap();
+            let draw_geo = db.geometry(last_geo.unwrap()).unwrap();
             let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
             let (start, end) = range;
 
@@ -274,7 +273,7 @@ impl<RD: RenderData> Drawlist<RD> for DrawlistStandard<RD> {
     fn materials(&self) -> Vec<Material> {
         let mut mats = Vec::new();
         for (_, key) in self.id_to_material.iter() {
-            mats.push(self.db.as_ref().unwrap().current.material(*key).unwrap().clone());
+            mats.push(self.db.as_ref().unwrap().material(*key).unwrap().clone());
         }
         mats
     }

@@ -59,7 +59,7 @@ impl HMD {
         }
     }
 
-    pub fn set_left<RD>(&self, _: &GlState<RD>, hmd: &HMDInfo) {
+    pub fn set_left<T>(&self, _: &GlState, hmd: &HMDInfo) {
         let (w, h) = hmd.resolution();
         let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
@@ -71,7 +71,7 @@ impl HMD {
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    pub fn set_right<RD>(&self, _: &GlState<RD>, hmd: &HMDInfo) {
+    pub fn set_right<T>(&self, _: &GlState, hmd: &HMDInfo) {
         let (w, h) = hmd.resolution();
         let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
@@ -105,9 +105,9 @@ impl HMD {
         gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
     }
 
-    pub fn draw_screen<RD: RenderData>(&self, db: &GlState<RD>, hmd: &HMDInfo) {
-        let billboard = db.current.find("core/geometry/billboard").unwrap();
-        let billboard = db.current.geometry(billboard).unwrap();
+    pub fn draw_screen<T: RenderData>(&self, db: &GlState, hmd: &HMDInfo) {
+        let billboard = db.find("core/geometry/billboard").unwrap();
+        let billboard = db.geometry(billboard).unwrap();
 
         let shader = db.ovr_shader.as_ref().unwrap();
 

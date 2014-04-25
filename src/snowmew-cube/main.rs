@@ -97,7 +97,7 @@ fn main() {
         let last_input = im.get(&ih);
         let (wx, wy) = last_input.screen_size();
 
-        let mut ren = RenderManager::new(db.clone(), display, (wx, wy));
+        let mut ren = RenderManager::new(~db.clone(), display, (wx, wy));
         //display_input.set_cursor(wx as f64 /2., wy as f64/2.);
 
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
@@ -165,7 +165,7 @@ fn main() {
 
             db.update_location(camera_loc, head_trans);
 
-            ren.update(db.clone(), scene, camera_loc);
+            ren.update(~db.clone(), scene, camera_loc);
 
             last_input = input_state;
         }
