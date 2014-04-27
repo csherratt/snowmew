@@ -92,7 +92,7 @@ impl VertexBuffer {
         /* todo check for errors */
         let error = gl::GetError();
         if error != 0 {
-            println!("error {:x}", error);
+            fail!("error {:x}", error);
         }
 
         VertexBuffer {

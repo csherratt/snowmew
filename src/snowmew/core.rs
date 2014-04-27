@@ -1,7 +1,7 @@
 
 use std::default::Default;
 
-use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator};
+use cow::btree::{BTreeMap, BTreeMapIterator};
 
 use cgmath::transform::*;
 use cgmath::quaternion::*;
@@ -75,7 +75,7 @@ pub struct CommonData {
 
     last_oid:      ObjectKey,
     objects:       BTreeMap<ObjectKey, Object>,
-    index_parent_child: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
+    parent_child:  BTreeMap<ObjectKey, BTreeMap<StringKey, ObjectKey>>,
 }
 
 impl CommonData {
@@ -87,7 +87,7 @@ impl CommonData {
 
             last_oid:           1,
             objects:            BTreeMap::new(),
-            index_parent_child: BTreeMap::new(),
+            parent_child:       BTreeMap::new(),
         }   
     }
 
@@ -97,24 +97,20 @@ impl CommonData {
             None => 0
         };
 
-        let child = match self.index_parent_child.find(&node) {
+        let child = match self.parent_child.find(&node) {
             Some(children) => children,
             None => return None,
         };
 
-        for key in child.iter() {
-            match self.objects.find(key) {
-                Some(obj) => {
-                    if self.strings.find(&obj.name)
-                        .expect("Could not find str key").as_slice() == str_key {
-                        return Some(*key);
-                    }
-                },
-                _ => ()
-            }
-        }
+        let str_key = match self.string_to_key.find(&str_key.to_owned()) {
+            Some(key) => key,
+            None => return None
+        };
 
-        None
+        match child.find(str_key) {
+            Some(a) => Some(*a),
+            None => None
+        }
     }
 
     fn name(&self, key: ObjectKey) -> ~str {
@@ -133,21 +129,21 @@ impl CommonData {
         new_key        
     }
 
-    fn update_parent_child(&mut self, parent: ObjectKey, child: ObjectKey) {
-        let new = match self.index_parent_child.find_mut(&parent) {
+    fn update_parent_child(&mut self, parent: ObjectKey, child_name: StringKey, child: ObjectKey) {
+        let new = match self.parent_child.find_mut(&parent) {
             Some(child_list) => {
-                child_list.insert(child);
+                child_list.insert(child_name, child);
                 None
             },
             None => {
-                let mut child_list = BTreeSet::new();
-                child_list.insert(child);
+                let mut child_list = BTreeMap::new();
+                child_list.insert(child_name, child);
                 Some(child_list)
             }
         };
 
         match new {
-            Some(child_list) => {self.index_parent_child.insert(parent, child_list);},
+            Some(child_list) => {self.parent_child.insert(parent, child_list);},
             None => (),
         }
     }
@@ -195,7 +191,7 @@ pub trait Common {
         };
 
         self.get_common_mut().objects.insert(new_key, object);
-        self.get_common_mut().update_parent_child(parent, new_key);
+        self.get_common_mut().update_parent_child(parent, object.name, new_key);
 
         new_key
     }
@@ -216,8 +212,8 @@ pub trait Common {
         node
     }
 
-    fn walk_dir<'a>(&'a self, oid: ObjectKey) -> BTreeSetIterator<'a, ObjectKey> {
-        let dir = self.get_common().index_parent_child.find(&oid).unwrap();
+    fn walk_dir<'a>(&'a self, oid: ObjectKey) -> BTreeMapIterator<'a, StringKey, ObjectKey> {
+        let dir = self.get_common().parent_child.find(&oid).unwrap();
         dir.iter()
     }
 
@@ -299,7 +295,7 @@ impl<'a> Iterator<(ObjectKey, uint)> for IterObjs<'a>
 
             match self.stack[len-1].child_iter.next() {
                 Some((oid, loc)) => {
-                    match self.db.get().index_parent_child.find(oid) {
+                    match self.db.get().parent_child.find(oid) {
                         Some(set) => {
                             self.stack.push(IterObjsLayer {
                                 child_iter: join_set_to_map(set.iter(), self.db.location.iter())

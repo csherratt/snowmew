@@ -65,11 +65,11 @@ fn main() {
         let mut rng = StdRng::new().unwrap();
 
         let mut materials = ~[];
-        for oid in db.walk_dir(dir) {
-            materials.push(oid.clone())
+        for (_, oid) in db.walk_dir(dir) {
+            materials.push(*oid);
         }
 
-        let size = 10;
+        let size = 5;
 
         println!("creating");
         for x in range(-size, size) {
@@ -77,12 +77,15 @@ fn main() {
                 for z in range(-size, size) {
                     let materials = materials.slice(0, materials.len());
                     let material = rng.choose(materials);
-                    let cube_id = db.new_object(Some(scene), "cube");
+                    let cube_id = db.new_object(Some(scene), format!("cube[{}][{}][{}]", x, y, z));
+                    let xa = x as f32 * 25.;
+                    let ya = y as f32 * 25.;
+                    let za = z as f32 * 25.;
                     let x = x as f32 * 2.5;
                     let y = y as f32 * 2.5;
                     let z = z as f32 * 2.5;
                     db.update_location(cube_id,
-                        Transform3D::new(0.5f32, Rotation3::from_euler(deg(15f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()), Vec3::new(y, x, z)));
+                        Transform3D::new(0.5f32, Rotation3::from_euler(deg(xa).to_rad(), deg(ya).to_rad(), deg(za).to_rad()), Vec3::new(y, x, z)));
                     db.set_draw(cube_id, geometry, material);
                 }
             }
@@ -108,7 +111,25 @@ fn main() {
         let mut timer = Timer::new().unwrap();
         let timer_port = timer.periodic(10);
 
+        let mut idx = 0.;
         while !last_input.should_close() {
+            idx += 1.;
+            for x in range(-size, size) {
+                for y in range(-size, size) {
+                    for z in range(-size, size) {
+                        let cube_id = db.find(format!("scene/cube[{}][{}][{}]", x, y, z)).unwrap();
+                        let xa = x as f32 * idx;
+                        let ya = y as f32 * idx;
+                        let za = z as f32 * idx;
+                        let x = x as f32 * 2.5;
+                        let y = y as f32 * 2.5;
+                        let z = z as f32 * 2.5;
+                        db.update_location(cube_id,
+                            Transform3D::new(0.5f32, Rotation3::from_euler(deg(xa).to_rad(), deg(ya).to_rad(), deg(za).to_rad()), Vec3::new(y, x, z)));
+                    }
+                }
+            }
+
             im.poll();
             let input_state = im.get(&ih);
             timer_port.recv();

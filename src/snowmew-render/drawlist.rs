@@ -221,15 +221,14 @@ impl Drawlist for DrawlistStandard {
         let mut last_geo: Option<u32> = None;
         for (idx, (_, draw)) in db.drawable_iter().enumerate() {
             if last_geo.is_some() {
+                let (start, end) = range;
                 if last_geo.unwrap() == draw.geometry {
-                    let (start, _) = range;
                     range = (start, idx);
                 } else {
                     let draw_geo = db.geometry(last_geo.unwrap()).unwrap();
                     let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
 
                     draw_vbo.bind();
-                    let (start, end) = range;
 
                     unsafe {
                         gl::Uniform1i(shader.uniform("instance_offset"), start as i32);
