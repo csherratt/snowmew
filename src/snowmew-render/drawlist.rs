@@ -1,25 +1,26 @@
 use std::mem;
 use std::ptr;
-use libc::{c_void};
 use std::slice::raw::mut_buf_as_slice;
+use libc::{c_void};
+use collections::treemap::TreeMap;
 
 use cow::join::join_maps;
-
+use OpenCL::hl::{CommandQueue, Context, Device};
+use sync::Arc;
 use cgmath::matrix::Mat4;
 use cgmath::vector::Vec4;
 use cgmath::ptr::Ptr;
-use db::GlState;
-
-use snowmew::material::Material;
-use snowmew::core::{ObjectKey};
-use snowmew::position::{ComputedPosition, Positions};
-use snowmew::graphics::Graphics;
-
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
 
-use collections::treemap::TreeMap;
 
+use snowmew::material::Material;
+use snowmew::core::{ObjectKey};
+use snowmew::position::{ComputedPosition, Positions, CalcPositionsCl};
+use snowmew::graphics::Graphics;
+
+
+use db::GlState;
 use Config;
 
 pub trait Drawlist {
@@ -60,12 +61,23 @@ pub struct DrawlistStandard {
 
     ptr_model_matrix: [*mut Vec4<f32>, ..4],
     ptr_model_info: *mut (u32, u32, u32, u32),
+
+    cl: Option<(CalcPositionsCl, Arc<CommandQueue>)>
 }
 
 impl DrawlistStandard {
-    pub fn from_config(cfg: &Config) -> DrawlistStandard {
+    pub fn from_config(cfg: &Config,
+                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistStandard {
         let buffer = &mut [0, 0, 0, 0, 0];
         let texture = &mut [0, 0, 0, 0, 0];
+
+        let cl = match cl {
+            Some((ctx, cq, dev)) => {
+                let calc = CalcPositionsCl::new(ctx.deref(), dev.deref());
+                Some((calc, cq))
+            },
+            None => None
+        };
 
         unsafe {
             gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
@@ -102,7 +114,8 @@ impl DrawlistStandard {
             ptr_model_matrix: [ptr::mut_null(), ptr::mut_null(), ptr::mut_null(), ptr::mut_null()],
             ptr_model_info: ptr::mut_null(),
             material_to_id: TreeMap::new(),
-            id_to_material: TreeMap::new()
+            id_to_material: TreeMap::new(),
+            cl: cl
         }
     }
 }
@@ -131,10 +144,12 @@ impl Drawlist for DrawlistStandard {
 
     fn setup_scene_async(&mut self) {
         let db = self.db.as_ref().unwrap();
-
-        self.position = None;
-        self.position = Some(db.to_positions());
-
+        self.position = match self.cl {
+            // The time it takes to copy this accross the bus is longer then the performance gains
+            //Some((ref mut ctx, ref queue)) => Some(db.to_positions_cl(queue.deref(), ctx)),
+            Some(_) => Some(db.to_positions()),
+            None => Some(db.to_positions())
+        };
         self.material_to_id.clear();
 
         for (id, (key, _)) in db.material_iter().enumerate() {

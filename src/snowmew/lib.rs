@@ -21,6 +21,7 @@ extern crate std;
 extern crate gl;
 extern crate green;
 extern crate collections;
+extern crate time;
 extern crate ovr = "oculus-vr";
 
 pub use core::{ObjectKey, Database};
@@ -51,7 +52,6 @@ fn setup_glfw() -> glfw::Glfw
 
     glfw
 }
-
 
 pub fn start_manual_input(f: proc(&mut io::IOManager))
 {

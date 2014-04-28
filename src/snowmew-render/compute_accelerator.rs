@@ -11,7 +11,6 @@ use shader::compile_shader;
 
 use time::precise_time_ns;
 
-
 static position_shader: &'static str = "
 #version 430
 

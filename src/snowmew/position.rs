@@ -7,7 +7,7 @@ use cgmath::matrix::{Mat4, ToMat4, Matrix};
 
 use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel};
 use OpenCL::mem::CLBuffer;
-use OpenCL::CL::CL_MEM_READ_WRITE;
+use OpenCL::CL::{CL_MEM_READ_WRITE, CL_MEM_READ_ONLY};
 
 use sync::Arc;
 use cow::btree::{BTreeMap, BTreeMapIterator};
@@ -313,8 +313,8 @@ impl Deltas {
         for idx in range(2, self.gen.len()) {
             let (off, _) = *self.gen.get(idx-1);
             ctx.kernel.set_arg(2, &off);
-            let (off, len) = *self.gen.get(idx);
-            ctx.kernel.set_arg(3, &off);
+            let (off2, len) = *self.gen.get(idx);
+            ctx.kernel.set_arg(3, &off2);
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
 
@@ -417,7 +417,7 @@ impl CalcPositionsCl {
         let kernel = program.create_kernel("calc_gen");
 
         let mat_mem: CLBuffer<Mat4<f32>> = ctx.create_buffer(1024*1024, CL_MEM_READ_WRITE);
-        let delta_mem: CLBuffer<Delta> = ctx.create_buffer(1024*1024, CL_MEM_READ_WRITE);
+        let delta_mem: CLBuffer<Delta> = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
 
         CalcPositionsCl {
             program: program,
@@ -494,6 +494,10 @@ pub trait Positions: Common {
 
     fn to_positions(&self) -> ComputedPosition {
         self.get_position().position.to_positions()
+    }
+
+    fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> ComputedPosition {
+        self.get_position().position.to_positions_cl(cq, ctx)
     }
 
     fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {

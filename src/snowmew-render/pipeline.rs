@@ -92,7 +92,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE>
     pub fn new(input: PIPELINE, width: uint, height: uint) -> Defered<PIPELINE>
     {
         let (w, h) = (width as i32, height as i32);
-        let textures: &mut [GLuint] = &mut [0, 0, 0, 0  ];
+        let textures: &mut [GLuint] = &mut [0, 0, 0, 0];
         let mut framebuffer: GLuint = 0;
         let mut renderbuffer: GLuint = 0;
 

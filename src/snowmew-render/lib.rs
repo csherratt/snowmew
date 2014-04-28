@@ -1,4 +1,4 @@
-#![crate_id = "github.com/csherratt/snowmew#snowmew-render:0.1"]
+ #![crate_id = "github.com/csherratt/snowmew#snowmew-render:0.1"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A game engine in rust"]
@@ -16,10 +16,13 @@ extern crate collections;
 extern crate native;
 extern crate time;
 extern crate libc;
+extern crate sync;
 
-use std::ptr;
 use std::mem;
 use std::comm::{Receiver, Sender, Empty, Disconnected};
+
+use OpenCL::hl::{CommandQueue, Context, Device};
+use sync::Arc;
 
 use snowmew::core::ObjectKey;
 use snowmew::camera::Camera;
@@ -31,7 +34,6 @@ pub use config::Config;
 
 use pipeline::{DrawTarget, Pipeline};
 use drawlist::{Drawlist, DrawlistStandard};
-use OpenCL::hl::{CommandQueue};
 use time::precise_time_s;
 
 mod db;
@@ -58,12 +60,12 @@ enum RenderCommand {
 
 fn swap_buffers(disp: &mut Window) {
     disp.swap_buffers();
-    unsafe {
+    /*unsafe {
         gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
         let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
         gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
         gl::DeleteSync(sync);
-    }
+    }*/
 }
 
 fn render_task(chan: Sender<RenderCommand>) {
@@ -91,7 +93,8 @@ fn render_task(chan: Sender<RenderCommand>) {
     }
 }
 
-fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window, size: (i32, i32)) {
+fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window, size: (i32, i32),
+                 cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
     let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
     let mut queue = Some(queue);
@@ -121,8 +124,8 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
 
     //let accl = PositionGlAccelerator::new();
 
-    let mut drawlists = vec!(DrawlistStandard::from_config(&cfg),
-                             DrawlistStandard::from_config(&cfg));
+    let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, cl.clone()),
+                             DrawlistStandard::from_config(&cfg, cl.clone()));
 
     let mut num_workers = 1;
     let mut waiting = Vec::new();
@@ -172,7 +175,7 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
 
                 let camera = Camera::new(rot, camera_trans);
 
-                let dt = DrawTarget::new(0, (0, 0), (1920, 1080));
+                let dt = DrawTarget::new(0, (0, 0), (1280, 800));
 
                 pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
 
@@ -226,8 +229,17 @@ pub struct RenderManager {
 }
 
 impl RenderManager {
-    pub fn new(db: ~RenderData:Send, window: Window, size: (i32, i32)) -> RenderManager{
+    fn _new(db: ~RenderData:Send, window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
         let (sender, receiver) = channel();
+
+        let cl = match dev {
+            Some(dev) => {
+                let ctx = Arc::new(dev.create_context());
+                let queue = Arc::new(ctx.create_command_queue(dev.deref()));
+                Some((ctx, queue, dev))
+            },
+            None => None
+        };
 
         let mut taskopts = std::task::TaskOpts::new();
         taskopts.name = Some("render-main".into_maybe_owned());
@@ -236,9 +248,8 @@ impl RenderManager {
             let db = db;
             let window = window;
 
-            render_server(receiver, db, window, size);
+            render_server(receiver, db, window, size, cl);
         });
-
 
         let mut taskopts = std::task::TaskOpts::new();
         taskopts.name = Some("render worker #0".into_maybe_owned());
@@ -249,6 +260,14 @@ impl RenderManager {
         });
         
         RenderManager { ch: sender }
+    }
+
+    pub fn new_cl(db: ~RenderData:Send, window: Window, size: (i32, i32), device: Arc<Device>) -> RenderManager {
+        RenderManager::_new(db, window, size, Some(device))
+    }
+
+    pub fn new(db: ~RenderData:Send, window: Window, size: (i32, i32)) -> RenderManager {
+        RenderManager::_new(db, window, size, None)
     }
 
     pub fn update(&mut self, db: ~RenderData:Send, scene: ObjectKey, camera: ObjectKey) {

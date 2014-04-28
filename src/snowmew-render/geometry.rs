@@ -1,5 +1,3 @@
-
-
 use gl;
 
 use std::mem;
