@@ -17,6 +17,7 @@ extern crate native;
 extern crate time;
 extern crate libc;
 extern crate sync;
+extern crate gl_cl;
 
 use std::mem;
 use std::comm::{Receiver, Sender, Empty, Disconnected};
@@ -94,7 +95,7 @@ fn render_task(chan: Sender<RenderCommand>) {
 }
 
 fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window, size: (i32, i32),
-                 _: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
+                 cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
     let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
     let mut queue = Some(queue);
@@ -106,6 +107,7 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
     let cfg = Config::new(window.get_context_version());
 
     window.make_context_current();
+    glfw::set_swap_interval(0);
 
     let mut pipeline = {
         let (width, height) = size;
@@ -124,14 +126,14 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
 
     //let accl = PositionGlAccelerator::new();
 
-    let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, None),
-                             DrawlistStandard::from_config(&cfg, None));
+    let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, cl.clone()),
+                             DrawlistStandard::from_config(&cfg, cl.clone()));
 
+    let mut count = 0;
     let mut num_workers = 1;
     let mut waiting = Vec::new();
 
-    let mut time = precise_time_s();
-
+    let time = precise_time_s();
     loop {
         let cmd = if drawlists.len() == 0 || waiting.len() == 0 || scene == 0 {
             Some(port.recv())
@@ -178,14 +180,12 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
                 let dt = DrawTarget::new(0, (0, 0), (1280, 800));
 
                 pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
-
                 swap_buffers(&mut window);
-                
-                let end = precise_time_s();
-                println!("fps: {:3.2f}", 1./(end-time));
-                time = end;
-
                 drawlists.push(dl);
+                count += 1;
+                if count == 1000 {
+                    break;
+                }
             },
             Some(Finish(ack)) => {
                 // flush the port, this should release any
@@ -221,6 +221,9 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
             }
         }
     }
+    let end = precise_time_s();
+
+    println!("avg frame time {:2.4f}fps", 1. / ((end-time) / 1000.));
 
 }
 
@@ -232,14 +235,17 @@ impl RenderManager {
     fn _new(db: ~RenderData:Send, window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
         let (sender, receiver) = channel();
 
+        window.make_context_current();
         let cl = match dev {
             Some(dev) => {
-                let ctx = Arc::new(dev.create_context());
+                let ctx = Arc::new(gl_cl::create_context(dev.deref()));
                 let queue = Arc::new(ctx.create_command_queue(dev.deref()));
                 Some((ctx, queue, dev))
             },
             None => None
         };
+        glfw::make_context_current(None);
+
 
         let mut taskopts = std::task::TaskOpts::new();
         taskopts.name = Some("render-main".into_maybe_owned());

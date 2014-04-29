@@ -2,12 +2,12 @@ use std::default::Default;
 
 use cgmath::transform::Transform3D;
 use cgmath::quaternion::Quat;
-use cgmath::vector::Vec3;
+use cgmath::vector::{Vec3, Vec4};
 use cgmath::matrix::{Mat4, ToMat4, Matrix};
 
-use OpenCL::hl::{Device, Context, Program, Kernel};
+use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel, EventList, Event};
 use OpenCL::mem::CLBuffer;
-use OpenCL::CL::{CL_MEM_READ_WRITE, CL_MEM_READ_ONLY};
+use OpenCL::CL::{CL_MEM_READ_ONLY};
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 
@@ -82,56 +82,88 @@ mult_m(const Mat4 a, const Mat4 b)
 }
 
 Mat4
-transform_to_mat4(const Transform3D trans)
+transform_to_mat4(global Transform3D *trans)
 {
     Mat4 mat;
 
-    float x2 = trans.rot.x + trans.rot.x;
-    float y2 = trans.rot.y + trans.rot.y;
-    float z2 = trans.rot.z + trans.rot.z;
+    float x2 = trans->rot.x + trans->rot.x;
+    float y2 = trans->rot.y + trans->rot.y;
+    float z2 = trans->rot.z + trans->rot.z;
 
-    float xx2 = x2 * trans.rot.x;
-    float xy2 = x2 * trans.rot.y;
-    float xz2 = x2 * trans.rot.z;
+    float xx2 = x2 * trans->rot.x;
+    float xy2 = x2 * trans->rot.y;
+    float xz2 = x2 * trans->rot.z;
 
-    float yy2 = y2 * trans.rot.y;
-    float yz2 = y2 * trans.rot.z;
-    float zz2 = z2 * trans.rot.z;
+    float yy2 = y2 * trans->rot.y;
+    float yz2 = y2 * trans->rot.z;
+    float zz2 = z2 * trans->rot.z;
 
-    float sy2 = y2 * trans.rot.s;
-    float sz2 = z2 * trans.rot.s;
-    float sx2 = x2 * trans.rot.s;
+    float sy2 = y2 * trans->rot.s;
+    float sz2 = z2 * trans->rot.s;
+    float sx2 = x2 * trans->rot.s;
 
-    mat.x.x = (1. - yy2 - zz2) * trans.scale;
-    mat.x.y = (xy2 + sz2) * trans.scale;
-    mat.x.z = (xz2 - sy2) * trans.scale;
+    mat.x.x = (1. - yy2 - zz2) * trans->scale;
+    mat.x.y = (xy2 + sz2) * trans->scale;
+    mat.x.z = (xz2 - sy2) * trans->scale;
     mat.x.w = 0.;
 
-    mat.y.x = (xy2 - sz2) * trans.scale;
-    mat.y.y = (1. - xx2 - zz2) * trans.scale;
-    mat.y.z = (yz2 + sx2) * trans.scale;
+    mat.y.x = (xy2 - sz2) * trans->scale;
+    mat.y.y = (1. - xx2 - zz2) * trans->scale;
+    mat.y.z = (yz2 + sx2) * trans->scale;
     mat.y.w = 0.;
 
-    mat.z.x = (xz2 + sy2) * trans.scale;
-    mat.z.y = (yz2 - sx2) * trans.scale;
-    mat.z.z = (1. - xx2 - yy2) * trans.scale;
+    mat.z.x = (xz2 + sy2) * trans->scale;
+    mat.z.y = (yz2 - sx2) * trans->scale;
+    mat.z.z = (1. - xx2 - yy2) * trans->scale;
     mat.z.w = 0.;
 
-    mat.w.x = trans.pos.x;
-    mat.w.y = trans.pos.y;
-    mat.w.z = trans.pos.z;
+    mat.w.x = trans->pos.x;
+    mat.w.y = trans->pos.y;
+    mat.w.z = trans->pos.z;
     mat.w.w = 1.;
 
     return mat;
 }
 
+Mat4
+get_mat4(global f4* x, global f4* y, global f4* z, global f4* w, uint idx)
+{
+    Mat4 mat;
+    mat.x = x[idx];
+    mat.y = y[idx];
+    mat.z = z[idx];
+    mat.w = w[idx];
+    return mat;
+}
+
+void
+set_mat4(global f4* x, global f4* y, global f4* z, global f4* w, uint idx, Mat4 mat)
+{
+    x[idx] = mat.x;
+    y[idx] = mat.y;
+    z[idx] = mat.z;
+    w[idx] = mat.w;
+}
+
 kernel void
-calc_gen(global Transform3D *t, global Mat4 *gen, int offset_last, int offset_this)
+calc_gen(global Transform3D *t,
+         global f4* x, global f4* y, global f4* z, global f4* w,
+         int offset_last, int offset_this)
 {
     int id = get_global_id(0);
-    global Transform3D *trans = &t[offset_this+id];
-    Mat4 mat = transform_to_mat4(trans[0]);
-    gen[offset_this+id] = mult_m(gen[offset_last+trans->parent], mat);
+    global Transform3D *trans = &t[offset_this + id];
+    Mat4 mat = transform_to_mat4(trans);
+    Mat4 parent = get_mat4(x, y, z, w, offset_last+trans->parent);
+    Mat4 result = mult_m(parent, mat);
+    set_mat4(x, y, z, w, offset_this + id, result);
+}
+
+kernel void
+set_idenity(global f4* x, global f4* y, global f4* z, global f4* w) {
+    x[0].x = (float)1; x[0].y = (float)0; x[0].z = (float)0; x[0].w = (float)0;
+    y[0].x = (float)0; y[0].y = (float)1; y[0].z = (float)0; y[0].w = (float)0;
+    z[0].x = (float)0; z[0].y = (float)0; z[0].z = (float)1; z[0].w = (float)0;
+    w[0].x = (float)0; w[0].y = (float)0; w[0].z = (float)0; w[0].w = (float)1;
 }
 ";
 
@@ -291,47 +323,44 @@ impl Deltas {
         }
     }
 
-    /*pub fn to_positions_cl<MM: MatrixManager>(&self, mm: &mut MM, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> ComputedPosition {
-        let default: &[Mat4<f32>] = &[Mat4::identity()];
+    pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
+                           out: &[CLBuffer<Vec4<f32>>, ..4]) -> (Event, ComputedPosition) {
 
-        if self.gen.len() == 1 {
-            mm.set(0, Mat4::identity());
-            return ComputedPosition {
-                gen: self.gen.clone()
-            };
-        }
+        cq.map_mut(&ctx.input, (), |out_delta| {
+            for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
+                for (off, delta) in gen.iter() {
+                    out_delta[(off + gen_off) as uint] = delta.clone();
+                }
+            }            
+        });
 
-        cq.write(&ctx.input, &self.delta.as_slice(), ());
-        cq.write(&ctx.output, &default, ());
+        // write init value
+        ctx.init_kernel.set_arg(0, &out[0]);
+        ctx.init_kernel.set_arg(1, &out[1]);
+        ctx.init_kernel.set_arg(2, &out[2]);
+        ctx.init_kernel.set_arg(3, &out[3]);
+        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel, 1, None, ());
 
+        // run the kernel across the deltas 
         ctx.kernel.set_arg(0, &ctx.input);
-        ctx.kernel.set_arg(1, &ctx.output);
-
-        let (off, _) = *self.gen.get(0);
-        ctx.kernel.set_arg(2, &off);
-        let (off, len) = *self.gen.get(1);
-        ctx.kernel.set_arg(3, &off);
-
-        let mut event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, ());
-
-        for idx in range(2, self.gen.len()) {
+        ctx.kernel.set_arg(1, &out[0]);
+        ctx.kernel.set_arg(2, &out[1]);
+        ctx.kernel.set_arg(3, &out[2]);
+        ctx.kernel.set_arg(4, &out[3]);
+        for idx in range(1, self.gen.len()) {
             let (off, _) = *self.gen.get(idx-1);
-            ctx.kernel.set_arg(2, &off);
+            ctx.kernel.set_arg(5, &off);
             let (off2, len) = *self.gen.get(idx);
-            ctx.kernel.set_arg(3, &off2);
+            ctx.kernel.set_arg(6, &off2);
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
 
-        let mut mat = Vec::new();
-        mat.reserve(self.delta.len());
-        unsafe {mat.set_len(self.delta.len());}
+        event.wait();
 
-        cq.read(&ctx.output, &mut mat.as_mut_slice(), event);
-
-        ComputedPosition {
+        (event, ComputedPosition {
             gen: self.gen.clone()
-        }
-    }*/
+        })
+    }
 
     pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
@@ -385,8 +414,8 @@ impl ComputedPosition {
 pub struct CalcPositionsCl {
     program: Program,
     kernel: Kernel,
-    input: CLBuffer<Delta>,
-    output: CLBuffer<Mat4<f32>>
+    init_kernel: Kernel,
+    input: CLBuffer<Delta>
 }
 
 impl CalcPositionsCl {
@@ -403,15 +432,14 @@ impl CalcPositionsCl {
         }
 
         let kernel = program.create_kernel("calc_gen");
-
-        let mat_mem: CLBuffer<Mat4<f32>> = ctx.create_buffer(1024*1024, CL_MEM_READ_WRITE);
-        let delta_mem: CLBuffer<Delta> = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
+        let init_kernel = program.create_kernel("set_idenity");
+        let delta_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
 
         CalcPositionsCl {
             program: program,
             kernel: kernel,
-            input: delta_mem,
-            output: mat_mem
+            init_kernel: init_kernel,
+            input: delta_mem
         }
     }
 }
@@ -484,9 +512,10 @@ pub trait Positions: Common {
         self.get_position().position.to_positions(mm)
     }
 
-    /*fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> ComputedPosition {
-        self.get_position().position.to_positions_cl(cq, ctx)
-    }*/
+    fn to_positions_cl(&self, cq: &CommandQueue,
+                        ctx: &mut CalcPositionsCl, out: &[CLBuffer<Vec4<f32>>, ..4]) -> (Event, ComputedPosition) {
+        self.get_position().position.to_positions_cl(cq, ctx, out)
+    }
 
     fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
         self.get_position().position.to_positions_gl(out_delta)

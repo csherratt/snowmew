@@ -5,14 +5,16 @@ use libc::{c_void};
 use collections::treemap::TreeMap;
 
 use cow::join::join_maps;
-use OpenCL::hl::{CommandQueue, Context, Device};
+use OpenCL::hl::{CommandQueue, Context, Device, EventList};
+use OpenCL::mem::CLBuffer;
+use OpenCL::CL::CL_MEM_READ_WRITE;
 use sync::Arc;
 use cgmath::matrix::Mat4;
 use cgmath::vector::Vec4;
 use cgmath::ptr::Ptr;
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
-
+use gl_cl;
 
 use snowmew::material::Material;
 use snowmew::core::{ObjectKey};
@@ -62,7 +64,7 @@ pub struct DrawlistStandard {
     ptr_model_matrix: [*mut Vec4<f32>, ..4],
     ptr_model_info: *mut (u32, u32, u32, u32),
 
-    cl: Option<(CalcPositionsCl, Arc<CommandQueue>)>
+    pub cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vec4<f32>>, ..4])>
 }
 
 impl DrawlistStandard {
@@ -70,14 +72,6 @@ impl DrawlistStandard {
                        cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistStandard {
         let buffer = &mut [0, 0, 0, 0, 0];
         let texture = &mut [0, 0, 0, 0, 0];
-
-        let cl = match cl {
-            Some((ctx, cq, dev)) => {
-                let calc = CalcPositionsCl::new(ctx.deref(), dev.deref());
-                Some((calc, cq))
-            },
-            None => None
-        };
 
         unsafe {
             gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
@@ -102,6 +96,19 @@ impl DrawlistStandard {
             assert!(0 == gl::GetError());
         }
 
+        let clpos = match cl {
+            Some((ctx, cq, dev)) => {
+                let calc = CalcPositionsCl::new(ctx.deref(), dev.deref());
+                let buffers = [gl_cl::create_from_gl_buffer(ctx.deref(), buffer[0], CL_MEM_READ_WRITE),
+                               gl_cl::create_from_gl_buffer(ctx.deref(), buffer[1], CL_MEM_READ_WRITE),
+                               gl_cl::create_from_gl_buffer(ctx.deref(), buffer[2], CL_MEM_READ_WRITE),
+                               gl_cl::create_from_gl_buffer(ctx.deref(), buffer[3], CL_MEM_READ_WRITE)];
+
+                Some((calc, cq, buffers))
+            },
+            None => None
+        };
+
         DrawlistStandard {
             db: None,
             scene: 0,
@@ -115,7 +122,7 @@ impl DrawlistStandard {
             ptr_model_info: ptr::mut_null(),
             material_to_id: TreeMap::new(),
             id_to_material: TreeMap::new(),
-            cl: cl
+            cl: clpos
         }
     }
 }
@@ -157,13 +164,15 @@ impl Drawlist for DrawlistStandard {
         self.db = Some(db);
         self.scene = scene;
 
-        for i in range(0u, 4) {
-            gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
-            self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                    (mem::size_of::<Vec4<f32>>()*self.size) as GLsizeiptr,
-                    gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
-            ) as *mut Vec4<f32>;
-            assert!(0 == gl::GetError());
+        if self.cl.is_none() {
+            for i in range(0u, 4) {
+                gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
+                self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
+                        (mem::size_of::<Vec4<f32>>()*self.size) as GLsizeiptr,
+                        gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
+                ) as *mut Vec4<f32>;
+                assert!(0 == gl::GetError());
+            }
         }
 
         gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
@@ -176,17 +185,26 @@ impl Drawlist for DrawlistStandard {
 
     fn setup_scene_async(&mut self) {
         let db = self.db.as_ref().unwrap();
-        self.position = unsafe {
-            mut_buf_as_slice(self.ptr_model_matrix[0], self.size, |mat0| {
-            mut_buf_as_slice(self.ptr_model_matrix[1], self.size, |mat1| {
-            mut_buf_as_slice(self.ptr_model_matrix[2], self.size, |mat2| {
-            mut_buf_as_slice(self.ptr_model_matrix[3], self.size, |mat3| {
-                let mut mat = GLMatrix {
-                    x: mat0, y: mat1, z: mat2, w: mat3
-                };
-                Some(db.to_positions(&mut mat))
-            })})})})
+        let (evt, position) = unsafe {
+            match self.cl {
+                None => {
+                    mut_buf_as_slice(self.ptr_model_matrix[0], self.size, |mat0| {
+                    mut_buf_as_slice(self.ptr_model_matrix[1], self.size, |mat1| {
+                    mut_buf_as_slice(self.ptr_model_matrix[2], self.size, |mat2| {
+                    mut_buf_as_slice(self.ptr_model_matrix[3], self.size, |mat3| {
+                        let mut mat = GLMatrix {
+                            x: mat0, y: mat1, z: mat2, w: mat3
+                        };
+                        (None, db.to_positions(&mut mat))
+                    })})})})               
+                }
+                Some((ref mut ctx, ref cq, ref buf)) => {
+                    let (evt, pos) = db.to_positions_cl(cq.deref(), ctx, buf);
+                    (Some(evt), pos)
+                }
+            }
         };
+        self.position = Some(position);
 
         self.material_to_id.clear();
 
@@ -205,15 +223,22 @@ impl Drawlist for DrawlistStandard {
                 }
             });
         }
+
+        match evt {
+            Some(e) => e.wait(),
+            None => ()
+        }
     }
 
     fn setup_scene(&mut self)
     {
-        for i in range(0u, 4) {
-            gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
-            gl::UnmapBuffer(gl::TEXTURE_BUFFER);
-            assert!(0 == gl::GetError());
-            self.ptr_model_matrix[i] = ptr::mut_null();
+        if self.cl.is_none() {
+            for i in range(0u, 4) {
+                gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
+                gl::UnmapBuffer(gl::TEXTURE_BUFFER);
+                assert!(0 == gl::GetError());
+                self.ptr_model_matrix[i] = ptr::mut_null();
+            }
         }
 
         gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
