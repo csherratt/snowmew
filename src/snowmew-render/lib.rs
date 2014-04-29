@@ -94,7 +94,7 @@ fn render_task(chan: Sender<RenderCommand>) {
 }
 
 fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window, size: (i32, i32),
-                 cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
+                 _: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
     let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
     let mut queue = Some(queue);
@@ -124,7 +124,7 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
 
     //let accl = PositionGlAccelerator::new();
 
-    let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, cl.clone()),
+    let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, None),
                              DrawlistStandard::from_config(&cfg, None));
 
     let mut num_workers = 1;
@@ -182,7 +182,7 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
                 swap_buffers(&mut window);
                 
                 let end = precise_time_s();
-                print!("\rfps: {:3.2f}", 1./(end-time));
+                println!("fps: {:3.2f}", 1./(end-time));
                 time = end;
 
                 drawlists.push(dl);
@@ -258,7 +258,7 @@ impl RenderManager {
         native::task::spawn_opts(taskopts, proc() {
             render_task(task_c);
         });
-        
+
         RenderManager { ch: sender }
     }
 
