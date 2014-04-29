@@ -32,7 +32,7 @@ typedef struct f4 f4;
 typedef struct f3 f3;
 
 struct mat4 {
-    f4 x, y, z, w;
+    float4 x, y, z, w;
 };
 
 struct transform
@@ -124,7 +124,7 @@ transform_to_mat4(global Transform3D *trans)
 }
 
 Mat4
-get_mat4(global f4* x, global f4* y, global f4* z, global f4* w, uint idx)
+get_mat4(global float4* x, global float4* y, global float4* z, global float4* w, uint idx)
 {
     Mat4 mat;
     mat.x = x[idx];
@@ -135,7 +135,7 @@ get_mat4(global f4* x, global f4* y, global f4* z, global f4* w, uint idx)
 }
 
 void
-set_mat4(global f4* x, global f4* y, global f4* z, global f4* w, uint idx, Mat4 mat)
+set_mat4(global float4* x, global float4* y, global float4* z, global float4* w, uint idx, Mat4 mat)
 {
     x[idx] = mat.x;
     y[idx] = mat.y;
@@ -146,7 +146,7 @@ set_mat4(global f4* x, global f4* y, global f4* z, global f4* w, uint idx, Mat4 
 kernel void
 calc_gen(global Transform3D *t,
          global uint *parent,
-         global f4* x, global f4* y, global f4* z, global f4* w,
+         global float4* x, global float4* y, global float4* z, global float4* w,
          int offset_last, int offset_this)
 {
     int id = get_global_id(0);
@@ -158,7 +158,7 @@ calc_gen(global Transform3D *t,
 }
 
 kernel void
-set_idenity(global f4* x, global f4* y, global f4* z, global f4* w) {
+set_idenity(global float4* x, global float4* y, global float4* z, global float4* w) {
     x[0].x = (float)1; x[0].y = (float)0; x[0].z = (float)0; x[0].w = (float)0;
     y[0].x = (float)0; y[0].y = (float)1; y[0].z = (float)0; y[0].w = (float)0;
     z[0].x = (float)0; z[0].y = (float)0; z[0].z = (float)1; z[0].w = (float)0;
