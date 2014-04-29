@@ -298,8 +298,8 @@ impl Deltas {
             };
         }
 
-        let event_w0 = cq.write_async(&ctx.input, &self.delta.as_slice(), ());
-        let event_w1 = cq.write_async(&ctx.output, &default, ());
+        cq.write(&ctx.input, &self.delta.as_slice(), ());
+        cq.write(&ctx.output, &default, ());
 
         ctx.kernel.set_arg(0, &ctx.input);
         ctx.kernel.set_arg(1, &ctx.output);
@@ -309,7 +309,7 @@ impl Deltas {
         let (off, len) = *self.gen.get(1);
         ctx.kernel.set_arg(3, &off);
 
-        let mut event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, &[event_w0, event_w1]);
+        let mut event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, ());
 
         for idx in range(2, self.gen.len()) {
             let (off, _) = *self.gen.get(idx-1);
