@@ -19,12 +19,12 @@ struct q4 {
     float s, x, y, z;
 };
 
-struct f4 {
-    float x, y, z, w;
-};
-
 struct f3 {
     float x, y, z;
+};
+
+struct f4 {
+    float x, y, z, w;
 };
 
 typedef struct q4 q4;
@@ -40,8 +40,6 @@ struct transform
     q4 rot;
     f3 pos;
     float scale;
-    int parent;
-    int padd[3];
 };
 
 typedef struct mat4 Mat4;
@@ -147,14 +145,15 @@ set_mat4(global f4* x, global f4* y, global f4* z, global f4* w, uint idx, Mat4 
 
 kernel void
 calc_gen(global Transform3D *t,
+         global uint *parent,
          global f4* x, global f4* y, global f4* z, global f4* w,
          int offset_last, int offset_this)
 {
     int id = get_global_id(0);
     global Transform3D *trans = &t[offset_this + id];
     Mat4 mat = transform_to_mat4(trans);
-    Mat4 parent = get_mat4(x, y, z, w, offset_last+trans->parent);
-    Mat4 result = mult_m(parent, mat);
+    Mat4 parent_mat = get_mat4(x, y, z, w, offset_last+parent[offset_this+id]);
+    Mat4 result = mult_m(parent_mat, mat);
     set_mat4(x, y, z, w, offset_this + id, result);
 }
 
@@ -170,7 +169,6 @@ set_idenity(global f4* x, global f4* y, global f4* z, global f4* w) {
 pub struct Delta {
     delta : Transform3D<f32>,
     parent: u32,
-    padd: [u32, ..3]
 }
 
 impl Default for Delta {
@@ -178,7 +176,6 @@ impl Default for Delta {
         Delta {
             parent: 0,
             delta: Transform3D::new(1f32, Quat::zero(), Vec3::zero()),
-            padd: [0, 0, 0]
         }
     }
 }
@@ -191,7 +188,6 @@ impl Clone for Delta {
             delta: Transform3D::new(tras.scale.clone(),
                                     tras.rot.clone(),
                                     tras.disp.clone()),
-            padd: [0, 0, 0]
         }
     }
 }
@@ -270,7 +266,6 @@ impl Deltas {
                 d.insert(id, Delta {
                     parent: pid,
                     delta: delta,
-                    padd: [0, 0, 0]
                 })
             }
             None => fail!("there was no delta! {:?}", gen)
@@ -327,12 +322,14 @@ impl Deltas {
                            out: &[CLBuffer<Vec4<f32>>, ..4]) -> (Event, ComputedPosition) {
 
         cq.map_mut(&ctx.input, (), |out_delta| {
+        cq.map_mut(&ctx.parent, (), |out_parent| {
             for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
                 for (off, delta) in gen.iter() {
-                    out_delta[(off + gen_off) as uint] = delta.clone();
+                    out_delta[(off + gen_off) as uint] = delta.delta;
+                    out_parent[(off + gen_off) as uint] = delta.parent.clone();
                 }
-            }            
-        });
+            }
+        })});
 
         // write init value
         ctx.init_kernel.set_arg(0, &out[0]);
@@ -343,19 +340,18 @@ impl Deltas {
 
         // run the kernel across the deltas 
         ctx.kernel.set_arg(0, &ctx.input);
-        ctx.kernel.set_arg(1, &out[0]);
-        ctx.kernel.set_arg(2, &out[1]);
-        ctx.kernel.set_arg(3, &out[2]);
-        ctx.kernel.set_arg(4, &out[3]);
+        ctx.kernel.set_arg(1, &ctx.parent);
+        ctx.kernel.set_arg(2, &out[0]);
+        ctx.kernel.set_arg(3, &out[1]);
+        ctx.kernel.set_arg(4, &out[2]);
+        ctx.kernel.set_arg(5, &out[3]);
         for idx in range(1, self.gen.len()) {
             let (off, _) = *self.gen.get(idx-1);
-            ctx.kernel.set_arg(5, &off);
+            ctx.kernel.set_arg(6, &off);
             let (off2, len) = *self.gen.get(idx);
-            ctx.kernel.set_arg(6, &off2);
+            ctx.kernel.set_arg(7, &off2);
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
-
-        event.wait();
 
         (event, ComputedPosition {
             gen: self.gen.clone()
@@ -415,7 +411,8 @@ pub struct CalcPositionsCl {
     program: Program,
     kernel: Kernel,
     init_kernel: Kernel,
-    input: CLBuffer<Delta>
+    input: CLBuffer<Transform3D<f32>>,
+    parent: CLBuffer<u32>,
 }
 
 impl CalcPositionsCl {
@@ -434,12 +431,14 @@ impl CalcPositionsCl {
         let kernel = program.create_kernel("calc_gen");
         let init_kernel = program.create_kernel("set_idenity");
         let delta_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
+        let parent = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
 
         CalcPositionsCl {
             program: program,
             kernel: kernel,
             init_kernel: init_kernel,
-            input: delta_mem
+            input: delta_mem,
+            parent: parent
         }
     }
 }

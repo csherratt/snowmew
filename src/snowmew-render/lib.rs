@@ -129,11 +129,9 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
     let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, cl.clone()),
                              DrawlistStandard::from_config(&cfg, cl.clone()));
 
-    let mut count = 0;
     let mut num_workers = 1;
     let mut waiting = Vec::new();
 
-    let time = precise_time_s();
     loop {
         let cmd = if drawlists.len() == 0 || waiting.len() == 0 || scene == 0 {
             Some(port.recv())
@@ -182,10 +180,6 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
                 pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
                 swap_buffers(&mut window);
                 drawlists.push(dl);
-                count += 1;
-                if count == 1000 {
-                    break;
-                }
             },
             Some(Finish(ack)) => {
                 // flush the port, this should release any
@@ -221,10 +215,6 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
             }
         }
     }
-    let end = precise_time_s();
-
-    println!("avg frame time {:2.4f}fps", 1. / ((end-time) / 1000.));
-
 }
 
 pub struct RenderManager {
