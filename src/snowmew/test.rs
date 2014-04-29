@@ -43,8 +43,7 @@ mod core {
 }
 
 mod position {
-    use OpenCL;
-    use snowmew::{Deltas, CalcPositionsCl};
+    use snowmew::{Deltas};
     use cgmath::matrix::{Mat4, Matrix};
     use cgmath::transform::Transform3D;
     use cgmath::quaternion::Quat;
@@ -163,7 +162,7 @@ mod position {
         assert!(mat3.mul_v(&vec) == Vec4::new(-2f32, -2f32, -2f32, 1f32));
     }
 
-    #[test]
+    /*#[test]
     fn calc_positions_opencl()
     {
         let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
@@ -223,5 +222,5 @@ mod position {
         assert!(mat1.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
         assert!(mat2.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
         assert!(mat3.mul_v(&vec) == Vec4::new(-2f32, -2f32, -2f32, 1f32));
-    }
+    }*/
 }
