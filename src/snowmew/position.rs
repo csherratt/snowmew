@@ -113,7 +113,7 @@ transform_to_mat4(const Transform3D trans)
     mat.y.z = (yz2 + sx2) * trans.scale;
     mat.y.w = 0.;
 
-    mat.z.x = (xy2 + sy2) * trans.scale;
+    mat.z.x = (xz2 + sy2) * trans.scale;
     mat.z.y = (yz2 - sx2) * trans.scale;
     mat.z.z = (1. - xx2 - yy2) * trans.scale;
     mat.z.w = 0.;
@@ -140,7 +140,6 @@ pub struct Delta {
     delta : Transform3D<f32>,
     parent: u32,
     padd: [u32, ..3]
-
 }
 
 impl Default for Delta {
@@ -207,12 +206,14 @@ impl Deltas {
     }
 
     fn add_location(&mut self, gen: u32) -> (uint, u32) {
+        // create a new generation if this is the first in it
         if gen as uint == self.gen.len() {
             let (s, len) = *self.gen.get((gen-1) as uint);
             self.gen.push((s+len, 1));
 
             ((s+len) as uint, 0)
         } else {
+            // increment the starting index of each generation before ours
             for t in self.gen.mut_slice_from((gen+1) as uint).mut_iter() {
                 let (off, len) = *t;
                 *t = (off+1, len);
@@ -297,8 +298,8 @@ impl Deltas {
             };
         }
 
-        cq.write(&ctx.input, &self.delta.as_slice(), ());
-        cq.write(&ctx.output, &default, ());
+        let event_w0 = cq.write_async(&ctx.input, &self.delta.as_slice(), ());
+        let event_w1 = cq.write_async(&ctx.output, &default, ());
 
         ctx.kernel.set_arg(0, &ctx.input);
         ctx.kernel.set_arg(1, &ctx.output);
@@ -308,7 +309,7 @@ impl Deltas {
         let (off, len) = *self.gen.get(1);
         ctx.kernel.set_arg(3, &off);
 
-        let mut event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, ());
+        let mut event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, &[event_w0, event_w1]);
 
         for idx in range(2, self.gen.len()) {
             let (off, _) = *self.gen.get(idx-1);
