@@ -9,7 +9,6 @@ use OpenCL::hl::{Device, Context, Program, Kernel};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::{CL_MEM_READ_WRITE, CL_MEM_READ_ONLY};
 
-use sync::Arc;
 use cow::btree::{BTreeMap, BTreeMapIterator};
 
 use core::{ObjectKey, Common};
@@ -175,24 +174,10 @@ impl<'r> MatrixManager for &'r mut [Mat4<f32>] {
     fn get(&self, idx: uint) -> Mat4<f32> { self[idx] }
 }
 
+#[deriving(Clone, Default)]
 pub struct Deltas {
     gen: Vec<(u32, u32)>,
-    delta: Vec<Delta>,
-}
-
-impl Clone for Deltas {
-    fn clone(&self) -> Deltas {
-        let mut vec = Vec::new();
-        vec.reserve(self.delta.len());
-        unsafe {
-            vec.set_len(self.delta.len());
-            vec.as_mut_slice().copy_memory(self.delta.as_slice())
-        }
-        Deltas {
-            gen: self.gen.clone(),
-            delta: vec
-        }
-    }
+    delta: BTreeMap<u32, BTreeMap<u32, Delta>>,
 }
 
 #[deriving(Clone, Default, Eq, TotalOrd, TotalEq, Ord)]
@@ -200,9 +185,13 @@ pub struct Id(u32, u32);
 
 impl Deltas {
     pub fn new() -> Deltas {
+        let mut b = BTreeMap::new();
+        b.insert(0u32, BTreeMap::new());
+        b.find_mut(&0).unwrap().insert(0u32, Default::default());
+
         Deltas {
             gen: vec!((0, 1)),
-            delta: vec!(Default::default()),
+            delta: b,
         }
     }
 
@@ -215,13 +204,15 @@ impl Deltas {
         (gen_offset + offset) as uint
     }
 
-    fn add_location(&mut self, gen: u32) -> (uint, u32) {
+    fn add_location(&mut self, gen: u32) -> u32 {
         // create a new generation if this is the first in it
         if gen as uint == self.gen.len() {
             let (s, len) = *self.gen.get((gen-1) as uint);
             self.gen.push((s+len, 1));
 
-            ((s+len) as uint, 0)
+            self.delta.insert(gen, BTreeMap::new());
+
+            0
         } else {
             // increment the starting index of each generation before ours
             for t in self.gen.mut_slice_from((gen+1) as uint).mut_iter() {
@@ -232,7 +223,7 @@ impl Deltas {
             let (off, len) = *self.gen.get(gen as uint);
             *self.gen.get_mut(gen as uint) = (off, len+1);
 
-            ((off+len) as uint, len)
+            len
         }
     }
 
@@ -241,49 +232,56 @@ impl Deltas {
 
         assert!((gen as uint) < self.gen.len());
 
-        let (loc, id) = self.add_location(gen+1);
-        self.delta.insert(loc, Delta {
-            parent: pid,
-            delta: delta,
-            padd: [0, 0, 0]
-        });
+        let id = self.add_location(gen+1);
+        match self.delta.find_mut(&(gen+1)) {
+            Some(d) => {
+                d.insert(id, Delta {
+                    parent: pid,
+                    delta: delta,
+                    padd: [0, 0, 0]
+                })
+            }
+            None => fail!("there was no delta! {:?}", gen)
+        };
 
         Id(gen+1, id)
     }
 
     pub fn update(&mut self, id: Id, delta: Transform3D<f32>) {
-        let loc = self.get_loc(id);
-        self.delta.get_mut(loc).delta = delta;
+        let Id(gen, id) = id;
+        self.delta.find_mut(&gen).unwrap().find_mut(&id).unwrap().delta = delta;
     }
 
     pub fn get_delta(&self, id :Id) -> Transform3D<f32> {
-        let loc = self.get_loc(id);
-        self.delta.get(loc).delta
+        let Id(gen, id) = id;
+        self.delta.find(&gen).unwrap().find(&id).unwrap().delta
     }
 
     pub fn get_mat(&self, id :Id) -> Mat4<f32> {
-        let loc = self.get_loc(id);
         match id {
-            Id(0, _) => {
-                self.delta.get(loc).delta.to_mat4()
+            Id(0, key) => {
+                self.delta.find(&0).unwrap().find(&key).unwrap().delta.to_mat4()
             },
-            Id(gen, _) => {
-                let mat = self.delta.get(loc).delta.to_mat4();
-                let parent = Id(gen-1, self.delta.get(loc).parent);
+            Id(gen, key) => {
+                let cell = self.delta.find(&gen).unwrap().find(&key).unwrap();
+                let mat = cell.delta.to_mat4();
+                let parent = Id(gen-1, cell.parent);
 
                 self.get_mat(parent).mul_m(&mat)
             }
         }
     }
 
+    #[inline(never)]
     pub fn to_positions<MM: MatrixManager>(&self, mm: &mut MM) -> ComputedPosition {
         let mut last_gen_off = 0;
         mm.set(0, Mat4::identity());
-        for &(gen_off, len) in self.gen.slice_from(1).iter() {
-            for off in range(gen_off, gen_off+len) {
-                let ploc = last_gen_off + self.delta.get(off as uint).parent;
-                let nmat = mm.get(ploc as uint).mul_m(&self.delta.get(off as uint).delta.to_mat4());
-                mm.set(off as uint, nmat);
+
+        for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
+            for (off, delta) in gen.iter() {
+                let ploc = last_gen_off + delta.parent;
+                let nmat = mm.get(ploc as uint).mul_m(&delta.delta.to_mat4());
+                mm.set((off + gen_off) as uint, nmat);
             }
             last_gen_off = gen_off;
         }
@@ -336,8 +334,10 @@ impl Deltas {
     }*/
 
     pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
-        for (idx, delta) in self.delta.iter().enumerate() {
-            out_delta[idx] = delta.clone();
+        for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
+            for (off, delta) in gen.iter() {
+                out_delta[(off + gen_off) as uint] = delta.clone();
+            }
         }
 
         ComputedPositionGL {
@@ -419,14 +419,14 @@ impl CalcPositionsCl {
 #[deriving(Clone)]
 pub struct PositionData {
     location: BTreeMap<ObjectKey, Id>,
-    position: Arc<Deltas>
+    position: Deltas
 }
 
 impl PositionData {
     pub fn new() -> PositionData {
         PositionData {
             location: BTreeMap::new(),
-            position: Arc::new(Deltas::new())
+            position: Deltas::new()
         }
     }
 }
@@ -446,7 +446,7 @@ pub trait Positions: Common {
 
             let poid = self.object(key).unwrap().parent;
             let pid = self.position_id(poid);
-            let id = self.get_position_mut().position.make_unique().insert(pid,
+            let id = self.get_position_mut().position.insert(pid,
                 Transform3D::new(1f32, Quat::identity(), Vec3::new(0f32, 0f32, 0f32))
             );
             self.get_position_mut().location.insert(key, id);
@@ -456,12 +456,12 @@ pub trait Positions: Common {
 
     fn update_location(&mut self, key: ObjectKey, location: Transform3D<f32>) {
         let id = self.position_id(key);
-        self.get_position_mut().position.make_unique().update(id, location);
+        self.get_position_mut().position.update(id, location);
     }
 
     fn location(&self, key: ObjectKey) -> Option<Transform3D<f32>> {
         match self.get_position().location.find(&key) {
-            Some(id) => Some(self.get_position().position.deref().get_delta(*id)),
+            Some(id) => Some(self.get_position().position.get_delta(*id)),
             None => None
         }
     }
