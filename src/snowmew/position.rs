@@ -5,7 +5,7 @@ use cgmath::quaternion::Quat;
 use cgmath::vector::Vec3;
 use cgmath::matrix::{Mat4, ToMat4, Matrix};
 
-use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel};
+use OpenCL::hl::{Device, Context, Program, Kernel};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::{CL_MEM_READ_WRITE, CL_MEM_READ_ONLY};
 
@@ -165,6 +165,16 @@ impl Clone for Delta {
     }
 }
 
+pub trait MatrixManager {
+    fn set(&mut self, idx: uint, mat: Mat4<f32>);
+    fn get(&self, idx: uint) -> Mat4<f32>;
+}
+
+impl<'r> MatrixManager for &'r mut [Mat4<f32>] {
+    fn set(&mut self, idx: uint, m: Mat4<f32>) { self[idx] = m; }
+    fn get(&self, idx: uint) -> Mat4<f32> { self[idx] }
+}
+
 pub struct Deltas {
     gen: Vec<(u32, u32)>,
     delta: Vec<Delta>,
@@ -266,35 +276,30 @@ impl Deltas {
         }
     }
 
-    pub fn to_positions(&self) -> ComputedPosition {
-        let mut mat = Vec::new();
-        mat.reserve(self.delta.len());
-        unsafe {mat.set_len(1);}
-        *mat.get_mut(0) = Mat4::identity();
-
+    pub fn to_positions<MM: MatrixManager>(&self, mm: &mut MM) -> ComputedPosition {
         let mut last_gen_off = 0;
+        mm.set(0, Mat4::identity());
         for &(gen_off, len) in self.gen.slice_from(1).iter() {
             for off in range(gen_off, gen_off+len) {
                 let ploc = last_gen_off + self.delta.get(off as uint).parent;
-                let nmat = mat.get(ploc as uint).mul_m(&self.delta.get(off as uint).delta.to_mat4());
-                mat.push(nmat);
+                let nmat = mm.get(ploc as uint).mul_m(&self.delta.get(off as uint).delta.to_mat4());
+                mm.set(off as uint, nmat);
             }
             last_gen_off = gen_off;
         }
 
         ComputedPosition {
-            gen: self.gen.clone(),
-            pos: mat
+            gen: self.gen.clone()
         }
     }
 
-    pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> ComputedPosition {
+    /*pub fn to_positions_cl<MM: MatrixManager>(&self, mm: &mut MM, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> ComputedPosition {
         let default: &[Mat4<f32>] = &[Mat4::identity()];
 
         if self.gen.len() == 1 {
+            mm.set(0, Mat4::identity());
             return ComputedPosition {
-                gen: self.gen.clone(),
-                pos: vec!(Mat4::identity())
+                gen: self.gen.clone()
             };
         }
 
@@ -326,10 +331,9 @@ impl Deltas {
         cq.read(&ctx.output, &mut mat.as_mut_slice(), event);
 
         ComputedPosition {
-            gen: self.gen.clone(),
-            pos: mat
+            gen: self.gen.clone()
         }
-    }
+    }*/
 
     pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
         for (idx, delta) in self.delta.iter().enumerate() {
@@ -356,22 +360,13 @@ impl ComputedPositionGL {
 }
 
 pub struct ComputedPosition {
-    gen: Vec<(u32, u32)>,
-    pos: Vec<Mat4<f32>>,
+    gen: Vec<(u32, u32)>
 }
 
 impl Clone for ComputedPosition {
-    #[inline(never)]
     fn clone(&self) -> ComputedPosition {
-        let mut vec = Vec::new();
-        vec.reserve(self.pos.len());
-        unsafe {
-            vec.set_len(self.pos.len());
-            vec.as_mut_slice().copy_memory(self.pos.as_slice())
-        }
         ComputedPosition {
             gen: self.gen.clone(),
-            pos: vec
         }
     }
 }
@@ -384,14 +379,6 @@ impl ComputedPosition {
         let (gen_offset, _) = *self.gen.get(gen as uint);
 
         (gen_offset + offset) as uint
-    }
-
-    pub fn get_mat(&self, id :Id) -> Mat4<f32> {
-        self.pos.get(self.get_loc(id)).clone()
-    }
-
-    pub fn all_mats<'a>(&'a self) -> &'a [Mat4<f32>] {
-        self.pos.as_slice()
     }
 }
 
@@ -493,13 +480,13 @@ pub trait Positions: Common {
         p_mat.mul_m(&loc)
     }
 
-    fn to_positions(&self) -> ComputedPosition {
-        self.get_position().position.to_positions()
+    fn to_positions<MM: MatrixManager>(&self, mm: &mut MM) -> ComputedPosition {
+        self.get_position().position.to_positions(mm)
     }
 
-    fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> ComputedPosition {
+    /*fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl) -> ComputedPosition {
         self.get_position().position.to_positions_cl(cq, ctx)
-    }
+    }*/
 
     fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
         self.get_position().position.to_positions_gl(out_delta)

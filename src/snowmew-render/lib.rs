@@ -125,7 +125,7 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
     //let accl = PositionGlAccelerator::new();
 
     let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, cl.clone()),
-                             DrawlistStandard::from_config(&cfg, cl.clone()));
+                             DrawlistStandard::from_config(&cfg, None));
 
     let mut num_workers = 1;
     let mut waiting = Vec::new();

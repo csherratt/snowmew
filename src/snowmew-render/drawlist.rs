@@ -16,7 +16,7 @@ use gl::types::{GLint, GLuint, GLsizeiptr};
 
 use snowmew::material::Material;
 use snowmew::core::{ObjectKey};
-use snowmew::position::{ComputedPosition, Positions, CalcPositionsCl};
+use snowmew::position::{ComputedPosition, Positions, CalcPositionsCl, MatrixManager};
 use snowmew::graphics::Graphics;
 
 
@@ -120,6 +120,38 @@ impl DrawlistStandard {
     }
 }
 
+struct GLMatrix<'r> {
+    x: &'r mut [Vec4<f32>],
+    y: &'r mut [Vec4<f32>],
+    z: &'r mut [Vec4<f32>],
+    w: &'r mut [Vec4<f32>]
+}
+
+impl<'r> MatrixManager for GLMatrix<'r> {
+    fn set(&mut self, idx: uint, mat: Mat4<f32>) {
+        assert!(idx < self.x.len());
+        unsafe {
+            self.x.unsafe_set(idx, mat.x);
+            self.y.unsafe_set(idx, mat.y);
+            self.z.unsafe_set(idx, mat.z);
+            self.w.unsafe_set(idx, mat.w);
+        }
+    }
+
+    fn get(&self, idx: uint) -> Mat4<f32> {
+        assert!(idx < self.x.len());
+        unsafe {
+            Mat4 {
+                x: *self.x.unsafe_ref(idx),
+                y: *self.y.unsafe_ref(idx),
+                z: *self.z.unsafe_ref(idx),
+                w: *self.w.unsafe_ref(idx)
+            }
+        }
+    }
+}
+
+
 impl Drawlist for DrawlistStandard {
     fn bind_scene(&mut self, db: GlState, scene: ObjectKey) {
         self.db = Some(db);
@@ -129,7 +161,7 @@ impl Drawlist for DrawlistStandard {
             gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
             self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
                     (mem::size_of::<Vec4<f32>>()*self.size) as GLsizeiptr,
-                    gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+                    gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
             ) as *mut Vec4<f32>;
             assert!(0 == gl::GetError());
         }
@@ -144,12 +176,18 @@ impl Drawlist for DrawlistStandard {
 
     fn setup_scene_async(&mut self) {
         let db = self.db.as_ref().unwrap();
-        self.position = match self.cl {
-            // The time it takes to copy this accross the bus is longer then the performance gains
-            //Some((ref mut ctx, ref queue)) => Some(db.to_positions_cl(queue.deref(), ctx)),
-            Some(_) => Some(db.to_positions()),
-            None => Some(db.to_positions())
+        self.position = unsafe {
+            mut_buf_as_slice(self.ptr_model_matrix[0], self.size, |mat0| {
+            mut_buf_as_slice(self.ptr_model_matrix[1], self.size, |mat1| {
+            mut_buf_as_slice(self.ptr_model_matrix[2], self.size, |mat2| {
+            mut_buf_as_slice(self.ptr_model_matrix[3], self.size, |mat3| {
+                let mut mat = GLMatrix {
+                    x: mat0, y: mat1, z: mat2, w: mat3
+                };
+                Some(db.to_positions(&mut mat))
+            })})})})
         };
+
         self.material_to_id.clear();
 
         for (id, (key, _)) in db.material_iter().enumerate() {
@@ -158,19 +196,6 @@ impl Drawlist for DrawlistStandard {
         }
 
         unsafe {
-            mut_buf_as_slice(self.ptr_model_matrix[0], self.size, |mat0| {
-            mut_buf_as_slice(self.ptr_model_matrix[1], self.size, |mat1| {
-            mut_buf_as_slice(self.ptr_model_matrix[2], self.size, |mat2| {
-            mut_buf_as_slice(self.ptr_model_matrix[3], self.size, |mat3| {
-                let mats = self.position.as_ref().unwrap().all_mats();
-                for (idx, m) in mats.iter().enumerate() {
-                    mat0[idx] = m.x;
-                    mat1[idx] = m.y;
-                    mat2[idx] = m.z;
-                    mat3[idx] = m.w;
-                }
-            })})})});
-        
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
                 for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
                     info[idx] = (id.clone(),
