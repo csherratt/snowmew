@@ -47,7 +47,7 @@ mod query;
 mod compute_accelerator;
 mod config;
 
-trait RenderData : Graphics + Positions + Clone {}
+pub trait RenderData : Graphics + Positions + Clone {}
 
 impl RenderData for snowmew::core::Database {}
 
@@ -107,7 +107,7 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
     let cfg = Config::new(window.get_context_version());
 
     window.make_context_current();
-    glfw::set_swap_interval(0);
+    glfw::set_swap_interval(1);
 
     let mut pipeline = {
         let (width, height) = size;

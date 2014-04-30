@@ -36,8 +36,7 @@ pub mod io;
 pub mod material;
 pub mod position;
 pub mod graphics;
-
-mod default;
+pub mod default;
 
 fn setup_glfw() -> glfw::Glfw
 {
