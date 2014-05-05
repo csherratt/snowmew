@@ -9,8 +9,7 @@ pub struct FrameInfo {
 
 
 #[deriving(Clone, Default)]
-pub struct Object
-{
+pub struct Object {
     pub parent: ObjectKey,
     pub name: ObjectKey,
 }
@@ -171,4 +170,9 @@ pub trait Common {
     fn name(&self, key: ObjectKey) -> ~str {
         self.get_common().name(key)
     }
+}
+
+impl Common for CommonData {
+    fn get_common<'a>(&'a self) -> &'a CommonData {self}
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}
 }
