@@ -1,7 +1,7 @@
 
 use cow::btree::{BTreeMapIterator, BTreeMap};
 
-use core::{Common, ObjectKey};
+use common::{Common, ObjectKey};
 
 use geometry::{Geometry, VertexBuffer};
 use material::Material;

@@ -24,11 +24,11 @@ extern crate collections;
 extern crate time;
 extern crate ovr = "oculus-vr";
 
-pub use core::{ObjectKey, Database};
+pub use common::{ObjectKey};
 pub use geometry::{VertexBuffer};
 pub use position::{Positions, Deltas, CalcPositionsCl};
 
-pub mod core;
+pub mod common;
 pub mod geometry;
 pub mod camera;
 pub mod io;

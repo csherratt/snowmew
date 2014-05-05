@@ -16,7 +16,7 @@ use snowmew::graphics::Graphics;
 use db::GlState;
 use drawlist::Drawlist;
 
-use snowmew::core::Common;
+use snowmew::common::Common;
 
 pub struct DrawTarget {
     framebuffer: GLuint,

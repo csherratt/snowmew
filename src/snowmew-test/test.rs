@@ -2,7 +2,7 @@
 extern crate snowmew;
 
 mod db {
-    use snowmew::core::Database;
+    use snowmew::common::Database;
 
     #[test]
     fn create_db()

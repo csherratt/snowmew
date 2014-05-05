@@ -1,19 +1,4 @@
-
-use std::default::Default;
-
 use cow::btree::{BTreeMap, BTreeMapIterator};
-
-use cgmath::transform::*;
-use cgmath::quaternion::*;
-use cgmath::vector::*;
-
-use default::load_default;
-use position;
-use position::Positions;
-
-use graphics;
-use graphics::{Graphics};
-
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -32,40 +17,6 @@ pub struct Object
 
 pub type ObjectKey = u32;
 pub type StringKey = u32;
-
-pub struct Location {
-    trans: Transform3D<f32>
-}
-
-impl Default for Location
-{
-    fn default() -> Location
-    {
-        Location {
-            trans: Transform3D::new(1f32, Quaternion::zero(), Vector3::zero())
-        }
-    }
-}
-
-impl Clone for Location
-{
-    fn clone(&self) -> Location
-    {
-        let tras = self.trans.get();
-        Location {
-            trans: Transform3D::new(tras.scale.clone(),
-                                    tras.rot.clone(),
-                                    tras.disp.clone())
-        }
-    }
-}
-
-#[deriving(Clone)]
-pub struct Database {
-    common:   CommonData,
-    position: position::PositionData,
-    graphics: graphics::GraphicsData
-}
 
 #[deriving(Clone)]
 pub struct CommonData {
@@ -221,93 +172,3 @@ pub trait Common {
         self.get_common().name(key)
     }
 }
-
-impl Common for Database {
-    fn get_common<'a>(&'a self) -> &'a CommonData {
-        &self.common
-    }
-
-    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {
-        &mut self.common
-    }
-}
-
-impl Database {
-    pub fn new() -> Database {
-        let mut new = Database::empty();
-        load_default(&mut new);
-        new
-        
-    }
-
-    pub fn empty() -> Database {
-        Database {
-            common:   CommonData::new(),
-            position: position::PositionData::new(),
-            graphics: graphics::GraphicsData::new(),
-        }
-    }
-}
-
-impl Positions for Database {
-    fn get_position<'a>(&'a self) -> &'a position::PositionData {
-        &self.position
-    }
-
-    fn get_position_mut<'a>(&'a mut self) -> &'a mut position::PositionData {
-        &mut self.position
-    }
-}
-
-impl Graphics for Database {
-    fn get_graphics<'a>(&'a self) -> &'a graphics::GraphicsData {
-        &self.graphics
-    }
-
-    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut graphics::GraphicsData {
-        &mut self.graphics
-    }
-}
-
-/*struct IterObjsLayer<'a>
-{
-    child_iter: JoinMapSetIterator<
-                    BTreeSetIterator<'a, ObjectKey>,
-                    BTreeMapIterator<'a, ObjectKey, position::Id>>
-}
-
-pub struct IterObjs<'a>
-{
-    db: &'a Common,
-    stack: ~[IterObjsLayer<'a>]
-}
-
-impl<'a> Iterator<(ObjectKey, uint)> for IterObjs<'a>
-{
-    #[inline(always)]
-    fn next(&mut self) -> Option<(ObjectKey, uint)>
-    {
-        loop {
-            let len = self.stack.len();
-            if len == 0 {
-                return None;
-            }
-
-            match self.stack[len-1].child_iter.next() {
-                Some((oid, loc)) => {
-                    match self.db.get().parent_child.find(oid) {
-                        Some(set) => {
-                            self.stack.push(IterObjsLayer {
-                                child_iter: join_set_to_map(set.iter(), self.db.location.iter())
-                            });
-                        },
-                        None => ()
-                    }
-
-                    return Some((*oid, self.db.position.deref().get_loc(*loc)))
-                },
-                None => { self.stack.pop(); }
-            }
-        }
-    }
-}*/

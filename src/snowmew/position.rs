@@ -11,7 +11,7 @@ use OpenCL::CL::{CL_MEM_READ_ONLY};
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 
-use core::{ObjectKey, Common};
+use common::{ObjectKey, Common};
 
 
 static opencl_program: &'static str = "

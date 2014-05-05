@@ -25,7 +25,7 @@ use std::comm::{Receiver, Sender, Empty, Disconnected};
 use OpenCL::hl::{CommandQueue, Context, Device};
 use sync::Arc;
 
-use snowmew::core::ObjectKey;
+use snowmew::common::ObjectKey;
 use snowmew::camera::Camera;
 use snowmew::io::Window;
 use snowmew::position::Positions;
@@ -47,8 +47,6 @@ mod compute_accelerator;
 mod config;
 
 pub trait RenderData : Graphics + Positions + Clone {}
-
-impl RenderData for snowmew::core::Database {}
 
 enum RenderCommand {
     Update(~RenderData:Send, ObjectKey, ObjectKey),

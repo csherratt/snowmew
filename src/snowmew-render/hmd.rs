@@ -6,7 +6,7 @@ use ovr::{HMDInfo};
 
 use shader::Shader; 
 
-use snowmew::core::Common;
+use snowmew::common::Common;
 use snowmew::graphics::Graphics;
 
 use RenderData;

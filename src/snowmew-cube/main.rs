@@ -35,7 +35,7 @@ use snowmew::graphics::Graphics;
 
 use render::RenderManager;
 use loader::Obj;
-use snowmew::core::Common;
+use snowmew::common::Common;
 
 use gamedata::GameData;
 

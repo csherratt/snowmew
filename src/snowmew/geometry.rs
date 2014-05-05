@@ -3,7 +3,7 @@ use std::default::Default;
 
 use cgmath::vector::{Vector2, Vector3};
 
-use core::ObjectKey;
+use common::ObjectKey;
 
 #[deriving(Clone)]
 pub enum Primative {
