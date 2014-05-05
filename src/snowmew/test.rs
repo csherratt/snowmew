@@ -34,7 +34,7 @@ mod core {
 
         let trans = Transform3D::new(2f32,
                         Quat::new(1f32, 2f32, 3f32, 4f32),
-                        Vec3::new(1f32, 2f32, 3f32));
+                        Vector3::new(1f32, 2f32, 3f32));
 
         db.update_location(id, trans);
 
@@ -44,21 +44,21 @@ mod core {
 
 mod position {
     use snowmew::{Deltas};
-    use cgmath::matrix::{Mat4, Matrix};
+    use cgmath::matrix::{Matrix3, Matrix};
     use cgmath::transform::Transform3D;
     use cgmath::quaternion::Quat;
-    use cgmath::vector::{Vec3, Vec4};
+    use cgmath::vector::{Vector3, Vector4};
 
     #[test]
     fn insert_children()
     {
         let mut pos = Deltas::new();
 
-        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id2 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id3 = pos.insert(id2, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id4 = pos.insert(id3, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
+        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id2 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id3 = pos.insert(id2, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id4 = pos.insert(id3, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
 
         let mat0 = pos.get_mat(id0);
         let mat1 = pos.get_mat(id1);
@@ -66,13 +66,13 @@ mod position {
         let mat3 = pos.get_mat(id3);
         let mat4 = pos.get_mat(id4);
 
-        let vec = Vec4::new(0f32, 0f32, 0f32, 1f32);
+        let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
-        assert!(mat0.mul_v(&vec) == Vec4::new(1f32, 1f32, 1f32, 1f32));
-        assert!(mat1.mul_v(&vec) == Vec4::new(2f32, 2f32, 2f32, 1f32));
-        assert!(mat2.mul_v(&vec) == Vec4::new(3f32, 3f32, 3f32, 1f32));
-        assert!(mat3.mul_v(&vec) == Vec4::new(4f32, 4f32, 4f32, 1f32));
-        assert!(mat4.mul_v(&vec) == Vec4::new(5f32, 5f32, 5f32, 1f32));
+        assert!(mat0.mul_v(&vec) == Vector4::new(1f32, 1f32, 1f32, 1f32));
+        assert!(mat1.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
+        assert!(mat2.mul_v(&vec) == Vector4::new(3f32, 3f32, 3f32, 1f32));
+        assert!(mat3.mul_v(&vec) == Vector4::new(4f32, 4f32, 4f32, 1f32));
+        assert!(mat4.mul_v(&vec) == Vector4::new(5f32, 5f32, 5f32, 1f32));
     }
 
     #[test]
@@ -80,39 +80,39 @@ mod position {
     {
         let mut pos = Deltas::new();
 
-        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
 
-        let id0_0 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id0_1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
-        let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+        let id0_0 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id0_1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
+        let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
     
         let mat0 = pos.get_mat(id0_0);
         let mat1 = pos.get_mat(id0_1);
         let mat2 = pos.get_mat(id1_0);
         let mat3 = pos.get_mat(id1_1);
 
-        let vec = Vec4::new(0f32, 0f32, 0f32, 1f32);
+        let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
-        assert!(mat0.mul_v(&vec) == Vec4::new(2f32, 2f32, 2f32, 1f32));
-        assert!(mat1.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
-        assert!(mat2.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
-        assert!(mat3.mul_v(&vec) == Vec4::new(-2f32, -2f32, -2f32, 1f32));
+        assert!(mat0.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
+        assert!(mat1.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
+        assert!(mat2.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
+        assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
     }
 
     #[test]
     fn to_positions()
     {
         let mut pos = Deltas::new();
-        let mut vec: &mut [Mat4<f32>] = &mut [Mat4::identity(), Mat4::identity(), Mat4::identity(), Mat4::identity(),
-                                              Mat4::identity(), Mat4::identity(), Mat4::identity(), Mat4::identity()];
+        let mut vec: &mut [Matrix3<f32>] = &mut [Matrix3::identity(), Matrix3::identity(), Matrix3::identity(), Matrix3::identity(),
+                                              Matrix3::identity(), Matrix3::identity(), Matrix3::identity(), Matrix3::identity()];
 
-        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id2 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id3 = pos.insert(id2, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id4 = pos.insert(id3, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
+        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id2 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id3 = pos.insert(id2, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id4 = pos.insert(id3, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
 
         let pos = pos.to_positions(&mut vec);
 
@@ -122,13 +122,13 @@ mod position {
         let mat3 = vec[pos.get_loc(id3)];
         let mat4 = vec[pos.get_loc(id4)];
 
-        let vec = Vec4::new(0f32, 0f32, 0f32, 1f32);
+        let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
-        assert!(mat0.mul_v(&vec) == Vec4::new(1f32, 1f32, 1f32, 1f32));
-        assert!(mat1.mul_v(&vec) == Vec4::new(2f32, 2f32, 2f32, 1f32));
-        assert!(mat2.mul_v(&vec) == Vec4::new(3f32, 3f32, 3f32, 1f32));
-        assert!(mat3.mul_v(&vec) == Vec4::new(4f32, 4f32, 4f32, 1f32));
-        assert!(mat4.mul_v(&vec) == Vec4::new(5f32, 5f32, 5f32, 1f32));
+        assert!(mat0.mul_v(&vec) == Vector4::new(1f32, 1f32, 1f32, 1f32));
+        assert!(mat1.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
+        assert!(mat2.mul_v(&vec) == Vector4::new(3f32, 3f32, 3f32, 1f32));
+        assert!(mat3.mul_v(&vec) == Vector4::new(4f32, 4f32, 4f32, 1f32));
+        assert!(mat4.mul_v(&vec) == Vector4::new(5f32, 5f32, 5f32, 1f32));
     }
 
 
@@ -136,16 +136,16 @@ mod position {
     fn to_positions_tree()
     {
         let mut pos = Deltas::new();
-        let mut vec: &mut [Mat4<f32>] = &mut [Mat4::identity(), Mat4::identity(), Mat4::identity(), Mat4::identity(),
-                                              Mat4::identity(), Mat4::identity(), Mat4::identity(), Mat4::identity()];
+        let mut vec: &mut [Matrix3<f32>] = &mut [Matrix3::identity(), Matrix3::identity(), Matrix3::identity(), Matrix3::identity(),
+                                              Matrix3::identity(), Matrix3::identity(), Matrix3::identity(), Matrix3::identity()];
 
-        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
 
-        let id0_0 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id0_1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
-        let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+        let id0_0 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id0_1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
+        let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
     
         let pos = pos.to_positions(&mut vec);
     
@@ -154,12 +154,12 @@ mod position {
         let mat2 = vec[pos.get_loc(id1_0)];
         let mat3 = vec[pos.get_loc(id1_1)];
 
-        let vec = Vec4::new(0f32, 0f32, 0f32, 1f32);
+        let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
-        assert!(mat0.mul_v(&vec) == Vec4::new(2f32, 2f32, 2f32, 1f32));
-        assert!(mat1.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
-        assert!(mat2.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
-        assert!(mat3.mul_v(&vec) == Vec4::new(-2f32, -2f32, -2f32, 1f32));
+        assert!(mat0.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
+        assert!(mat1.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
+        assert!(mat2.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
+        assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
     }
 
     /*#[test]
@@ -170,11 +170,11 @@ mod position {
 
         let mut pos = Deltas::new();
 
-        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id2 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id3 = pos.insert(id2, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id4 = pos.insert(id3, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
+        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id2 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id3 = pos.insert(id2, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id4 = pos.insert(id3, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
 
         let pos = pos.to_positions_cl(&queue, &mut ctx);
 
@@ -184,13 +184,13 @@ mod position {
         let mat3 = pos.get_mat(id3);
         let mat4 = pos.get_mat(id4);
 
-        let vec = Vec4::new(0f32, 0f32, 0f32, 1f32);
+        let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
-        assert!(mat0.mul_v(&vec) == Vec4::new(1f32, 1f32, 1f32, 1f32));
-        assert!(mat1.mul_v(&vec) == Vec4::new(2f32, 2f32, 2f32, 1f32));
-        assert!(mat2.mul_v(&vec) == Vec4::new(3f32, 3f32, 3f32, 1f32));
-        assert!(mat3.mul_v(&vec) == Vec4::new(4f32, 4f32, 4f32, 1f32));
-        assert!(mat4.mul_v(&vec) == Vec4::new(5f32, 5f32, 5f32, 1f32));
+        assert!(mat0.mul_v(&vec) == Vector4::new(1f32, 1f32, 1f32, 1f32));
+        assert!(mat1.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
+        assert!(mat2.mul_v(&vec) == Vector4::new(3f32, 3f32, 3f32, 1f32));
+        assert!(mat3.mul_v(&vec) == Vector4::new(4f32, 4f32, 4f32, 1f32));
+        assert!(mat4.mul_v(&vec) == Vector4::new(5f32, 5f32, 5f32, 1f32));
     }
 
     #[test]
@@ -201,13 +201,13 @@ mod position {
 
         let mut pos = Deltas::new();
 
-        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+        let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
 
-        let id0_0 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id0_1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
-        let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(1f32, 1f32, 1f32)));
-        let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vec3::new(-1f32, -1f32, -1f32)));
+        let id0_0 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id0_1 = pos.insert(id0, Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
+        let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(1f32, 1f32, 1f32)));
+        let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quat::identity(), Vector3::new(-1f32, -1f32, -1f32)));
     
         let pos = pos.to_positions_cl(&queue, &mut ctx);;
     
@@ -216,11 +216,11 @@ mod position {
         let mat2 = pos.get_mat(id1_0);
         let mat3 = pos.get_mat(id1_1);
 
-        let vec = Vec4::new(0f32, 0f32, 0f32, 1f32);
+        let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
-        assert!(mat0.mul_v(&vec) == Vec4::new(2f32, 2f32, 2f32, 1f32));
-        assert!(mat1.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
-        assert!(mat2.mul_v(&vec) == Vec4::new(0f32, 0f32, 0f32, 1f32));
-        assert!(mat3.mul_v(&vec) == Vec4::new(-2f32, -2f32, -2f32, 1f32));
+        assert!(mat0.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
+        assert!(mat1.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
+        assert!(mat2.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
+        assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
     }*/
 }

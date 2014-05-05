@@ -9,7 +9,7 @@ use gl;
 use semver;
 use collections::{HashSet, TrieMap};
 
-use cgmath::quaternion::Quat;
+use cgmath::quaternion::Quaternion;
 
 use ovr;
 
@@ -33,7 +33,7 @@ pub struct InputState
     focus: bool,
     framebuffer_size: (i32, i32),
     screen_size: (i32, i32),
-    predicted: Quat<f32>,
+    predicted: Quaternion<f32>,
 }
 
 struct InputHistoryIterator
@@ -103,7 +103,7 @@ impl InputState
             focus: win.is_focused(),
             framebuffer_size: win.get_framebuffer_size(),
             screen_size: win.get_size(),
-            predicted: Quat::identity()
+            predicted: Quaternion::identity()
         }
     }
 

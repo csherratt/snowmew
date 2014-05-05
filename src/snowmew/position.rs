@@ -1,11 +1,11 @@
 use std::default::Default;
 
 use cgmath::transform::Transform3D;
-use cgmath::quaternion::Quat;
-use cgmath::vector::{Vec3, Vec4};
-use cgmath::matrix::{Mat4, ToMat4, Matrix};
+use cgmath::quaternion::Quaternion;
+use cgmath::vector::{Vector3, Vector4};
+use cgmath::matrix::{Matrix4, ToMatrix4, Matrix};
 
-use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel, EventList, Event};
+use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel, Event};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::{CL_MEM_READ_ONLY};
 
@@ -42,7 +42,7 @@ struct transform
     float scale;
 };
 
-typedef struct mat4 Mat4;
+typedef struct mat4 Matrix4;
 typedef struct transform Transform3D;
 
 #define DOT(OUT, A, B, i, j) \
@@ -51,10 +51,10 @@ typedef struct transform Transform3D;
     A.z.i * B.j.z + \
     A.w.i * B.j.w
 
-Mat4
-mult_m(const Mat4 a, const Mat4 b)
+Matrix4
+mult_m(const Matrix4 a, const Matrix4 b)
 {
-    Mat4 out;
+    Matrix4 out;
 
     DOT(out, a, b, x, x);
     DOT(out, a, b, x, y);
@@ -79,10 +79,10 @@ mult_m(const Mat4 a, const Mat4 b)
     return out;
 }
 
-Mat4
-transform_to_mat4(global Transform3D *trans)
+Matrix4
+transform_to_matrix4(global Transform3D *trans)
 {
-    Mat4 mat;
+    Matrix4 mat;
 
     float x2 = trans->rot.x + trans->rot.x;
     float y2 = trans->rot.y + trans->rot.y;
@@ -123,10 +123,10 @@ transform_to_mat4(global Transform3D *trans)
     return mat;
 }
 
-Mat4
+Matrix4
 get_mat4(global float4* x, global float4* y, global float4* z, global float4* w, uint idx)
 {
-    Mat4 mat;
+    Matrix4 mat;
     mat.x = x[idx];
     mat.y = y[idx];
     mat.z = z[idx];
@@ -135,7 +135,7 @@ get_mat4(global float4* x, global float4* y, global float4* z, global float4* w,
 }
 
 void
-set_mat4(global float4* x, global float4* y, global float4* z, global float4* w, uint idx, Mat4 mat)
+set_mat4(global float4* x, global float4* y, global float4* z, global float4* w, uint idx, Matrix4 mat)
 {
     x[idx] = mat.x;
     y[idx] = mat.y;
@@ -151,9 +151,9 @@ calc_gen(global Transform3D *t,
 {
     int id = get_global_id(0);
     global Transform3D *trans = &t[offset_this + id];
-    Mat4 mat = transform_to_mat4(trans);
-    Mat4 parent_mat = get_mat4(x, y, z, w, offset_last+parent[offset_this+id]);
-    Mat4 result = mult_m(parent_mat, mat);
+    Matrix4 mat = transform_to_matrix4(trans);
+    Matrix4 parent_mat = get_mat4(x, y, z, w, offset_last+parent[offset_this+id]);
+    Matrix4 result = mult_m(parent_mat, mat);
     set_mat4(x, y, z, w, offset_this + id, result);
 }
 
@@ -175,7 +175,7 @@ impl Default for Delta {
     fn default() -> Delta {
         Delta {
             parent: 0,
-            delta: Transform3D::new(1f32, Quat::zero(), Vec3::zero()),
+            delta: Transform3D::new(1f32, Quaternion::zero(), Vector3::zero()),
         }
     }
 }
@@ -193,13 +193,13 @@ impl Clone for Delta {
 }
 
 pub trait MatrixManager {
-    fn set(&mut self, idx: uint, mat: Mat4<f32>);
-    fn get(&self, idx: uint) -> Mat4<f32>;
+    fn set(&mut self, idx: uint, mat: Matrix4<f32>);
+    fn get(&self, idx: uint) -> Matrix4<f32>;
 }
 
-impl<'r> MatrixManager for &'r mut [Mat4<f32>] {
-    fn set(&mut self, idx: uint, m: Mat4<f32>) { self[idx] = m; }
-    fn get(&self, idx: uint) -> Mat4<f32> { self[idx] }
+impl<'r> MatrixManager for &'r mut [Matrix4<f32>] {
+    fn set(&mut self, idx: uint, m: Matrix4<f32>) { self[idx] = m; }
+    fn get(&self, idx: uint) -> Matrix4<f32> { self[idx] }
 }
 
 #[deriving(Clone, Default)]
@@ -284,14 +284,14 @@ impl Deltas {
         self.delta.find(&gen).unwrap().find(&id).unwrap().delta
     }
 
-    pub fn get_mat(&self, id :Id) -> Mat4<f32> {
+    pub fn get_mat(&self, id :Id) -> Matrix4<f32> {
         match id {
             Id(0, key) => {
-                self.delta.find(&0).unwrap().find(&key).unwrap().delta.to_mat4()
+                self.delta.find(&0).unwrap().find(&key).unwrap().delta.to_matrix4()
             },
             Id(gen, key) => {
                 let cell = self.delta.find(&gen).unwrap().find(&key).unwrap();
-                let mat = cell.delta.to_mat4();
+                let mat = cell.delta.to_matrix4();
                 let parent = Id(gen-1, cell.parent);
 
                 self.get_mat(parent).mul_m(&mat)
@@ -302,12 +302,12 @@ impl Deltas {
     #[inline(never)]
     pub fn to_positions<MM: MatrixManager>(&self, mm: &mut MM) -> ComputedPosition {
         let mut last_gen_off = 0;
-        mm.set(0, Mat4::identity());
+        mm.set(0, Matrix4::identity());
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
             for (off, delta) in gen.iter() {
                 let ploc = last_gen_off + delta.parent;
-                let nmat = mm.get(ploc as uint).mul_m(&delta.delta.to_mat4());
+                let nmat = mm.get(ploc as uint).mul_m(&delta.delta.to_matrix4());
                 mm.set((off + gen_off) as uint, nmat);
             }
             last_gen_off = gen_off;
@@ -319,7 +319,7 @@ impl Deltas {
     }
 
     pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
-                           out: &[CLBuffer<Vec4<f32>>, ..4]) -> (Event, ComputedPosition) {
+                           out: &[CLBuffer<Vector4<f32>>, ..4]) -> (Event, ComputedPosition) {
 
         cq.map_mut(&ctx.input, (), |out_delta| {
         cq.map_mut(&ctx.parent, (), |out_parent| {
@@ -474,7 +474,7 @@ pub trait Positions: Common {
             let poid = self.object(key).unwrap().parent;
             let pid = self.position_id(poid);
             let id = self.get_position_mut().position.insert(pid,
-                Transform3D::new(1f32, Quat::identity(), Vec3::new(0f32, 0f32, 0f32))
+                Transform3D::new(1f32, Quaternion::identity(), Vector3::new(0f32, 0f32, 0f32))
             );
             self.get_position_mut().location.insert(key, id);
             id
@@ -493,16 +493,16 @@ pub trait Positions: Common {
         }
     }
 
-    fn position(&self, oid: ObjectKey) -> Mat4<f32> {
+    fn position(&self, oid: ObjectKey) -> Matrix4<f32> {
         let obj = self.object(oid);
         let p_mat = match obj {
             Some(obj) => self.position(obj.parent),
-            None => Mat4::identity()
+            None => Matrix4::identity()
         };
 
         let loc = match self.location(oid) {
-            Some(t) => {t.get().to_mat4()},
-            None => Mat4::identity()
+            Some(t) => {t.get().to_matrix4()},
+            None => Matrix4::identity()
         };
         p_mat.mul_m(&loc)
     }
@@ -512,7 +512,7 @@ pub trait Positions: Common {
     }
 
     fn to_positions_cl(&self, cq: &CommandQueue,
-                        ctx: &mut CalcPositionsCl, out: &[CLBuffer<Vec4<f32>>, ..4]) -> (Event, ComputedPosition) {
+                        ctx: &mut CalcPositionsCl, out: &[CLBuffer<Vector4<f32>>, ..4]) -> (Event, ComputedPosition) {
         self.get_position().position.to_positions_cl(cq, ctx, out)
     }
 

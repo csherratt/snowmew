@@ -63,7 +63,7 @@ impl Handler<Event> for Viewport {
                 self.db.update_location(self.key,
                     Transform3D::new(1f32,
                                     Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                                    Vec3::new(x as f32, y as f32, 0f32)));
+                                    Vector3::new(x as f32, y as f32, 0f32)));
             },
             _ => ()
         }
@@ -102,12 +102,12 @@ fn main() {
         db.update_location(rcube,
                         Transform3D::new(1f32,
                             Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                            Vec3::new(0 as f32, 0 as f32, 0f32)));
+                            Vector3::new(0 as f32, 0 as f32, 0f32)));
         
         db.update_location(camera_loc,
             Transform3D::new(1f32,
                              Rotation3::from_euler(deg(45f32).to_rad(), deg(45f32).to_rad(), deg(45f32).to_rad()),
-                             Vec3::new(-10f32, -10f32, -10f32)));
+                             Vector3::new(-10f32, -10f32, -10f32)));
 
         let ih = display.handle();
         let last_input = im.get(&ih);
@@ -138,8 +138,8 @@ fn main() {
 
             db = viewport.deref().borrow().fetch();
 
-            let rot: Quat<f32> = Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
-            let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));
+            let rot: Quat<f32> = Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
+            let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));
             let head_trans = Transform3D::new(1f32, rot, pos.to_vec());
 
             db.update_location(camera_loc, head_trans);

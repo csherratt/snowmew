@@ -35,7 +35,6 @@ pub use config::Config;
 
 use pipeline::{DrawTarget, Pipeline};
 use drawlist::{Drawlist, DrawlistStandard};
-use time::precise_time_s;
 
 mod db;
 mod shader;
@@ -171,7 +170,7 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
 
                 //let input = ih.get();
                 //let rift = input.predicted;
-                //et rift = rift.mul_q(&Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
+                //et rift = rift.mul_q(&Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
 
                 let camera = Camera::new(rot, camera_trans);
 

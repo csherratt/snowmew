@@ -2,18 +2,18 @@ use geometry::{VertexBuffer, Geometry, VertexGeoTex};
 use material::Material;
 use graphics::Graphics;
 
-use cgmath::vector::{Vec3, Vec2};
+use cgmath::vector::{Vector3, Vector2};
 
 static VERTEX_DATA: [VertexGeoTex, ..8] = [
     // CUBE
-    VertexGeoTex{position: Vec3{x: -1., y: -1., z:  1.}, texture: Vec2{x: -1., y: -1.}}, // 0
-    VertexGeoTex{position: Vec3{x: -1., y:  1., z:  1.}, texture: Vec2{x: -1., y:  1.}},
-    VertexGeoTex{position: Vec3{x:  1., y: -1., z:  1.}, texture: Vec2{x:  1., y: -1.}},
-    VertexGeoTex{position: Vec3{x:  1., y:  1., z:  1.}, texture: Vec2{x:  1., y:  1.}},
-    VertexGeoTex{position: Vec3{x: -1., y: -1., z: -1.}, texture: Vec2{x: -1., y: -1.}},
-    VertexGeoTex{position: Vec3{x: -1., y:  1., z: -1.}, texture: Vec2{x: -1., y:  1.}},
-    VertexGeoTex{position: Vec3{x:  1., y: -1., z: -1.}, texture: Vec2{x:  1., y: -1.}},
-    VertexGeoTex{position: Vec3{x:  1., y:  1., z: -1.}, texture: Vec2{x:  1., y:  1.}},
+    VertexGeoTex{position: Vector3{x: -1., y: -1., z:  1.}, texture: Vector2{x: -1., y: -1.}}, // 0
+    VertexGeoTex{position: Vector3{x: -1., y:  1., z:  1.}, texture: Vector2{x: -1., y:  1.}},
+    VertexGeoTex{position: Vector3{x:  1., y: -1., z:  1.}, texture: Vector2{x:  1., y: -1.}},
+    VertexGeoTex{position: Vector3{x:  1., y:  1., z:  1.}, texture: Vector2{x:  1., y:  1.}},
+    VertexGeoTex{position: Vector3{x: -1., y: -1., z: -1.}, texture: Vector2{x: -1., y: -1.}},
+    VertexGeoTex{position: Vector3{x: -1., y:  1., z: -1.}, texture: Vector2{x: -1., y:  1.}},
+    VertexGeoTex{position: Vector3{x:  1., y: -1., z: -1.}, texture: Vector2{x:  1., y: -1.}},
+    VertexGeoTex{position: Vector3{x:  1., y:  1., z: -1.}, texture: Vector2{x:  1., y:  1.}},
 ];
 
 static INDEX_DATA: [u32, ..36] = [
@@ -38,23 +38,23 @@ static INDEX_DATA: [u32, ..36] = [
 ];
 
 
-static WEB_COLORS: [(&'static str, Vec3<f32>), ..16] = [
-    ("white",   Vec3{x: 1.,   y: 1.,   z: 1.}),
-    ("silver",  Vec3{x: 0.75, y: 0.75, z: 0.75}),
-    ("gray",    Vec3{x: 0.5,  y: 0.5,  z: 0.5}),
-    ("black",   Vec3{x: 0.,   y: 0.,   z: 0.}),
-    ("red",     Vec3{x: 1.,   y: 0.,   z: 0.}),
-    ("maroon",  Vec3{x: 0.5,  y: 0.,   z: 0.}),
-    ("yellow",  Vec3{x: 1.,   y: 1.,   z: 0.}),
-    ("olive",   Vec3{x: 0.5,  y: 0.5,  z: 0.}),
-    ("line",    Vec3{x: 0.,   y: 1.,   z: 0.}),
-    ("green",   Vec3{x: 0.,   y: 0.5,  z: 0.}),
-    ("aqua",    Vec3{x: 0.,   y: 1.,   z: 1.}),
-    ("teal",    Vec3{x: 0.,   y: 0.5,  z: 0.5}),
-    ("blue",    Vec3{x: 0.,   y: 0.,   z: 1.}),
-    ("navy",    Vec3{x: 0.,   y: 0.,   z: 0.5}),
-    ("fuchsia", Vec3{x: 1.,   y: 0.,   z: 1.}),
-    ("pruple",  Vec3{x: 0.5,   y: 0.,   z: 0.5}),
+static WEB_COLORS: [(&'static str, Vector3<f32>), ..16] = [
+    ("white",   Vector3{x: 1.,   y: 1.,   z: 1.}),
+    ("silver",  Vector3{x: 0.75, y: 0.75, z: 0.75}),
+    ("gray",    Vector3{x: 0.5,  y: 0.5,  z: 0.5}),
+    ("black",   Vector3{x: 0.,   y: 0.,   z: 0.}),
+    ("red",     Vector3{x: 1.,   y: 0.,   z: 0.}),
+    ("maroon",  Vector3{x: 0.5,  y: 0.,   z: 0.}),
+    ("yellow",  Vector3{x: 1.,   y: 1.,   z: 0.}),
+    ("olive",   Vector3{x: 0.5,  y: 0.5,  z: 0.}),
+    ("line",    Vector3{x: 0.,   y: 1.,   z: 0.}),
+    ("green",   Vector3{x: 0.,   y: 0.5,  z: 0.}),
+    ("aqua",    Vector3{x: 0.,   y: 1.,   z: 1.}),
+    ("teal",    Vector3{x: 0.,   y: 0.5,  z: 0.5}),
+    ("blue",    Vector3{x: 0.,   y: 0.,   z: 1.}),
+    ("navy",    Vector3{x: 0.,   y: 0.,   z: 0.5}),
+    ("fuchsia", Vector3{x: 1.,   y: 0.,   z: 1.}),
+    ("pruple",  Vector3{x: 0.5,   y: 0.,   z: 0.5}),
 ];
 
 pub fn load_default(db: &mut Graphics)

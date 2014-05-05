@@ -9,8 +9,8 @@ use OpenCL::hl::{CommandQueue, Context, Device, EventList};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
 use sync::Arc;
-use cgmath::matrix::Mat4;
-use cgmath::vector::Vec4;
+use cgmath::matrix::Matrix4;
+use cgmath::vector::Vector4;
 use cgmath::ptr::Ptr;
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
@@ -38,7 +38,7 @@ pub trait Drawlist {
     fn setup_scene(&mut self);
 
     // done many times on the render thread
-    fn render(&mut self, camera: Mat4<f32>);
+    fn render(&mut self, camera: Matrix4<f32>);
 
     // get materials
     fn materials(&self) -> Vec<Material>;
@@ -61,10 +61,10 @@ pub struct DrawlistStandard {
     text_model_matrix: [GLuint, ..4],
     text_model_info: GLuint,
 
-    ptr_model_matrix: [*mut Vec4<f32>, ..4],
+    ptr_model_matrix: [*mut Vector4<f32>, ..4],
     ptr_model_info: *mut (u32, u32, u32, u32),
 
-    pub cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vec4<f32>>, ..4])>
+    pub cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>
 }
 
 impl DrawlistStandard {
@@ -82,7 +82,7 @@ impl DrawlistStandard {
                 gl::BindTexture(gl::TEXTURE_BUFFER, texture[i]);
                 gl::TexBuffer(gl::TEXTURE_BUFFER, gl::RGBA32F, buffer[i]);
                 gl::BufferData(gl::TEXTURE_BUFFER,
-                               (mem::size_of::<Vec4<f32>>()*cfg.max_size()) as GLsizeiptr,
+                               (mem::size_of::<Vector4<f32>>()*cfg.max_size()) as GLsizeiptr,
                                ptr::null(), gl::DYNAMIC_DRAW);
             }
 
@@ -128,14 +128,14 @@ impl DrawlistStandard {
 }
 
 struct GLMatrix<'r> {
-    x: &'r mut [Vec4<f32>],
-    y: &'r mut [Vec4<f32>],
-    z: &'r mut [Vec4<f32>],
-    w: &'r mut [Vec4<f32>]
+    x: &'r mut [Vector4<f32>],
+    y: &'r mut [Vector4<f32>],
+    z: &'r mut [Vector4<f32>],
+    w: &'r mut [Vector4<f32>]
 }
 
 impl<'r> MatrixManager for GLMatrix<'r> {
-    fn set(&mut self, idx: uint, mat: Mat4<f32>) {
+    fn set(&mut self, idx: uint, mat: Matrix4<f32>) {
         assert!(idx < self.x.len());
         unsafe {
             self.x.unsafe_set(idx, mat.x);
@@ -145,10 +145,10 @@ impl<'r> MatrixManager for GLMatrix<'r> {
         }
     }
 
-    fn get(&self, idx: uint) -> Mat4<f32> {
+    fn get(&self, idx: uint) -> Matrix4<f32> {
         assert!(idx < self.x.len());
         unsafe {
-            Mat4 {
+            Matrix4 {
                 x: *self.x.unsafe_ref(idx),
                 y: *self.y.unsafe_ref(idx),
                 z: *self.z.unsafe_ref(idx),
@@ -168,9 +168,9 @@ impl Drawlist for DrawlistStandard {
             for i in range(0u, 4) {
                 gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
                 self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                        (mem::size_of::<Vec4<f32>>()*self.size) as GLsizeiptr,
+                        (mem::size_of::<Vector4<f32>>()*self.size) as GLsizeiptr,
                         gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
-                ) as *mut Vec4<f32>;
+                ) as *mut Vector4<f32>;
                 assert!(0 == gl::GetError());
             }
         }
@@ -247,7 +247,7 @@ impl Drawlist for DrawlistStandard {
         self.ptr_model_info = ptr::mut_null();;
     }
 
-    fn render(&mut self, camera: Mat4<f32>)
+    fn render(&mut self, camera: Matrix4<f32>)
     {
         let db = self.db.as_ref().unwrap();
         let shader = db.flat_instance_shader.unwrap();
@@ -370,7 +370,7 @@ impl DrawlistBindless
         let buffers = &mut [0, 0];
 
         let delta = unsafe {
-            let size = (mem::size_of::<Mat4<f32>>() * max_size) as GLsizeiptr;
+            let size = (mem::size_of::<Matrix4<f32>>() * max_size) as GLsizeiptr;
             let flags = gl::MAP_WRITE_BIT | gl::MAP_PERSISTENT_BIT | gl::MAP_COHERENT_BIT;
             gl::GenBuffers(2, buffers.unsafe_mut_ref(0));
             gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffers[0]);
@@ -427,7 +427,7 @@ impl DrawlistBindless
         }  
     }
 
-    pub fn render<'a>(&'a mut self, db: &Graphics, camera: Mat4<f32>)
+    pub fn render<'a>(&'a mut self, db: &Graphics, camera: Matrix4<f32>)
     {
         let start = precise_time_ns();
         let shader = db.flat_bindless_shader.unwrap();

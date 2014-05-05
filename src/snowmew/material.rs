@@ -1,13 +1,13 @@
 use std::default::Default;
 
-use cgmath::vector::Vec3;
+use cgmath::vector::Vector3;
 
 #[deriving(Clone)]
 pub struct PhongMat
 {
-    ks: Vec3<f32>,
-    kd: Vec3<f32>,
-    ka: Vec3<f32>,
+    ks: Vector3<f32>,
+    kd: Vector3<f32>,
+    ka: Vector3<f32>,
     alpha: f32
 }
 
@@ -15,7 +15,7 @@ pub struct PhongMat
 pub enum Material
 {
     NoMaterial,
-    Flat(Vec3<f32>),
+    Flat(Vector3<f32>),
     Phong(PhongMat)
 }
 
@@ -29,12 +29,12 @@ impl Default for Material
 
 impl Material
 {
-    pub fn flat(color: Vec3<f32>) -> Material
+    pub fn flat(color: Vector3<f32>) -> Material
     {
         Flat(color)
     }
 
-    pub fn phong(ks: Vec3<f32>, kd: Vec3<f32>, ka: Vec3<f32>, alpha: f32) -> Material
+    pub fn phong(ks: Vector3<f32>, kd: Vector3<f32>, ka: Vector3<f32>, alpha: f32) -> Material
     {
         Phong(
             PhongMat {

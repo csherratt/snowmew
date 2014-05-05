@@ -1,7 +1,7 @@
 
 use std::default::Default;
 
-use cgmath::vector::{Vec2, Vec3};
+use cgmath::vector::{Vector2, Vector3};
 
 use core::ObjectKey;
 
@@ -16,22 +16,22 @@ pub enum Primative {
 #[deriving(Clone)]
 pub struct VertexGeo
 {
-    pub position: Vec3<f32>
+    pub position: Vector3<f32>
 }
 
 #[deriving(Clone)]
 pub struct VertexGeoTex
 {
-    pub position: Vec3<f32>,
-    pub texture: Vec2<f32>
+    pub position: Vector3<f32>,
+    pub texture: Vector2<f32>
 }
 
 #[deriving(Clone)]
 pub struct VertexGetTexNorm
 {
-    pub position: Vec3<f32>,
-    pub texture: Vec2<f32>,
-    pub normal: Vec3<f32>
+    pub position: Vector3<f32>,
+    pub texture: Vector2<f32>,
+    pub normal: Vector3<f32>
 }
 
 #[deriving(Clone)]

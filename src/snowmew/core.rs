@@ -42,7 +42,7 @@ impl Default for Location
     fn default() -> Location
     {
         Location {
-            trans: Transform3D::new(1f32, Quat::zero(), Vec3::zero())
+            trans: Transform3D::new(1f32, Quaternion::zero(), Vector3::zero())
         }
     }
 }
@@ -118,7 +118,7 @@ impl CommonData {
             Some(node) => {
                 format!("{:s}/{:s}", self.name(node.parent), *self.strings.find(&node.name).unwrap())
             },
-            None => ~"base"
+            None => "base".to_owned()
         }
     }
 

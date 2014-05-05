@@ -87,7 +87,7 @@ fn main() {
 
         let mut rng = StdRng::new().unwrap();
 
-        let mut materials = ~[];
+        let mut materials = Vec::new();
         for (_, oid) in db.walk_dir(dir) {
             materials.push(*oid);
         }
@@ -98,11 +98,11 @@ fn main() {
         for x in range(-size, size) {
             let x_dir = db.new_object(Some(scene), format!("{}", x));
             db.update_location(x_dir,
-                Transform3D::new(1f32, Quat::zero(), Vec3::new(x as f32 * 2.5, 0., 0.)));
+                Transform3D::new(1f32, Quaternion::zero(), Vector3::new(x as f32 * 2.5, 0., 0.)));
             for y in range(-size, size) {
                 let y_dir = db.new_object(Some(x_dir), format!("{}", y));
                 db.update_location(y_dir,
-                    Transform3D::new(1f32, Quat::zero(), Vec3::new(0., y as f32 * 2.5, 0.)));
+                    Transform3D::new(1f32, Quaternion::zero(), Vector3::new(0., y as f32 * 2.5, 0.)));
                 for z in range(-size, size) {
                     let materials = materials.slice(0, materials.len());
                     let material = rng.choose(materials);
@@ -112,7 +112,7 @@ fn main() {
                     let za = z as f32 * 25.;
                     let z = z as f32 * 2.5;
                     db.update_location(cube_id,
-                        Transform3D::new(0.5f32, Rotation3::from_euler(deg(xa).to_rad(), deg(ya).to_rad(), deg(za).to_rad()), Vec3::new(0., 0., z)));
+                        Transform3D::new(0.5f32, Rotation3::from_euler(deg(xa).to_rad(), deg(ya).to_rad(), deg(za).to_rad()), Vector3::new(0., 0., z)));
                     db.set_draw(cube_id, geometry, material);
                 }
             }
@@ -123,7 +123,7 @@ fn main() {
         db.update_location(camera_loc,
             Transform3D::new(1f32,
                              Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                             Vec3::new(0f32, 0f32, 0f32)));
+                             Vector3::new(0f32, 0f32, 0f32)));
 
         let ih = display.handle();
         let last_input = im.get(&ih);
@@ -184,7 +184,7 @@ fn main() {
                 //display_input.reset_ovr();
             }
 
-            let input_vec = Vec3::new(
+            let input_vec = Vector3::new(
                 if input_state.key_down(glfw::KeyA) {-0.05f32} else {0f32} +
                 if input_state.key_down(glfw::KeyD) {0.05f32} else {0f32}, 
                 0f32,
@@ -192,10 +192,10 @@ fn main() {
                 if input_state.key_down(glfw::KeyS) {0.05f32} else {0f32}
             );
 
-            let rot: Quat<f32> =  Rotation3::from_axis_angle(&Vec3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
-            let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vec3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));
+            let rot: Quaternion<f32> =  Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
+            let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));
 
-            let camera = Camera::new(rot.clone(), Transform3D::new(1f32, rot, pos.to_vec()).to_mat4());
+            let camera = Camera::new(rot.clone(), Transform3D::new(1f32, rot, pos.to_vec()).to_matrix4());
             pos = camera.move(&input_vec.mul_s(-1f32));
 
             let head_trans = Transform3D::new(1f32, rot, pos.to_vec());

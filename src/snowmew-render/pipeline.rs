@@ -4,7 +4,7 @@ use std::ptr;
 use gl;
 use gl::types::{GLuint, GLint};
 use cgmath::matrix::Matrix;
-use cgmath::vector::Vec3;
+use cgmath::vector::Vector3;
 use ovr::HMDInfo;
 
 use shader::Shader; 
@@ -222,7 +222,7 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
 
         for m in materials.iter() {
             match *m {
-                NoMaterial | Phong(_) => gl_materials.push(Vec3::new(1f32, 1f32, 1f32)),
+                NoMaterial | Phong(_) => gl_materials.push(Vector3::new(1f32, 1f32, 1f32)),
                 Flat(mat) => gl_materials.push(mat.clone())
             }
         }
