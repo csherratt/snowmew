@@ -18,6 +18,7 @@ extern crate time;
 extern crate libc;
 extern crate sync;
 extern crate gl_cl;
+extern crate position = "snowmew-position";
 
 use std::mem;
 use std::comm::{Receiver, Sender, Empty, Disconnected};
@@ -28,7 +29,7 @@ use sync::Arc;
 use snowmew::common::ObjectKey;
 use snowmew::camera::Camera;
 use snowmew::io::Window;
-use snowmew::position::Positions;
+use position::Positions;
 use snowmew::graphics::Graphics;
 
 pub use config::Config;

@@ -1,5 +1,5 @@
 use cow::btree::BTreeMap;
-use snowmew::position::{Positions, PositionData};
+use position::{Positions, PositionData};
 use snowmew::graphics::{Graphics, GraphicsData};
 use snowmew::common::{Common, CommonData};
 use snowmew::common::ObjectKey;

@@ -7,6 +7,7 @@ extern crate gl;
 extern crate snowmew;
 extern crate render = "snowmew-render";
 extern crate loader = "snowmew-loader";
+extern crate position = "snowmew-position";
 extern crate cgmath;
 extern crate native;
 extern crate green;
@@ -30,7 +31,7 @@ use cgmath::angle::{ToRad, deg};
 use OpenCL::hl::{Device, get_platforms, GPU, CPU};
 
 use snowmew::camera::Camera;
-use snowmew::position::Positions;
+use position::Positions;
 use snowmew::graphics::Graphics;
 
 use render::RenderManager;

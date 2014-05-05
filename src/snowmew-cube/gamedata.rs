@@ -1,6 +1,6 @@
 
 use snowmew::common::{Common, CommonData};
-use snowmew::position::{Positions, PositionData};
+use position::{Positions, PositionData};
 use snowmew::graphics::{Graphics, GraphicsData};
 use snowmew::default::load_default;
 use render::RenderData;

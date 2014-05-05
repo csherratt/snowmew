@@ -26,7 +26,6 @@ extern crate ovr = "oculus-vr";
 
 pub use common::{ObjectKey};
 pub use geometry::{VertexBuffer};
-pub use position::{Positions, Deltas, CalcPositionsCl};
 
 pub mod common;
 pub mod geometry;
@@ -34,7 +33,6 @@ pub mod camera;
 pub mod io;
 //pub mod display;
 pub mod material;
-pub mod position;
 pub mod graphics;
 pub mod default;
 

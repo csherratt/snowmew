@@ -264,9 +264,10 @@ _base = os.path.abspath(os.path.dirname(__file__))
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "ovr"]),
-           Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl"]),
+           Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position"]),
            Lib("snowmew-loader", ["snowmew"]),
            Lib("snowmew-collision", ["snowmew", "collision"]),
+           Lib("snowmew-position", ["snowmew", "cgmath", "OpenCL", "cow"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),

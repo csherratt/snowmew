@@ -18,7 +18,7 @@ use gl_cl;
 
 use snowmew::material::Material;
 use snowmew::common::{ObjectKey};
-use snowmew::position::{ComputedPosition, Positions, CalcPositionsCl, MatrixManager};
+use position::{ComputedPosition, Positions, CalcPositionsCl, MatrixManager};
 use snowmew::graphics::Graphics;
 
 

@@ -1,3 +1,13 @@
+#![crate_id = "github.com/csherratt/snowmew#snowmew-position:0.1"]
+#![license = "ASL2"]
+#![crate_type = "lib"]
+#![comment = "A position manager for snowmew"]
+
+extern crate snowmew;
+extern crate cgmath;
+extern crate OpenCL;
+extern crate cow;
+
 use std::default::Default;
 
 use cgmath::transform::Transform3D;
@@ -11,7 +21,7 @@ use OpenCL::CL::{CL_MEM_READ_ONLY};
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 
-use common::{ObjectKey, Common};
+use snowmew::common::{ObjectKey, Common};
 
 
 static opencl_program: &'static str = "

@@ -6,7 +6,7 @@ use std::cast;
 use gl;
 use gl::types::GLuint;
 
-use snowmew::position::ComputedPositionGL;
+use position::ComputedPositionGL;
 use shader::compile_shader;
 
 use time::precise_time_ns;
