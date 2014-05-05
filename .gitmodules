@@ -22,3 +22,6 @@
 [submodule "modules/glfw"]
 	path = modules/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "modules/collision-rs"]
+	path = modules/collision-rs
+	url = https://github.com/csherratt/collision-rs

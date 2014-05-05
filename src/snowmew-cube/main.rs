@@ -29,7 +29,6 @@ use cgmath::angle::{ToRad, deg};
 
 use OpenCL::hl::{Device, get_platforms, GPU, CPU};
 
-use snowmew::core::Database;
 use snowmew::camera::Camera;
 use snowmew::position::Positions;
 use snowmew::graphics::Graphics;
@@ -37,6 +36,10 @@ use snowmew::graphics::Graphics;
 use render::RenderManager;
 use loader::Obj;
 use snowmew::core::Common;
+
+use gamedata::GameData;
+
+mod gamedata;
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();
@@ -72,7 +75,7 @@ fn main() {
         let display = im.window((1280, 800))
                 .expect("Could not create a display");
 
-        let mut db = Database::new();
+        let mut db = GameData::new();
 
         let import = Obj::load(&Path::new("assets/suzanne.obj"))
                 .expect("Could not fetch suzanne");
