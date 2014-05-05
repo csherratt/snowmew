@@ -523,4 +523,10 @@ pub trait Positions: Common {
     fn location_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Id> {
         self.get_position().location.iter()
     }
+
+    fn position_count(&self) -> uint {
+        let last = self.get_position().position.gen.len();
+        let (s, l) = *self.get_position().position.gen.get(last-1);
+        (s + l) as uint
+    }
 }
