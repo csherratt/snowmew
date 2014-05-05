@@ -7,8 +7,8 @@ use std::ptr;
 
 use libc::c_void;
 
-use snowmew::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGetTexNorm};
-use snowmew::geometry::{Geo, GeoTex, GeoTexNorm, Empty};
+use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGetTexNorm};
+use graphics::geometry::{Geo, GeoTex, GeoTexNorm, Empty};
 
 #[deriving(Clone, Default)]
 pub struct VertexBuffer

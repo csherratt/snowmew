@@ -1,6 +1,6 @@
 use geometry::{VertexBuffer, Geometry, VertexGeoTex};
 use material::Material;
-use graphics::Graphics;
+use Graphics;
 
 use cgmath::vector::{Vector3, Vector2};
 

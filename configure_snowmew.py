@@ -61,7 +61,7 @@ class Module:
         setup = ""
         if self.setup:
             setup = "\tsh -c \"%s\"\n" % self.setup
-        how = "%s\n%s\trustc $(RUST_FLAGS) --out-dir=%s %s %s\n" % (
+        how = "%s\n%s\trustc --out-dir=%s %s %s\n" % (
             dep, setup, self.get_output_dir(), self.get_flags(mods), self.get_source_crate()
         )
         return how
@@ -124,6 +124,10 @@ class Lib(Module):
         else:
             self.dep_modules = []
 
+    def get_flags(self, mods):
+        flags = ["$(RUST_LIB_FLAGS)", self.flags] + self.collect_flags(mods)
+        return " ".join(flags) 
+
 class Bin(Module):
     ext = "main.rs"
     dir = "bin"
@@ -140,6 +144,10 @@ class Bin(Module):
             self.dep_modules = dep_modules
         else:
             self.dep_modules = []
+
+    def get_flags(self, mods):
+        flags = ["$(RUST_BIN_FLAGS)", self.flags] + self.collect_flags(mods)
+        return " ".join(flags) 
 
 class LibMakefile(Module):
     ext = ""
@@ -232,7 +240,9 @@ def write_makefile(modules):
     all = " ".join(m.get_ename() for m in modules.values())
 
     with open("Makefile", "w+") as f:
-        f.write("RUST_FLAGS=--opt-level=3 -L lib\n")
+        f.write("RUST_FLAGS=-L lib\n")
+        f.write("RUST_LIB_FLAGS=$(RUST_FLAGS)\n")
+        f.write("RUST_BIN_FLAGS=$(RUST_FLAGS) --opt-level=3\n")
         f.write("\n")
         f.write("all: lib bin test %s\n" % all)
         f.write("\n")
@@ -264,10 +274,11 @@ _base = os.path.abspath(os.path.dirname(__file__))
 
 modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "octtree", "ovr"]),
-           Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position"]),
-           Lib("snowmew-loader", ["snowmew"]),
+           Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
+           Lib("snowmew-loader", ["snowmew", "snowmew-graphics"]),
            Lib("snowmew-collision", ["snowmew", "collision"]),
            Lib("snowmew-position", ["snowmew", "cgmath", "OpenCL", "cow"]),
+           Lib("snowmew-graphics", ["snowmew", "cgmath", "cow"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),

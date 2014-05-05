@@ -1,8 +1,8 @@
 
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
-use snowmew::graphics::{Graphics, GraphicsData};
-use snowmew::default::load_default;
+use graphics::{Graphics, GraphicsData};
+use graphics::default::load_default;
 use render::RenderData;
 
 #[deriving(Clone)]

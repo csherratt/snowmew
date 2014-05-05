@@ -16,10 +16,10 @@ use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
 use gl_cl;
 
-use snowmew::material::Material;
+use graphics::material::Material;
 use snowmew::common::{ObjectKey};
 use position::{ComputedPosition, Positions, CalcPositionsCl, MatrixManager};
-use snowmew::graphics::Graphics;
+use graphics::Graphics;
 
 
 use db::GlState;

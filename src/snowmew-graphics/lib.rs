@@ -1,10 +1,22 @@
+#![crate_id = "github.com/csherratt/snowmew#snowmew-graphics:0.1"]
+#![license = "ASL2"]
+#![crate_type = "lib"]
+#![comment = "A graphics collection for snowmew"]
+
+
+extern crate cow;
+extern crate snowmew;
+extern crate cgmath;
 
 use cow::btree::{BTreeMapIterator, BTreeMap};
+use snowmew::common::{Common, ObjectKey};
 
-use common::{Common, ObjectKey};
+pub use geometry::{Geometry, VertexBuffer};
+pub use material::Material;
 
-use geometry::{Geometry, VertexBuffer};
-use material::Material;
+pub mod geometry;
+pub mod material;
+pub mod default;
 
 #[deriving(Clone, Default, Eq)]
 pub struct Drawable {
@@ -12,8 +24,7 @@ pub struct Drawable {
     pub material: ObjectKey
 }
 
-impl Ord for Drawable
-{
+impl Ord for Drawable {
     fn lt(&self, other: &Drawable) -> bool
     {
         let order = self.geometry.cmp(&other.geometry);

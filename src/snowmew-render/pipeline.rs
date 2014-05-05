@@ -10,8 +10,8 @@ use ovr::HMDInfo;
 use shader::Shader; 
 
 use snowmew::camera::DrawMatrices;
-use snowmew::material::{NoMaterial, Phong, Flat};
-use snowmew::graphics::Graphics;
+use graphics::material::{NoMaterial, Phong, Flat};
+use graphics::Graphics;
 
 use db::GlState;
 use drawlist::Drawlist;

@@ -6,7 +6,7 @@ use std::cast;
 use gl;
 use gl::types::GLuint;
 
-use snowmew::material::{Material, Flat};
+use graphics::material::{Material, Flat};
 
 pub static MATRIX_PROJECTION: i32 = 0;
 pub static MATRIX_MODEL: i32 = 1;

@@ -1,9 +1,8 @@
 
 use std::default::Default;
-
 use cgmath::vector::{Vector2, Vector3};
 
-use common::ObjectKey;
+use snowmew::common::ObjectKey;
 
 #[deriving(Clone)]
 pub enum Primative {

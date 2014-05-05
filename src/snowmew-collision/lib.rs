@@ -2,3 +2,4 @@
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A collison detection manager for snowmew"]
+
