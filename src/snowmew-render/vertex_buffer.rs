@@ -8,7 +8,7 @@ use std::ptr;
 use libc::c_void;
 
 use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGetTexNorm};
-use graphics::geometry::{Geo, GeoTex, GeoTexNorm, Empty};
+use graphics::geometry::{Geo, GeoTex, GeoTexNorm};
 
 #[deriving(Clone, Default)]
 pub struct VertexBuffer {
@@ -41,8 +41,7 @@ impl VertexBuffer {
                     (cast::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGetTexNorm>(),
                      mem::size_of::<VertexGetTexNorm>())
-                },
-                Empty => fail!("Should not be empty"),
+                }
             };
             let stride = stride as i32;
 
@@ -62,7 +61,7 @@ impl VertexBuffer {
             gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, ptr::null());
 
             match *vertex {
-                Empty | Geo(_) => (),
+                Geo(_) => (),
                 GeoTex(_) | GeoTexNorm(_) => {
                     gl::EnableVertexAttribArray(1);
                     gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, 12 as *c_void);
@@ -70,7 +69,7 @@ impl VertexBuffer {
             }
 
             match *vertex {
-                Empty | Geo(_) | GeoTex(_) => (),
+                Geo(_) | GeoTex(_) => (),
                 GeoTexNorm(_) => {
                     gl::EnableVertexAttribArray(2);
                     gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, 20 as *c_void);

@@ -8,6 +8,10 @@ extern crate cow;
 extern crate snowmew;
 extern crate cgmath;
 
+use cgmath::vector::{Vector3, Vector2};
+use cgmath::point::Point3;
+use cgmath::aabb::{Aabb, Aabb3};
+
 use cow::btree::{BTreeMapIterator, BTreeMap};
 use snowmew::common::{Common, ObjectKey};
 
@@ -125,5 +129,69 @@ pub trait Graphics: Common {
 
     fn vertex_buffer_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, VertexBuffer> {
         self.get_graphics().vertex.iter()
+    }
+
+    fn geometry_vertex_iter<'a>(&'a self, oid: ObjectKey) -> Option<VertexBufferIter<'a>> {
+        let geo = match self.get_graphics().geometry.find(&oid) {
+            None => return None,
+            Some(geo) => geo
+        };
+
+        let vb = match self.get_graphics().vertex.find(&geo.vb) {
+            None => return None,
+            Some(vb) => vb
+        };
+
+        Some(
+            VertexBufferIter {
+                vb: vb,
+                idx_iter: vb.index.slice(geo.offset, geo.offset + geo.count).iter()
+            }
+        )
+    }
+
+    fn geometry_to_aabb3(&self, oid: ObjectKey) -> Option<Aabb3<f32>> {
+        let mut iter = match self.geometry_vertex_iter(oid) {
+            None => return None,
+            Some(iter) => iter
+        };
+
+        let mut aabb = Aabb3::new(Point3::new(0f32, 0., 0.),
+                                  Point3::new(0f32, 0., 0.));
+
+        for (_, pos, _, _) in iter {
+            aabb = aabb.grow(&Point3::new(pos.x, pos.y, pos.z));
+        }
+
+        Some(aabb)
+    }
+}
+
+pub struct VertexBufferIter<'a> {
+    vb: &'a VertexBuffer,
+    idx_iter: std::slice::Items<'a, u32>
+}
+
+impl<'a> Iterator<(u32, &'a Vector3<f32>, Option<&'a Vector2<f32>>, Option<&'a Vector3<f32>>)> for VertexBufferIter<'a> {
+    fn next(&mut self) -> Option<(u32, &'a Vector3<f32>, Option<&'a Vector2<f32>>, Option<&'a Vector3<f32>>)> {
+        let idx = match self.idx_iter.next() {
+            None => return None,
+            Some(idx) => idx,
+        };
+
+        match self.vb.vertex {
+            geometry::Geo(ref v) => {
+                let v = v.get(*idx as uint);
+                Some((*idx, &v.position, None, None))
+            }
+            geometry::GeoTex(ref v) => {
+                let v = v.get(*idx as uint);
+                Some((*idx, &v.position, Some(&v.texture), None))
+            }
+            geometry::GeoTexNorm(ref v) => {
+                let v = v.get(*idx as uint);
+                Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
+            }
+        }
     }
 }

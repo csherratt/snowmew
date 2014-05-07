@@ -32,7 +32,6 @@ pub struct VertexGetTexNorm {
 
 #[deriving(Clone)]
 pub enum Vertex {
-    Empty,
     Geo(Vec<VertexGeo>),
     GeoTex(Vec<VertexGeoTex>),
     GeoTexNorm(Vec<VertexGetTexNorm>)
@@ -40,7 +39,7 @@ pub enum Vertex {
 
 impl Default for Vertex {
     fn default() -> Vertex {
-        return Empty
+        return Geo(Vec::new())
     }
 }
 
@@ -91,7 +90,6 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX 
     }
     fail!("Did not find vertex!");
 }
-
 
 pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX> {
     let mut vec = Vec::with_capacity(index.len()*2);

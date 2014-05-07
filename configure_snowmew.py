@@ -72,7 +72,7 @@ class Module:
         dep = ": ".join(["test/%s" % self.name, " ".join(
             [self.get_ename(), os.path.join(self.get_source_dir()), self.get_test_dir(), dep.split(": ", 2)[1]])]
         )
-        how = "%s\n\trustc $(RUST_TEST_FLAGS) --test -o test/%s %s %s\n" % (
+        how = "%s\n\trustc --test -o test/%s %s %s\n" % (
             dep, self.name, self.get_flags(mods), self.get_test_dir()
         )
         how += "\ntest/.%s.check: test/%s\n" % (self.name, self.name)
@@ -240,10 +240,10 @@ def write_makefile(modules):
     all = " ".join(m.get_ename() for m in modules.values())
 
     with open("Makefile", "w+") as f:
-        f.write("RUST_FLAGS=-L lib\n")
+        f.write("RUST_FLAGS=-L lib --opt-level=3\n")
         f.write("RUST_LIB_FLAGS=$(RUST_FLAGS)\n")
-        f.write("RUST_BIN_FLAGS=$(RUST_FLAGS) --opt-level=3 -Zlto\n")
-        f.write("RUST_TEST_FLAGS=$(RUST_FLAGS) -O\n")
+        f.write("RUST_BIN_FLAGS=$(RUST_FLAGS) -Zlto\n")
+        f.write("RUST_TEST_FLAGS=$(RUST_FLAGS)\n")
         f.write("\n")
         f.write("all: lib bin test %s\n" % all)
         f.write("\n")
@@ -277,7 +277,7 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
            Lib("snowmew-loader", ["snowmew", "snowmew-graphics"]),
-           Lib("snowmew-collision", ["snowmew", "collision"]),
+           Lib("snowmew-collision", ["snowmew", "collision", "snowmew-position", "cow"]),
            Lib("snowmew-position", ["snowmew", "cgmath", "OpenCL", "cow"]),
            Lib("snowmew-graphics", ["snowmew", "cgmath", "cow"]),
            Lib("cgmath"),

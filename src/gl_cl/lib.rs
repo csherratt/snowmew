@@ -34,8 +34,6 @@ pub fn create_context(dev: &Device) -> Option<Context> {
         let ctx = CGLGetCurrentContext();
         let grp = CGLGetShareGroup(ctx);
 
-        println!("{:?} {:?}", ctx, grp);
-
         let properties = &[CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, grp, 0];
 
         Some(create_context_with_properties(&[*dev], properties))
