@@ -1,4 +1,4 @@
-#![crate_id = "github.com/csherratt/snowmew#snowmew-collision:0.1"]
+#![crate_id = "github.com/csherratt/snowmew#snowmew-physics:0.1"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A collison detection manager for snowmew"]
@@ -12,9 +12,9 @@ extern crate collision;
 use snowmew::common::{ObjectKey, Common};
 use position::Positions;
 
-use collision::octtree::Sparse;
+use collision::bvh::BvhBuilder;
+use collision::aabb::{Aabb, Aabb3};
 
-use cgmath::aabb::{Aabb, Aabb3};
 use cgmath::point::Point3;
 use cgmath::matrix::{Matrix, Matrix4};
 use cgmath::vector::Vector4;
@@ -34,13 +34,15 @@ impl std::default::Default for Collider {
 
 #[deriving(Clone)]
 pub struct CollisionData {
-    aabb: BTreeMap<ObjectKey, Collider>
+    static_colliders: BTreeMap<ObjectKey, Collider>,
+    colliders: BTreeMap<ObjectKey, Collider>
 }
 
 impl CollisionData {
     pub fn new() -> CollisionData {
         CollisionData {
-            aabb: BTreeMap::new()
+            static_colliders: BTreeMap::new(),
+            colliders: BTreeMap::new()
         }
     }
 }
@@ -68,12 +70,23 @@ pub trait Collision: Common + Positions {
     fn get_collision<'a>(&'a self) -> &'a CollisionData;
     fn get_collision_mut<'a>(&'a mut self) -> &'a mut CollisionData;
 
+    fn add_static_collider(&mut self, key: ObjectKey, collider: Aabb3<f32>) {
+        self.get_collision_mut().static_colliders.insert(key, Collider(collider));   
+    }
+
+    fn get_static_collider<'a>(&'a self, key: ObjectKey) -> Option<&'a Aabb3<f32>> {
+        match self.get_collision().static_colliders.find(&key) {
+            Some(&Collider(ref c)) => Some(c),
+            None => None
+        }
+    }
+
     fn add_collider(&mut self, key: ObjectKey, collider: Aabb3<f32>) {
-        self.get_collision_mut().aabb.insert(key, Collider(collider));   
+        self.get_collision_mut().colliders.insert(key, Collider(collider));   
     }
 
     fn get_collider<'a>(&'a self, key: ObjectKey) -> Option<&'a Aabb3<f32>> {
-        match self.get_collision().aabb.find(&key) {
+        match self.get_collision().colliders.find(&key) {
             Some(&Collider(ref c)) => Some(c),
             None => None
         }
@@ -84,17 +97,22 @@ pub trait Collision: Common + Positions {
         unsafe { mats.set_len(self.position_count()) };
         let pos = self.to_positions(&mut mats.as_mut_slice());
 
-        let mut oct = Sparse::new(50f32, 4);
+        let mut bvh_builder = BvhBuilder::new();
 
-        for (key, (loc, &Collider(ref aabb))) in join_maps(self.location_iter(), self.get_collision().aabb.iter()) {
+        for (key, (loc, &Collider(ref aabb))) in join_maps(self.location_iter(), self.get_collision().static_colliders.iter()) {
             let mat = mats.get(pos.get_loc(*loc));
-            oct.insert(recalc_aabb(aabb, mat), *key);
+            bvh_builder.add(recalc_aabb(aabb, mat), *key);
         }
 
-        for i in oct.collision_iter() {
-            //println!("i {:?}", i);
-        }
+        let bvh = bvh_builder.build();
 
+        for (_, (loc, &Collider(ref aabb))) in join_maps(self.location_iter(), self.get_collision().colliders.iter()) {
+            let mat = mats.get(pos.get_loc(*loc));
+            let aabb = recalc_aabb(aabb, mat);
+            for i in bvh.collision_iter(&aabb) {
+                println!("{:?}", i);
+            }
+        }
     }
 }
 
