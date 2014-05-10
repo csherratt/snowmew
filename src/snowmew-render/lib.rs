@@ -243,9 +243,14 @@ impl RenderManager {
         window.make_context_current();
         let cl = match dev {
             Some(dev) => {
-                let ctx = Arc::new(gl_cl::create_context(dev.deref()));
-                let queue = Arc::new(ctx.create_command_queue(dev.deref()));
-                Some((ctx, queue, dev))
+                let ctx = gl_cl::create_context(dev.deref());
+                match ctx {
+                    Some(ctx) => {
+                        let queue = ctx.create_command_queue(dev.deref());
+                        Some((Arc::new(ctx), Arc::new(queue), dev))
+                    }
+                    None => None
+                }
             },
             None => None
         };
