@@ -1,7 +1,6 @@
 #![feature(globs)]
 
 extern crate snowmew;
-extern crate OpenCL;
 extern crate cow;
 
 mod core {

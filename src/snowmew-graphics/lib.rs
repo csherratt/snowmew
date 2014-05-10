@@ -7,10 +7,11 @@
 extern crate cow;
 extern crate snowmew;
 extern crate cgmath;
+extern crate collision;
 
 use cgmath::vector::{Vector3, Vector2};
 use cgmath::point::Point3;
-use cgmath::aabb::{Aabb, Aabb3};
+use collision::aabb::{Aabb, Aabb3};
 
 use cow::btree::{BTreeMapIterator, BTreeMap};
 use snowmew::common::{Common, ObjectKey};

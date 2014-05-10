@@ -17,10 +17,12 @@ use collision::aabb::{Aabb, Aabb3};
 
 use cgmath::point::Point3;
 use cgmath::matrix::{Matrix, Matrix4};
-use cgmath::vector::Vector4;
+use cgmath::vector::{Vector3, Vector4};
 
 use cow::btree::BTreeMap;
 use cow::join::join_maps;
+
+pub mod manager;
 
 #[deriving(Clone)]
 struct Collider(Aabb3<f32>);
@@ -33,16 +35,27 @@ impl std::default::Default for Collider {
 }
 
 #[deriving(Clone)]
-pub struct CollisionData {
-    static_colliders: BTreeMap<ObjectKey, Collider>,
-    colliders: BTreeMap<ObjectKey, Collider>
+struct Velocity(Vector3<f32>);
+
+impl std::default::Default for Velocity {
+    fn default() -> Velocity {
+        Velocity(Vector3::new(0f32, 0., 0.))
+    }
 }
 
-impl CollisionData {
-    pub fn new() -> CollisionData {
-        CollisionData {
+#[deriving(Clone)]
+pub struct PhysicsData {
+    static_colliders: BTreeMap<ObjectKey, Collider>,
+    colliders: BTreeMap<ObjectKey, Collider>,
+    velocity: BTreeMap<ObjectKey, Velocity>
+}
+
+impl PhysicsData {
+    pub fn new() -> PhysicsData {
+        PhysicsData {
             static_colliders: BTreeMap::new(),
-            colliders: BTreeMap::new()
+            colliders: BTreeMap::new(),
+            velocity: BTreeMap::new()
         }
     }
 }
@@ -66,28 +79,39 @@ fn recalc_aabb(aabb: &Aabb3<f32>, mat: &Matrix4<f32>) -> Aabb3<f32> {
     new_aabb
 }
 
-pub trait Collision: Common + Positions {
-    fn get_collision<'a>(&'a self) -> &'a CollisionData;
-    fn get_collision_mut<'a>(&'a mut self) -> &'a mut CollisionData;
+pub trait Physics: Common + Positions {
+    fn get_physics<'a>(&'a self) -> &'a PhysicsData;
+    fn get_physics_mut<'a>(&'a mut self) -> &'a mut PhysicsData;
 
     fn add_static_collider(&mut self, key: ObjectKey, collider: Aabb3<f32>) {
-        self.get_collision_mut().static_colliders.insert(key, Collider(collider));   
+        self.get_physics_mut().static_colliders.insert(key, Collider(collider));   
     }
 
     fn get_static_collider<'a>(&'a self, key: ObjectKey) -> Option<&'a Aabb3<f32>> {
-        match self.get_collision().static_colliders.find(&key) {
+        match self.get_physics().static_colliders.find(&key) {
             Some(&Collider(ref c)) => Some(c),
             None => None
         }
     }
 
     fn add_collider(&mut self, key: ObjectKey, collider: Aabb3<f32>) {
-        self.get_collision_mut().colliders.insert(key, Collider(collider));   
+        self.get_physics_mut().colliders.insert(key, Collider(collider));   
     }
 
     fn get_collider<'a>(&'a self, key: ObjectKey) -> Option<&'a Aabb3<f32>> {
-        match self.get_collision().colliders.find(&key) {
+        match self.get_physics().colliders.find(&key) {
             Some(&Collider(ref c)) => Some(c),
+            None => None
+        }
+    }
+
+    fn set_velocity(&mut self, key: ObjectKey, v: Vector3<f32>) {
+        self.get_physics_mut().velocity.insert(key, Velocity(v));
+    }
+
+    fn get_velocity(&self, key: ObjectKey) -> Option<Vector3<f32>> {
+        match self.get_physics().velocity.find(&key) {
+            Some(&Velocity(ref dat)) => Some(dat.clone()),
             None => None
         }
     }
@@ -99,14 +123,14 @@ pub trait Collision: Common + Positions {
 
         let mut bvh_builder = BvhBuilder::new();
 
-        for (key, (loc, &Collider(ref aabb))) in join_maps(self.location_iter(), self.get_collision().static_colliders.iter()) {
+        for (key, (loc, &Collider(ref aabb))) in join_maps(self.location_iter(), self.get_physics().static_colliders.iter()) {
             let mat = mats.get(pos.get_loc(*loc));
             bvh_builder.add(recalc_aabb(aabb, mat), *key);
         }
 
         let bvh = bvh_builder.build();
 
-        for (_, (loc, &Collider(ref aabb))) in join_maps(self.location_iter(), self.get_collision().colliders.iter()) {
+        for (_, (loc, &Collider(ref aabb))) in join_maps(self.location_iter(), self.get_physics().colliders.iter()) {
             let mat = mats.get(pos.get_loc(*loc));
             let aabb = recalc_aabb(aabb, mat);
             for i in bvh.collision_iter(&aabb) {

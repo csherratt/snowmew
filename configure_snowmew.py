@@ -279,7 +279,7 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
            Lib("snowmew-loader", ["snowmew", "snowmew-graphics"]),
            Lib("snowmew-physics", ["snowmew", "collision", "snowmew-position", "cow"]),
            Lib("snowmew-position", ["snowmew", "cgmath", "OpenCL", "cow"]),
-           Lib("snowmew-graphics", ["snowmew", "cgmath", "cow"]),
+           Lib("snowmew-graphics", ["snowmew", "cgmath", "cow", "collision"]),
            Lib("cgmath"),
            Lib("cow"),
            Lib("gl"),
