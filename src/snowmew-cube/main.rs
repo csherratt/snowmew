@@ -44,14 +44,13 @@ use gamedata::GameData;
 mod gamedata;
 
 fn get_cl() -> Option<Arc<Device>> {
-    return None;
     let platforms = get_platforms();
 
     // find a gpu
     for platform in platforms.iter() {
         let devices = platform.get_devices_by_types(&[GPU]);
         if devices.len() != 0 {
-            return Some(Arc::new(devices[0]));
+            return Some(Arc::new(*devices.get(0)));
         } 
     }
 
@@ -59,7 +58,7 @@ fn get_cl() -> Option<Arc<Device>> {
     for platform in platforms.iter() {
         let devices = platform.get_devices_by_types(&[CPU, GPU]);
         if devices.len() != 0 {
-            return Some(Arc::new(devices[0]));
+            return Some(Arc::new(*devices.get(0)));
         } 
     }
 
@@ -139,8 +138,8 @@ fn main() {
         let cl = get_cl();
 
         let mut ren = match cl {
-            Some(dev) => RenderManager::new_cl(~db.clone(), display, (wx, wy), dev),
-            None => RenderManager::new(~db.clone(), display, (wx, wy))
+            Some(dev) => RenderManager::new_cl(box db.clone(), display, (wx, wy), dev),
+            None => RenderManager::new(box db.clone(), display, (wx, wy))
         };
         //display_input.set_cursor(wx as f64 /2., wy as f64/2.);
 
@@ -209,7 +208,7 @@ fn main() {
 
             db.update_location(camera_loc, head_trans);
 
-            ren.update(~db.clone(), scene, camera_loc);
+            ren.update(box db.clone(), scene, camera_loc);
 
             last_input = input_state;
         }

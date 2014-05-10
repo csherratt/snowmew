@@ -57,7 +57,7 @@ mod config;
 pub trait RenderData : Graphics + Positions + Clone {}
 
 enum RenderCommand {
-    Update(~RenderData:Send, ObjectKey, ObjectKey),
+    Update(Box<RenderData:Send>, ObjectKey, ObjectKey),
     Waiting(Sender<Option<DrawlistStandard>>),
     Complete(DrawlistStandard),
     Setup(Sender<Option<CommandQueue>>),
@@ -99,7 +99,7 @@ fn render_task(chan: Sender<RenderCommand>) {
     }
 }
 
-fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window, size: (i32, i32),
+fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Window, size: (i32, i32),
                  cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
     let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
@@ -112,18 +112,17 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
     let cfg = Config::new(window.get_context_version());
 
     window.make_context_current();
-    glfw::set_swap_interval(1);
 
     let mut pipeline = {
         let (width, height) = size;
         if !window.is_hmd() {
-            ~pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint) as ~Pipeline
+            box pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint) as Box<Pipeline>
         } else {
-            ~pipeline::Hmd::new(
+            box pipeline::Hmd::new(
                 pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint),
                 1.,
                 window.hmdinfo()
-            ) as ~Pipeline
+            ) as Box<Pipeline>
         }
     };
 
@@ -238,7 +237,7 @@ pub struct RenderManager {
 }
 
 impl RenderManager {
-    fn _new(db: ~RenderData:Send, window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
+    fn _new(db: Box<RenderData:Send>, window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
         let (sender, receiver) = channel();
 
         window.make_context_current();
@@ -274,15 +273,15 @@ impl RenderManager {
         RenderManager { ch: sender }
     }
 
-    pub fn new_cl(db: ~RenderData:Send, window: Window, size: (i32, i32), device: Arc<Device>) -> RenderManager {
+    pub fn new_cl(db: Box<RenderData:Send>, window: Window, size: (i32, i32), device: Arc<Device>) -> RenderManager {
         RenderManager::_new(db, window, size, Some(device))
     }
 
-    pub fn new(db: ~RenderData:Send, window: Window, size: (i32, i32)) -> RenderManager {
+    pub fn new(db: Box<RenderData:Send>, window: Window, size: (i32, i32)) -> RenderManager {
         RenderManager::_new(db, window, size, None)
     }
 
-    pub fn update(&mut self, db: ~RenderData:Send, scene: ObjectKey, camera: ObjectKey) {
+    pub fn update(&mut self, db: Box<RenderData:Send>, scene: ObjectKey, camera: ObjectKey) {
         self.ch.send(Update(db, scene, camera));
     }
 }
