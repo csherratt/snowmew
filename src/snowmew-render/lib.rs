@@ -23,10 +23,11 @@ extern crate graphics = "snowmew-graphics";
 
 use std::ptr;
 use std::mem;
+use std::task::{TaskResult, TaskBuilder};
 use std::comm::{Receiver, Sender, Empty, Disconnected};
 
 use cgmath::matrix::{Matrix, ToMatrix4};
-use cgmath::vector::{Vector, Vector3};
+use cgmath::vector::{Vector3};
 use cgmath::rotation::{Rotation3};
 use cgmath::angle::{ToRad, deg};
 
@@ -61,7 +62,7 @@ enum RenderCommand {
     Waiting(Sender<Option<DrawlistStandard>>),
     Complete(DrawlistStandard),
     Setup(Sender<Option<CommandQueue>>),
-    Finish(Sender<()>)
+    Finish
 }
 
 fn swap_buffers(disp: &mut Window) {
@@ -196,7 +197,7 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
                 swap_buffers(&mut window);
                 drawlists.push(dl);
             },
-            Some(Finish(ack)) => {
+            Some(Finish) => {
                 // flush the port, this should release any
                 // async drawlist workers
                 println!("render: dropping waiting");
@@ -215,7 +216,6 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
                         _ => ()
                     }
                 }
-                ack.send(());
                 println!("render: exiting");
                 return;
             },
@@ -233,7 +233,8 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
 }
 
 pub struct RenderManager {
-    ch: Sender<RenderCommand>
+    ch: Sender<RenderCommand>,
+    render_done: Receiver<TaskResult>
 }
 
 impl RenderManager {
@@ -256,11 +257,11 @@ impl RenderManager {
         };
         glfw::make_context_current(None);
 
+        let mut taskbuilder = TaskBuilder::new();
+        taskbuilder = taskbuilder.named("render-main".into_maybe_owned());
+        let render_main_result = taskbuilder.future_result();
 
-        let mut taskopts = std::task::TaskOpts::new();
-        taskopts.name = Some("render-main".into_maybe_owned());
-
-        native::task::spawn_opts(taskopts, proc() {
+        taskbuilder.spawn(proc() {
             let db = db;
             let window = window;
 
@@ -275,7 +276,10 @@ impl RenderManager {
             render_task(task_c);
         });
 
-        RenderManager { ch: sender }
+        RenderManager { 
+            ch: sender,
+            render_done: render_main_result
+        }
     }
 
     pub fn new_cl(db: Box<RenderData:Send>, window: Window, size: (i32, i32), device: Arc<Device>) -> RenderManager {
@@ -293,9 +297,7 @@ impl RenderManager {
 
 impl Drop for RenderManager {
     fn drop(&mut self) {
-        let (c, p) = channel();
-        self.ch.send(Finish(c));
-        let _ = self.ch;
-        p.recv();
+        self.ch.send(Finish);
+        drop(self.render_done.recv());
     }
 }
