@@ -8,11 +8,15 @@ extern crate OpenCL;
 extern crate libc;
 
 use OpenCL::CL::{cl_mem, cl_mem_flags, cl_context, cl_int};
-use OpenCL::hl::{Context, Device, create_context_with_properties};
+use OpenCL::hl::{Context, Device};
+
+#[cfg(target_os = "macos")]
+use OpenCL::hl::create_context_with_properties;
 
 type CGLContextObj = libc::intptr_t;
 type CGLShareGroupObj = libc::intptr_t;
 
+#[cfg(target_os = "macos")]
 static CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE: libc::intptr_t = 0x10000000;
 
 extern {
@@ -39,7 +43,7 @@ pub fn create_context(dev: &Device) -> Option<Context> {
 }
 
 #[cfg(target_os = "linux")]
-pub fn create_context(dev: &Device) -> Option<Context> {
+pub fn create_context(_: &Device) -> Option<Context> {
     None
 }
 

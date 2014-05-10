@@ -2,7 +2,9 @@ use sync::Arc;
 use glfw::{WindowEvent, Key, MouseButton, Glfw, Context};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
 use glfw::{CloseEvent, FocusEvent};
-use glfw::{Windowed, RenderContext, FullScreen};
+use glfw::{Windowed, RenderContext};
+#[cfg(target_os = "macos")]
+use glfw::FullScreen;
 use glfw;
 use gl;
 
@@ -314,7 +316,7 @@ impl IOManager
     fn create_hmd_window(&self, hmdinfo: &ovr::HMDInfo) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
         let (width, height) = hmdinfo.resolution();
         let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew", Windowed);
-        let (mut window, events) = match win_opt {
+        let (window, events) = match win_opt {
             Some((window, events)) => (window, events),
             None => return None
         };
@@ -336,7 +338,7 @@ impl IOManager
 
                 let (width, height) = hmdinfo.resolution();
                 let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew", FullScreen(m));
-                let (mut window, events) = match win_opt {
+                let (window, events) = match win_opt {
                     Some((window, events)) => (window, events),
                     None => return None
                 };
