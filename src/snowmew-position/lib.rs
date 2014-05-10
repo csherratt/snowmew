@@ -233,7 +233,7 @@ impl Deltas {
         }
     }
 
-    pub fn root() -> Id {Id(0, 0)}
+    pub fn root() -> Id { Id(0, 0) }
 
     pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
@@ -407,7 +407,7 @@ impl Clone for ComputedPosition {
 }
 
 impl ComputedPosition {
-    pub fn root() -> Id {Id(0, 0)}
+    pub fn root() -> Id { Id(0, 0) }
 
     pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;

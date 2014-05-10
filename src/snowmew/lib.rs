@@ -27,8 +27,7 @@ pub mod common;
 pub mod camera;
 pub mod io;
 
-fn setup_glfw() -> glfw::Glfw
-{
+fn setup_glfw() -> glfw::Glfw {
     let glfw = glfw::init(glfw::FAIL_ON_ERRORS).ok().unwrap();
 
     glfw.window_hint(glfw::ContextVersion(4, 1));
@@ -42,8 +41,7 @@ fn setup_glfw() -> glfw::Glfw
     glfw
 }
 
-pub fn start_manual_input(f: proc(&mut io::IOManager))
-{
+pub fn start_manual_input(f: proc(&mut io::IOManager)) {
     let glfw = setup_glfw();
 
     let f = f;

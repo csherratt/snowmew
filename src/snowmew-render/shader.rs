@@ -43,8 +43,7 @@ pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
     shader
 }
 
-fn uniform(program: GLuint, s: &str) -> i32
-{
+fn uniform(program: GLuint, s: &str) -> i32 {
     unsafe {
         s.with_c_str(|c_str| {
             gl::GetUniformLocation(program, c_str)
@@ -61,8 +60,7 @@ pub struct Shader {
 }
 
 impl Shader {
-    fn _new(vs: GLuint, gs: GLuint, fs: GLuint, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader
-    {
+    fn _new(vs: GLuint, gs: GLuint, fs: GLuint, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader {
         let program = gl::CreateProgram();
         gl::AttachShader(program, vs);
         gl::AttachShader(program, fs);
@@ -104,33 +102,28 @@ impl Shader {
         }
     }
 
-    pub fn new(vert: &str, frag: &str, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader
-    {
+    pub fn new(vert: &str, frag: &str, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader {
         let vert = compile_shader(vert, gl::VERTEX_SHADER);
         let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
         Shader::_new(vert, 0, frag, bind_attr, bind_frag)
     }
 
-    pub fn new_geo(vert: &str, frag: &str, geo: &str, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader
-    {
+    pub fn new_geo(vert: &str, frag: &str, geo: &str, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader {
         let vert = compile_shader(vert, gl::VERTEX_SHADER);
         let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
         let geo = compile_shader(geo, gl::GEOMETRY_SHADER);
         Shader::_new(vert, geo, frag, bind_attr, bind_frag)
     }
 
-    pub fn uniform(&self, s: &str) -> i32
-    {
+    pub fn uniform(&self, s: &str) -> i32 {
         uniform(self.program, s)
     }
 
-    pub fn bind(&self)
-    {
+    pub fn bind(&self) {
         gl::UseProgram(self.program);
     }
 
-    pub fn set_material(&self, m: &Material)
-    {
+    pub fn set_material(&self, m: &Material) {
         match *m {
             Flat(ref color) => {
                 let id = self.uniform("ambient");

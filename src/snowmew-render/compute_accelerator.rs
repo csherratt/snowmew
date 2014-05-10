@@ -88,16 +88,13 @@ void main()
 }
 ";
 
-pub struct PositionGlAccelerator
-{
+pub struct PositionGlAccelerator {
     program: GLuint,
     shader: GLuint
 }
 
-impl PositionGlAccelerator
-{
-    pub fn new() -> PositionGlAccelerator
-    {
+impl PositionGlAccelerator {
+    pub fn new() -> PositionGlAccelerator {
         let program = gl::CreateProgram();
         let shader = compile_shader(position_shader, gl::COMPUTE_SHADER);
         gl::AttachShader(program, shader);
@@ -126,8 +123,7 @@ impl PositionGlAccelerator
         }
     }
 
-    pub fn calc(&self, pos_gl: &ComputedPositionGL, delta: GLuint, pos: GLuint)
-    {
+    pub fn calc(&self, pos_gl: &ComputedPositionGL, delta: GLuint, pos: GLuint) {
         let start = precise_time_ns();
 
         gl::UseProgram(self.program);

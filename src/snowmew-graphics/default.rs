@@ -58,8 +58,7 @@ static WEB_COLORS: [(&'static str, Vector3<f32>), ..16] = [
     ("pruple",  Vector3{x: 0.5,   y: 0.,   z: 0.5}),
 ];
 
-pub fn load_default(db: &mut Graphics)
-{
+pub fn load_default(db: &mut Graphics) {
     let core_dir = db.add_dir(None, "core");
     let mat_dir = db.add_dir(Some(core_dir), "material");
     let flat_dir = db.add_dir(Some(mat_dir), "flat");

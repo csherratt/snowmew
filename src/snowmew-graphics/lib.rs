@@ -39,8 +39,7 @@ impl Ord for Drawable {
 impl TotalEq for Drawable {}
 
 impl TotalOrd for Drawable {
-    fn cmp(&self, other: &Drawable) -> Ordering
-    {
+    fn cmp(&self, other: &Drawable) -> Ordering {
         let order = self.geometry.cmp(&other.geometry);
         match order {
             Equal => self.material.cmp(&other.material),

@@ -11,8 +11,7 @@ use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGetTexNorm};
 use graphics::geometry::{Geo, GeoTex, GeoTexNorm, Empty};
 
 #[deriving(Clone, Default)]
-pub struct VertexBuffer
-{
+pub struct VertexBuffer {
     vertex_array: GLuint,
     vertex_buffer: GLuint,
     index_buffer: GLuint,
@@ -22,8 +21,7 @@ pub struct VertexBuffer
 }
 
 impl VertexBuffer {
-    pub fn new(vertex: &Vertex, index: &[u32]) -> VertexBuffer
-    {
+    pub fn new(vertex: &Vertex, index: &[u32]) -> VertexBuffer {
         let mut vao = 0;
         let vbo: &mut[gl::types::GLuint] = &mut [0, 0];
 
@@ -105,8 +103,7 @@ impl VertexBuffer {
         }
     }
 
-    pub fn bind(&self)
-    {
+    pub fn bind(&self) {
         gl::BindVertexArray(self.vertex_array);
         //gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer);
         //gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.index_buffer);

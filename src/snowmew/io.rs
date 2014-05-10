@@ -18,16 +18,14 @@ use ovr;
 pub type WindowId = uint;
 
 #[deriving(Clone)]
-struct InputHistory
-{
+struct InputHistory {
     older: Option<Arc<InputHistory>>,
     time: Option<f64>,
     event: WindowEvent
 }
 
 #[deriving(Clone)]
-pub struct InputState
-{
+pub struct InputState {
     history: Option<Arc<InputHistory>>,
     keyboard: HashSet<Key>,
     mouse: HashSet<MouseButton>,
@@ -38,15 +36,12 @@ pub struct InputState
     predicted: Quaternion<f32>,
 }
 
-struct InputHistoryIterator
-{
+struct InputHistoryIterator {
     current: Option<Arc<InputHistory>>
 }
 
-impl Iterator<(Option<f64>, WindowEvent)> for InputHistoryIterator
-{
-    fn next(&mut self) -> Option<(Option<f64>, WindowEvent)>
-    {
+impl Iterator<(Option<f64>, WindowEvent)> for InputHistoryIterator {
+    fn next(&mut self) -> Option<(Option<f64>, WindowEvent)> {
         let (next, res) = match self.current {
             Some(ref next) => {
                 let next = next.deref();
@@ -66,10 +61,8 @@ pub struct DeltaIterator {
 }
 
 
-impl Iterator<(Option<f64>, WindowEvent)> for DeltaIterator
-{
-    fn next(&mut self) -> Option<(Option<f64>, WindowEvent)>
-    {
+impl Iterator<(Option<f64>, WindowEvent)> for DeltaIterator {
+    fn next(&mut self) -> Option<(Option<f64>, WindowEvent)> {
         match (&self.current, &self.origin) {
             (&None, &None) => return None,
             (&Some(ref a), &Some(ref b)) => {
@@ -93,10 +86,8 @@ impl Iterator<(Option<f64>, WindowEvent)> for DeltaIterator
     }
 }
 
-impl InputState
-{
-    fn new(win: &glfw::Window) -> InputState
-    {
+impl InputState {
+    fn new(win: &glfw::Window) -> InputState {
         InputState {
             history: None,
             keyboard: HashSet::new(),
@@ -109,8 +100,7 @@ impl InputState
         }
     }
 
-    fn event(&mut self, time: Option<f64>, event: WindowEvent)
-    {
+    fn event(&mut self, time: Option<f64>, event: WindowEvent) {
         self.history = Some(Arc::new( InputHistory{
             older: self.history.clone(),
             time: time,
@@ -128,8 +118,7 @@ impl InputState
         }
     }
 
-    fn iter(&self) -> InputHistoryIterator
-    {
+    fn iter(&self) -> InputHistoryIterator {
         InputHistoryIterator {
             current: self.history.clone()
         }
@@ -145,8 +134,7 @@ impl InputState
         self.mouse.contains(&button)
     }
 
-    pub fn time(&self) -> f64
-    {
+    pub fn time(&self) -> f64 {
         for (t, _) in self.iter() {
             match t {
                 Some(t) => return t,
@@ -156,8 +144,7 @@ impl InputState
         0.
     }
 
-    pub fn cursor_delta(&self, epoc: f64) -> Option<(f64, f64)>
-    {
+    pub fn cursor_delta(&self, epoc: f64) -> Option<(f64, f64)> {
         let mut latest = None;
         let mut old = (0f64, 0f64);
         let mut iter = self.iter();
@@ -201,23 +188,19 @@ impl InputState
         Some((nx-x, ny-y))
     }
 
-    pub fn should_close(&self) -> bool
-    {
+    pub fn should_close(&self) -> bool {
         self.should_close
     }
 
-    pub fn is_focused(&self) -> bool
-    {
+    pub fn is_focused(&self) -> bool {
         self.focus
     }
 
-    pub fn screen_size(&self) -> (i32, i32)
-    {
+    pub fn screen_size(&self) -> (i32, i32) {
         self.screen_size.clone()
     }
 
-    pub fn framebuffer_size(&self) -> (i32, i32)
-    {
+    pub fn framebuffer_size(&self) -> (i32, i32) {
         self.framebuffer_size.clone()
     }
 
@@ -229,15 +212,13 @@ impl InputState
     }
 }
 
-struct WindowHandle
-{
+struct WindowHandle {
     window: glfw::Window,
     receiver: Receiver<(f64, WindowEvent)>,
     state: InputState
 }
 
-pub struct IOManager
-{
+pub struct IOManager {
     glfw: Glfw,
     ovr_sensor_device: Option<ovr::SensorDevice>,
     ovr_hmd_device: Option<ovr::HMDDevice>,
@@ -246,18 +227,15 @@ pub struct IOManager
     window_id: uint
 }
 
-pub struct Window
-{
+pub struct Window {
     handle: InputHandle,
     render: RenderContext,
     version: semver::Version,
     ovr_sensor_fusion: Option<Arc<(ovr::SensorFusion, ovr::HMDInfo)>>
 }
 
-impl IOManager
-{
-    pub fn new(glfw: glfw::Glfw) -> IOManager
-    {
+impl IOManager {
+    pub fn new(glfw: glfw::Glfw) -> IOManager {
         IOManager {
             glfw: glfw,
             ovr_device_manager: None,
@@ -268,8 +246,7 @@ impl IOManager
         }
     }
 
-    fn add_window(&mut self, window: glfw::Window, recv: Receiver<(f64, WindowEvent)>) -> InputHandle
-    {
+    fn add_window(&mut self, window: glfw::Window, recv: Receiver<(f64, WindowEvent)>) -> InputHandle {
         let id = self.window_id;
         self.window_id += 1;
 
@@ -389,13 +366,11 @@ impl IOManager
         })
     }
 
-    pub fn get(&self, handle: &InputHandle) -> InputState
-    {
+    pub fn get(&self, handle: &InputHandle) -> InputState {
         self.windows.find(&handle.handle).unwrap().state.clone()
     }
 
-    fn update(&mut self)
-    {
+    fn update(&mut self) {
         for (_, win) in self.windows.mut_iter() {
             for (time, event) in glfw::flush_messages(&win.receiver) {
                 win.state.event(Some(time), event);
@@ -403,20 +378,17 @@ impl IOManager
         }
     }
 
-    pub fn wait(&mut self)
-    {
+    pub fn wait(&mut self) {
         self.glfw.wait_events();
         self.update();
     }
 
-    pub fn poll(&mut self)
-    {
+    pub fn poll(&mut self) {
         self.glfw.poll_events();
         self.update();
     }
 
-    pub fn setup_ovr(&mut self) -> bool
-    {
+    pub fn setup_ovr(&mut self) -> bool {
         if self.ovr_device_manager.is_some() &&
            self.ovr_sensor_device.is_some() &&
            self.ovr_hmd_device.is_some() {
@@ -445,8 +417,7 @@ impl IOManager
         self.ovr_sensor_device.is_some()
     }
 
-    pub fn ovr_manager<'a>(&'a mut self) -> Option<&'a ovr::DeviceManager>
-    {
+    pub fn ovr_manager<'a>(&'a mut self) -> Option<&'a ovr::DeviceManager> {
         if self.ovr_device_manager.is_none() {
             ovr::init();
             self.ovr_device_manager = ovr::DeviceManager::new();
@@ -456,31 +427,25 @@ impl IOManager
 }
 
 #[deriving(Clone)]
-pub struct InputHandle
-{
+pub struct InputHandle {
     handle: uint,
 }
 
-impl Window
-{
-    pub fn swap_buffers(&self)
-    {
+impl Window {
+    pub fn swap_buffers(&self) {
         self.render.swap_buffers()
     }
-
-    pub fn make_context_current(&self)
-    {
+    
+    pub fn make_context_current(&self) {
         self.render.make_current()
     }
 
-    pub fn get_context_version(&self) -> (uint, uint)
-    {
+    pub fn get_context_version(&self) -> (uint, uint) {
         let version = self.version.clone();
         (version.major, version.minor)
     }
 
-    pub fn handle(&self) -> InputHandle
-    {
+    pub fn handle(&self) -> InputHandle {
         self.handle.clone()
     }
 

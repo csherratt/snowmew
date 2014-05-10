@@ -1,16 +1,11 @@
-
-
-enum ConfigOption
-{
+enum ConfigOption {
     Unsupported,
     Disabled,
     Enabled
 }
 
-impl ConfigOption
-{
-    fn enabled(&self) -> bool
-    {
+impl ConfigOption {
+    fn enabled(&self) -> bool {
         match *self {
             Enabled => true,
             _ => false
@@ -18,16 +13,14 @@ impl ConfigOption
     }
 }
 
-pub struct Config
-{
+pub struct Config {
     max_size: uint,
     bindless: ConfigOption
 }
 
 impl Config
 {
-    pub fn new(gl_version: (uint, uint)) -> Config
-    {
+    pub fn new(gl_version: (uint, uint)) -> Config {
         Config {
             max_size: 128*1024,
             bindless: match gl_version {
@@ -38,7 +31,7 @@ impl Config
         }
     }
 
-    pub fn use_bindless(&self) -> bool {self.bindless.enabled()}
+    pub fn use_bindless(&self) -> bool { self.bindless.enabled() }
 
     pub fn max_size(&self) -> uint { self.max_size }
 }

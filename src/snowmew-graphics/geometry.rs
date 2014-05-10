@@ -13,21 +13,18 @@ pub enum Primative {
 }
 
 #[deriving(Clone)]
-pub struct VertexGeo
-{
+pub struct VertexGeo {
     pub position: Vector3<f32>
 }
 
 #[deriving(Clone)]
-pub struct VertexGeoTex
-{
+pub struct VertexGeoTex {
     pub position: Vector3<f32>,
     pub texture: Vector2<f32>
 }
 
 #[deriving(Clone)]
-pub struct VertexGetTexNorm
-{
+pub struct VertexGetTexNorm {
     pub position: Vector3<f32>,
     pub texture: Vector2<f32>,
     pub normal: Vector3<f32>
@@ -41,10 +38,8 @@ pub enum Vertex {
     GeoTexNorm(Vec<VertexGetTexNorm>)
 }
 
-impl Default for Vertex
-{
-    fn default() -> Vertex
-    {
+impl Default for Vertex {
+    fn default() -> Vertex {
         return Empty
     }
 }
@@ -68,8 +63,7 @@ impl Default for Primative {
     fn default() -> Primative {Point}
 }
 
-fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX
-{
+fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX {
     let my_idx = my_idx as int;
     for i in range(0, (index.len()/3) as int) {
         if i != my_idx {
@@ -99,8 +93,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX
 }
 
 
-pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX>
-{
+pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX> {
     let mut vec = Vec::with_capacity(index.len()*2);
     for i in range(0, index.len()/3) {
         let a = &index[i*3];
@@ -118,8 +111,7 @@ pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX>
 }
 
 impl Geometry {
-    pub fn triangles(vb: ObjectKey, offset: uint, count: uint) -> Geometry
-    {
+    pub fn triangles(vb: ObjectKey, offset: uint, count: uint) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -128,8 +120,7 @@ impl Geometry {
         }
     }
 
-    pub fn triangles_adjacency(vb: ObjectKey, offset: uint, count: uint) -> Geometry
-    {
+    pub fn triangles_adjacency(vb: ObjectKey, offset: uint, count: uint) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -138,8 +129,7 @@ impl Geometry {
         }
     }
 
-    pub fn lines(vb: ObjectKey, offset: uint, count: uint) -> Geometry
-    {
+    pub fn lines(vb: ObjectKey, offset: uint, count: uint) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -148,8 +138,7 @@ impl Geometry {
         }
     }
 
-    pub fn points(vb: ObjectKey, offset: uint, count: uint) -> Geometry
-    {
+    pub fn points(vb: ObjectKey, offset: uint, count: uint) -> Geometry {
         Geometry {
             vb: vb,
             count: count,

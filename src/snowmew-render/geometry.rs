@@ -38,8 +38,7 @@ impl GlType for f32 {
     fn gl_type(&self) -> gl::types::GLenum { gl::FLOAT }
 } 
 
-fn find_trig<IDX: GlType+Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX
-{
+fn find_trig<IDX: GlType+Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX {
     let my_idx = my_idx as int;
     for i in range(0, (index.len()/3) as int) {
         if i != my_idx {
@@ -69,8 +68,7 @@ fn find_trig<IDX: GlType+Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) 
 }
 
 
-pub fn to_triangles_adjacency<IDX: GlType+Eq+Clone>(index: &[IDX]) -> ~[IDX]
-{
+pub fn to_triangles_adjacency<IDX: GlType+Eq+Clone>(index: &[IDX]) -> ~[IDX] {
     vec::build(Some(index.len() * 2), |emit| {
         for i in range(0, index.len()/3) {
             let a = &index[i*3];
@@ -88,8 +86,7 @@ pub fn to_triangles_adjacency<IDX: GlType+Eq+Clone>(index: &[IDX]) -> ~[IDX]
 }
 
 impl Geometry {
-    pub fn triangles<VERT: GlType, IDX: GlType>(vertex: &[VERT], index: &[IDX]) -> Geometry
-    {
+    pub fn triangles<VERT: GlType, IDX: GlType>(vertex: &[VERT], index: &[IDX]) -> Geometry {
         let mut vao = 0;
         let vbo: &mut[gl::types::GLuint] = &mut [0, 0];
         unsafe {
@@ -138,8 +135,7 @@ impl Geometry {
         }
     }
 
-    pub fn triangles_adjacency<VERT: GlType, IDX: GlType>(vertex: &[VERT], index: &[IDX]) -> Geometry
-    {
+    pub fn triangles_adjacency<VERT: GlType, IDX: GlType>(vertex: &[VERT], index: &[IDX]) -> Geometry {
         let mut vao = 0;
         let vbo: &mut[gl::types::GLuint] = &mut [0, 0];
         unsafe {
@@ -188,8 +184,7 @@ impl Geometry {
         }
     }
 
-    pub fn lines<VERT: GlType, IDX: GlType+Clone>(vertex: &[VERT], index: &[IDX]) -> Geometry
-    {
+    pub fn lines<VERT: GlType, IDX: GlType+Clone>(vertex: &[VERT], index: &[IDX]) -> Geometry {
         let mut vao = 0;
         let vbo: &mut[gl::types::GLuint] = &mut [0, 0];
 
@@ -257,10 +252,8 @@ impl Geometry {
     }
 }
 
-impl Drop for Geometry
-{
-    fn drop(&mut self)
-    {
+impl Drop for Geometry {
+    fn drop(&mut self) {
         unsafe {
             gl::DeleteVertexArrays(1, &self.vertex_array);
             gl::DeleteBuffers(1, &self.vertex_buffer);

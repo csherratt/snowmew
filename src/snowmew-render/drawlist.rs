@@ -230,8 +230,7 @@ impl Drawlist for DrawlistStandard {
         }
     }
 
-    fn setup_scene(&mut self)
-    {
+    fn setup_scene(&mut self) {
         if self.cl.is_none() {
             for i in range(0u, 4) {
                 gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
@@ -247,8 +246,7 @@ impl Drawlist for DrawlistStandard {
         self.ptr_model_info = ptr::mut_null();;
     }
 
-    fn render(&mut self, camera: Matrix4<f32>)
-    {
+    fn render(&mut self, camera: Matrix4<f32>) {
         let db = self.db.as_ref().unwrap();
         let shader = db.flat_instance_shader.unwrap();
         shader.bind();

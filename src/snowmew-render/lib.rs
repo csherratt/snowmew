@@ -49,7 +49,6 @@ mod db;
 mod shader;
 mod vertex_buffer;
 mod drawlist;
-mod hmd;
 mod pipeline;
 mod query;
 mod compute_accelerator;

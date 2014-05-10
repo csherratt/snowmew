@@ -5,8 +5,7 @@ mod db {
     use snowmew::common::Database;
 
     #[test]
-    fn create_db()
-    {
+    fn create_db() {
         let mut db = Database::new();
 
         let key = db.new_object(None, ~"main");
@@ -15,8 +14,7 @@ mod db {
     }
 
     #[test]
-    fn scene_children()
-    {
+    fn scene_children() {
         let mut db = Database::new();
 
         let key = db.new_object(None, ~"main");

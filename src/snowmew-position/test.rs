@@ -15,8 +15,7 @@ use cgmath::quaternion::Quaternion;
 use cgmath::vector::{Vector3, Vector4};
 
 #[test]
-fn insert_children()
-{
+fn insert_children() {
     let mut pos = Deltas::new();
 
     let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
@@ -41,8 +40,7 @@ fn insert_children()
 }
 
 #[test]
-fn insert_children_tree()
-{
+fn insert_children_tree() {
     let mut pos = Deltas::new();
 
     let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
@@ -67,8 +65,7 @@ fn insert_children_tree()
 }
 
 #[test]
-fn to_positions()
-{
+fn to_positions() {
     let mut pos = Deltas::new();
     let mut vec: &mut [Matrix4<f32>] = &mut [Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Matrix4::identity(),
                                              Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Matrix4::identity()];
@@ -98,8 +95,7 @@ fn to_positions()
 
 
 #[test]
-fn to_positions_tree()
-{
+fn to_positions_tree() {
     let mut pos = Deltas::new();
     let mut vec: &mut [Matrix4<f32>] = &mut [Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Matrix4::identity(),
                                              Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Matrix4::identity()];
