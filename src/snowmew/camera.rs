@@ -68,9 +68,9 @@ impl Camera {
 
 impl DrawMatrices
 {
-    pub fn ovr(&self, hmd: &HMDInfo) -> (DrawMatrices, DrawMatrices)
+    pub fn ovr(&self, hmd: &HMDInfo, scale: f32) -> (DrawMatrices, DrawMatrices)
     {
-        let ((pl, pr), (vl, vr)) = ovr::create_reference_matrices(hmd, &self.view, 1.7);
+        let ((pl, pr), (vl, vr)) = ovr::create_reference_matrices(hmd, &self.view, scale);
 
         (DrawMatrices {
             projection: pl,

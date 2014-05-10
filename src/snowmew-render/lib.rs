@@ -21,8 +21,14 @@ extern crate gl_cl;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 
+use std::ptr;
 use std::mem;
 use std::comm::{Receiver, Sender, Empty, Disconnected};
+
+use cgmath::matrix::{Matrix, ToMatrix4};
+use cgmath::vector::{Vector, Vector3};
+use cgmath::rotation::{Rotation3};
+use cgmath::angle::{ToRad, deg};
 
 use OpenCL::hl::{CommandQueue, Context, Device};
 use sync::Arc;
@@ -60,12 +66,12 @@ enum RenderCommand {
 
 fn swap_buffers(disp: &mut Window) {
     disp.swap_buffers();
-    /*unsafe {
+    unsafe {
         gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
         let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
         gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
         gl::DeleteSync(sync);
-    }*/
+    }
 }
 
 fn render_task(chan: Sender<RenderCommand>) {
@@ -110,7 +116,15 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
 
     let mut pipeline = {
         let (width, height) = size;
-        pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint)
+        if !window.is_hmd() {
+            ~pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint) as ~Pipeline
+        } else {
+            ~pipeline::Hmd::new(
+                pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint),
+                1.,
+                window.hmdinfo()
+            ) as ~Pipeline
+        }
     };
 
     // todo move!
@@ -168,13 +182,16 @@ fn render_server(port: Receiver<RenderCommand>, db: ~RenderData, window: Window,
                 let rot = db.location(camera).unwrap().get().rot;
                 let camera_trans = db.position(camera);
 
-                //let input = ih.get();
-                //let rift = input.predicted;
-                //et rift = rift.mul_q(&Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
+                let camera = if window.is_hmd() {
+                    let sf = window.sensor_fusion();
+                    let rift = sf.get_predicted_orientation(None);
+                    let rift = rift.mul_q(&Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
+                    Camera::new(rot.mul_q(&rift), camera_trans.mul_m(&rift.to_matrix4()))
+                } else {
+                    Camera::new(rot, camera_trans)
+                };
 
-                let camera = Camera::new(rot, camera_trans);
-
-                let dt = DrawTarget::new(0, (0, 0), (1280, 800));
+                let dt = DrawTarget::new(0, (0, 0), (1280, 800), ~[gl::BACK_LEFT]);
 
                 pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
                 swap_buffers(&mut window);

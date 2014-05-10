@@ -35,6 +35,7 @@ static INDEX_DATA: [u32, ..36] = [
     // cube back
     2, 6, 3,
     6, 7, 3,
+
 ];
 
 

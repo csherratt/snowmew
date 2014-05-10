@@ -1,14 +1,14 @@
-use sync::{Arc, Mutex};
-use glfw::{WindowEvent, Window, wait_events, Key, MouseButton, poll_events};
-use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
-use glfw::{CloseEvent, FocusEvent, EventReceiver};
-
 use std::task;
 use std::mem;
 use std::comm::Select;
 use std::comm::{Sender, Receiver};
 use std::comm::{Empty, Disconnected, Data};
 use collections::HashSet;
+
+use sync::{Arc, Mutex};
+use glfw::{WindowEvent, Window, wait_events, Key, MouseButton, poll_events};
+use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
+use glfw::{CloseEvent, FocusEvent, EventReceiver};
 
 use cgmath::quaternion::Quat;
 

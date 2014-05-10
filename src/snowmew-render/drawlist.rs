@@ -275,11 +275,6 @@ impl Drawlist for DrawlistStandard {
             gl::ActiveTexture(gl::TEXTURE4);
             gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_info);
             gl::Uniform1i(shader.uniform("info"), 4);
-    }
-
-        unsafe {
-            let buffers = &[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1, gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3];
-            gl::DrawBuffers(4, buffers.unsafe_ref(0));
         }
 
         let mut range = (0u, 0u);

@@ -2,7 +2,7 @@ use sync::Arc;
 use glfw::{WindowEvent, Key, MouseButton, Glfw, Context};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
 use glfw::{CloseEvent, FocusEvent};
-use glfw::{Windowed, RenderContext};
+use glfw::{Windowed, RenderContext, FullScreen};
 use glfw;
 use gl;
 
@@ -248,7 +248,8 @@ pub struct Window
 {
     handle: InputHandle,
     render: RenderContext,
-    version: semver::Version
+    version: semver::Version,
+    ovr_sensor_fusion: Option<Arc<(ovr::SensorFusion, ovr::HMDInfo)>>
 }
 
 impl IOManager
@@ -283,16 +284,13 @@ impl IOManager
         InputHandle{ handle: id }
     }
 
-    pub fn window(&mut self, size: (u32, u32)) -> Option<Window>
-    {
+    pub fn window(&mut self, size: (u32, u32)) -> Option<Window> {
         let (width, height) = size;
         let win_opt = self.glfw.create_window(width, height, "Snowmew", Windowed);
         let (mut window, events) = match win_opt {
             Some((window, events)) => (window, events),
             None => return None
         };
-
-        println!("{:?}", window.get_context_version());
 
         window.make_current();
         gl::load_with(|name| self.glfw.get_proc_address(name));
@@ -307,7 +305,85 @@ impl IOManager
         Some(Window {
             handle: handle,
             render: rc,
-            version: version
+            version: version,
+            ovr_sensor_fusion: None
+        })
+    }
+
+    #[cfg(target_os="linux")]
+    fn create_hmd_window(&self, hmdinfo: &ovr::HMDInfo) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
+        let (width, height) = hmdinfo.resolution();
+        let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew", Windowed);
+        let (mut window, events) = match win_opt {
+            Some((window, events)) => (window, events),
+            None => return None
+        };
+
+        // move viewport
+        let (dx, dy) = hmdinfo.desktop();
+        window.set_pos(dx as i32, dy as i32);
+
+        Some((window, events))
+    }
+
+    #[cfg(target_os="macos")]
+    fn create_hmd_window(&self, hmdinfo: &ovr::HMDInfo) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
+        self.glfw.with_connected_monitors(|monitors| {
+            for m in monitors.iter() {
+                if !m.get_name().as_slice().contains("Rift") {
+                    continue;
+                }
+
+                let (width, height) = hmdinfo.resolution();
+                let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew", FullScreen(m));
+                let (mut window, events) = match win_opt {
+                    Some((window, events)) => (window, events),
+                    None => return None
+                };
+
+                return Some((window, events));
+            }
+            None
+        })
+    }
+
+    pub fn hmd(&mut self) -> Option<Window> {
+        if !self.setup_ovr() {
+            return None;
+        }
+
+        let (window, events, sensor_fusion, rc, hmdinfo) = {
+            let hmd = self.ovr_hmd_device.as_ref().unwrap();
+            let hmdinfo = hmd.get_info();
+
+            let (mut window, events) = match self.create_hmd_window(&hmdinfo) {
+                Some((window, events)) => (window, events),
+                None => return None
+            };
+
+            window.make_current();
+            gl::load_with(|name| self.glfw.get_proc_address(name));
+            glfw::make_context_current(None);
+
+            let sensor = self.ovr_sensor_device.as_ref().unwrap();
+            let sensor_fusion = ovr::SensorFusion::new().expect("Could not allocate Sensor Fusion");
+            sensor_fusion.attach_to_sensor(sensor);
+
+            window.set_all_polling(true);
+            window.show();
+
+            let rc = window.render_context();
+            (window, events, sensor_fusion, rc, hmdinfo)
+        };
+
+        let version = window.get_context_version();
+        let handle = self.add_window(window, events);
+
+        Some(Window {
+            handle: handle,
+            render: rc,
+            version: version,
+            ovr_sensor_fusion: Some(Arc::new((sensor_fusion, hmdinfo)))
         })
     }
 
@@ -364,12 +440,7 @@ impl IOManager
             None => return false
         }
 
-        match self.ovr_sensor_device {
-            Some(_) => {
-                fail!("todo");
-            },
-            None => return false
-        }
+        self.ovr_sensor_device.is_some()
     }
 
     pub fn ovr_manager<'a>(&'a mut self) -> Option<&'a ovr::DeviceManager>
@@ -406,13 +477,29 @@ impl Window
         (version.major, version.minor)
     }
 
-    pub fn is_hmd(&self) -> bool
-    {
-        false
-    }
-
     pub fn handle(&self) -> InputHandle
     {
         self.handle.clone()
+    }
+
+    pub fn is_hmd(&self) -> bool {
+        self.ovr_sensor_fusion.is_some()
+    }
+
+    fn hmd_data<'a>(&'a self) -> &'a (ovr::SensorFusion, ovr::HMDInfo) {
+        match self.ovr_sensor_fusion {
+            Some(ref arc) => arc.deref(),
+            None => fail!("This window is not a hmd device")
+        }
+    }
+
+    pub fn hmdinfo<'a>(&'a self) -> &'a ovr::HMDInfo {
+        let &(_, ref hmdinfo) = self.hmd_data();
+        hmdinfo
+    }
+
+    pub fn sensor_fusion<'a>(&'a self) -> &'a ovr::SensorFusion {
+        let &(ref sf, _) = self.hmd_data();
+        sf
     }
 }

@@ -35,8 +35,9 @@ fn setup_glfw() -> glfw::Glfw
     glfw.window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
     glfw.window_hint(glfw::OpenglForwardCompat(true));
     glfw.window_hint(glfw::Visible(false));
-    glfw.window_hint(glfw::DepthBits(0));
-    glfw.window_hint(glfw::StencilBits(0));
+    glfw.window_hint(glfw::DepthBits(32));
+    glfw.window_hint(glfw::StencilBits(8));
+    glfw.window_hint(glfw::Decorated(false));
 
     glfw
 }

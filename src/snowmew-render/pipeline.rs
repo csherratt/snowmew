@@ -23,11 +23,12 @@ pub struct DrawTarget {
     width: GLint,
     height: GLint,
     x: GLint,
-    y: GLint
+    y: GLint,
+    draw_buffers: ~[u32]
 }
 
 impl DrawTarget {
-    pub fn new(framebuffer: GLuint, offset: (int, int), size: (uint, uint)) -> DrawTarget {
+    pub fn new(framebuffer: GLuint, offset: (int, int), size: (uint, uint), draw_buffers: ~[u32]) -> DrawTarget {
         let (x, y) = offset;
         let (width, height) = size;
         DrawTarget {
@@ -35,7 +36,8 @@ impl DrawTarget {
             width: width as GLint,
             height: height as GLint,
             x: x as GLint,
-            y: y as GLint
+            y: y as GLint,
+            draw_buffers: draw_buffers 
         }
     }
 
@@ -43,6 +45,10 @@ impl DrawTarget {
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
         gl::Viewport(self.x, self.y, self.width, self.height);
         gl::Scissor(self.x, self.y, self.width, self.height);
+
+        unsafe {
+            gl::DrawBuffers(self.draw_buffers.len() as i32, self.draw_buffers.unsafe_ref(0))
+        }
     }
 
     pub fn size(&self) -> (uint, uint) {
@@ -179,13 +185,16 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE>
             x: 0,
             y: 0,
             width: self.width,
-            height: self.height
+            height: self.height,
+            draw_buffers: ~[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
+                            gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3]
         }
     }
 }
 
 impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget) {
+
         let dt = self.draw_target();
         self.input.render(drawlist, db, dm, &dt);
 
@@ -232,12 +241,8 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         }
 
         ddt.bind();
-        gl::Scissor(0, 0, self.width as i32, self.height as i32);
-        gl::Viewport(0, 0, self.width as i32, self.height as i32);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         unsafe {
-            let buffers = &[gl::BACK_LEFT];
-            gl::DrawBuffers(1, buffers.unsafe_ref(0));
             assert!(0 == gl::GetError());
             gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
             assert!(0 == gl::GetError());
@@ -283,15 +288,8 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
 
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB as i32, w, h, 0, gl::RGB, gl::UNSIGNED_BYTE, ptr::null());
-        
-            gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer[0]);
-            gl::RenderbufferStorage(gl::RENDERBUFFER, gl::DEPTH_COMPONENT, w, h);
-            gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::RENDERBUFFER, renderbuffer[0]);
 
             gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, textures[0], 0);
-
-            let drawbuffers = &[gl::COLOR_ATTACHMENT0];
-            gl::DrawBuffers(1, drawbuffers.unsafe_ref(0))
         }
 
         Hmd {
@@ -313,7 +311,8 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
             x: 0,
             y: 0,
             width: w/2,
-            height: h
+            height: h,
+            draw_buffers: ~[gl::COLOR_ATTACHMENT0]
         }
     }
 
@@ -326,7 +325,8 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
             x: w/2,
             y: 0,
             width: w/2,
-            height: h
+            height: h,
+            draw_buffers: ~[gl::COLOR_ATTACHMENT0]
         }
     }
 
@@ -345,6 +345,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
         let scale_out: &[f32] = &[scale * (w/2.),  scale * (h/2.) * aspect_ratio];
         let scale_in: &[f32] = &[2./w, (2./h) / aspect_ratio];
 
+        //gl::Viewport(vpx as i32, vpy as i32, vpw as i32, vph as i32);
         gl::Scissor(vpx as i32, vpy as i32, vpw as i32, vph as i32);
         gl::Uniform2f(shader.uniform("ScreenCenter"), screen_center[0], screen_center[1]);
         gl::Uniform2f(shader.uniform("LensCenter"), lens_center[0], lens_center[1]);
@@ -364,7 +365,6 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
 
         dt.bind();
         let (width, height) = self.hmd.resolution();
-        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         gl::ClearColor(0., 0., 0., 1.);
         gl::Scissor(0, 0, width as i32, height as i32);
         gl::Viewport(0, 0, width as i32, height as i32);
@@ -382,6 +382,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
             gl::Uniform4fv(shader.uniform("HmdWarpParam"), 1, distortion_K.unsafe_ref(0));
             gl::Uniform4fv(shader.uniform("ChromAbParam"), 1, chrom_ab_param.unsafe_ref(0));
 
+            gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
 
             self.setup_viewport(shader, (0., 0.,       width/2., height as f32), (width, height), lense_center);
@@ -395,7 +396,7 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
 
 impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE> {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
-        let (left_dm, right_dm) = dm.ovr(&self.hmd);
+        let (left_dm, right_dm) = dm.ovr(&self.hmd, self.scale);
 
         let left = self.left();
         self.input.render(drawlist, db, &left_dm, &left);

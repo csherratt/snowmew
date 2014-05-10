@@ -44,6 +44,7 @@ use gamedata::GameData;
 mod gamedata;
 
 fn get_cl() -> Option<Arc<Device>> {
+    return None;
     let platforms = get_platforms();
 
     // find a gpu
@@ -74,9 +75,9 @@ fn start(argc: int, argv: **u8) -> int {
 fn main() {
     snowmew::start_manual_input(proc(im) {
         println!("Starting");
-        let display = im.window((1280, 800))
-                .expect("Could not create a display");
-
+        let display = im.hmd().unwrap_or_else(|| {
+            im.window((1280, 800)).expect("Failed to create window")
+        });
         let mut db = GameData::new();
 
         let import = Obj::load(&Path::new("assets/suzanne.obj"))
@@ -98,6 +99,7 @@ fn main() {
         }
 
         let size = 5;
+        im.setup_ovr();
 
         println!("creating");
         for x in range(-size, size) {
