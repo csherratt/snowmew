@@ -42,6 +42,8 @@ pub trait Drawlist {
 
     // get materials
     fn materials(&self) -> Vec<Material>;
+
+    fn gl_state<'a>(&'a self) -> &'a GlState; 
 }
 
 pub struct DrawlistStandard {
@@ -333,6 +335,10 @@ impl Drawlist for DrawlistStandard {
             mats.push(self.db.as_ref().unwrap().material(*key).unwrap().clone());
         }
         mats
+    }
+
+    fn gl_state<'a>(&'a self) -> &'a GlState {
+        self.db.as_ref().unwrap()
     }
 }
 

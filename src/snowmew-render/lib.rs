@@ -178,8 +178,8 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
             },
             Some(Complete(mut dl)) => {
                 dl.setup_scene();
-                let rot = db.location(camera).unwrap().get().rot;
-                let camera_trans = db.position(camera);
+                let rot = dl.gl_state().location(camera).unwrap().get().rot;
+                let camera_trans = dl.gl_state().position(camera);
 
                 let camera = if window.is_hmd() {
                     let sf = window.sensor_fusion();
