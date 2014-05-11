@@ -1,7 +1,6 @@
 use cgmath::matrix::{Matrix, Matrix4};
 use cgmath::vector::{Vector3, Vector4};
-use cgmath::point::Point3;
-use cgmath::quaternion::Quaternion;
+use cgmath::point::{Point, Point3};
 use cgmath::projection::perspective;
 use cgmath::angle::deg;
 
@@ -9,7 +8,6 @@ use ovr;
 use ovr::HMDInfo;
 
 pub struct Camera {
-    rotation: Quaternion<f32>,
     transform: Matrix4<f32>
 }
 
@@ -19,9 +17,8 @@ pub struct DrawMatrices {
 }
 
 impl Camera {
-    pub fn new(rot: Quaternion<f32>, transform: Matrix4<f32>) -> Camera {
+    pub fn new(transform: Matrix4<f32>) -> Camera {
         Camera {
-            rotation: rot,
             transform: transform
         }
     }
@@ -34,9 +31,10 @@ impl Camera {
 
     pub fn view_matrix(&self) -> Matrix4<f32> {
         let eye = self.transform.mul_v(&Vector4::new(0f32, 0f32, 0f32, 1f32));
-        let target = self.transform.mul_v(&Vector4::new(0f32, 0f32, 1f32, 1f32));
-        let up = self.rotation.mul_v(&Vector3::new(0f32, 1f32, 0f32));
+        let target = self.transform.mul_v(&Vector4::new(0f32, 0f32, -1f32, 1f32));
+        let up = self.transform.mul_v(&Vector4::new(0f32, 1f32, 0f32, 1f32));
 
+        let up = Point3::from_homogeneous(&up).sub_p(&Point3::from_homogeneous(&eye));
         let eye = Point3::new(eye.x/eye.w, eye.y/eye.w, eye.z/eye.w);
         let target = Point3::new(target.x/target.w, target.y/target.w, target.z/target.w);
 

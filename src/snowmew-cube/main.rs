@@ -191,17 +191,17 @@ fn main() {
             }
 
             let input_vec = Vector3::new(
-                if input_state.key_down(glfw::KeyA) {-0.05f32} else {0f32} +
-                if input_state.key_down(glfw::KeyD) {0.05f32} else {0f32}, 
+                if input_state.key_down(glfw::KeyA) {0.05f32} else {0f32} +
+                if input_state.key_down(glfw::KeyD) {-0.05f32} else {0f32}, 
                 0f32,
-                if input_state.key_down(glfw::KeyW) {-0.05f32} else {0f32} +
-                if input_state.key_down(glfw::KeyS) {0.05f32} else {0f32}
+                if input_state.key_down(glfw::KeyW) {0.05f32} else {0f32} +
+                if input_state.key_down(glfw::KeyS) {-0.05f32} else {0f32}
             );
 
             let rot: Quaternion<f32> =  Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
-            let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(rot_y as f32).to_rad()));
+            let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
 
-            let camera = Camera::new(rot.clone(), Transform3D::new(1f32, rot, pos.to_vec()).to_matrix4());
+            let camera = Camera::new(Transform3D::new(1f32, rot, pos.to_vec()).to_matrix4());
             pos = camera.move(&input_vec.mul_s(-1f32));
 
             let head_trans = Transform3D::new(1f32, rot, pos.to_vec());

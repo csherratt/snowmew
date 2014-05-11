@@ -27,9 +27,6 @@ use std::task::{TaskResult, TaskBuilder};
 use std::comm::{Receiver, Sender, Empty, Disconnected};
 
 use cgmath::matrix::{Matrix, ToMatrix4};
-use cgmath::vector::{Vector3};
-use cgmath::rotation::{Rotation3};
-use cgmath::angle::{ToRad, deg};
 
 use OpenCL::hl::{CommandQueue, Context, Device};
 use sync::Arc;
@@ -120,7 +117,7 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
         } else {
             box pipeline::Hmd::new(
                 pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint),
-                1.,
+                2.0,
                 window.hmdinfo()
             ) as Box<Pipeline>
         }
@@ -178,17 +175,15 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
             },
             Some(Complete(mut dl)) => {
                 dl.setup_scene();
-                let rot = dl.gl_state().location(camera).unwrap().get().rot;
                 let camera_trans = dl.gl_state().position(camera);
 
-                let camera = if window.is_hmd() {
+                let camera = Camera::new(if window.is_hmd() {
                     let sf = window.sensor_fusion();
                     let rift = sf.get_predicted_orientation(None);
-                    let rift = rift.mul_q(&Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(180 as f32).to_rad()));
-                    Camera::new(rot.mul_q(&rift), camera_trans.mul_m(&rift.to_matrix4()))
+                    camera_trans.mul_m(&rift.to_matrix4())
                 } else {
-                    Camera::new(rot, camera_trans)
-                };
+                    camera_trans
+                });
 
                 let dt = DrawTarget::new(0, (0, 0), (1280, 800), ~[gl::BACK_LEFT]);
 
