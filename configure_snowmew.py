@@ -296,7 +296,7 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
 if platform.system() == "Linux":
     modules += [Lib("ovr", ["libOculusVR.a", "libedid.a", "cgmath", "libovr_wrapper.a"]),
                 LibCMake("libedid.a", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/libedid.a"),
-                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK/LibOVR/", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]
+                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK/LibOVR/", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a", ["libedid.a"])]
 
 elif platform.system() == "Darwin":
     modules += [Lib("ovr", ["libOculusVR.a", "cgmath", "libovr_wrapper.a"]),
