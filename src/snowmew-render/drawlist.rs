@@ -5,7 +5,7 @@ use libc::{c_void};
 use collections::treemap::TreeMap;
 
 use cow::join::join_maps;
-use OpenCL::hl::{CommandQueue, Context, Device, EventList};
+use OpenCL::hl::{CommandQueue, Context, Device, Event, EventList};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
 use sync::Arc;
@@ -66,6 +66,7 @@ pub struct DrawlistStandard {
     ptr_model_matrix: [*mut Vector4<f32>, ..4],
     ptr_model_info: *mut (u32, u32, u32, u32),
 
+    event: Option<Event>,
     pub cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>
 }
 
@@ -124,7 +125,8 @@ impl DrawlistStandard {
             ptr_model_info: ptr::mut_null(),
             material_to_id: TreeMap::new(),
             id_to_material: TreeMap::new(),
-            cl: clpos
+            cl: clpos,
+            event: None
         }
     }
 }
@@ -207,6 +209,7 @@ impl Drawlist for DrawlistStandard {
             }
         };
         self.position = Some(position);
+        self.event = evt;
 
         self.material_to_id.clear();
 
@@ -225,11 +228,6 @@ impl Drawlist for DrawlistStandard {
                 }
             });
         }
-
-        match evt {
-            Some(e) => e.wait(),
-            None => ()
-        }
     }
 
     fn setup_scene(&mut self) {
@@ -239,6 +237,11 @@ impl Drawlist for DrawlistStandard {
                 gl::UnmapBuffer(gl::TEXTURE_BUFFER);
                 assert!(0 == gl::GetError());
                 self.ptr_model_matrix[i] = ptr::mut_null();
+            }
+        } else {
+            match self.event {
+                Some(ref e) => e.wait(),
+                None => ()
             }
         }
 
