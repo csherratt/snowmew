@@ -1,14 +1,15 @@
 use std::mem;
 use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
+use sync::{TaskPool, Arc};
 use libc::{c_void};
 use collections::treemap::TreeMap;
-
 use cow::join::join_maps;
+
+
 use OpenCL::hl::{CommandQueue, Context, Device, Event, EventList};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::CL_MEM_READ_WRITE;
-use sync::Arc;
 use cgmath::matrix::Matrix4;
 use cgmath::vector::Vector4;
 use cgmath::ptr::Ptr;
@@ -21,9 +22,10 @@ use snowmew::common::{ObjectKey};
 use position::{ComputedPosition, Positions, CalcPositionsCl, MatrixManager};
 use graphics::Graphics;
 
-
 use db::GlState;
 use Config;
+
+use {RenderCommand, Complete};
 
 pub trait Drawlist {
     // done on the context manager before, Graphics is owned by
@@ -32,7 +34,7 @@ pub trait Drawlist {
     fn bind_scene(&mut self, db: GlState, scene: ObjectKey);
 
     // done first on an external thread
-    fn setup_scene_async(&mut self);
+    fn setup_scene_async(self, tp: &mut TaskPool<Sender<RenderCommand>>);
 
     // setup on the render thread, called after setup_scene_async
     fn setup_scene(&mut self);
@@ -187,47 +189,121 @@ impl Drawlist for DrawlistStandard {
         assert!(0 == gl::GetError());
     }
 
-    fn setup_scene_async(&mut self) {
-        let db = self.db.as_ref().unwrap();
-        let (evt, position) = unsafe {
-            match self.cl {
-                None => {
-                    mut_buf_as_slice(self.ptr_model_matrix[0], self.size, |mat0| {
-                    mut_buf_as_slice(self.ptr_model_matrix[1], self.size, |mat1| {
-                    mut_buf_as_slice(self.ptr_model_matrix[2], self.size, |mat2| {
-                    mut_buf_as_slice(self.ptr_model_matrix[3], self.size, |mat3| {
-                        let mut mat = GLMatrix {
-                            x: mat0, y: mat1, z: mat2, w: mat3
-                        };
-                        (None, db.to_positions(&mut mat))
-                    })})})})               
+
+
+    fn setup_scene_async(self, tp: &mut TaskPool<Sender<RenderCommand>>) {
+        let DrawlistStandard {
+            db: db,
+            cl: cl,
+            size: size,
+            scene: scene,
+            position: position,
+            material_to_id: material_to_id,
+            id_to_material: id_to_material,
+            model_matrix: model_matrix,
+            model_info: model_info,
+            text_model_matrix: text_model_matrix,
+            text_model_info: text_model_info,
+            ptr_model_matrix: ptr_model_matrix,
+            ptr_model_info: ptr_model_info,
+            event: event,
+        } = self;
+
+        let db = db.expect("setup_scene_async called w/o a GLState set");
+        let db0 = db.clone();
+        let (sender, receiver0) = channel();
+        tp.execute(proc(_) {
+            let db = db0;
+            let mut cl = cl;
+            let evt = unsafe {
+                match cl {
+                    None => {
+                        mut_buf_as_slice(ptr_model_matrix[0], size, |mat0| {
+                        mut_buf_as_slice(ptr_model_matrix[1], size, |mat1| {
+                        mut_buf_as_slice(ptr_model_matrix[2], size, |mat2| {
+                        mut_buf_as_slice(ptr_model_matrix[3], size, |mat3| {
+                            let mut mat = GLMatrix {
+                                x: mat0, y: mat1, z: mat2, w: mat3
+                            };
+                            db.write_positions(&mut mat);
+                            None
+                        })})})})               
+                    }
+                    Some((ref mut ctx, ref cq, ref buf)) => {
+                        let evt = db.write_positions_cl(cq.deref(), ctx, buf);
+                        Some(evt)
+                    }
                 }
-                Some((ref mut ctx, ref cq, ref buf)) => {
-                    let (evt, pos) = db.to_positions_cl(cq.deref(), ctx, buf);
-                    (Some(evt), pos)
-                }
+            };
+
+            let position = db.compute_positions();
+            let event = evt;
+            sender.send((position, event, ptr_model_matrix, cl))
+        });
+
+        let db1 = db.clone();
+        let (sender, receiver1) = channel();
+        tp.execute(proc(_) {
+            let db = db1;
+            let mut material_to_id = material_to_id;
+            let mut id_to_material = id_to_material;
+            let position = db.compute_positions();
+
+            material_to_id.clear();
+            id_to_material.clear();
+
+            for (id, (key, _)) in db.material_iter().enumerate() {
+                material_to_id.insert(*key, (id+1) as u32);
+                id_to_material.insert((id+1) as u32, *key);
             }
-        };
-        self.position = Some(position);
-        self.event = evt;
 
-        self.material_to_id.clear();
+            unsafe {
+                mut_buf_as_slice(ptr_model_info, size, |info| {
+                    for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
+                        info[idx] = (id.clone(),
+                                     position.get_loc(*pos) as u32,
+                                     material_to_id.find(&draw.material).unwrap().clone(),
+                                     0u32);
+                    }
+                });
+            }
 
-        for (id, (key, _)) in db.material_iter().enumerate() {
-            self.material_to_id.insert(*key, (id+1) as u32);
-            self.id_to_material.insert((id+1) as u32, *key);
-        }
+            sender.send((material_to_id, id_to_material, ptr_model_info));
+        });
 
-        unsafe {
-            mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
-                for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
-                    info[idx] = (id.clone(),
-                                 self.position.as_ref().unwrap().get_loc(*pos) as u32,
-                                 self.material_to_id.find(&draw.material).unwrap().clone(),
-                                 0u32);
+        tp.execute(proc(ch) {
+            ch.send(Complete(
+                match (receiver0.recv(), receiver1.recv()) {
+                    ((position, event, ptr_model_matrix, cl),
+                     (material_to_id, id_to_material, ptr_model_info)) => {
+                        DrawlistStandard {
+                            // from task 0
+                            position: Some(position),
+                            event: event,
+                            ptr_model_matrix: ptr_model_matrix,
+                            cl: cl,
+
+                            // fromt task 1
+                            material_to_id: material_to_id,
+                            id_to_material: id_to_material,
+                            ptr_model_info: ptr_model_info,
+
+                            // other
+                            db: Some(db),
+                            scene: scene,
+                            size: size,
+                            model_matrix: model_matrix,
+                            model_info: model_info,
+                            text_model_info: text_model_info,
+                            text_model_matrix: text_model_matrix
+                        }
+                    }
                 }
-            });
-        }
+            ));
+        });
+
+        drop(event);
+        drop(position);
     }
 
     fn setup_scene(&mut self) {

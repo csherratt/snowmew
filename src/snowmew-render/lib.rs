@@ -29,7 +29,7 @@ use std::comm::{Receiver, Sender, Empty, Disconnected};
 use cgmath::matrix::{Matrix, ToMatrix4};
 
 use OpenCL::hl::{CommandQueue, Context, Device};
-use sync::Arc;
+use sync::{TaskPool, Arc};
 
 use snowmew::common::ObjectKey;
 use snowmew::camera::Camera;
@@ -55,7 +55,6 @@ pub trait RenderData : Graphics + Positions + Clone {}
 
 enum RenderCommand {
     Update(Box<RenderData:Send>, ObjectKey, ObjectKey),
-    Waiting(Sender<Option<DrawlistStandard>>),
     Complete(DrawlistStandard),
     Setup(Sender<Option<CommandQueue>>),
     Finish
@@ -71,7 +70,7 @@ fn swap_buffers(disp: &mut Window) {
     }
 }
 
-fn render_task(chan: Sender<RenderCommand>) {
+/*fn render_task(chan: Sender<RenderCommand>) {
     let (sender, receiver) = channel();
     chan.send(Setup(sender));
     let _ = receiver.recv();
@@ -94,9 +93,10 @@ fn render_task(chan: Sender<RenderCommand>) {
 
         }
     }
-}
+}*/
 
-fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Window, size: (i32, i32),
+fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
+                 db: Box<RenderData>, window: Window, size: (i32, i32),
                  cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
     let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
 
@@ -107,6 +107,13 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
     let mut camera = 0;
     let mut window = window;
     let cfg = Config::new(window.get_context_version());
+
+    let mut taskpool = TaskPool::new(16, || { 
+        let ch = channel.clone();
+        proc(_: uint) {
+            ch.clone()}
+        }
+    );
 
     window.make_context_current();
 
@@ -138,11 +145,8 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
     let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, cl.clone()),
                              DrawlistStandard::from_config(&cfg, cl.clone()));
 
-    let mut num_workers = 1;
-    let mut waiting = Vec::new();
-
     loop {
-        let cmd = if drawlists.len() == 0 || waiting.len() == 0 || scene == 0 {
+        let cmd = if drawlists.len() == 0 || scene == 0 {
             Some(port.recv())
         } else {
             match port.try_recv() {
@@ -163,15 +167,6 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
                 db.load(&cfg);
                 scene = s;
                 camera = c;
-            },
-            Some(Waiting(ch)) => {
-                if scene != 0 && drawlists.len() != 0 {
-                    let mut dl = drawlists.pop().unwrap();
-                    dl.bind_scene(db.clone(), scene);
-                    ch.send(Some(dl));
-                } else {
-                    waiting.push(ch);
-                }
             },
             Some(Complete(mut dl)) => {
                 dl.setup_scene();
@@ -194,32 +189,15 @@ fn render_server(port: Receiver<RenderCommand>, db: Box<RenderData>, window: Win
             Some(Finish) => {
                 // flush the port, this should release any
                 // async drawlist workers
-                println!("render: dropping waiting");
-                while waiting.len() > 0 {
-                    let c = waiting.pop().unwrap();
-                    c.send(None);
-                    num_workers -= 1;
-                }
-                println!("render: waiting for open connections to close");
-                while num_workers > 0 {
-                    match port.recv() {
-                        Waiting(ch) => {
-                            num_workers -= 1;
-                            ch.send(None)
-                        },
-                        _ => ()
-                    }
-                }
                 println!("render: exiting");
                 return;
             },
             None => {
-                if drawlists.len() > 0 && waiting.len() > 0 {
-                    println!("sending");
-                    let ch = waiting.pop().unwrap();
+                if drawlists.len() > 0 && scene != 0 {
                     let mut dl = drawlists.pop().unwrap();
                     dl.bind_scene(db.clone(), scene);
-                    ch.send(Some(dl));
+                    scene = 0;
+                    dl.setup_scene_async(&mut taskpool);
                 }  
             }
         }
@@ -255,22 +233,15 @@ impl RenderManager {
         taskbuilder = taskbuilder.named("render-main".into_maybe_owned());
         let render_main_result = taskbuilder.future_result();
 
+        let sender_main = sender.clone();
         taskbuilder.spawn(proc() {
             let db = db;
             let window = window;
 
-            render_server(receiver, db, window, size, cl);
+            render_server(receiver, sender_main, db, window, size, cl);
         });
 
-        let mut taskopts = std::task::TaskOpts::new();
-        taskopts.name = Some("render worker #0".into_maybe_owned());
-
-        let task_c = sender.clone();
-        native::task::spawn_opts(taskopts, proc() {
-            render_task(task_c);
-        });
-
-        RenderManager { 
+        RenderManager {
             ch: sender,
             render_done: render_main_result
         }

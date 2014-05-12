@@ -76,7 +76,8 @@ fn to_positions() {
     let id3 = pos.insert(id2, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
     let id4 = pos.insert(id3, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
 
-    let pos = pos.to_positions(&mut vec);
+    pos.write_positions(&mut vec);
+    let pos = pos.compute_positions();
 
     let mat0 = vec[pos.get_loc(id0)];
     let mat1 = vec[pos.get_loc(id1)];
@@ -108,7 +109,8 @@ fn to_positions_tree() {
     let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
     let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(-1f32, -1f32, -1f32)));
 
-    let pos = pos.to_positions(&mut vec);
+    pos.write_positions(&mut vec);
+    let pos = pos.compute_positions();
 
     let mat0 = vec[pos.get_loc(id0_0)];
     let mat1 = vec[pos.get_loc(id0_1)];
