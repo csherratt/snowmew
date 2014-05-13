@@ -4,8 +4,9 @@ use std::slice::raw::mut_buf_as_slice;
 use sync::{TaskPool, Arc};
 use libc::{c_void};
 use collections::treemap::TreeMap;
-use cow::join::join_maps;
+use time::precise_time_s;
 
+use cow::join::join_maps;
 
 use OpenCL::hl::{CommandQueue, Context, Device, Event, EventList};
 use OpenCL::mem::CLBuffer;
@@ -45,7 +46,9 @@ pub trait Drawlist {
     // get materials
     fn materials(&self) -> Vec<Material>;
 
-    fn gl_state<'a>(&'a self) -> &'a GlState; 
+    fn gl_state<'a>(&'a self) -> &'a GlState;
+
+    fn start_time(&self) -> f64;
 }
 
 pub struct DrawlistStandard {
@@ -69,7 +72,9 @@ pub struct DrawlistStandard {
     ptr_model_info: *mut (u32, u32, u32, u32),
 
     event: Option<Event>,
-    pub cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>
+    cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>,
+
+    start: f64
 }
 
 impl DrawlistStandard {
@@ -128,7 +133,8 @@ impl DrawlistStandard {
             material_to_id: TreeMap::new(),
             id_to_material: TreeMap::new(),
             cl: clpos,
-            event: None
+            event: None,
+            start: 0.
         }
     }
 }
@@ -167,6 +173,7 @@ impl<'r> MatrixManager for GLMatrix<'r> {
 
 impl Drawlist for DrawlistStandard {
     fn bind_scene(&mut self, db: GlState, scene: ObjectKey) {
+        self.start = precise_time_s();
         self.db = Some(db);
         self.scene = scene;
 
@@ -207,6 +214,7 @@ impl Drawlist for DrawlistStandard {
             ptr_model_matrix: ptr_model_matrix,
             ptr_model_info: ptr_model_info,
             event: event,
+            start: start
         } = self;
 
         let db = db.expect("setup_scene_async called w/o a GLState set");
@@ -295,7 +303,8 @@ impl Drawlist for DrawlistStandard {
                             model_matrix: model_matrix,
                             model_info: model_info,
                             text_model_info: text_model_info,
-                            text_model_matrix: text_model_matrix
+                            text_model_matrix: text_model_matrix,
+                            start: start
                         }
                     }
                 }
@@ -419,6 +428,8 @@ impl Drawlist for DrawlistStandard {
     fn gl_state<'a>(&'a self) -> &'a GlState {
         self.db.as_ref().unwrap()
     }
+
+    fn start_time(&self) -> f64 { self.start }
 }
 
 /*

@@ -94,7 +94,9 @@ impl PhysicsManager {
             self.matrix.reserve(old.position_count());
             self.matrix.set_len(old.position_count());
         }
-        let pos = old.to_positions(&mut self.matrix.as_mut_slice());
+
+        data.write_positions(&mut self.matrix.as_mut_slice());
+        let pos = data.compute_positions();
 
         self.build_static_bvh(&pos, &old);
         match self.static_bvh {

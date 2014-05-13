@@ -25,8 +25,10 @@ use std::ptr;
 use std::mem;
 use std::task::{TaskResult, TaskBuilder};
 use std::comm::{Receiver, Sender, Empty, Disconnected};
+use time::precise_time_s;
 
-use cgmath::matrix::{Matrix, ToMatrix4};
+use cgmath::matrix::{Matrix, ToMatrix4, Matrix4};
+use cgmath::ptr::Ptr;
 
 use OpenCL::hl::{CommandQueue, Context, Device};
 use sync::{TaskPool, Arc};
@@ -60,40 +62,19 @@ enum RenderCommand {
     Finish
 }
 
-fn swap_buffers(disp: &mut Window) {
+fn swap_buffers_sync(gls: &db::GlState, disp: &mut Window) {
     disp.swap_buffers();
     unsafe {
-        gl::DrawElements(gl::TRIANGLES, 6i32, gl::UNSIGNED_INT, ptr::null());
+        let mat: Matrix4<f32> = Matrix4::identity();
+        let shader = gls.flat_shader.expect("shader not found");
+        shader.bind();
+        gl::UniformMatrix4fv(shader.uniform("mat_proj_view"), 1, gl::FALSE, mat.ptr());
+        gl::DrawElements(gl::TRIANGLES, 3i32, gl::UNSIGNED_INT, ptr::null());
         let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
         gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
         gl::DeleteSync(sync);
     }
 }
-
-/*fn render_task(chan: Sender<RenderCommand>) {
-    let (sender, receiver) = channel();
-    chan.send(Setup(sender));
-    let _ = receiver.recv();
-
-    let (sender, receiver) = channel();
-    chan.send(Waiting(sender.clone()));
-    loop {
-        for dl in receiver.iter() {
-            match dl {
-                Some(mut dl) => {
-                    dl.setup_scene_async();
-                    chan.send(Waiting(sender.clone()));
-                    chan.send(Complete(dl));                    
-                },
-                None => {
-                    println!("render task: exiting");
-                    return
-                }
-            }
-
-        }
-    }
-}*/
 
 fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
                  db: Box<RenderData>, window: Window, size: (i32, i32),
@@ -111,9 +92,9 @@ fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
     let mut taskpool = TaskPool::new(16, || { 
         let ch = channel.clone();
         proc(_: uint) {
-            ch.clone()}
+            ch.clone()
         }
-    );
+    });
 
     window.make_context_current();
 
@@ -143,8 +124,9 @@ fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
     //let accl = PositionGlAccelerator::new();
 
     let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, cl.clone()),
-                             DrawlistStandard::from_config(&cfg, cl.clone()));
+                             DrawlistStandard::from_config(&cfg, cl.clone()) );
 
+    let mut average = Vec::new();
     loop {
         let cmd = if drawlists.len() == 0 || scene == 0 {
             Some(port.recv())
@@ -169,6 +151,7 @@ fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
                 camera = c;
             },
             Some(Complete(mut dl)) => {
+                println!("complete");
                 dl.setup_scene();
                 let camera_trans = dl.gl_state().position(camera);
 
@@ -183,8 +166,28 @@ fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
                 let dt = DrawTarget::new(0, (0, 0), (1280, 800), ~[gl::BACK_LEFT]);
 
                 pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
-                swap_buffers(&mut window);
+                // if the device is a hmd we need to stall the gpu
+                // to make sure it actually flipped the buffers
+                gl::Flush();
+                if window.is_hmd() {
+                    swap_buffers_sync(dl.gl_state(), &mut window);
+                } else {
+                    window.swap_buffers()
+                }
+
+                let end = precise_time_s();
+                average.push(end - dl.start_time());
+
                 drawlists.push(dl);
+
+                let mut sum = 0.;
+                let mut cnt = 0.;
+                for a in average.iter() {
+                    cnt += 1.;
+                    sum += *a;
+                }
+
+                println!("fps avg: {:2.1f} {} {:2.2f}ms", 1. / (sum/cnt), cnt as uint, average.last().unwrap() * 1000.);
             },
             Some(Finish) => {
                 // flush the port, this should release any
@@ -194,6 +197,7 @@ fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
             },
             None => {
                 if drawlists.len() > 0 && scene != 0 {
+                    println!("drawlist")
                     let mut dl = drawlists.pop().unwrap();
                     dl.bind_scene(db.clone(), scene);
                     scene = 0;
