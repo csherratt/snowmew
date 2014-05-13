@@ -22,9 +22,8 @@ extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 
 use std::ptr;
-use std::mem;
 use std::task::{TaskResult, TaskBuilder};
-use std::comm::{Receiver, Sender, Empty, Disconnected};
+use std::comm::{Receiver, Sender};
 use time::precise_time_s;
 
 use cgmath::matrix::{Matrix, ToMatrix4, Matrix4};
@@ -53,12 +52,10 @@ mod query;
 mod compute_accelerator;
 mod config;
 
-pub trait RenderData : Graphics + Positions + Clone {}
+pub trait RenderData : Graphics + Positions {}
 
 enum RenderCommand {
     Update(Box<RenderData:Send>, ObjectKey, ObjectKey),
-    Complete(DrawlistStandard),
-    Setup(Sender<Option<CommandQueue>>),
     Finish
 }
 
@@ -76,25 +73,13 @@ fn swap_buffers_sync(gls: &db::GlState, disp: &mut Window) {
     }
 }
 
-fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
-                 db: Box<RenderData>, window: Window, size: (i32, i32),
+fn render_thread(input: Receiver<(DrawlistStandard, ObjectKey)>,
+                 output: Sender<DrawlistStandard>,
+                 mut window: Window,
+                 mut db: db::GlState,
+                 size: (i32, i32),
+                 config: Config,
                  cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
-    let (_, _, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
-
-    let mut queue = Some(queue);
-
-    let mut db = db::GlState::new(db);
-    let mut scene = 0;
-    let mut camera = 0;
-    let mut window = window;
-    let cfg = Config::new(window.get_context_version());
-
-    let mut taskpool = TaskPool::new(16, || { 
-        let ch = channel.clone();
-        proc(_: uint) {
-            ch.clone()
-        }
-    });
 
     window.make_context_current();
 
@@ -105,7 +90,7 @@ fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
         } else {
             box pipeline::Hmd::new(
                 pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint),
-                2.0,
+                config.hmd_size(),
                 window.hmdinfo()
             ) as Box<Pipeline>
         }
@@ -119,93 +104,139 @@ fn render_server(port: Receiver<RenderCommand>, channel: Sender<RenderCommand>,
     gl::Enable(gl::BLEND);
     gl::CullFace(gl::BACK);
 
-    db.load(&cfg);
+    for _ in range(0, 3) {
+        let mut dl = DrawlistStandard::from_config(&config, cl.clone());
+        dl.setup_begin();
+        output.send(dl);
+    }
 
-    //let accl = PositionGlAccelerator::new();
+    for (mut dl, camera) in input.iter() {
+        dl.setup_complete(&mut db, &config);
 
-    let mut drawlists = vec!(DrawlistStandard::from_config(&cfg, cl.clone()),
-                             DrawlistStandard::from_config(&cfg, cl.clone()) );
-
-    let mut average = Vec::new();
-    loop {
-        let cmd = if drawlists.len() == 0 || scene == 0 {
-            Some(port.recv())
+        let capture = precise_time_s();
+        let camera_trans = dl.position(camera);
+        let camera = Camera::new(if window.is_hmd() {
+            let sf = window.sensor_fusion();
+            let rift = sf.get_predicted_orientation(None);
+            camera_trans.mul_m(&rift.to_matrix4())
         } else {
-            match port.try_recv() {
-                Err(Empty) => None,
-                Err(Disconnected) => return,
-                Ok(dat) => Some(dat)
-            }
-        };
+            camera_trans
+        });
 
-        match cmd {
-            Some(Setup(ch)) => {
-                let mut out = None;
-                mem::swap(&mut queue, &mut out);
-                ch.send(out)
-            },
-            Some(Update(new, s, c)) => {
-                db.update(new);
-                db.load(&cfg);
-                scene = s;
-                camera = c;
-            },
-            Some(Complete(mut dl)) => {
-                println!("complete");
-                dl.setup_scene();
-                let camera_trans = dl.gl_state().position(camera);
+        let (x, y) = size;
+        let dt = DrawTarget::new(0, (0, 0), (x as uint, y as uint), ~[gl::BACK_LEFT]);
+        pipeline.render(&mut dl, &mut db, &camera.get_matrices(size), &dt);
+        // if the device is a hmd we need to stall the gpu
+        // to make sure it actually flipped the buffers
+        if window.is_hmd() || true {
+            swap_buffers_sync(&db, &mut window);
+        } else {
+            window.swap_buffers();
+        }
 
-                let camera = Camera::new(if window.is_hmd() {
-                    let sf = window.sensor_fusion();
-                    let rift = sf.get_predicted_orientation(None);
-                    camera_trans.mul_m(&rift.to_matrix4())
-                } else {
-                    camera_trans
-                });
+        let end = precise_time_s();
+        println!("total: {:4.2f}ms capture: {:4.2f}ms", (end - dl.start_time()) * 1000., (end - capture) * 1000.);
 
-                let dt = DrawTarget::new(0, (0, 0), (1280, 800), ~[gl::BACK_LEFT]);
+        dl.setup_begin();
+        output.send(dl);
+    }
+}
 
-                pipeline.render(&mut dl, &db, &camera.get_matrices(size), &dt);
-                // if the device is a hmd we need to stall the gpu
-                // to make sure it actually flipped the buffers
-                gl::Flush();
-                if window.is_hmd() {
-                    swap_buffers_sync(dl.gl_state(), &mut window);
-                } else {
-                    window.swap_buffers()
+fn render_server(command: Receiver<RenderCommand>,
+                 mut db: Box<RenderData:Send>,
+                 window: Window,
+                 size: (i32, i32),
+                 cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
+
+    let gl = db::GlState::new();
+    let mut scene = 0;
+    let mut camera = 0;
+    let config = Config::new(window.get_context_version());
+
+    let mut taskbuilder = TaskBuilder::new();
+    taskbuilder = taskbuilder.named("render-thread".into_maybe_owned());
+
+    let (send_drawlist_setup, receiver_drawlist_setup) = channel();
+    let (send_drawlist_ready, receiver_drawlist_ready) = channel();
+    taskbuilder.spawn(proc() {
+        let window = window;
+        render_thread(receiver_drawlist_setup,
+                      send_drawlist_ready,
+                      window,
+                      gl,
+                      size,
+                      config,
+                      cl
+        );
+    });
+
+    let (send_drawlist_render, receiver_drawlist_render)
+        : (Sender<DrawlistStandard>, Receiver<DrawlistStandard>) = channel();
+    let mut taskpool = TaskPool::new(8, || { 
+        let ch = send_drawlist_render.clone();
+        proc(_: uint) { ch.clone() }
+    });
+
+    let mut drawlists_ready = Vec::new();
+
+    let select = std::comm::Select::new();
+    let mut receiver_drawlist_ready_handle = select.handle(&receiver_drawlist_ready);
+    let mut receiver_drawlist_render_handle = select.handle(&receiver_drawlist_render);
+    let mut command_handle = select.handle(&command);
+
+    unsafe {
+        receiver_drawlist_ready_handle.add();
+        receiver_drawlist_render_handle.add();
+        command_handle.add();
+    }
+
+    'finished: loop {
+        let id = select.wait();
+        if id == receiver_drawlist_ready_handle.id() {
+            let dl = receiver_drawlist_ready_handle.recv();
+            drawlists_ready.push(dl);
+        } else if id == receiver_drawlist_render_handle.id() {
+            let dl = receiver_drawlist_render_handle.recv();
+            send_drawlist_setup.send((dl, camera));
+        } else if id == command_handle.id() {
+            let command = command_handle.recv();
+            match command {
+                Update(rd, s, c) => {
+                    scene = s;
+                    camera = c;
+                    db = rd;
                 }
-
-                let end = precise_time_s();
-                average.push(end - dl.start_time());
-
-                drawlists.push(dl);
-
-                let mut sum = 0.;
-                let mut cnt = 0.;
-                for a in average.iter() {
-                    cnt += 1.;
-                    sum += *a;
+                Finish => {
+                    break 'finished;
                 }
-
-                println!("fps avg: {:2.1f} {} {:2.2f}ms", 1. / (sum/cnt), cnt as uint, average.last().unwrap() * 1000.);
-            },
-            Some(Finish) => {
-                // flush the port, this should release any
-                // async drawlist workers
-                println!("render: exiting");
-                return;
-            },
-            None => {
-                if drawlists.len() > 0 && scene != 0 {
-                    println!("drawlist")
-                    let mut dl = drawlists.pop().unwrap();
-                    dl.bind_scene(db.clone(), scene);
-                    scene = 0;
-                    dl.setup_scene_async(&mut taskpool);
-                }  
             }
         }
+
+        if drawlists_ready.len() > 0 && scene != 0 {
+            let dl = drawlists_ready.pop().unwrap();
+            dl.setup_compute(db, &mut taskpool);
+            scene = 0;           
+        }
     }
+}
+
+fn setup_opencl(window: &Window, dev: Option<Arc<Device>>) -> Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)> {
+    window.make_context_current();
+    let cl = match dev {
+        Some(dev) => {
+            let ctx = gl_cl::create_context(dev.deref());
+            match ctx {
+                Some(ctx) => {
+                    let queue = ctx.create_command_queue(dev.deref());
+                    Some((Arc::new(ctx), Arc::new(queue), dev))
+                }
+                None => None
+            }
+        },
+        None => None
+    };
+    glfw::make_context_current(None);
+    cl 
 }
 
 pub struct RenderManager {
@@ -215,34 +246,18 @@ pub struct RenderManager {
 
 impl RenderManager {
     fn _new(db: Box<RenderData:Send>, window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
-        let (sender, receiver) = channel();
-
-        window.make_context_current();
-        let cl = match dev {
-            Some(dev) => {
-                let ctx = gl_cl::create_context(dev.deref());
-                match ctx {
-                    Some(ctx) => {
-                        let queue = ctx.create_command_queue(dev.deref());
-                        Some((Arc::new(ctx), Arc::new(queue), dev))
-                    }
-                    None => None
-                }
-            },
-            None => None
-        };
-        glfw::make_context_current(None);
+        let cl = setup_opencl(&window, dev);
 
         let mut taskbuilder = TaskBuilder::new();
-        taskbuilder = taskbuilder.named("render-main".into_maybe_owned());
+        taskbuilder = taskbuilder.named("render-server".into_maybe_owned());
         let render_main_result = taskbuilder.future_result();
 
-        let sender_main = sender.clone();
+        let (sender, receiver) = channel();
         taskbuilder.spawn(proc() {
             let db = db;
             let window = window;
 
-            render_server(receiver, sender_main, db, window, size, cl);
+            render_server(receiver, db, window, size, cl);
         });
 
         RenderManager {

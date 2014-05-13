@@ -67,14 +67,13 @@ impl Forward {
 }
 
 impl Pipeline for Forward {
-    fn render(&mut self, drawlist: &mut Drawlist, _: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
         dt.bind();
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
         let proj_view = dm.projection.mul_m(&dm.view);
-
-        drawlist.render(proj_view);
+        drawlist.render(db, proj_view);
     }
 }
 
@@ -196,8 +195,8 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         let dt = self.draw_target();
         self.input.render(drawlist, db, dm, &dt);
 
-        let billboard = db.find("core/geometry/billboard").unwrap();
-        let billboard = db.geometry(billboard).unwrap();
+        let billboard = drawlist.find("core/geometry/billboard").unwrap();
+        let billboard = drawlist.geometry(billboard).unwrap();
 
         let shader = db.defered_shader.as_ref().unwrap();
 
@@ -351,9 +350,9 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
         gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
     }
 
-    fn draw_screen(&self, db: &GlState, dt: &DrawTarget) {
-        let billboard = db.find("core/geometry/billboard").unwrap();
-        let billboard = db.geometry(billboard).unwrap();
+    fn draw_screen(&self, rd: &Drawlist, db: &GlState, dt: &DrawTarget) {
+        let billboard = rd.find("core/geometry/billboard").unwrap();
+        let billboard = rd.geometry(billboard).unwrap();
 
         let shader = db.ovr_shader.as_ref().unwrap();
 
@@ -402,6 +401,6 @@ impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE> {
         let right = self.right();
         self.input.render(drawlist, db, &right_dm, &right);
 
-        self.draw_screen(db, dt);
+        self.draw_screen(drawlist, db, dt);
     }
 }
