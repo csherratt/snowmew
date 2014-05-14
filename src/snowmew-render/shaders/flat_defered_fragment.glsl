@@ -12,7 +12,11 @@ out vec4 color;
 
 void main() {
     uvec2 material = texture(pixel_drawn_by, TexPos).xy;
-    bool edge = 
+
+    if (material.x == 0) {
+        color = vec4(0., 0., 0., 1.);
+    } else {
+        bool edge = 
             (material.x != textureOffset(pixel_drawn_by, TexPos, ivec2( 0,  1)).x) ||
             (material.x != textureOffset(pixel_drawn_by, TexPos, ivec2( 0, -1)).x) ||
             (material.x != textureOffset(pixel_drawn_by, TexPos, ivec2( 1,  0)).x) ||
@@ -22,13 +26,10 @@ void main() {
             (material.x != textureOffset(pixel_drawn_by, TexPos, ivec2( 1, -1)).x) ||
             (material.x != textureOffset(pixel_drawn_by, TexPos, ivec2(-1,  1)).x);
 
-    if (material.x == 0) {
-        color = vec4(0., 0., 0., 1.);
-    } else {
         color = vec4(mat_color[material.y], 1.);
-    }
-
-    if (edge) {
-        color *= 0.5;
+    
+        if (edge) {
+            color *= 0.5;
+        }
     }
 }

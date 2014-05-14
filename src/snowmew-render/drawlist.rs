@@ -409,27 +409,30 @@ impl Drawlist for DrawlistStandard {
 
         let mut range = (0u, 0u);
         let mut last_geo: Option<u32> = None;
+        let instance_offset = shader.uniform("instance_offset");        
+
+        let instance_draw = |draw_geo: ObjectKey, offset: uint, len: uint| {
+            let draw_geo = self.geometry(draw_geo).unwrap();
+            let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
+            draw_vbo.bind();
+            unsafe {
+                gl::Uniform1i(instance_offset, offset as GLint);
+                gl::DrawElementsInstanced(gl::TRIANGLES,
+                    draw_geo.count as GLint,
+                    gl::UNSIGNED_INT,
+                    (draw_geo.offset * 4) as *c_void,
+                    len as GLint
+                );
+            }
+        };
+
         for (idx, (_, draw)) in self.drawable_iter().enumerate() {
             if last_geo.is_some() {
                 let (start, end) = range;
                 if last_geo.unwrap() == draw.geometry {
                     range = (start, idx);
                 } else {
-                    let draw_geo = self.geometry(last_geo.unwrap()).unwrap();
-                    let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
-
-                    draw_vbo.bind();
-
-                    unsafe {
-                        gl::Uniform1i(shader.uniform("instance_offset"), start as i32);
-                        gl::DrawElementsInstanced(gl::TRIANGLES,
-                            draw_geo.count as GLint,
-                            gl::UNSIGNED_INT,
-                            (draw_geo.offset * 4) as *c_void,
-                            (end - start + 1) as GLint
-                        );
-                    }
-
+                    instance_draw(last_geo.unwrap(), start, end - start + 1);
                     range = (idx, idx);
                     last_geo = Some(draw.geometry);
                 }
@@ -440,21 +443,8 @@ impl Drawlist for DrawlistStandard {
         }
 
         if last_geo.is_some() {
-            let draw_geo = self.geometry(last_geo.unwrap()).unwrap();
-            let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
             let (start, end) = range;
-
-            draw_vbo.bind();
-
-            unsafe {
-                gl::Uniform1i(shader.uniform("instance_offset"), start as i32);
-                gl::DrawElementsInstanced(gl::TRIANGLES,
-                    draw_geo.count as GLint,
-                    gl::UNSIGNED_INT,
-                    (draw_geo.offset * 4) as *c_void,
-                    (end - start + 1) as GLint
-                );
-            }
+            instance_draw(last_geo.unwrap(), start, end - start + 1);
         }
 
     }
