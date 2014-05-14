@@ -52,22 +52,22 @@ pub trait Drawlist: RenderData {
     fn start_time(&self) -> f64;
 }
 
-impl Common for DrawlistStandard {
+impl Common for DrawlistInstanced {
     fn get_common<'a>(&'a self) -> &'a CommonData { &self.data.common }
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { &mut self.data.common }
 }
 
-impl Graphics for DrawlistStandard {
+impl Graphics for DrawlistInstanced {
     fn get_graphics<'a>(&'a self) -> &'a GraphicsData { &self.data.graphics }
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.data.graphics }
 }
 
-impl Positions for DrawlistStandard {
+impl Positions for DrawlistInstanced {
     fn get_position<'a>(&'a self) -> &'a PositionData { &self.data.position }
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.data.position }
 }
 
-impl RenderData for DrawlistStandard {}
+impl RenderData for DrawlistInstanced {}
 
 #[deriving(Clone)]
 struct DrawlistGraphicsData {
@@ -91,11 +91,21 @@ impl Positions for DrawlistGraphicsData {
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.position }
 }
 
+fn map_material_to_ids(db: &RenderData) ->(TreeMap<ObjectKey, u32>, TreeMap<u32, ObjectKey>) {
+    let mut material_to_id = TreeMap::new();
+    let mut id_to_material = TreeMap::new();
+
+    for (id, (key, _)) in db.material_iter().enumerate() {
+        material_to_id.insert(*key, (id+1) as u32);
+        id_to_material.insert((id+1) as u32, *key);
+    }
+
+    (material_to_id, id_to_material)
+}
+
 impl RenderData for DrawlistGraphicsData {}
 
-
-
-pub struct DrawlistStandard {
+pub struct DrawlistInstanced {
     data: DrawlistGraphicsData,
 
     computed_position: Option<ComputedPosition>,
@@ -121,9 +131,9 @@ pub struct DrawlistStandard {
     start: f64
 }
 
-impl DrawlistStandard {
+impl DrawlistInstanced {
     pub fn from_config(cfg: &Config,
-                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistStandard {
+                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistInstanced {
         let buffer = &mut [0, 0, 0, 0, 0];
         let texture = &mut [0, 0, 0, 0, 0];
 
@@ -163,7 +173,7 @@ impl DrawlistStandard {
             None => None
         };
 
-        DrawlistStandard {
+        DrawlistInstanced {
             data: DrawlistGraphicsData {
                 common: CommonData::new(),
                 graphics: GraphicsData::new(),
@@ -218,7 +228,7 @@ impl<'r> MatrixManager for GLMatrix<'r> {
 }
 
 
-impl Drawlist for DrawlistStandard {
+impl Drawlist for DrawlistInstanced {
     fn setup_begin(&mut self) {
         if self.cl.is_none() {
             for i in range(0u, 4) {
@@ -239,8 +249,8 @@ impl Drawlist for DrawlistStandard {
         assert!(0 == gl::GetError());
     }
 
-    fn setup_compute(self, db: &RenderData, tp: &mut TaskPool<Sender<DrawlistStandard>>) {
-        let DrawlistStandard {
+    fn setup_compute(self, db: &RenderData, tp: &mut TaskPool<Sender<DrawlistInstanced>>) {
+        let DrawlistInstanced {
             data: _,
             cl: cl,
             size: size,
@@ -330,7 +340,7 @@ impl Drawlist for DrawlistStandard {
                 match (receiver0.recv(), receiver1.recv()) {
                     ((computed_position, event, ptr_model_matrix, cl),
                      (material_to_id, id_to_material, ptr_model_info)) => {
-                        DrawlistStandard {
+                        DrawlistInstanced {
                             // from task 0
                             computed_position: Some(computed_position),
                             event: event,
@@ -460,152 +470,109 @@ impl Drawlist for DrawlistStandard {
     fn start_time(&self) -> f64 { self.start }
 }
 
-/*
-
-struct Indirect {
-    vertex_count: u32,
-    instance_count: u32,
-    first_index: u32,
-    base_vertex: u32,
-    base_instance: u32
+pub struct DrawlistSimple {
+    data: DrawlistGraphicsData,
+    material_to_id: TreeMap<ObjectKey, u32>,
+    id_to_material: TreeMap<u32, ObjectKey>,
+    start: f64 
 }
 
-pub struct DrawlistBindless
-{
-    model_matrix: GLuint,
-    model_delta: GLuint,
-    model_delta_ptr: *mut Delta,
-    max_size: uint,
-    bins: TreeMap<Drawable ,~[u32]>,
-    gl_pos: Option<PositionsGL>
+impl Common for DrawlistSimple {
+    fn get_common<'a>(&'a self) -> &'a CommonData { &self.data.common }
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { &mut self.data.common }
 }
 
-impl DrawlistBindless
-{
-    pub fn new(max_size: uint) -> DrawlistBindless
-    {
-        let buffers = &mut [0, 0];
+impl Graphics for DrawlistSimple {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { &self.data.graphics }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.data.graphics }
+}
 
-        let delta = unsafe {
-            let size = (mem::size_of::<Matrix4<f32>>() * max_size) as GLsizeiptr;
-            let flags = gl::MAP_WRITE_BIT | gl::MAP_PERSISTENT_BIT | gl::MAP_COHERENT_BIT;
-            gl::GenBuffers(2, buffers.unsafe_mut_ref(0));
-            gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffers[0]);
-            gl::BufferStorage(gl::SHADER_STORAGE_BUFFER, size, ptr::null(), flags);
- 
-            gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffers[1]);
-            gl::BufferStorage(gl::SHADER_STORAGE_BUFFER, size, ptr::null(), flags);
-            let delta = gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0, size, flags) as *mut Delta;
+impl Positions for DrawlistSimple {
+    fn get_position<'a>(&'a self) -> &'a PositionData { &self.data.position }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.data.position }
+}
 
-            delta
-        };
+impl RenderData for DrawlistSimple {}
 
-        DrawlistBindless {
-            model_delta: buffers[1],
-            model_delta_ptr: delta,
-            model_matrix: buffers[0],
-            max_size: 0,
-            bins: TreeMap::new(),
-            cmds: ~[],
-            gl_pos: None
-        }
-    }
-
-    // This downloads the positions to the GPU and bins the objects
-    #[inline(never)]
-    pub fn setup_scene(&mut self, db: &Graphics, _: ObjectKey, _: Option<&CommandQueue>)
-    {
-        let start = precise_time_ns();
-        let num_drawable = db.current.drawable_count();
-        assert!(self.max_size < num_drawable);
-
-        // clear bins
-        for (_, data) in self.bins.mut_iter() {
-            unsafe {data.set_len(0);}
-        }
-
-        self.gl_pos = Some(unsafe {
-            mut_buf_as_slice(self.model_delta_ptr, 1024*1024, |vec| {
-                db.current.position.deref().to_positions_gl(vec)
-            })
-        });
-
-        let end = precise_time_ns();
-        println!("setup scene {}", end - start);
-    }
-
-    pub fn calc_pos(&self, accl: &PositionGlAccelerator)
-    {
-        match self.gl_pos.as_ref() {
-            Some(gl_pos) => {
-                accl.calc(gl_pos, self.model_delta, self.model_matrix);
+impl DrawlistSimple {
+    pub fn from_config(_: &Config,
+                       _: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistSimple {
+        DrawlistSimple {
+            data: DrawlistGraphicsData {
+                common: CommonData::new(),
+                graphics: GraphicsData::new(),
+                position: PositionData::new()
             },
-            None => ()
-        }  
+            material_to_id: TreeMap::new(),
+            id_to_material: TreeMap::new(),
+            start: 0.
+        }
+    }
+}
+
+impl Drawlist for DrawlistSimple {
+    fn setup_begin(&mut self) {}
+
+    fn setup_compute(self, db: &RenderData, tp: &mut TaskPool<Sender<DrawlistSimple>>) {
+        let mut s = self;
+        s.start = precise_time_s();
+        s.data = DrawlistGraphicsData {
+            common: db.get_common().clone(),
+            graphics: db.get_graphics().clone(),
+            position: db.get_position().clone()
+        };
+        tp.execute(proc(send) {
+            let mut s = s;
+            let (material_to_id, id_to_material) = map_material_to_ids(&s);
+            s.material_to_id = material_to_id;
+            s.id_to_material = id_to_material;
+            send.send(s)
+        });
     }
 
-    pub fn render<'a>(&'a mut self, db: &Graphics, camera: Matrix4<f32>)
-    {
-        let start = precise_time_ns();
-        let shader = db.flat_bindless_shader.unwrap();
+    fn setup_complete(&mut self, db: &mut GlState, cfg: &Config) {
+        db.load(self, cfg);
+    }
+
+    fn render(&mut self, db: &GlState, camera: Matrix4<f32>) {
+        let shader = db.flat_shader.unwrap();
         shader.bind();
+
+        let mat_proj_view = shader.uniform("mat_proj_view");
+        let mat_model = shader.uniform("mat_model");
+        let object_id = shader.uniform("object_id");
+        let material_id = shader.uniform("material_id");
+
         unsafe {
-            gl::UniformMatrix4fv(shader.uniform("mat_proj_view"), 1, gl::FALSE, camera.ptr());
+            gl::UniformMatrix4fv(mat_proj_view, 1, gl::FALSE, camera.ptr());
         }
 
-        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 3, self.model_matrix);
-
-        let mut buffer = ~[];
-
-        for (geo, vals) in db.current.draw_bins.iter() {
-            let geo = db.current.geometry(*geo).unwrap();
-            //let mat = db.current.material(draw.material).unwrap();
-
-            let vbo = db.vertex.find(&geo.vb);
-            vbo.unwrap().bind();
-
-            //shader.set_material(mat);
-
-            for v in vals.iter() {
-                buffer.push(self.gl_pos.as_ref().unwrap().get_loc(*v) as i32);
-                if buffer.len() == 512 {
-                    unsafe {
-                        gl::Uniform1iv(1, buffer.len() as i32, cast::transmute(&buffer[0]));
-                        gl::DrawElementsInstancedBaseInstance(gl::TRIANGLES,
-                                                              geo.count as i32,
-                                                              gl::UNSIGNED_INT,
-                                                              (geo.offset * 32) as *c_void,
-                                                              buffer.len() as i32, 0);
-                        buffer.set_len(0);
-                    }
-                }
-            }
-            if buffer.len() > 0 {
-                unsafe {
-                    gl::Uniform1iv(1, buffer.len() as i32, cast::transmute(&buffer[0]));
-                    gl::DrawElementsInstancedBaseInstance(gl::TRIANGLES,
-                                                          geo.count as i32,
-                                                          gl::UNSIGNED_INT,
-                                                          (geo.offset * 32) as *c_void,
-                                                          buffer.len() as i32, 0);
-                    buffer.set_len(0);
-                }
+        for (id, draw) in self.drawable_iter() {   
+            let draw_geo = self.geometry(draw.geometry).expect("geometry not found");
+            let draw_vbo = db.vertex.find(&draw_geo.vb).expect("vertex not found");
+            draw_vbo.bind();
+            unsafe {
+                let material = self.material_to_id.find(&draw.material).expect("material not found");
+                let matrix = self.position(*id);
+                gl::UniformMatrix4fv(mat_model, 1, gl::FALSE, matrix.ptr());
+                gl::Uniform1ui(object_id, *id as u32);
+                gl::Uniform1ui(material_id, *material);
+                gl::DrawElements(gl::TRIANGLES,
+                    draw_geo.count as GLint,
+                    gl::UNSIGNED_INT,
+                    (draw_geo.offset * 4) as *c_void
+                );
             }
         }
-
-        let end = precise_time_ns();
-        println!("render {}", end - start);
     }
-}
 
-impl Drop for DrawlistBindless
-{
-    fn drop(&mut self)
-    {
-        /* TODO, is dropped dies on a none-gl task bad things happen */
-        //let buffers = &[self.model_matrix];
-        //gl::UnmapBuffer(self.model_matrix);
-        //gl::DeleteBuffers(1, buffers.unsafe_ref(0));
+    fn materials(&self) -> Vec<Material> {
+        let mut mats = Vec::new();
+        for (_, key) in self.id_to_material.iter() {
+            mats.push(self.material(*key).unwrap().clone());
+        }
+        mats
     }
+
+    fn start_time(&self) -> f64 { self.start }    
 }
-*/

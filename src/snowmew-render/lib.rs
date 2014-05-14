@@ -39,7 +39,7 @@ use graphics::Graphics;
 pub use config::Config;
 
 use pipeline::{DrawTarget, Pipeline};
-use drawlist::{Drawlist, DrawlistStandard};
+use drawlist::{Drawlist, DrawlistSimple};
 use query::{ProfilerDummy, TimeQueryManager, Profiler};
 
 mod db;
@@ -64,8 +64,8 @@ fn swap_buffers_sync(disp: &mut Window) {
     gl::Finish();
 }
 
-fn render_thread(input: Receiver<(DrawlistStandard, ObjectKey)>,
-                 output: Sender<DrawlistStandard>,
+fn render_thread(input: Receiver<(DrawlistSimple, ObjectKey)>,
+                 output: Sender<DrawlistSimple>,
                  mut window: Window,
                  mut db: db::GlState,
                  size: (i32, i32),
@@ -96,7 +96,7 @@ fn render_thread(input: Receiver<(DrawlistStandard, ObjectKey)>,
     gl::CullFace(gl::BACK);
 
     for _ in range(0, 2) {
-        let mut dl = DrawlistStandard::from_config(&config, cl.clone());
+        let mut dl = DrawlistSimple::from_config(&config, cl.clone());
         dl.setup_begin();
         output.send(dl);
     }
@@ -175,7 +175,7 @@ fn render_server(command: Receiver<RenderCommand>,
     });
 
     let (send_drawlist_render, receiver_drawlist_render)
-        : (Sender<DrawlistStandard>, Receiver<DrawlistStandard>) = channel();
+        : (Sender<DrawlistSimple>, Receiver<DrawlistSimple>) = channel();
     let mut taskpool = TaskPool::new(2, || { 
         let ch = send_drawlist_render.clone();
         proc(_: uint) { ch.clone() }
