@@ -27,7 +27,6 @@ void main() {
     fs_material_id = info.z;
     fs_object_id = info.x;
 
-
     mat4 mat_model = mat4(texelFetch(mat_model0, matrix_id),
                           texelFetch(mat_model1, matrix_id),
                           texelFetch(mat_model2, matrix_id),

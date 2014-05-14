@@ -117,7 +117,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA16F as i32, w, h, 0, gl::RGBA, gl::FLOAT, ptr::null());
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA16F, w, h);
             assert!(0 == gl::GetError());
 
             // setup UV texture
@@ -126,7 +126,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RG16F as i32, w, h, 0, gl::RG, gl::FLOAT, ptr::null());
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16F, w, h);
             assert!(0 == gl::GetError());
 
             // setup normals
@@ -135,7 +135,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB16F as i32, w, h, 0, gl::RGB, gl::FLOAT, ptr::null());
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGB16F, w, h);
             assert!(0 == gl::GetError());
 
             // setup material texture
@@ -144,7 +144,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RG16 as i32, w, h, 0, gl::RG, gl::UNSIGNED_INT, ptr::null());
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
             assert!(0 == gl::GetError());
 
             gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer);
