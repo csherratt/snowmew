@@ -21,13 +21,11 @@ extern crate gl_cl;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 
-use std::ptr;
 use std::task::{TaskResult, TaskBuilder};
 use std::comm::{Receiver, Sender};
 use time::precise_time_s;
 
-use cgmath::matrix::{Matrix, ToMatrix4, Matrix4};
-use cgmath::ptr::Ptr;
+use cgmath::matrix::{Matrix, ToMatrix4};
 
 use OpenCL::hl::{CommandQueue, Context, Device};
 use sync::{TaskPool, Arc};
@@ -60,7 +58,7 @@ enum RenderCommand {
     Finish
 }
 
-fn swap_buffers_sync(gls: &db::GlState, disp: &mut Window) {
+fn swap_buffers_sync(disp: &mut Window) {
     disp.swap_buffers();
     gl::Flush();
     gl::Finish();
@@ -129,11 +127,7 @@ fn render_thread(input: Receiver<(DrawlistStandard, ObjectKey)>,
         // if the device is a hmd we need to stall the gpu
         // to make sure it actually flipped the buffers
         qm.time("swap buffer".to_owned());
-        if window.is_hmd() || true {
-            swap_buffers_sync(&db, &mut window);
-        } else {
-            window.swap_buffers();
-        }
+        swap_buffers_sync(&mut window);
 
         if config.profile() {
             let end = precise_time_s();
@@ -144,7 +138,6 @@ fn render_thread(input: Receiver<(DrawlistStandard, ObjectKey)>,
         }
 
         qm.time("setup begin".to_owned());
-        let start_time = dl.start_time();
         dl.setup_begin();
         output.send(dl);
 

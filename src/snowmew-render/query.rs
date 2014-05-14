@@ -156,6 +156,6 @@ pub struct ProfilerDummy;
 
 impl Profiler for ProfilerDummy {
     fn reset(&mut self) {}
-    fn time(&mut self, name: ~str) {}
+    fn time(&mut self, _: ~str) {}
     fn dump(&mut self) {}
 }
