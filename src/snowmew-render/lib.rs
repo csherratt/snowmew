@@ -42,6 +42,7 @@ pub use config::Config;
 
 use pipeline::{DrawTarget, Pipeline};
 use drawlist::{Drawlist, DrawlistStandard};
+use query::{ProfilerDummy, TimeQueryManager, Profiler};
 
 mod db;
 mod shader;
@@ -61,16 +62,8 @@ enum RenderCommand {
 
 fn swap_buffers_sync(gls: &db::GlState, disp: &mut Window) {
     disp.swap_buffers();
-    unsafe {
-        let mat: Matrix4<f32> = Matrix4::identity();
-        let shader = gls.flat_shader.expect("shader not found");
-        shader.bind();
-        gl::UniformMatrix4fv(shader.uniform("mat_proj_view"), 1, gl::FALSE, mat.ptr());
-        gl::DrawElements(gl::TRIANGLES, 3i32, gl::UNSIGNED_INT, ptr::null());
-        let sync = gl::FenceSync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
-        gl::ClientWaitSync(sync, gl::SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000u64);
-        gl::DeleteSync(sync);
-    }
+    gl::Flush();
+    gl::Finish();
 }
 
 fn render_thread(input: Receiver<(DrawlistStandard, ObjectKey)>,
@@ -104,13 +97,20 @@ fn render_thread(input: Receiver<(DrawlistStandard, ObjectKey)>,
     gl::Enable(gl::BLEND);
     gl::CullFace(gl::BACK);
 
-    for _ in range(0, 3) {
+    for _ in range(0, 2) {
         let mut dl = DrawlistStandard::from_config(&config, cl.clone());
         dl.setup_begin();
         output.send(dl);
     }
 
+    let mut qm = if config.profile() {
+        box TimeQueryManager::new() as Box<Profiler>
+    } else {
+        box ProfilerDummy as Box<Profiler>
+    };
+    let mut last_frame = precise_time_s();
     for (mut dl, camera) in input.iter() {
+        qm.time("setup complete".to_owned());
         dl.setup_complete(&mut db, &config);
 
         let capture = precise_time_s();
@@ -125,20 +125,31 @@ fn render_thread(input: Receiver<(DrawlistStandard, ObjectKey)>,
 
         let (x, y) = size;
         let dt = DrawTarget::new(0, (0, 0), (x as uint, y as uint), ~[gl::BACK_LEFT]);
-        pipeline.render(&mut dl, &mut db, &camera.get_matrices(size), &dt);
+        pipeline.render(&mut dl, &mut db, &camera.get_matrices(size), &dt,  qm);
         // if the device is a hmd we need to stall the gpu
         // to make sure it actually flipped the buffers
+        qm.time("swap buffer".to_owned());
         if window.is_hmd() || true {
             swap_buffers_sync(&db, &mut window);
         } else {
             window.swap_buffers();
         }
 
-        let end = precise_time_s();
-        println!("total: {:4.2f}ms capture: {:4.2f}ms", (end - dl.start_time()) * 1000., (end - capture) * 1000.);
+        if config.profile() {
+            let end = precise_time_s();
+            println!("total: {:4.2f}ms capture: {:4.2f}ms {:4.1}fps", 
+                (end - dl.start_time()) * 1000., (end - capture) * 1000.,
+                1. / (end - last_frame));
+            last_frame = end;
+        }
 
+        qm.time("setup begin".to_owned());
+        let start_time = dl.start_time();
         dl.setup_begin();
         output.send(dl);
+
+        qm.dump();
+        qm.reset();
     }
 }
 
@@ -172,7 +183,7 @@ fn render_server(command: Receiver<RenderCommand>,
 
     let (send_drawlist_render, receiver_drawlist_render)
         : (Sender<DrawlistStandard>, Receiver<DrawlistStandard>) = channel();
-    let mut taskpool = TaskPool::new(8, || { 
+    let mut taskpool = TaskPool::new(2, || { 
         let ch = send_drawlist_render.clone();
         proc(_: uint) { ch.clone() }
     });

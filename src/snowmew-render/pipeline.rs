@@ -18,6 +18,8 @@ use drawlist::Drawlist;
 
 use snowmew::common::Common;
 
+use query::Profiler;
+
 pub struct DrawTarget {
     framebuffer: GLuint,
     width: GLint,
@@ -57,7 +59,7 @@ impl DrawTarget {
 }
 
 pub trait Pipeline {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget);
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler);
 }
 
 pub struct Forward;
@@ -67,12 +69,14 @@ impl Forward {
 }
 
 impl Pipeline for Forward {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
+        q.time("forward setup".to_owned());
         dt.bind();
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
         let proj_view = dm.projection.mul_m(&dm.view);
+        q.time("forward render".to_owned());
         drawlist.render(db, proj_view);
     }
 }
@@ -190,10 +194,10 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
 }
 
 impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget) {
-
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget, q: &mut Profiler) {
         let dt = self.draw_target();
-        self.input.render(drawlist, db, dm, &dt);
+        self.input.render(drawlist, db, dm, &dt, q);
+        q.time("defered: setup".to_owned());
 
         let billboard = drawlist.find("core/geometry/billboard").unwrap();
         let billboard = drawlist.geometry(billboard).unwrap();
@@ -239,12 +243,14 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
 
         ddt.bind();
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        q.time("defered: shader".to_owned());
         unsafe {
             assert!(0 == gl::GetError());
             gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
             assert!(0 == gl::GetError());
         }
 
+        q.time("defered: cleanup".to_owned());
         for i in range(0, 16) {
             gl::ActiveTexture(gl::TEXTURE0 + i as u32);
             gl::BindTexture(gl::TEXTURE_2D, 0);
@@ -392,15 +398,16 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
 }
 
 impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE> {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
         let (left_dm, right_dm) = dm.ovr(&self.hmd, self.scale);
 
         let left = self.left();
-        self.input.render(drawlist, db, &left_dm, &left);
+        self.input.render(drawlist, db, &left_dm, &left, q);
 
         let right = self.right();
-        self.input.render(drawlist, db, &right_dm, &right);
+        self.input.render(drawlist, db, &right_dm, &right, q);
 
+        q.time("ovr: draw screen".to_owned());
         self.draw_screen(drawlist, db, dt);
     }
 }
