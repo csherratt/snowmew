@@ -94,10 +94,10 @@ fn main() {
 
         let mut materials = Vec::new();
         for (_, oid) in db.walk_dir(dir) {
-            materials.push(*oid);
+            materials.push(oid);
         }
 
-        let size = 5;
+        let size = 10;
         im.setup_ovr();
 
         println!("creating");

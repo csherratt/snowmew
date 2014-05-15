@@ -1,99 +1,99 @@
-use geometry::{VertexBuffer, Geometry, VertexGetTexNorm};
+use geometry::{VertexBuffer, Geometry, VertexGeoTexNorm};
 use material::Material;
 use Graphics;
 
 use cgmath::vector::{Vector3, Vector2};
 
-static VERTEX_DATA: [VertexGetTexNorm, ..30] = [
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: -1f32, z: -1f32}, //0
+static VERTEX_DATA: [VertexGeoTexNorm, ..30] = [
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: -1f32, z: -1f32}, //0
                      texture:  Vector2{x: 0.666667f32, y: 0f32},
                      normal:   Vector3{x: 0f32, y: -1f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: -1f32, z: 1f32},  //1
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: -1f32, z: 1f32},  //1
                      texture:  Vector2{x: 1f32, y: 0f32},
                      normal:   Vector3{x: 0f32, y: -1f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: -1f32, z: -1f32},  //2
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: -1f32, z: -1f32},  //2
                      texture:  Vector2{x: 0.666667f32, y: 0.333333f32},
                      normal:   Vector3{x: 0f32, y: -1f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: 1f32, z: -1f32},  //3
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: 1f32, z: -1f32},  //3
                      texture:  Vector2{x: 0f32, y: 0.666667f32},
                      normal:   Vector3{x: 0f32, y: 1f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: 1f32, z: -1f32},  //4
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: 1f32, z: -1f32},  //4
                      texture:  Vector2{x: 0f32, y: 0.333333f32},
                      normal:   Vector3{x: 0f32, y: 1f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: 1f32, z: 1f32}, //5
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: 1f32, z: 1f32}, //5
                      texture:  Vector2{x: 0.333333f32, y: 0.666667f32},
                      normal:   Vector3{x: 0f32, y: 1f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: -1f32, z: -1f32},  //6
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: -1f32, z: -1f32},  //6
                      texture:  Vector2{x: 0.666667f32, y: 0.333333f32},
                      normal:   Vector3{x: 1f32, y: 0f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: 1f32, z: -1f32},  //7
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: 1f32, z: -1f32},  //7
                      texture:  Vector2{x: 0.333333f32, y: 0.333333f32},
                      normal:   Vector3{x: 1f32, y: 0f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: -1f32, z: 1f32}, //8
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: -1f32, z: 1f32}, //8
                      texture:  Vector2{x: 0.666667f32, y: 0f32},
                      normal:   Vector3{x: 1f32, y: 0f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: -1f32, z: 1f32},  //9
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: -1f32, z: 1f32},  //9
                      texture:  Vector2{x: 0f32, y: 0.333333f32},
                      normal:   Vector3{x: 0f32, y: 0f32, z: 1f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: 1f32, z: 1f32},  //10
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: 1f32, z: 1f32},  //10
                      texture:  Vector2{x: 0f32, y: 0f32},
                      normal:   Vector3{x: 0f32, y: 0f32, z: 1f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: -1f32, z: 1f32},  //11
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: -1f32, z: 1f32},  //11
                      texture:  Vector2{x: 0.333333f32, y: 0.333333f32},
                      normal:   Vector3{x: 0f32, y: 0f32, z: 1f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: -1f32, z: 1f32},  //12
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: -1f32, z: 1f32},  //12
                      texture:  Vector2{x: 0.666667f32, y: 0.333333f32},
                      normal:   Vector3{x: -1f32, y: 0f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: 1f32, z: 1f32}, //13
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: 1f32, z: 1f32}, //13
                      texture:  Vector2{x: 1f32, y: 0.333333f32},
                      normal:   Vector3{x: -1f32, y: 0f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: -1f32, z: -1f32},  //14
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: -1f32, z: -1f32},  //14
                      texture:  Vector2{x: 0.666667f32, y: 0.666667f32},
                      normal:   Vector3{x: -1f32, y: 0f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: 1f32, z: -1f32},  //15
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: 1f32, z: -1f32},  //15
                      texture:  Vector2{x: 0.333333f32, y: 0.333333f32},
                      normal:   Vector3{x: 0f32, y: 0f32, z: -1f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: -1f32, z: -1f32}, //16
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: -1f32, z: -1f32}, //16
                      texture:  Vector2{x: 0.666667f32, y: 0.333333f32},
                      normal:   Vector3{x: 0f32, y: 0f32, z: -1f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: 1f32, z: -1f32}, //17
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: 1f32, z: -1f32}, //17
                      texture:  Vector2{x: 0.333333f32, y: 0.666667f32},
                      normal:   Vector3{x: 0f32, y: 0f32, z: -1f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: -1f32, z: 1f32}, //18
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: -1f32, z: 1f32}, //18
                      texture:  Vector2{x: 1f32, y: 0.333333f32},
                      normal:   Vector3{x: 0f32, y: -1f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: 1f32, z: 1f32}, //19
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: 1f32, z: 1f32}, //19
                      texture:  Vector2{x: 0.333333f32, y: 0.333334f32},
                      normal:   Vector3{x: 0f32, y: 1f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: 1f32, z: -1f32},  //20
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: 1f32, z: -1f32},  //20
                      texture:  Vector2{x: 0.333333f32, y: 0.333333f32},
                      normal:   Vector3{x: 1f32, y: 0f32, z: 0.000001f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: 1f32, z: 1f32},  //21
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: 1f32, z: 1f32},  //21
                      texture:  Vector2{x: 0.333333f32, y: 0f32},
                      normal:   Vector3{x: 1f32, y: 0f32, z: 0.000001f32}},
-    VertexGetTexNorm{position: Vector3{x: 1f32, y: -1f32, z: 1f32},  //22
+    VertexGeoTexNorm{position: Vector3{x: 1f32, y: -1f32, z: 1f32},  //22
                      texture:  Vector2{x: 0.666667f32, y: 0f32},
                      normal:   Vector3{x: 1f32, y: 0f32, z: 0.000001f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: 1f32, z: 1f32},  //23
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: 1f32, z: 1f32},  //23
                      texture:  Vector2{x: 0.333333f32, y: 0f32},
                      normal:   Vector3{x: 0f32, y: 0f32, z: 1f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: 1f32, z: -1f32}, //24
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: 1f32, z: -1f32}, //24
                      texture:  Vector2{x: 1f32, y: 0.666667f32},
                      normal:   Vector3{x: -1f32, y: 0f32, z: 0f32}},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: -1f32, z: -1f32},  //25
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: -1f32, z: -1f32},  //25
                      texture:  Vector2{x: 0.666667f32, y: 0.666667f32},
                      normal:   Vector3{x: 0f32, y: 0f32, z: -1f32}},
 
-    VertexGetTexNorm{position: Vector3{x: -1f32, y: -1f32, z:  0f32},
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y: -1f32, z:  0f32},
                      texture:  Vector2{x: -1f32, y: -1f32},
                      normal:   Vector3{x:  0f32, y:  0f32, z:  1f32 }},
-    VertexGetTexNorm{position: Vector3{x: -1f32, y:  1f32, z:  0f32},
+    VertexGeoTexNorm{position: Vector3{x: -1f32, y:  1f32, z:  0f32},
                      texture:  Vector2{x: -1f32, y:  1f32},
                      normal:   Vector3{x:  0f32, y:  0f32, z:  1f32 }},
-    VertexGetTexNorm{position: Vector3{x:  1f32, y: -1f32, z:  0f32},
+    VertexGeoTexNorm{position: Vector3{x:  1f32, y: -1f32, z:  0f32},
                      texture:  Vector2{x:  1f32, y: -1f32},
                      normal:   Vector3{x:  0f32, y:  0f32, z:  1f32 }},
-    VertexGetTexNorm{position: Vector3{x:  1f32, y:  1f32, z:  0f32},
+    VertexGeoTexNorm{position: Vector3{x:  1f32, y:  1f32, z:  0f32},
                      texture:  Vector2{x:  1f32, y:  1f32},
                      normal:   Vector3{x:  0f32, y:  0f32, z:  1f32 }},
 

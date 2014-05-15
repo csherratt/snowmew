@@ -7,8 +7,8 @@ use std::ptr;
 
 use libc::c_void;
 
-use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGetTexNorm};
-use graphics::geometry::{Geo, GeoTex, GeoTexNorm};
+use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGeoNorm, VertexGeoTexNorm};
+use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm};
 
 #[deriving(Clone, Default)]
 pub struct VertexBuffer {
@@ -37,10 +37,15 @@ impl VertexBuffer {
                      data.len() * mem::size_of::<VertexGeoTex>(),
                      mem::size_of::<VertexGeoTex>())
                 },
+                GeoNorm(ref data) => {
+                    (cast::transmute(data.get(0)),
+                     data.len() * mem::size_of::<VertexGeoNorm>(),
+                     mem::size_of::<VertexGeoNorm>())
+                },
                 GeoTexNorm(ref data) => {
                     (cast::transmute(data.get(0)),
-                     data.len() * mem::size_of::<VertexGetTexNorm>(),
-                     mem::size_of::<VertexGetTexNorm>())
+                     data.len() * mem::size_of::<VertexGeoTexNorm>(),
+                     mem::size_of::<VertexGeoTexNorm>())
                 }
             };
             let stride = stride as i32;
@@ -57,22 +62,24 @@ impl VertexBuffer {
                            gl::STATIC_DRAW
             );
 
+            let offset = 12;
             gl::EnableVertexAttribArray(0);
             gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, ptr::null());
 
-            match *vertex {
-                Geo(_) => (),
+            let offset = match *vertex {
+                Geo(_) | GeoNorm(_) => offset,
                 GeoTex(_) | GeoTexNorm(_) => {
                     gl::EnableVertexAttribArray(1);
-                    gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, 12 as *c_void);
+                    gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, offset as *c_void);
+                    offset + 8
                 }
-            }
+            };
 
             match *vertex {
                 Geo(_) | GeoTex(_) => (),
-                GeoTexNorm(_) => {
+                GeoNorm(_) | GeoTexNorm(_) => {
                     gl::EnableVertexAttribArray(2);
-                    gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, 20 as *c_void);
+                    gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, offset as *c_void);
                 }
             }
 
