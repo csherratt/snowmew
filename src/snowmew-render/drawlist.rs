@@ -38,7 +38,7 @@ pub trait Drawlist: RenderData {
     // data from the scene graph into the any mapped buffers. This can also
     // spawn multiple workers. One of the threads must send the drawlist
     // back to the server
-    fn setup_compute(self, db: &RenderData, tp: &mut TaskPool<Sender<Self>>);
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>);
 
     // setup on the OpenGL thread, this will unmap and sync anything that
     // is needed to be done
@@ -249,7 +249,7 @@ impl Drawlist for DrawlistInstanced {
         assert!(0 == gl::GetError());
     }
 
-    fn setup_compute(self, db: &RenderData, tp: &mut TaskPool<Sender<DrawlistInstanced>>) {
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>) {
         let DrawlistInstanced {
             data: _,
             cl: cl,
@@ -265,7 +265,7 @@ impl Drawlist for DrawlistInstanced {
             ptr_model_info: ptr_model_info,
             event: _,
             start: _
-        } = self;
+        } = *self;
 
         let data = DrawlistGraphicsData {
             common: db.get_common().clone(),
@@ -340,7 +340,7 @@ impl Drawlist for DrawlistInstanced {
                 match (receiver0.recv(), receiver1.recv()) {
                     ((computed_position, event, ptr_model_matrix, cl),
                      (material_to_id, id_to_material, ptr_model_info)) => {
-                        DrawlistInstanced {
+                        box DrawlistInstanced {
                             // from task 0
                             computed_position: Some(computed_position),
                             event: event,
@@ -360,7 +360,7 @@ impl Drawlist for DrawlistInstanced {
                             text_model_matrix: text_model_matrix,
                             start: start,
                             data: data
-                        }
+                        } as Box<Drawlist:Send>
                     }
                 }
             );
@@ -513,8 +513,8 @@ impl DrawlistSimple {
 impl Drawlist for DrawlistSimple {
     fn setup_begin(&mut self) {}
 
-    fn setup_compute(self, db: &RenderData, tp: &mut TaskPool<Sender<DrawlistSimple>>) {
-        let mut s = self;
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>) {
+        let mut s = *self;
         s.start = precise_time_s();
         s.data = DrawlistGraphicsData {
             common: db.get_common().clone(),
@@ -526,7 +526,7 @@ impl Drawlist for DrawlistSimple {
             let (material_to_id, id_to_material) = map_material_to_ids(&s);
             s.material_to_id = material_to_id;
             s.id_to_material = id_to_material;
-            send.send(s)
+            send.send(box s as Box<Drawlist:Send>)
         });
     }
 
@@ -575,4 +575,13 @@ impl Drawlist for DrawlistSimple {
     }
 
     fn start_time(&self) -> f64 { self.start }    
+}
+
+pub fn create_drawlist(cfg: &Config,
+                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> Box<Drawlist:Send> {
+    if cfg.instanced() {
+        box DrawlistInstanced::from_config(cfg, cl) as Box<Drawlist:Send>
+    } else {
+        box DrawlistSimple::from_config(cfg, cl) as Box<Drawlist:Send>
+    }
 }

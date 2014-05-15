@@ -39,7 +39,7 @@ use graphics::Graphics;
 pub use config::Config;
 
 use pipeline::{DrawTarget, Pipeline};
-use drawlist::{Drawlist, DrawlistSimple};
+use drawlist::{Drawlist, create_drawlist};
 use query::{ProfilerDummy, TimeQueryManager, Profiler};
 
 mod db;
@@ -64,8 +64,8 @@ fn swap_buffers_sync(disp: &mut Window) {
     gl::Finish();
 }
 
-fn render_thread(input: Receiver<(DrawlistSimple, ObjectKey)>,
-                 output: Sender<DrawlistSimple>,
+fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
+                 output: Sender<Box<Drawlist:Send>>,
                  mut window: Window,
                  mut db: db::GlState,
                  size: (i32, i32),
@@ -96,7 +96,7 @@ fn render_thread(input: Receiver<(DrawlistSimple, ObjectKey)>,
     gl::CullFace(gl::BACK);
 
     for _ in range(0, 2) {
-        let mut dl = DrawlistSimple::from_config(&config, cl.clone());
+        let mut dl = create_drawlist(&config, cl.clone());
         dl.setup_begin();
         output.send(dl);
     }
@@ -123,7 +123,7 @@ fn render_thread(input: Receiver<(DrawlistSimple, ObjectKey)>,
 
         let (x, y) = size;
         let dt = DrawTarget::new(0, (0, 0), (x as uint, y as uint), ~[gl::BACK_LEFT]);
-        pipeline.render(&mut dl, &mut db, &camera.get_matrices(size), &dt,  qm);
+        pipeline.render(dl, &mut db, &camera.get_matrices(size), &dt,  qm);
         // if the device is a hmd we need to stall the gpu
         // to make sure it actually flipped the buffers
         qm.time("swap buffer".to_owned());
@@ -175,7 +175,7 @@ fn render_server(command: Receiver<RenderCommand>,
     });
 
     let (send_drawlist_render, receiver_drawlist_render)
-        : (Sender<DrawlistSimple>, Receiver<DrawlistSimple>) = channel();
+        : (Sender<Box<Drawlist:Send>>, Receiver<Box<Drawlist:Send>>) = channel();
     let mut taskpool = TaskPool::new(2, || { 
         let ch = send_drawlist_render.clone();
         proc(_: uint) { ch.clone() }

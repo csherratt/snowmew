@@ -1,5 +1,6 @@
 use std::os;
 
+#[deriving(Eq)]
 enum ConfigOption {
     Unsupported,
     Disabled,
@@ -17,29 +18,62 @@ impl ConfigOption {
 
 pub struct Config {
     max_size: uint,
-    bindless: ConfigOption,
     hmd_size: f32,
-    profile: bool
+    bindless: ConfigOption,
+    instanced: ConfigOption,
+    profile: ConfigOption
+}
+
+fn get_setting_option(name: &str, default: ConfigOption) -> ConfigOption {
+   let is_set = match os::getenv(name) {
+        Some(s) => {
+            let s: ~str = s.chars().map(|c| c.to_lowercase()).collect();
+            match s.as_slice() {
+                "true" => Some(true),
+                "enabled" => Some(true),
+                "1" => Some(true),
+                "false" => Some(false),
+                "disabled" => Some(false),
+                "0" => Some(false),
+                _ => None
+            }
+        }
+        None => None
+    };
+
+    match is_set {
+        Some(true) => Enabled,
+        Some(false) => Disabled,
+        None => default
+    }
+}
+
+fn check_gl_version(gl_version: (uint, uint), min: (uint, uint), if_supported: ConfigOption) -> ConfigOption {
+    let (m_major, m_minor) = min;
+    let (gl_major, gl_minor) = gl_version;
+
+    if gl_major > m_major {
+        if_supported
+    } else if gl_major == m_major && gl_minor >= m_minor {
+        if_supported
+    } else {
+        Unsupported
+    }
 }
 
 impl Config
 {
     pub fn new(gl_version: (uint, uint)) -> Config {
         Config {
-            profile: match os::getenv("PROFILE") {
-                Some(s) => {
-                    let s: ~str = s.chars().map(|c| c.to_lowercase()).collect();
-                    s.as_slice() == "true"
-                }
-                None => false
-            },
+            profile: get_setting_option("PROFILE", Disabled),
             hmd_size: 1.0,
             max_size: 1024*1024,
-            bindless: match gl_version {
-                (x, _) if x >= 5 => Enabled,
-                (4, x) if x >= 4 => Enabled,
-                (_, _) => Unsupported
-            },
+            bindless: check_gl_version(gl_version, (4, 4),
+                get_setting_option("BINDLESS", Enabled)
+            ),
+            instanced: check_gl_version(gl_version, (3, 1),
+                get_setting_option("INSTANCED", Enabled)
+            ),
         }
     }
 
@@ -49,5 +83,7 @@ impl Config
 
     pub fn hmd_size(&self) -> f32 { self.hmd_size }
 
-    pub fn profile(&self) -> bool { self.profile }
+    pub fn profile(&self) -> bool { self.profile == Enabled }
+
+    pub fn instanced(&self) -> bool { self.instanced == Enabled }
 }
