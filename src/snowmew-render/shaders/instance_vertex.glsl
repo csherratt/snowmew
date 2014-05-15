@@ -38,7 +38,7 @@ void main() {
     gl_Position = mat_proj_view * pos;
     fs_position = pos.xyz / pos.w;
     fs_texture = in_texture;
-    fs_normal = in_normal;
+    fs_normal = normal.xyz;
     fs_material_id = info.z;
     fs_object_id = info.x;
 }
