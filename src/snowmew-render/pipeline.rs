@@ -1,9 +1,9 @@
 
 use std::ptr;
+use libc;
 
 use gl;
 use gl::types::{GLuint, GLint};
-use cgmath::matrix::Matrix;
 use cgmath::vector::Vector3;
 use ovr::HMDInfo;
 
@@ -75,9 +75,8 @@ impl Pipeline for Forward {
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-        let proj_view = dm.projection.mul_m(&dm.view);
         q.time("forward render".to_owned());
-        drawlist.render(db, proj_view);
+        drawlist.render(db, &dm.view, &dm.projection);
     }
 }
 
@@ -199,12 +198,12 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         self.input.render(drawlist, db, dm, &dt, q);
         q.time("defered: setup".to_owned());
 
-        let billboard = drawlist.find("core/geometry/billboard").unwrap();
-        let billboard = drawlist.geometry(billboard).unwrap();
+        let plane = drawlist.find("core/geometry/plane").unwrap();
+        let plane = drawlist.geometry(plane).unwrap();
 
         let shader = db.defered_shader.as_ref().unwrap();
 
-        let vbo = db.vertex.find(&billboard.vb).unwrap();
+        let vbo = db.vertex.find(&plane.vb).unwrap();
         vbo.bind();
 
         shader.bind();
@@ -246,7 +245,10 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         q.time("defered: shader".to_owned());
         unsafe {
             assert!(0 == gl::GetError());
-            gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES,
+                             plane.count as i32,
+                             gl::UNSIGNED_INT,
+                             (plane.offset * 4) as *libc::c_void);
             assert!(0 == gl::GetError());
         }
 
@@ -357,12 +359,12 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
     }
 
     fn draw_screen(&self, rd: &Drawlist, db: &GlState, dt: &DrawTarget) {
-        let billboard = rd.find("core/geometry/billboard").unwrap();
-        let billboard = rd.geometry(billboard).unwrap();
+        let plane = rd.find("core/geometry/plane").unwrap();
+        let plane = rd.geometry(plane).unwrap();
 
         let shader = db.ovr_shader.as_ref().unwrap();
 
-        let vbo = db.vertex.find(&billboard.vb).unwrap();
+        let vbo = db.vertex.find(&plane.vb).unwrap();
         shader.bind();
         vbo.bind();
 
@@ -389,10 +391,16 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
 
             self.setup_viewport(shader, (0., 0.,       width/2., height as f32), (width, height), lense_center);
-            gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES,
+                             plane.count as i32,
+                             gl::UNSIGNED_INT,
+                             (plane.offset * 4) as *libc::c_void);
 
             self.setup_viewport(shader, (width/2., 0., width/2., height as f32), (width, height), -lense_center);
-            gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES,
+                             plane.count as i32,
+                             gl::UNSIGNED_INT, 
+                             (plane.offset * 4) as *libc::c_void);
         }
     }
 }

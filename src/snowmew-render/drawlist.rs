@@ -45,7 +45,7 @@ pub trait Drawlist: RenderData {
     fn setup_complete(&mut self, db: &mut GlState, cfg: &Config);
 
     // setup is complete, render. This is done on the OpenGL thread.
-    fn render(&mut self, db: &GlState, camera: Matrix4<f32>);
+    fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>);
 
     // get materials
     fn materials(&self) -> Vec<Material>;
@@ -389,12 +389,13 @@ impl Drawlist for DrawlistInstanced {
         db.load(self, cfg);
     }
 
-    fn render(&mut self, db: &GlState ,camera: Matrix4<f32>) {
+    fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
         let shader = db.flat_instance_shader.unwrap();
         shader.bind();
 
         unsafe {
-            gl::UniformMatrix4fv(shader.uniform("mat_proj_view"), 1, gl::FALSE, camera.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());
 
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[0]);
@@ -534,17 +535,17 @@ impl Drawlist for DrawlistSimple {
         db.load(self, cfg);
     }
 
-    fn render(&mut self, db: &GlState, camera: Matrix4<f32>) {
+    fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
         let shader = db.flat_shader.unwrap();
         shader.bind();
 
-        let mat_proj_view = shader.uniform("mat_proj_view");
         let mat_model = shader.uniform("mat_model");
         let object_id = shader.uniform("object_id");
         let material_id = shader.uniform("material_id");
 
         unsafe {
-            gl::UniformMatrix4fv(mat_proj_view, 1, gl::FALSE, camera.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());
         }
 
         for (id, draw) in self.drawable_iter() {   
