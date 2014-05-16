@@ -198,12 +198,14 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         self.input.render(drawlist, db, dm, &dt, q);
         q.time("defered: setup".to_owned());
 
-        let plane = drawlist.find("core/geometry/plane").unwrap();
-        let plane = drawlist.geometry(plane).unwrap();
-
-        let shader = db.defered_shader.as_ref().unwrap();
-
-        let vbo = db.vertex.find(&plane.vb).unwrap();
+        let plane = drawlist.find("core/geometry/plane")
+                .expect("plane not found");
+        let plane = drawlist.geometry(plane)
+                .expect("Could not fetch geometry of plane");
+        let shader = db.defered_shader
+                .as_ref().expect("Could not load defered_shader");
+        let vbo = db.vertex.find(&plane.vb)
+                .expect("No vbo found");
         vbo.bind();
 
         shader.bind();

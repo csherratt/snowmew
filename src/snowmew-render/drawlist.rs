@@ -423,8 +423,8 @@ impl Drawlist for DrawlistInstanced {
         let instance_offset = shader.uniform("instance_offset");        
 
         let instance_draw = |draw_geo: ObjectKey, offset: uint, len: uint| {
-            let draw_geo = self.geometry(draw_geo).unwrap();
-            let draw_vbo = db.vertex.find(&draw_geo.vb).unwrap();
+            let draw_geo = self.geometry(draw_geo).expect("geometry not found");
+            let draw_vbo = db.vertex.find(&draw_geo.vb).expect("vbo not found");
             draw_vbo.bind();
             unsafe {
                 gl::Uniform1i(instance_offset, offset as GLint);
