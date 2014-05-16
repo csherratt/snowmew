@@ -79,4 +79,29 @@ impl Material {
 
     pub fn Tf(&self) -> Vector3<f32> {self.tf}
     pub fn set_Tf(&mut self, c: Vector3<f32>) {self.tf = c;}
+
+    pub fn map_Ka(&self) -> Option<ObjectKey> {self.map_ka}
+    pub fn set_map_Ka(&mut self, oid: ObjectKey) {self.map_ka = Some(oid);}
+
+    pub fn map_Kd(&self) -> Option<ObjectKey> {self.map_kd}
+    pub fn set_map_Kd(&mut self, oid: ObjectKey) {self.map_kd = Some(oid);}
+
+    pub fn map_Ks(&self) -> Option<ObjectKey> {self.map_ks}
+    pub fn set_map_Ks(&mut self, oid: ObjectKey) {self.map_ks = Some(oid);}
+
+    pub fn map_Ke(&self) -> Option<ObjectKey> {self.map_ke}
+    pub fn set_map_Ke(&mut self, oid: ObjectKey) {self.map_ke = Some(oid);}
+
+    pub fn map_ns(&self) -> Option<ObjectKey> {self.map_ns}
+    pub fn set_map_ns(&mut self, oid: ObjectKey) {self.map_ns = Some(oid);}
+
+    pub fn map_d(&self) -> Option<ObjectKey> {self.map_d}
+    pub fn set_map_d(&mut self, oid: ObjectKey) {self.map_d = Some(oid);}
+
+    pub fn map_bump(&self) -> Option<ObjectKey> {self.map_bump}
+    pub fn set_map_bump(&mut self, oid: ObjectKey) {self.map_bump = Some(oid);}
+
+    pub fn map_refl(&self) -> Option<ObjectKey> {self.map_refl}
+    pub fn set_map_refl(&mut self, oid: ObjectKey) {self.map_refl = Some(oid);}
+
 }

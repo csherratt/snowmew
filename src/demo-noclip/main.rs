@@ -88,7 +88,6 @@ fn main() {
         let import = db.new_object(None, "import");
         loader.import(import, &mut db);
 
-        let blue = db.find("core/material/flat/blue").expect("blue not found");
         let scene = db.new_object(None, "scene");
         let geo_dir = db.find("import/objects").expect("geometry not found from import");
         for (name, id) in db.clone().walk_dir(geo_dir) {
