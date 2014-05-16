@@ -1,6 +1,6 @@
 #version 400
 
-uniform vec3 mat_color[128];
+uniform vec3 mat_color[512];
 
 uniform sampler2D position;
 uniform sampler2D uv;

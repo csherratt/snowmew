@@ -6,8 +6,6 @@ use std::cast;
 use gl;
 use gl::types::GLuint;
 
-use graphics::material::{Material, Flat};
-
 pub static MATRIX_PROJECTION: i32 = 0;
 pub static MATRIX_MODEL: i32 = 1;
 
@@ -121,15 +119,5 @@ impl Shader {
 
     pub fn bind(&self) {
         gl::UseProgram(self.program);
-    }
-
-    pub fn set_material(&self, m: &Material) {
-        match *m {
-            Flat(ref color) => {
-                let id = self.uniform("ambient");
-                gl::Uniform3f(id, color.x, color.y, color.z);
-            }
-            _ => (),
-        }
     }
 }

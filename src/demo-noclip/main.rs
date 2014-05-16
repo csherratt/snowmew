@@ -90,16 +90,20 @@ fn main() {
 
         let blue = db.find("core/material/flat/blue").expect("blue not found");
         let scene = db.new_object(None, "scene");
-        let geo_dir = db.find("import/geometry").expect("geometry not found from import");
+        let geo_dir = db.find("import/objects").expect("geometry not found from import");
         for (name, id) in db.clone().walk_dir(geo_dir) {
-            println!("{} {}", name, id);
-            let obj = db.new_object(Some(scene), name);
-            db.set_draw(obj, id, blue);
-            db.update_location(obj,
-                Transform3D::new(1f32,
-                                 Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                                 Vector3::new(0f32, 0f32, 0f32))
-            );
+            match db.get_draw(id) {
+                Some(d) => {
+                    let obj = db.new_object(Some(scene), name);
+                    db.set_draw(obj, d.geometry, d.material);
+                    db.update_location(obj,
+                        Transform3D::new(1f32,
+                                         Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
+                                         Vector3::new(0f32, 0f32, 0f32))
+                    );
+                }
+                None => ()
+            }
         }
 
         let camera_loc = db.new_object(None, "camera");

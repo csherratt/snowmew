@@ -120,6 +120,13 @@ pub trait Graphics: Common {
         self.get_graphics_mut().draw.insert(oid, draw.clone());
     }
 
+    fn get_draw(&self, oid: ObjectKey) -> Option<Drawable> {
+        match self.get_graphics().draw.find(&oid) {
+            Some(d) => Some(d.clone()),
+            None => None
+        }
+    }
+
     fn drawable_count(&self) -> uint {
         self.get_graphics().draw.len()
     }

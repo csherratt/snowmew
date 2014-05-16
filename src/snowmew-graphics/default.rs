@@ -143,7 +143,7 @@ pub fn load_default(db: &mut Graphics) {
     let flat_dir = db.add_dir(Some(mat_dir), "flat");
 
     for &(ref name, ref color) in WEB_COLORS.iter() {
-        db.new_material(flat_dir, name.to_owned(), Material::flat(color.clone()));
+        db.new_material(flat_dir, name.to_owned(), Material::simple(color.clone()));
     }
 
     let geo_dir = db.add_dir(Some(core_dir), "geometry");

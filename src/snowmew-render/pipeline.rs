@@ -10,7 +10,7 @@ use ovr::HMDInfo;
 use shader::Shader; 
 
 use snowmew::camera::DrawMatrices;
-use graphics::material::{NoMaterial, Phong, Flat};
+use graphics::material::Material;
 use graphics::Graphics;
 
 use db::GlState;
@@ -232,10 +232,7 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         let mut gl_materials = Vec::new();
 
         for m in materials.iter() {
-            match *m {
-                NoMaterial | Phong(_) => gl_materials.push(Vector3::new(1f32, 1f32, 1f32)),
-                Flat(mat) => gl_materials.push(mat.clone())
-            }
+            gl_materials.push(m.Kd());
         }
 
         unsafe {
