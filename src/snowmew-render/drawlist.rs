@@ -463,6 +463,7 @@ impl Drawlist for DrawlistInstanced {
     fn materials(&self) -> Vec<Material> {
         let mut mats = Vec::new();
         for (_, key) in self.id_to_material.iter() {
+            //println!("{:?}", self.material(*key).unwrap().clone());
             mats.push(self.material(*key).unwrap().clone());
         }
         mats

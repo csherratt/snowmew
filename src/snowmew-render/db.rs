@@ -6,6 +6,7 @@ use {RenderData};
 
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
+use texture::TextureAlmanac;
 
 use ovr;
 use Config;
@@ -21,12 +22,12 @@ static FS_DEFERED_SRC: &'static str = include_str!("shaders/flat_defered_fragmen
 #[deriving(Clone)]
 pub struct GlState {
     pub vertex: BTreeMap<ObjectKey, VertexBuffer>,
-
     pub flat_shader: Option<Shader>,
     pub flat_instance_shader: Option<Shader>,
     pub flat_bindless_shader: Option<Shader>,
     pub defered_shader: Option<Shader>,
     pub ovr_shader: Option<Shader>,
+    pub texture: TextureAlmanac
 }
 
 impl GlState {
@@ -38,7 +39,16 @@ impl GlState {
             flat_bindless_shader: None,
             defered_shader: None,
             ovr_shader: None,
+            texture: TextureAlmanac::new()
 
+        }
+    }
+
+    fn load_textures(&mut self, db: &RenderData, _: &Config) {
+        for (id, texture) in db.texture_iter() {
+            if self.texture.get_index(*id).is_none() {
+                self.texture.load(*id, texture);
+            }
         }
     }
 
@@ -96,6 +106,7 @@ impl GlState {
 
     pub fn load(&mut self, db: &RenderData, cfg: &Config) {
         self.load_vertex(db, cfg);
+        self.load_textures(db, cfg);
         self.load_shaders(db, cfg);
     }
 }

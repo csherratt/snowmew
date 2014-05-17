@@ -50,6 +50,7 @@ mod pipeline;
 mod query;
 mod compute_accelerator;
 mod config;
+mod texture;
 
 pub trait RenderData : Graphics + Positions {}
 
@@ -67,12 +68,12 @@ fn swap_buffers_sync(disp: &mut Window) {
 fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
                  output: Sender<Box<Drawlist:Send>>,
                  mut window: Window,
-                 mut db: db::GlState,
                  size: (i32, i32),
                  config: Config,
                  cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
 
     window.make_context_current();
+    let mut db = db::GlState::new();
 
     let mut pipeline = {
         let (width, height) = size;
@@ -152,7 +153,6 @@ fn render_server(command: Receiver<RenderCommand>,
                  size: (i32, i32),
                  cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
 
-    let gl = db::GlState::new();
     let mut scene = 0;
     let mut camera = 0;
     let config = Config::new(window.get_context_version());
@@ -167,7 +167,6 @@ fn render_server(command: Receiver<RenderCommand>,
         render_thread(receiver_drawlist_setup,
                       send_drawlist_ready,
                       window,
-                      gl,
                       size,
                       config,
                       cl

@@ -5,7 +5,7 @@ pub struct Texture {
     width: uint,
     height: uint,
     depth: uint,
-    data: Vec<f32>
+    data: Vec<u8>
 }
 
 impl default::Default for Texture {
@@ -15,7 +15,7 @@ impl default::Default for Texture {
 }
 
 impl Texture {
-    pub fn new(width: uint, height: uint, depth: uint, data: Vec<f32>) -> Texture {
+    pub fn new(width: uint, height: uint, depth: uint, data: Vec<u8>) -> Texture {
         Texture {
             width: width,
             height: height,
@@ -27,5 +27,5 @@ impl Texture {
     pub fn width(&self) -> uint { self.width }
     pub fn height(&self) -> uint { self.height }
     pub fn depth(&self) -> uint { self.depth }
-    pub fn data<'a>(&'a self) -> &'a [f32] { self.data.as_slice() }
+    pub fn data<'a>(&'a self) -> &'a [u8] { self.data.as_slice() }
 }

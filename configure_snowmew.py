@@ -288,7 +288,7 @@ _base = os.path.abspath(os.path.dirname(__file__))
 modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
-           Lib("snowmew-loader", ["snowmew", "snowmew-graphics"]),
+           Lib("snowmew-loader", ["snowmew", "snowmew-graphics", "stb-image"]),
            Lib("snowmew-physics", ["snowmew", "collision", "snowmew-position", "cow"]),
            Lib("snowmew-position", ["snowmew", "cgmath", "OpenCL", "cow"]),
            Lib("snowmew-graphics", ["snowmew", "cgmath", "cow", "collision"]),

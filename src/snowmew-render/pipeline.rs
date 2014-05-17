@@ -4,7 +4,7 @@ use libc;
 
 use gl;
 use gl::types::{GLuint, GLint};
-use cgmath::vector::Vector3;
+use cgmath::vector::{Vector4, Vector2};
 use ovr::HMDInfo;
 
 use shader::Shader; 
@@ -226,17 +226,50 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         gl::ActiveTexture(gl::TEXTURE0+3);
         gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
         gl::Uniform1i(shader.uniform("pixel_drawn_by"), 3);
+        gl::ActiveTexture(gl::TEXTURE0+4);
+        gl::BindTexture(gl::TEXTURE_2D_ARRAY, db.texture.texture());
+        gl::Uniform1i(shader.uniform("atlas"), 4);
         assert!(0 == gl::GetError());
 
         let materials = drawlist.materials();
-        let mut gl_materials = Vec::new();
+        let mut gl_materials_kd: Vec<Vector4<f32>> = materials.iter().map(
+            |m| {
+                let kd = m.Kd();
+                let text = match m.map_Kd() {
+                    Some(key) => {
+                        db.texture.get_index(key).expect("could not find key") as f32
+                    }
+                    None => -1f32
+                };
+                Vector4::new(kd.x, kd.y, kd.z, text)
+            }
+        ).collect();
 
-        for m in materials.iter() {
-            gl_materials.push(m.Kd());
-        }
+        let mut gl_materials_kd_size: Vec<Vector2<f32>> = materials.iter().map(
+            |m| {
+                match m.map_Kd() {
+                    Some(k) => {
+                        match drawlist.get_texture(k) {
+                            Some(t) => {
+                                Vector2::new(t.width() as f32 / 1024f32,
+                                             t.height() as f32 / 1024f32)
+                            }
+                            None => Vector2::new(1f32, 1f32)
+                        }
+                    }
+                    None => Vector2::new(1f32, 1f32)
+                }
+            }
+        ).collect();
+
 
         unsafe {
-            gl::Uniform3fv(shader.uniform("mat_color"), gl_materials.len() as i32, &gl_materials.get(0).x);
+            gl::Uniform4fv(shader.uniform("material_kd"),
+                           gl_materials_kd.len() as i32,
+                           &gl_materials_kd.get(0).x);
+            gl::Uniform2fv(shader.uniform("material_kd_size"),
+                           gl_materials_kd_size.len() as i32,
+                           &gl_materials_kd_size.get(0).x);
         }
 
         ddt.bind();
