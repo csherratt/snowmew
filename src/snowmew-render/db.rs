@@ -6,7 +6,7 @@ use {RenderData};
 
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
-use texture::TextureAlmanac;
+use texture::TextureAtlas;
 
 use ovr;
 use Config;
@@ -27,7 +27,7 @@ pub struct GlState {
     pub flat_bindless_shader: Option<Shader>,
     pub defered_shader: Option<Shader>,
     pub ovr_shader: Option<Shader>,
-    pub texture: TextureAlmanac
+    pub texture: TextureAtlas
 }
 
 impl GlState {
@@ -39,7 +39,7 @@ impl GlState {
             flat_bindless_shader: None,
             defered_shader: None,
             ovr_shader: None,
-            texture: TextureAlmanac::new()
+            texture: TextureAtlas::new()
 
         }
     }

@@ -28,6 +28,7 @@ use snowmew::common::{Common, CommonData};
 
 use db::GlState;
 use {Config, RenderData};
+use material::MaterialBuffer;
 
 pub trait Drawlist: RenderData {
     // This is done on the OpenGL thread, this will map and setup
@@ -49,6 +50,7 @@ pub trait Drawlist: RenderData {
 
     // get materials
     fn materials(&self) -> Vec<Material>;
+    fn material_buffer(&self) -> u32;
     fn start_time(&self) -> f64;
 }
 
@@ -110,6 +112,7 @@ pub struct DrawlistInstanced {
 
     computed_position: Option<ComputedPosition>,
 
+    materials: MaterialBuffer,
     material_to_id: TreeMap<ObjectKey, u32>,
     id_to_material: TreeMap<u32, ObjectKey>,
 
@@ -189,6 +192,7 @@ impl DrawlistInstanced {
             ptr_model_info: ptr::mut_null(),
             material_to_id: TreeMap::new(),
             id_to_material: TreeMap::new(),
+            materials: MaterialBuffer::new(2048),
             cl: clpos,
             event: None,
             start: 0.
@@ -230,6 +234,7 @@ impl<'r> MatrixManager for GLMatrix<'r> {
 
 impl Drawlist for DrawlistInstanced {
     fn setup_begin(&mut self) {
+        self.materials.map();
         if self.cl.is_none() {
             for i in range(0u, 4) {
                 gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
@@ -263,6 +268,7 @@ impl Drawlist for DrawlistInstanced {
             text_model_info: text_model_info,
             ptr_model_matrix: ptr_model_matrix,
             ptr_model_info: ptr_model_info,
+            materials: materials,
             event: _,
             start: _
         } = *self;
@@ -317,8 +323,8 @@ impl Drawlist for DrawlistInstanced {
             id_to_material.clear();
 
             for (id, (key, _)) in db.material_iter().enumerate() {
-                material_to_id.insert(*key, (id+1) as u32);
-                id_to_material.insert((id+1) as u32, *key);
+                material_to_id.insert(*key, id as u32);
+                id_to_material.insert(id as u32, *key);
             }
 
             unsafe {
@@ -348,6 +354,7 @@ impl Drawlist for DrawlistInstanced {
                             cl: cl,
 
                             // fromt task 1
+                            materials: materials,
                             material_to_id: material_to_id,
                             id_to_material: id_to_material,
                             ptr_model_info: ptr_model_info,
@@ -386,7 +393,11 @@ impl Drawlist for DrawlistInstanced {
         gl::UnmapBuffer(gl::TEXTURE_BUFFER);
         assert!(0 == gl::GetError());
         self.ptr_model_info = ptr::mut_null();
-        db.load(self, cfg);
+
+        let data = self.data.clone();
+        db.load(&data, cfg);
+        self.materials.build(&data, db);
+        self.materials.unmap();
     }
 
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
@@ -458,6 +469,10 @@ impl Drawlist for DrawlistInstanced {
             instance_draw(last_geo.unwrap(), start, end - start + 1);
         }
 
+    }
+
+    fn material_buffer(&self) -> u32 {
+        self.materials.id()
     }
 
     fn materials(&self) -> Vec<Material> {
@@ -567,6 +582,8 @@ impl Drawlist for DrawlistSimple {
             }
         }
     }
+
+    fn material_buffer(&self) -> u32 {0}
 
     fn materials(&self) -> Vec<Material> {
         let mut mats = Vec::new();

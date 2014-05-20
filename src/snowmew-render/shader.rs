@@ -41,14 +41,6 @@ pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
     shader
 }
 
-fn uniform(program: GLuint, s: &str) -> i32 {
-    unsafe {
-        s.with_c_str(|c_str| {
-            gl::GetUniformLocation(program, c_str)
-        })
-    }
-}
-
 #[deriving(Clone, Default)]
 pub struct Shader {
     program: GLuint,
@@ -114,7 +106,27 @@ impl Shader {
     }
 
     pub fn uniform(&self, s: &str) -> i32 {
-        uniform(self.program, s)
+        unsafe {
+            s.with_c_str(|c_str| {
+                gl::GetUniformLocation(self.program, c_str)
+            })
+        }
+    }
+
+    pub fn uniform_block_index(&self, s: &str) -> u32 {
+        unsafe {
+            s.with_c_str(|c_str| {
+                gl::GetUniformBlockIndex(self.program, c_str)
+            })
+        }
+    }
+
+    pub fn uniform_block_data_size(&self, idx: u32) -> i32 {
+        unsafe {
+            let mut val = 0;
+            gl::GetActiveUniformBlockiv(self.program, idx, gl::UNIFORM_BLOCK_DATA_SIZE, &mut val);
+            val
+        }
     }
 
     pub fn bind(&self) {

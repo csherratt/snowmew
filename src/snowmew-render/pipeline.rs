@@ -143,7 +143,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16UI, w, h);
             assert!(0 == gl::GetError());
 
             gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer);
@@ -231,46 +231,10 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         gl::Uniform1i(shader.uniform("atlas"), 4);
         assert!(0 == gl::GetError());
 
-        let materials = drawlist.materials();
-        let mut gl_materials_kd: Vec<Vector4<f32>> = materials.iter().map(
-            |m| {
-                let kd = m.Kd();
-                let text = match m.map_Kd() {
-                    Some(key) => {
-                        db.texture.get_index(key).expect("could not find key") as f32
-                    }
-                    None => -1f32
-                };
-                Vector4::new(kd.x, kd.y, kd.z, text)
-            }
-        ).collect();
+        gl::BindBufferBase(gl::UNIFORM_BUFFER,
+                           shader.uniform_block_index("Materials"),
+                           drawlist.material_buffer());
 
-        let mut gl_materials_kd_size: Vec<Vector2<f32>> = materials.iter().map(
-            |m| {
-                match m.map_Kd() {
-                    Some(k) => {
-                        match drawlist.get_texture(k) {
-                            Some(t) => {
-                                Vector2::new(t.width() as f32 / 1024f32,
-                                             t.height() as f32 / 1024f32)
-                            }
-                            None => Vector2::new(1f32, 1f32)
-                        }
-                    }
-                    None => Vector2::new(1f32, 1f32)
-                }
-            }
-        ).collect();
-
-
-        unsafe {
-            gl::Uniform4fv(shader.uniform("material_kd"),
-                           gl_materials_kd.len() as i32,
-                           &gl_materials_kd.get(0).x);
-            gl::Uniform2fv(shader.uniform("material_kd_size"),
-                           gl_materials_kd_size.len() as i32,
-                           &gl_materials_kd_size.get(0).x);
-        }
 
         ddt.bind();
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
