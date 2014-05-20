@@ -1,9 +1,13 @@
 #version 400
 
+struct texture_ptr {
+    int which_atlas;
+    int which_index;
+};
+
 struct material {
     vec3 kd;
-    vec2 kd_size;   
-    int  kd_map;
+    texture_ptr kd_map;
 };
 
 layout(std140) uniform Materials {
@@ -15,7 +19,7 @@ uniform sampler2D uv;
 uniform sampler2D normal;
 uniform usampler2D pixel_drawn_by;
 
-uniform sampler2DArray atlas;
+uniform sampler2DArray atlases[64];
 
 in vec2 TexPos;
 out vec4 color;
@@ -27,15 +31,14 @@ void main() {
     if (material.x == 0) {
         color = vec4(1., 0.1, 0.5, 1.);
     } else {
-        int kd_text = materials[material.y].kd_map;
+        int kd_text = materials[material.y].kd_map.which_atlas-1;
+        int kd_idx = materials[material.y].kd_map.which_index;
         if (kd_text == -1) {
             color = vec4(materials[material.y].kd, 1.);
         } else {
-            vec2 uv_size = materials[material.y].kd_size;
             vec2 uv_value = texture(uv, TexPos).xy;
-            uv_value = mod(uv_value * uv_size, uv_size);
-            vec3 pos = vec3(uv_value, float(kd_text));
-            color = texture(atlas, pos);
+            color = texture(atlases[kd_text],
+                            vec3(uv_value, float(kd_idx)));
         }
     }
 }

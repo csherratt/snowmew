@@ -14,30 +14,24 @@ use db::GlState;
 
 #[packed]
 struct MaterialStd140 {
-    kd: Vector3<f32>, padd_kd: f32,
-    kd_scale: Vector2<f32>,
-    kd_texture: i32,
-    padd_end: i32,
+    kd: Vector3<f32>,
+    kd_texture: (i32, i32),
+    padd_end: (i32, i32, i32),
 }
 
-fn get_mat(ka: Option<ObjectKey>, gl: &GlState) -> (i32, Vector2<f32>) {
+fn get_mat(ka: Option<ObjectKey>, gl: &GlState) -> (i32, i32) {
     match ka {
-        Some(ref ka) => (gl.texture.get_index(*ka).unwrap(),
-                         gl.texture.get_scale(*ka).unwrap()),
-        None => (0, Vector2::new(1f32, 1.))
+        Some(ref ka) => gl.texture.get_index(*ka).unwrap(),
+        None => (0, 0)
     }
 }
 
 impl MaterialStd140 {
     pub fn from(mat: &Material, gl: &GlState) -> MaterialStd140 {
-        let (ka_texture, ka_scale) = get_mat(mat.map_Ka(), gl);
-
         MaterialStd140 {
             kd: mat.Ka(),
-            padd_kd: 0.,
-            kd_scale: ka_scale,
-            kd_texture: ka_texture,
-            padd_end: 0
+            kd_texture: get_mat(mat.map_Ka(), gl),
+            padd_end: (0, 0, 0)
         }
     }
 }

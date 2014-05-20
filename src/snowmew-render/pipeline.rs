@@ -4,13 +4,11 @@ use libc;
 
 use gl;
 use gl::types::{GLuint, GLint};
-use cgmath::vector::{Vector4, Vector2};
 use ovr::HMDInfo;
 
 use shader::Shader; 
 
 use snowmew::camera::DrawMatrices;
-use graphics::material::Material;
 use graphics::Graphics;
 
 use db::GlState;
@@ -226,9 +224,22 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         gl::ActiveTexture(gl::TEXTURE0+3);
         gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
         gl::Uniform1i(shader.uniform("pixel_drawn_by"), 3);
-        gl::ActiveTexture(gl::TEXTURE0+4);
-        gl::BindTexture(gl::TEXTURE_2D_ARRAY, db.texture.texture());
-        gl::Uniform1i(shader.uniform("atlas"), 4);
+
+        let textures = db.texture.textures();
+        for (idx, texture) in textures.iter().enumerate() {
+            gl::ActiveTexture(gl::TEXTURE0+4+idx as u32);
+            gl::BindTexture(gl::TEXTURE_2D_ARRAY, *texture);
+        }
+        let textures: Vec<i32> = 
+                textures.iter().enumerate().map(|(e, _)| 4+e as i32).collect();
+
+        unsafe {
+            if textures.len() != 0 {
+                gl::Uniform1iv(shader.uniform("atlases"),
+                               textures.len() as i32,
+                               textures.get(0) as *i32);
+            }
+        }
         assert!(0 == gl::GetError());
 
         gl::BindBufferBase(gl::UNIFORM_BUFFER,
