@@ -4,7 +4,7 @@ use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
 use collections::treemap::TreeMap;
 
-use cgmath::vector::{Vector3, Vector2};
+use cgmath::vector::{Vector3, Vector2, Vector4};
 use gl;
 
 use snowmew::ObjectKey;
@@ -14,9 +14,9 @@ use db::GlState;
 
 #[packed]
 struct MaterialStd140 {
-    kd: Vector3<f32>,
+    kd: Vector4<f32>,
     kd_texture: (i32, i32),
-    padd_end: (i32, i32, i32),
+    padd_end: (i32, i32),
 }
 
 fn get_mat(ka: Option<ObjectKey>, gl: &GlState) -> (i32, i32) {
@@ -28,10 +28,11 @@ fn get_mat(ka: Option<ObjectKey>, gl: &GlState) -> (i32, i32) {
 
 impl MaterialStd140 {
     pub fn from(mat: &Material, gl: &GlState) -> MaterialStd140 {
+        let kd = mat.Ka();
         MaterialStd140 {
-            kd: mat.Ka(),
+            kd: Vector4::new(kd.x, kd.y, kd.z, 1.),
             kd_texture: get_mat(mat.map_Ka(), gl),
-            padd_end: (0, 0, 0)
+            padd_end: (0, 0)
         }
     }
 }

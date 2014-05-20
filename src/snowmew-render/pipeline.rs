@@ -246,6 +246,7 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
                            shader.uniform_block_index("Materials"),
                            drawlist.material_buffer());
 
+        //println!("sizeof {}", shader.uniform_block_data_size(shader.uniform_block_index("Materials")));
 
         ddt.bind();
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);

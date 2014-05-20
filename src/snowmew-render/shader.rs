@@ -129,6 +129,14 @@ impl Shader {
         }
     }
 
+    pub fn uniform_block_offset(&self, idx: u32) -> i32 {
+        unsafe {
+            let mut val = 0;
+            gl::GetActiveUniformBlockiv(self.program, idx, gl::UNIFORM_OFFSET, &mut val);
+            val
+        }
+    }
+
     pub fn bind(&self) {
         gl::UseProgram(self.program);
     }
