@@ -12,15 +12,12 @@ extern crate collision;
 use snowmew::common::{ObjectKey, Common};
 use position::Positions;
 
-use collision::bvh::BvhBuilder;
-use collision::aabb::{Aabb, Aabb3};
+use collision::aabb::{Aabb3};
 
 use cgmath::point::Point3;
-use cgmath::matrix::{Matrix, Matrix4};
-use cgmath::vector::{Vector3, Vector4};
+use cgmath::vector::{Vector3};
 
 use cow::btree::BTreeMap;
-use cow::join::join_maps;
 
 pub mod manager;
 

@@ -2,7 +2,6 @@ use gl;
 use gl::types::GLuint;
 
 use std::mem;
-use std::cast;
 use std::ptr;
 
 use libc::c_void;
@@ -28,22 +27,22 @@ impl VertexBuffer {
         let (vertex_size, index_size) = unsafe {
             let (addr, size, stride) = match *vertex {
                 Geo(ref data) => {
-                    (cast::transmute(data.get(0)),
+                    (mem::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGeo>(),
                      mem::size_of::<VertexGeo>())
                 },
                 GeoTex(ref data) => {
-                    (cast::transmute(data.get(0)),
+                    (mem::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGeoTex>(),
                      mem::size_of::<VertexGeoTex>())
                 },
                 GeoNorm(ref data) => {
-                    (cast::transmute(data.get(0)),
+                    (mem::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGeoNorm>(),
                      mem::size_of::<VertexGeoNorm>())
                 },
                 GeoTexNorm(ref data) => {
-                    (cast::transmute(data.get(0)),
+                    (mem::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGeoTexNorm>(),
                      mem::size_of::<VertexGeoTexNorm>())
                 }
@@ -86,7 +85,7 @@ impl VertexBuffer {
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, vbo[1]);
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
                            (index.len() * mem::size_of::<u32>())  as gl::types::GLsizeiptr,
-                           cast::transmute(&index[0]),
+                           mem::transmute(&index[0]),
                            gl::STATIC_DRAW
             );
 

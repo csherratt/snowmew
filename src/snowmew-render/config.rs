@@ -66,7 +66,7 @@ impl Config
     pub fn new(gl_version: (uint, uint)) -> Config {
         Config {
             profile: get_setting_option("PROFILE", Disabled),
-            hmd_size: 1.0,
+            hmd_size: 1.7,
             max_size: 1024*1024,
             bindless: check_gl_version(gl_version, (4, 4),
                 get_setting_option("BINDLESS", Enabled)

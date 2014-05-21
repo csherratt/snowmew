@@ -1,7 +1,7 @@
 use std::ptr;
 use std::vec::Vec;
 use std::str;
-use std::cast;
+use std::mem;
 
 use gl;
 use gl::types::GLuint;
@@ -112,7 +112,7 @@ impl PositionGlAccelerator {
                 gl::GetProgramInfoLog(program,
                                       len,
                                       ptr::mut_null(),
-                                      cast::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
+                                      mem::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
                 fail!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
             }
         }

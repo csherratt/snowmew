@@ -279,7 +279,7 @@ impl CalcPositionsCl {
         let program = ctx.create_program_from_source(opencl_program);
     
         match program.build(device) {
-            Ok(()) => (),
+            Ok(_) => (),
             Err(build_log) => {
                 println!("Error building program:");
                 println!("{:s}", build_log);

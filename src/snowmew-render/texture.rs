@@ -1,6 +1,6 @@
 
 use gl;
-use std::cast;
+use std::mem;
 use collections::{TreeMap};
 
 use snowmew::ObjectKey;
@@ -103,7 +103,7 @@ impl TextureArray {
                               text.height() as i32, 1,
                               format_to_gl_value(text.depth() as i32),
                               gl::UNSIGNED_BYTE,
-                              cast::transmute(&text.data()[0]));
+                              mem::transmute(&text.data()[0]));
             gl::GenerateMipmap(gl::TEXTURE_2D_ARRAY);
             gl::BindTexture(gl::TEXTURE_2D_ARRAY, 0);
             assert!(0 == gl::GetError());
