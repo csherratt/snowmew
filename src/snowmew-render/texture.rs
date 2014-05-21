@@ -63,7 +63,7 @@ impl TextureArray {
             gl::TexParameteri(gl::TEXTURE_2D_ARRAY, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D_ARRAY, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
             gl::TexParameteri(gl::TEXTURE_2D_ARRAY, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-            gl::TexStorage3D(gl::TEXTURE_2D_ARRAY, 1, format, width, height, depth);
+            gl::TexStorage3D(gl::TEXTURE_2D_ARRAY, 8, format, width, height, depth);
             assert!(0 == gl::GetError());
         };
 

@@ -2,11 +2,13 @@
 
 #define ATLAS_SIZE 12
 
+struct material {
+    vec4 kd;
+    ivec2 kd_map;
+};
+
 layout(std140) uniform Materials {
-    struct material {
-        vec4 kd;
-        ivec2 kd_map;
-    } materials[100];
+    material materials[100];
 };
 
 uniform sampler2D position;
@@ -29,7 +31,5 @@ void main() {
     } else if (kd_map.x >= atlas_base && kd_map.x < atlas_base + ATLAS_SIZE) {
         vec2 uv_value = texture(uv, TexPos).xy;
         color = vec4(texture(atlas[kd_map.x], vec3(uv_value, float(kd_map.y))).xyz, 1.);
-    } else {
-        discard;
     }
 }
