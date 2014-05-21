@@ -1,12 +1,12 @@
 use cow::btree::BTreeMap;
-use position::{Positions, PositionData};
-use graphics::{Graphics, GraphicsData};
-use snowmew::common::{Common, CommonData};
+use graphics::{Graphics};
+use snowmew::common::{Common};
 use snowmew::common::ObjectKey;
 use {RenderData};
 
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
+use texture::TextureAtlas;
 
 use ovr;
 use Config;
@@ -21,62 +21,41 @@ static FS_DEFERED_SRC: &'static str = include_str!("shaders/flat_defered_fragmen
 
 #[deriving(Clone)]
 pub struct GlState {
-    pub common: CommonData,
-    pub position: PositionData,
-    pub graphics: GraphicsData,
-
     pub vertex: BTreeMap<ObjectKey, VertexBuffer>,
-
     pub flat_shader: Option<Shader>,
     pub flat_instance_shader: Option<Shader>,
     pub flat_bindless_shader: Option<Shader>,
-
     pub defered_shader: Option<Shader>,
-
     pub ovr_shader: Option<Shader>,
-}
-
-impl Common for GlState {
-    fn get_common<'a>(&'a self) -> &'a CommonData { &self.common }
-    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { &mut self.common }
-}
-
-impl Graphics for GlState {
-    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { &self.graphics }
-    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.graphics }
-}
-
-impl Positions for GlState {
-    fn get_position<'a>(&'a self) -> &'a PositionData { &self.position }
-    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.position }
+    pub texture: TextureAtlas
 }
 
 impl GlState {
-    pub fn new(db: &RenderData) -> GlState {
+    pub fn new() -> GlState {
         GlState {
-            common: db.get_common().clone(),
-            position: db.get_position().clone(),
-            graphics: db.get_graphics().clone(),
             vertex: BTreeMap::new(),
             flat_shader: None,
             flat_instance_shader: None,
             flat_bindless_shader: None,
             defered_shader: None,
             ovr_shader: None,
+            texture: TextureAtlas::new()
 
         }
     }
 
-    pub fn update(&mut self, db: &RenderData) {
-        self.common = db.get_common().clone();
-        self.position = db.get_position().clone();
-        self.graphics = db.get_graphics().clone();
+    fn load_textures(&mut self, db: &RenderData, _: &Config) {
+        for (id, texture) in db.texture_iter() {
+            if self.texture.get_index(*id).is_none() {
+                self.texture.load(*id, texture);
+            }
+        }
     }
 
-    fn load_vertex(&mut self, _: &Config) {
+    fn load_vertex(&mut self, db: &RenderData, _: &Config) {
         let mut vertex = self.vertex.clone();
 
-        for (oid, vbo) in self.vertex_buffer_iter() {
+        for (oid, vbo) in db.vertex_buffer_iter() {
             match vertex.find(oid) {
                 Some(_) => (),
                 None => {
@@ -89,7 +68,7 @@ impl GlState {
         self.vertex = vertex; 
     }
 
-    fn load_shaders(&mut self, cfg: &Config) {
+    fn load_shaders(&mut self, _: &RenderData, cfg: &Config) {
         if self.ovr_shader.is_none() {
             self.ovr_shader = Some(
                 Shader::new(VS_PASS_SRC, VR_FS_SRC,
@@ -125,8 +104,9 @@ impl GlState {
         }
     }
 
-    pub fn load(&mut self, cfg: &Config) {
-        self.load_vertex(cfg);
-        self.load_shaders(cfg);
+    pub fn load(&mut self, db: &RenderData, cfg: &Config) {
+        self.load_vertex(db, cfg);
+        self.load_textures(db, cfg);
+        self.load_shaders(db, cfg);
     }
 }

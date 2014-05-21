@@ -187,6 +187,18 @@ class LibMakefile(Module):
     def write_cleanup(self, f):
         f.write("\t-make -C %s clean\n" % self.path_to_makefile_dir)
 
+class LibConfigureMakefile(LibMakefile):
+    def make_rule(self, mods):
+        out  = "%s:\n" % (os.path.join(self.get_path_to_makefile_dir(), "Makefile"))
+        out += "\tcd %s && ./configure\n\n" % (
+            os.path.join(self.get_path_to_makefile_dir())
+        )
+        out += "%s: %s\n" % (self.get_ename(), os.path.join(self.get_path_to_makefile_dir(), "Makefile"))
+        out += "\tmake -j 16 -C %s\n\tcp %s %s\n" % (
+            self.get_path_to_makefile_dir(), self.get_path_to_output_dir(), self.get_ename()
+        )
+        return out    
+
 class LibCMake(Module):
     ext = ""
     dir = "lib"
@@ -273,10 +285,10 @@ def set_source_dir(modules, source_dir):
 
 _base = os.path.abspath(os.path.dirname(__file__))
 
-modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
+modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
-           Lib("snowmew-loader", ["snowmew", "snowmew-graphics"]),
+           Lib("snowmew-loader", ["snowmew", "snowmew-graphics", "stb-image"]),
            Lib("snowmew-physics", ["snowmew", "collision", "snowmew-position", "cow"]),
            Lib("snowmew-position", ["snowmew", "cgmath", "OpenCL", "cow"]),
            Lib("snowmew-graphics", ["snowmew", "cgmath", "cow", "collision"]),
@@ -286,6 +298,8 @@ modules = [Bin("snowmew-cube", ["snowmew", "snowmew-render", "glfw", "snowmew-lo
            Lib("gl_cl", ["gl", "OpenCL"]),
            Lib("collision", ["cgmath"]),
            Lib("OpenCL"),
+           Lib("stb-image", ["libstb-image.a"]),
+           LibConfigureMakefile("libstb-image.a", "modules/stb-image/", "modules/stb-image/libstb-image.a"),
            LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
            LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("glfw", ["libglfw3.a"], 

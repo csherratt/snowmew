@@ -3,11 +3,11 @@
 #![crate_type = "lib"]
 #![comment = "A graphics collection for snowmew"]
 
-
 extern crate cow;
 extern crate snowmew;
 extern crate cgmath;
 extern crate collision;
+extern crate image = "stb_image";
 
 use cgmath::vector::{Vector3, Vector2};
 use cgmath::point::Point3;
@@ -18,10 +18,12 @@ use snowmew::common::{Common, ObjectKey};
 
 pub use geometry::{Geometry, VertexBuffer};
 pub use material::Material;
+pub use texture::Texture;
 
 pub mod geometry;
 pub mod material;
 pub mod default;
+pub mod texture;
 
 #[deriving(Clone, Default, Eq)]
 pub struct Drawable {
@@ -60,6 +62,7 @@ pub struct GraphicsData {
     geometry: BTreeMap<ObjectKey, Geometry>,
     vertex:   BTreeMap<ObjectKey, VertexBuffer>,
     material: BTreeMap<ObjectKey, Material>,
+    texture:  BTreeMap<ObjectKey, Texture>
 }
 
 impl GraphicsData {
@@ -68,7 +71,8 @@ impl GraphicsData {
             draw: BTreeMap::new(),
             geometry: BTreeMap::new(),
             vertex: BTreeMap::new(),
-            material: BTreeMap::new()
+            material: BTreeMap::new(),
+            texture: BTreeMap::new()
         }
     }
 }
@@ -120,6 +124,13 @@ pub trait Graphics: Common {
         self.get_graphics_mut().draw.insert(oid, draw.clone());
     }
 
+    fn get_draw(&self, oid: ObjectKey) -> Option<Drawable> {
+        match self.get_graphics().draw.find(&oid) {
+            Some(d) => Some(d.clone()),
+            None => None
+        }
+    }
+
     fn drawable_count(&self) -> uint {
         self.get_graphics().draw.len()
     }
@@ -166,6 +177,20 @@ pub trait Graphics: Common {
 
         Some(aabb)
     }
+
+    fn new_texture(&mut self, parent: ObjectKey, name: &str, texture: Texture) -> ObjectKey {
+        let oid = self.new_object(Some(parent), name);
+        self.get_graphics_mut().texture.insert(oid, texture);
+        oid
+    }
+
+    fn get_texture<'a>(&'a self, oid: ObjectKey) -> Option<&'a Texture> {
+        self.get_graphics().texture.find(&oid)
+    }
+
+    fn texture_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Texture> {
+        self.get_graphics().texture.iter()
+    }
 }
 
 pub struct VertexBufferIter<'a> {
@@ -188,6 +213,10 @@ impl<'a> Iterator<(u32, &'a Vector3<f32>, Option<&'a Vector2<f32>>, Option<&'a V
             geometry::GeoTex(ref v) => {
                 let v = v.get(*idx as uint);
                 Some((*idx, &v.position, Some(&v.texture), None))
+            }
+            geometry::GeoNorm(ref v) => {
+                let v = v.get(*idx as uint);
+                Some((*idx, &v.position, None, Some(&v.normal)))
             }
             geometry::GeoTexNorm(ref v) => {
                 let v = v.get(*idx as uint);

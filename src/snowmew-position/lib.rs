@@ -159,7 +159,7 @@ impl Deltas {
     }
 
     #[inline(never)]
-    pub fn to_positions<MM: MatrixManager>(&self, mm: &mut MM) -> ComputedPosition {
+    pub fn write_positions<MM: MatrixManager>(&self, mm: &mut MM) {
         let mut last_gen_off = 0;
         mm.set(0, Matrix4::identity());
 
@@ -171,14 +171,10 @@ impl Deltas {
             }
             last_gen_off = gen_off;
         }
-
-        ComputedPosition {
-            gen: self.gen.clone()
-        }
     }
 
-    pub fn to_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
-                           out: &[CLBuffer<Vector4<f32>>, ..4]) -> (Event, ComputedPosition) {
+    pub fn write_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
+                           out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
 
         cq.map_mut(&ctx.input, (), |out_delta| {
         cq.map_mut(&ctx.parent, (), |out_parent| {
@@ -212,9 +208,7 @@ impl Deltas {
             event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
         }
 
-        (event, ComputedPosition {
-            gen: self.gen.clone()
-        })
+        event
     }
 
     pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
@@ -225,6 +219,12 @@ impl Deltas {
         }
 
         ComputedPositionGL {
+            gen: self.gen.clone()
+        }
+    }
+
+    pub fn compute_positions(&self) -> ComputedPosition {
+        ComputedPosition {
             gen: self.gen.clone()
         }
     }
@@ -279,7 +279,7 @@ impl CalcPositionsCl {
         let program = ctx.create_program_from_source(opencl_program);
     
         match program.build(device) {
-            Ok(()) => (),
+            Ok(_) => (),
             Err(build_log) => {
                 println!("Error building program:");
                 println!("{:s}", build_log);
@@ -366,17 +366,17 @@ pub trait Positions: Common {
         p_mat.mul_m(&loc)
     }
 
-    fn to_positions<MM: MatrixManager>(&self, mm: &mut MM) -> ComputedPosition {
-        self.get_position().position.to_positions(mm)
+    fn write_positions<MM: MatrixManager>(&self, mm: &mut MM) {
+        self.get_position().position.write_positions(mm)
     }
 
-    fn to_positions_cl(&self, cq: &CommandQueue,
-                        ctx: &mut CalcPositionsCl, out: &[CLBuffer<Vector4<f32>>, ..4]) -> (Event, ComputedPosition) {
-        self.get_position().position.to_positions_cl(cq, ctx, out)
+    fn write_positions_cl(&self, cq: &CommandQueue,
+                        ctx: &mut CalcPositionsCl, out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
+        self.get_position().position.write_positions_cl(cq, ctx, out)
     }
 
-    fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
-        self.get_position().position.to_positions_gl(out_delta)
+    fn compute_positions(&self) -> ComputedPosition {
+        self.get_position().position.compute_positions()
     }
 
     fn location_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Id> {

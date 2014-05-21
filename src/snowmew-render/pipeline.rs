@@ -1,22 +1,23 @@
 
+use std::iter::range_step;
 use std::ptr;
+use libc;
 
 use gl;
 use gl::types::{GLuint, GLint};
-use cgmath::matrix::Matrix;
-use cgmath::vector::Vector3;
 use ovr::HMDInfo;
 
 use shader::Shader; 
 
 use snowmew::camera::DrawMatrices;
-use graphics::material::{NoMaterial, Phong, Flat};
 use graphics::Graphics;
 
 use db::GlState;
 use drawlist::Drawlist;
 
 use snowmew::common::Common;
+
+use query::Profiler;
 
 pub struct DrawTarget {
     framebuffer: GLuint,
@@ -57,7 +58,7 @@ impl DrawTarget {
 }
 
 pub trait Pipeline {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget);
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler);
 }
 
 pub struct Forward;
@@ -67,14 +68,14 @@ impl Forward {
 }
 
 impl Pipeline for Forward {
-    fn render(&mut self, drawlist: &mut Drawlist, _: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
+        q.time("forward setup".to_owned());
         dt.bind();
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-        let proj_view = dm.projection.mul_m(&dm.view);
-
-        drawlist.render(proj_view);
+        q.time("forward render".to_owned());
+        drawlist.render(db, &dm.view, &dm.projection);
     }
 }
 
@@ -114,7 +115,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA16F as i32, w, h, 0, gl::RGBA, gl::FLOAT, ptr::null());
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA16F, w, h);
             assert!(0 == gl::GetError());
 
             // setup UV texture
@@ -123,7 +124,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RG16F as i32, w, h, 0, gl::RG, gl::FLOAT, ptr::null());
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16F, w, h);
             assert!(0 == gl::GetError());
 
             // setup normals
@@ -132,7 +133,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB16F as i32, w, h, 0, gl::RGB, gl::FLOAT, ptr::null());
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGB16F, w, h);
             assert!(0 == gl::GetError());
 
             // setup material texture
@@ -141,7 +142,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RG16 as i32, w, h, 0, gl::RG, gl::UNSIGNED_INT, ptr::null());
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
             assert!(0 == gl::GetError());
 
             gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer);
@@ -191,17 +192,19 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
 }
 
 impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget) {
-
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget, q: &mut Profiler) {
         let dt = self.draw_target();
-        self.input.render(drawlist, db, dm, &dt);
+        self.input.render(drawlist, db, dm, &dt, q);
+        q.time("defered: setup".to_owned());
 
-        let billboard = db.find("core/geometry/billboard").unwrap();
-        let billboard = db.geometry(billboard).unwrap();
-
-        let shader = db.defered_shader.as_ref().unwrap();
-
-        let vbo = db.vertex.find(&billboard.vb).unwrap();
+        let plane = drawlist.find("core/geometry/plane")
+                .expect("plane not found");
+        let plane = drawlist.geometry(plane)
+                .expect("Could not fetch geometry of plane");
+        let shader = db.defered_shader
+                .as_ref().expect("Could not load defered_shader");
+        let vbo = db.vertex.find(&plane.vb)
+                .expect("No vbo found");
         vbo.bind();
 
         shader.bind();
@@ -213,39 +216,54 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, self.pos_texture);
         gl::Uniform1i(shader.uniform("position"), 0);
-        gl::ActiveTexture(gl::TEXTURE0+1);
+        gl::ActiveTexture(gl::TEXTURE1);
         gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
         gl::Uniform1i(shader.uniform("uv"), 1);
-        gl::ActiveTexture(gl::TEXTURE0+2);
+        gl::ActiveTexture(gl::TEXTURE2);
         gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
         gl::Uniform1i(shader.uniform("normal"), 2);
-        gl::ActiveTexture(gl::TEXTURE0+3);
+        gl::ActiveTexture(gl::TEXTURE3);
         gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
         gl::Uniform1i(shader.uniform("pixel_drawn_by"), 3);
-        assert!(0 == gl::GetError());
 
-        let materials = drawlist.materials();
-        let mut gl_materials = Vec::new();
+        let textures = db.texture.textures();
+        let atlas_uniform = shader.uniform("atlas");
+        let atlas_base = shader.uniform("atlas_base");
 
-        for m in materials.iter() {
-            match *m {
-                NoMaterial | Phong(_) => gl_materials.push(Vector3::new(1f32, 1f32, 1f32)),
-                Flat(mat) => gl_materials.push(mat.clone())
-            }
-        }
-
-        unsafe {
-            gl::Uniform3fv(shader.uniform("mat_color"), gl_materials.len() as i32, &gl_materials.get(0).x);
-        }
+        gl::BindBufferBase(gl::UNIFORM_BUFFER,
+                           shader.uniform_block_index("Materials"),
+                           drawlist.material_buffer());
 
         ddt.bind();
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        unsafe {
-            assert!(0 == gl::GetError());
-            gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
-            assert!(0 == gl::GetError());
+        q.time("defered: shader".to_owned());
+        for idx in range_step(0, textures.len(), 12) {
+            let end = if idx + 12 > textures.len() {
+                textures.len()
+            } else {
+                idx + 12
+            };
+            for (e, i) in range(idx, end).enumerate() {
+                gl::ActiveTexture(gl::TEXTURE4+e as u32);
+                gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
+            }
+
+            unsafe {
+                let slice: Vec<i32> = range(idx, end)
+                        .enumerate().map(|(e, _)| (e+4) as i32).collect();
+                gl::Uniform1i(atlas_base, idx as i32);
+                gl::Uniform1iv(atlas_uniform,
+                               slice.len() as i32,
+                               slice.get(0));
+
+                gl::DrawElements(gl::TRIANGLES,
+                                 plane.count as i32,
+                                 gl::UNSIGNED_INT,
+                                 (plane.offset * 4) as *libc::c_void);
+            }
         }
 
+        q.time("defered: cleanup".to_owned());
         for i in range(0, 16) {
             gl::ActiveTexture(gl::TEXTURE0 + i as u32);
             gl::BindTexture(gl::TEXTURE_2D, 0);
@@ -351,13 +369,13 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
         gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
     }
 
-    fn draw_screen(&self, db: &GlState, dt: &DrawTarget) {
-        let billboard = db.find("core/geometry/billboard").unwrap();
-        let billboard = db.geometry(billboard).unwrap();
+    fn draw_screen(&self, rd: &Drawlist, db: &GlState, dt: &DrawTarget) {
+        let plane = rd.find("core/geometry/plane").unwrap();
+        let plane = rd.geometry(plane).unwrap();
 
         let shader = db.ovr_shader.as_ref().unwrap();
 
-        let vbo = db.vertex.find(&billboard.vb).unwrap();
+        let vbo = db.vertex.find(&plane.vb).unwrap();
         shader.bind();
         vbo.bind();
 
@@ -384,24 +402,31 @@ impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
 
             self.setup_viewport(shader, (0., 0.,       width/2., height as f32), (width, height), lense_center);
-            gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES,
+                             plane.count as i32,
+                             gl::UNSIGNED_INT,
+                             (plane.offset * 4) as *libc::c_void);
 
             self.setup_viewport(shader, (width/2., 0., width/2., height as f32), (width, height), -lense_center);
-            gl::DrawElements(gl::TRIANGLES, billboard.count as i32, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES,
+                             plane.count as i32,
+                             gl::UNSIGNED_INT, 
+                             (plane.offset * 4) as *libc::c_void);
         }
     }
 }
 
 impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE> {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget) {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
         let (left_dm, right_dm) = dm.ovr(&self.hmd, self.scale);
 
         let left = self.left();
-        self.input.render(drawlist, db, &left_dm, &left);
+        self.input.render(drawlist, db, &left_dm, &left, q);
 
         let right = self.right();
-        self.input.render(drawlist, db, &right_dm, &right);
+        self.input.render(drawlist, db, &right_dm, &right, q);
 
-        self.draw_screen(db, dt);
+        q.time("ovr: draw screen".to_owned());
+        self.draw_screen(drawlist, db, dt);
     }
 }

@@ -19,7 +19,7 @@ out vec3 fs_normal;
 void main() {
     int id = instance[gl_InstanceID];
     gl_Position = mat_proj_view * model_matrix[id] * vec4(in_position, 1.);
-    fs_position = model_matrix[id] * vec4(in_position, 1.);
+    fs_position = (model_matrix[id] * vec4(in_position, 1.)).xyz;
     fs_texture = in_texture;
     fs_normal = in_normal;
     fs_material_id = material_id;

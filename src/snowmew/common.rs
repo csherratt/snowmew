@@ -162,10 +162,14 @@ pub trait Common {
         node
     }
 
-    fn walk_dir<'a>(&'a self, oid: ObjectKey) -> BTreeMapIterator<'a, StringKey, ObjectKey> {
+    fn walk_dir<'a>(&'a self, oid: ObjectKey) -> DirIter<'a> {
         let dir = self.get_common().parent_child.find(&oid).unwrap();
-        dir.iter()
+        DirIter {
+            common: self.get_common(),
+            iter: dir.iter()
+        }
     }
+
 
     fn name(&self, key: ObjectKey) -> ~str {
         self.get_common().name(key)
@@ -175,4 +179,23 @@ pub trait Common {
 impl Common for CommonData {
     fn get_common<'a>(&'a self) -> &'a CommonData {self}
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}
+}
+
+pub struct DirIter<'a> {
+    common: &'a CommonData,
+    iter: BTreeMapIterator<'a, StringKey, ObjectKey>,
+}
+
+impl<'a> Iterator<(&'a str, ObjectKey)> for DirIter<'a> {
+    fn next(&mut self) -> Option<(&'a str, ObjectKey)> {
+        match self.iter.next() {
+            Some((sid, oid)) => {
+                Some((self.common.strings
+                        .find(sid).expect("Found StringKey w/o Key").as_slice(),
+                    *oid)
+                )
+            }
+            None => None
+        }
+    }
 }

@@ -1,34 +1,35 @@
-#version 400
+#version 410
 
-uniform vec3 mat_color[128];
+#define ATLAS_SIZE 12
+
+struct material {
+    vec4 kd;
+    ivec2 kd_map;
+};
+
+layout(std140) uniform Materials {
+    material materials[100];
+};
 
 uniform sampler2D position;
 uniform sampler2D uv;
 uniform sampler2D normal;
-uniform sampler2D pixel_drawn_by;
+uniform usampler2D pixel_drawn_by;
+
+uniform sampler2DArray atlas[ATLAS_SIZE];
+uniform int atlas_base;
 
 in vec2 TexPos;
 out vec4 color;
 
 void main() {
-    ivec2 material = ivec2(texture(pixel_drawn_by, TexPos).xy * 65536.);
-    bool edge = 
-            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 0,  1)).xy * 65536.)) ||
-            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 0, -1)).xy * 65536.)) ||
-            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 1,  0)).xy * 65536.)) ||
-            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2(-1,  0)).xy * 65536.)) ||
-            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 1,  1)).xy * 65536.)) ||
-            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2(-1, -1)).xy * 65536.)) ||
-            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2( 1, -1)).xy * 65536.)) ||
-            (material != ivec2(textureOffset(pixel_drawn_by, TexPos, ivec2(-1,  1)).xy * 65536.));
+    uvec2 object = texture(pixel_drawn_by, TexPos).xy;
+    ivec2 kd_map = materials[object.y].kd_map;
 
-    if (material.x == 0) {
-        color = vec4(0., 0., 0., 1.);
-    } else {
-        color = vec4(mat_color[material.x], 1.);
-    }
-
-    if (edge) {
-        color *= 0.5;
+    if (kd_map.x == -1) {
+        color = materials[object.y].kd;
+    } else if (kd_map.x >= atlas_base && kd_map.x < atlas_base + ATLAS_SIZE) {
+        vec2 uv_value = texture(uv, TexPos).xy;
+        color = vec4(texture(atlas[kd_map.x], vec3(uv_value, float(kd_map.y))).xyz, 1.);
     }
 }

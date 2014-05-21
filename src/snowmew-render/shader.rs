@@ -1,12 +1,10 @@
 use std::ptr;
 use std::vec::Vec;
 use std::str;
-use std::cast;
+use std::mem;
 
 use gl;
 use gl::types::GLuint;
-
-use graphics::material::{Material, Flat};
 
 pub static MATRIX_PROJECTION: i32 = 0;
 pub static MATRIX_MODEL: i32 = 1;
@@ -28,27 +26,24 @@ pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
         gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
 
         // Fail on error
-        if status != (gl::TRUE as gl::types::GLint) {
-            let mut len = 0;
-            gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
+        let mut len = 0;
+        gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
+
+        if len != 0 {
             let mut buf = Vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
             gl::GetShaderInfoLog(shader,
                                  len,
                                  ptr::mut_null(),
-                                 cast::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
-            fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf.as_slice()));
+                                 mem::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
+            if status == gl::FALSE as i32 {
+                fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf.as_slice()));
+            } else {
+                println!("shader log {:}", str::raw::from_utf8(buf.as_slice()));
+            }
         }
     }
 
     shader
-}
-
-fn uniform(program: GLuint, s: &str) -> i32 {
-    unsafe {
-        s.with_c_str(|c_str| {
-            gl::GetUniformLocation(program, c_str)
-        })
-    }
 }
 
 #[deriving(Clone, Default)]
@@ -88,7 +83,7 @@ impl Shader {
                 gl::GetProgramInfoLog(program,
                                       len,
                                       ptr::mut_null(),
-                                      cast::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
+                                      mem::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
                 fail!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
             }
         }
@@ -116,20 +111,38 @@ impl Shader {
     }
 
     pub fn uniform(&self, s: &str) -> i32 {
-        uniform(self.program, s)
+        unsafe {
+            s.with_c_str(|c_str| {
+                gl::GetUniformLocation(self.program, c_str)
+            })
+        }
+    }
+
+    pub fn uniform_block_index(&self, s: &str) -> u32 {
+        unsafe {
+            s.with_c_str(|c_str| {
+                gl::GetUniformBlockIndex(self.program, c_str)
+            })
+        }
+    }
+
+    pub fn uniform_block_data_size(&self, idx: u32) -> i32 {
+        unsafe {
+            let mut val = 0;
+            gl::GetActiveUniformBlockiv(self.program, idx, gl::UNIFORM_BLOCK_DATA_SIZE, &mut val);
+            val
+        }
+    }
+
+    pub fn uniform_block_offset(&self, idx: u32) -> i32 {
+        unsafe {
+            let mut val = 0;
+            gl::GetActiveUniformBlockiv(self.program, idx, gl::UNIFORM_OFFSET, &mut val);
+            val
+        }
     }
 
     pub fn bind(&self) {
         gl::UseProgram(self.program);
-    }
-
-    pub fn set_material(&self, m: &Material) {
-        match *m {
-            Flat(ref color) => {
-                let id = self.uniform("ambient");
-                gl::Uniform3f(id, color.x, color.y, color.z);
-            }
-            _ => (),
-        }
     }
 }

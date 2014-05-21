@@ -1,7 +1,8 @@
 #version 150
 
 uniform mat4 mat_model;
-uniform mat4 mat_proj_view;
+uniform mat4 mat_view;
+uniform mat4 mat_proj;
 uniform uint object_id;
 uniform uint material_id;
 
@@ -16,11 +17,14 @@ flat out uint fs_object_id;
 flat out uint fs_material_id;
 
 void main() {
-    gl_Position = mat_proj_view * mat_model * vec4(in_position, 1.);
+    mat4 mat_model_view = mat_view * mat_model;
     vec4 pos = mat_model * vec4(in_position, 1.);
+    vec4 normal = mat_model_view * vec4(in_normal, 0.);
+
+    gl_Position = mat_proj * mat_model_view * vec4(in_position, 1.);    
     fs_position = pos.xyz / pos.w;
     fs_texture = in_texture;
-    fs_normal = in_normal;
+    fs_normal = normal.xyz;
     fs_object_id = object_id;
     fs_material_id = material_id;
 }
