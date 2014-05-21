@@ -5,6 +5,8 @@ Snowmew
 Snowmew is a game engine written entirely in rust. It is based around a 
 copy-on-write game state that can be shared safely with tasks in parallel.
 
+![snowmew-preview](https://s3.amazonaws.com/snowmew/Snowmew_004.png)
+
 Building
 --------
 
@@ -29,7 +31,7 @@ All required dependencies are included as submodules.
 | [collision-rs](https://github.com/csherratt/collision-rs) |
 | [cow-rs](https://github.com/csherratt/cow-rs) |
 | [gl-rs](https://github.com/bjz/gl-rs) |
-| [glfw-rs|(https://github.com/bjz/glfw-rs) |
+| [glfw-rs](https://github.com/bjz/glfw-rs) |
 | [rust-opencl](https://github.com/luqmana/rust-opencl) |
 | [rust-stb-image](https://github.com/mozilla-servo/rust-stb-image/) |
 | [vr-rs](https://github.com/csherratt/vr-rs) |
