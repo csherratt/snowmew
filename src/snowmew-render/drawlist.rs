@@ -431,12 +431,16 @@ impl Drawlist for DrawlistInstanced {
 
         let mut range = (0u, 0u);
         let mut last_geo: Option<u32> = None;
+        let mut bound_vbo = None;
         let instance_offset = shader.uniform("instance_offset");        
 
         let instance_draw = |draw_geo: ObjectKey, offset: uint, len: uint| {
             let draw_geo = self.geometry(draw_geo).expect("geometry not found");
-            let draw_vbo = db.vertex.find(&draw_geo.vb).expect("vbo not found");
-            draw_vbo.bind();
+            if Some(draw_geo.vb) != bound_vbo {
+                let draw_vbo = db.vertex.find(&draw_geo.vb).expect("vbo not found");
+                draw_vbo.bind();
+                bound_vbo = Some(draw_geo.vb);
+            }
             unsafe {
                 gl::Uniform1i(instance_offset, offset as GLint);
                 gl::DrawElementsInstanced(gl::TRIANGLES,

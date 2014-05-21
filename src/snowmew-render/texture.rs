@@ -1,9 +1,7 @@
 
 use gl;
 use std::cast;
-use collections::{TreeSet, TreeMap};
-
-use cgmath::vector::Vector2;
+use collections::{TreeMap};
 
 use snowmew::ObjectKey;
 
@@ -24,7 +22,7 @@ pub struct TextureArray {
 }
 
 fn calculate_height(width: i32, height: i32, depth: i32) -> i32 {
-    let size = (4096*4096*4) / (width*height*depth);
+    let size = 50_000_000 / (width*height*depth);
     if size < 4 {
         4
     } else {
@@ -72,7 +70,7 @@ impl TextureArray {
         TextureArray {
             size: (width, height, depth),
             format: format,
-            free: range(0, height).map(|x| height - x - 1).collect(),
+            free: range(0, depth).collect(),
             texture: textures[0]
         }
     }

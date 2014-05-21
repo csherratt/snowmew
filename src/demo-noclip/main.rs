@@ -17,6 +17,7 @@ extern crate OpenCL;
 extern crate sync;
 
 use std::io::timer::Timer;
+use std::from_str::FromStr;
 use sync::Arc;
 
 use cgmath::quaternion::*;
@@ -77,6 +78,12 @@ fn main() {
             return;
         }
         let path = Path::new(args.get(1).as_slice());
+        let scale: f32 = if args.len() == 3 {
+            match FromStr::from_str(args.get(2).as_slice()) {
+                Some(v) => v,
+                None => 1.0
+            }
+        } else {1.0};
         let loader = Obj::load(&path).expect("Failed to load OBJ");
 
         println!("Starting");
@@ -96,7 +103,7 @@ fn main() {
                     let obj = db.new_object(Some(scene), name);
                     db.set_draw(obj, d.geometry, d.material);
                     db.update_location(obj,
-                        Transform3D::new(1f32,
+                        Transform3D::new(scale,
                                          Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
                                          Vector3::new(0f32, 0f32, 0f32))
                     );

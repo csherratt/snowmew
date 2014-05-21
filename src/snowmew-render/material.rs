@@ -4,7 +4,7 @@ use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
 use collections::treemap::TreeMap;
 
-use cgmath::vector::{Vector3, Vector2, Vector4};
+use cgmath::vector::Vector4;
 use gl;
 
 use snowmew::ObjectKey;

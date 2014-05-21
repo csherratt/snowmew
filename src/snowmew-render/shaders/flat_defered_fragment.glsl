@@ -5,7 +5,7 @@
 layout(std140) uniform Materials {
     struct material {
         vec4 kd;
-        uvec2 kd_map;
+        ivec2 kd_map;
     } materials[100];
 };
 
@@ -22,7 +22,7 @@ out vec4 color;
 
 void main() {
     uvec2 object = texture(pixel_drawn_by, TexPos).xy;
-    uvec2 kd_map = materials[object.y].kd_map;
+    ivec2 kd_map = materials[object.y].kd_map;
 
     if (kd_map.x == -1) {
         color = materials[object.y].kd;
