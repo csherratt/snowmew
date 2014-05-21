@@ -1,4 +1,5 @@
 
+use std::iter::range_step;
 use std::ptr;
 use libc;
 
@@ -215,49 +216,51 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, self.pos_texture);
         gl::Uniform1i(shader.uniform("position"), 0);
-        gl::ActiveTexture(gl::TEXTURE0+1);
+        gl::ActiveTexture(gl::TEXTURE1);
         gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
         gl::Uniform1i(shader.uniform("uv"), 1);
-        gl::ActiveTexture(gl::TEXTURE0+2);
+        gl::ActiveTexture(gl::TEXTURE2);
         gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
         gl::Uniform1i(shader.uniform("normal"), 2);
-        gl::ActiveTexture(gl::TEXTURE0+3);
+        gl::ActiveTexture(gl::TEXTURE3);
         gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
         gl::Uniform1i(shader.uniform("pixel_drawn_by"), 3);
 
         let textures = db.texture.textures();
-        for (idx, texture) in textures.iter().enumerate() {
-            gl::ActiveTexture(gl::TEXTURE0+4+idx as u32);
-            gl::BindTexture(gl::TEXTURE_2D_ARRAY, *texture);
-        }
-        let textures: Vec<i32> = 
-                textures.iter().enumerate().map(|(e, _)| 4+e as i32).collect();
-
-        unsafe {
-            if textures.len() != 0 {
-                gl::Uniform1iv(shader.uniform("atlases"),
-                               textures.len() as i32,
-                               textures.get(0) as *i32);
-            }
-        }
-        assert!(0 == gl::GetError());
+        let atlas_uniform = shader.uniform("atlas");
+        let atlas_base = shader.uniform("atlas_base");
 
         gl::BindBufferBase(gl::UNIFORM_BUFFER,
                            shader.uniform_block_index("Materials"),
                            drawlist.material_buffer());
 
-        //println!("sizeof {}", shader.uniform_block_data_size(shader.uniform_block_index("Materials")));
-
         ddt.bind();
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         q.time("defered: shader".to_owned());
-        unsafe {
-            assert!(0 == gl::GetError());
-            gl::DrawElements(gl::TRIANGLES,
-                             plane.count as i32,
-                             gl::UNSIGNED_INT,
-                             (plane.offset * 4) as *libc::c_void);
-            assert!(0 == gl::GetError());
+        for idx in range_step(0, textures.len(), 12) {
+            let end = if idx + 12 > textures.len() {
+                textures.len()
+            } else {
+                idx + 12
+            };
+            for (e, i) in range(idx, end).enumerate() {
+                gl::ActiveTexture(gl::TEXTURE4+e as u32);
+                gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
+            }
+
+            unsafe {
+                let slice: Vec<i32> = range(idx, end)
+                        .enumerate().map(|(e, _)| (e+4) as i32).collect();
+                gl::Uniform1i(atlas_base, idx as i32);
+                gl::Uniform1iv(atlas_uniform,
+                               slice.len() as i32,
+                               slice.get(0));
+
+                gl::DrawElements(gl::TRIANGLES,
+                                 plane.count as i32,
+                                 gl::UNSIGNED_INT,
+                                 (plane.offset * 4) as *libc::c_void);
+            }
         }
 
         q.time("defered: cleanup".to_owned());

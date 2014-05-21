@@ -26,15 +26,20 @@ pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
         gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
 
         // Fail on error
-        if status != (gl::TRUE as gl::types::GLint) {
-            let mut len = 0;
-            gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
+        let mut len = 0;
+        gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
+
+        if len != 0 {
             let mut buf = Vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
             gl::GetShaderInfoLog(shader,
                                  len,
                                  ptr::mut_null(),
                                  cast::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
-            fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf.as_slice()));
+            if status != 0 {
+                fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf.as_slice()));
+            } else {
+                println!("shader log {:}", str::raw::from_utf8(buf.as_slice()));
+            }
         }
     }
 

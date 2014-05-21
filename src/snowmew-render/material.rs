@@ -22,7 +22,7 @@ struct MaterialStd140 {
 fn get_mat(ka: Option<ObjectKey>, gl: &GlState) -> (i32, i32) {
     match ka {
         Some(ref ka) => gl.texture.get_index(*ka).unwrap(),
-        None => (0, 0)
+        None => (-1, 0)
     }
 }
 

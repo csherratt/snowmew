@@ -173,7 +173,7 @@ impl TextureAtlas {
 
     pub fn get_index(&self, id: ObjectKey) -> Option<(i32, i32)> {
         match self.mapping.find(&id) {
-            Some(ref id) => Some((id.array+1, id.index)),
+            Some(ref id) => Some((id.array, id.index)),
             None => None
         }
     }
