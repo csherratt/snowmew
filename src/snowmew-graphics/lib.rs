@@ -19,11 +19,13 @@ use snowmew::common::{Common, ObjectKey};
 pub use geometry::{Geometry, VertexBuffer};
 pub use material::Material;
 pub use texture::Texture;
+pub use light::PointLight;
 
 pub mod geometry;
 pub mod material;
 pub mod default;
 pub mod texture;
+pub mod light;
 
 #[deriving(Clone, Default, Eq)]
 pub struct Drawable {
@@ -32,8 +34,7 @@ pub struct Drawable {
 }
 
 impl Ord for Drawable {
-    fn lt(&self, other: &Drawable) -> bool
-    {
+    fn lt(&self, other: &Drawable) -> bool {
         let order = self.geometry.cmp(&other.geometry);
         match order {
             Equal => self.material.cmp(&other.material) == Less,
@@ -62,7 +63,8 @@ pub struct GraphicsData {
     geometry: BTreeMap<ObjectKey, Geometry>,
     vertex:   BTreeMap<ObjectKey, VertexBuffer>,
     material: BTreeMap<ObjectKey, Material>,
-    texture:  BTreeMap<ObjectKey, Texture>
+    texture:  BTreeMap<ObjectKey, Texture>,
+    lights:   BTreeMap<ObjectKey, PointLight>,
 }
 
 impl GraphicsData {
@@ -72,7 +74,8 @@ impl GraphicsData {
             geometry: BTreeMap::new(),
             vertex: BTreeMap::new(),
             material: BTreeMap::new(),
-            texture: BTreeMap::new()
+            texture: BTreeMap::new(),
+            lights: BTreeMap::new()
         }
     }
 }
@@ -183,6 +186,20 @@ pub trait Graphics: Common {
 
     fn texture_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Texture> {
         self.get_graphics().texture.iter()
+    }
+
+    fn new_light(&mut self, parent: ObjectKey, name: &str, light: PointLight) -> ObjectKey {
+        let oid = self.new_object(Some(parent), name);
+        self.get_graphics_mut().lights.insert(oid, light);
+        oid
+    }
+
+    fn get_light<'a>(&'a self, oid: ObjectKey) -> Option<&'a PointLight> {
+        self.get_graphics().lights.find(&oid)
+    }
+
+    fn light_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, PointLight> {
+        self.get_graphics().lights.iter()
     }
 }
 
