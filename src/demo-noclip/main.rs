@@ -78,12 +78,15 @@ fn main() {
             return;
         }
         let path = Path::new(args.get(1).as_slice());
-        let scale: f32 = if args.len() == 3 {
+        let scale: f32 = if args.len() >= 3 {
             match FromStr::from_str(args.get(2).as_slice()) {
                 Some(v) => v,
                 None => 1.0
             }
-        } else {1.0};
+        } else {
+            1.0
+        };
+
         let loader = Obj::load(&path).expect("Failed to load OBJ");
 
         println!("Starting");
@@ -112,6 +115,7 @@ fn main() {
             }
         }
 
+        let ovr_camera = display.is_hmd();
         let camera_loc = db.new_object(None, "camera");
         db.update_location(camera_loc,
             Transform3D::new(1f32,
@@ -128,10 +132,22 @@ fn main() {
         };
 
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
-        let mut pos = Point3::new(0f32, 0f32, 0f32);
+        let mut pos = if args.len() >= 6 {
+            let x = FromStr::from_str(args.get(3).as_slice());
+            let y = FromStr::from_str(args.get(4).as_slice());
+            let z = FromStr::from_str(args.get(5).as_slice());
+            match (x, y, z) {
+                (Some(x), Some(y), Some(z)) => {
+                    Point3::new(x, y, z)
+                }
+                _ => Point3::new(0f32, 0., 0.)
+            }
+        } else {
+            Point3::new(0f32, 0f32, 0f32)
+        };
         let mut last_input = im.get(&ih);
         let mut timer = Timer::new().unwrap();
-        let timer_port = timer.periodic(10);
+        let timer_port = timer.periodic(1);
         while !last_input.should_close() {
             im.poll();
             let input_state = im.get(&ih);
@@ -167,7 +183,11 @@ fn main() {
             );
 
             let rot: Quaternion<f32> = Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
-            let rot = rot.mul_q(&Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+            let rot = if !ovr_camera {
+                rot.mul_q(&Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()))
+            } else {
+                rot
+            };
 
             let camera = Camera::new(Transform3D::new(1f32, rot, pos.to_vec()).to_matrix4());
             pos = camera.move(&input_vec.mul_s(-1f32));
