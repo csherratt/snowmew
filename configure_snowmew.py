@@ -161,7 +161,7 @@ class LibMakefile(Module):
         return os.path.join(self.get_base_dir(), self.path_to_makefile_dir)
 
     def get_path_to_output_dir(self):
-        return os.path.join(self.get_base_dir(), self.path_to_output)
+        return " ".join(os.path.join(self.get_base_dir(), p) for p in self.path_to_output)
 
     def __init__(self, name, path_to_makefile_dir, path_to_output, dep_modules=None, other_flags=""):
         self.source_dir = ""
@@ -181,8 +181,8 @@ class LibMakefile(Module):
         out = "%s: %s %s\n" % (self.get_ename(),
                                 self.get_path_to_makefile_dir() + "Makefile",
                                 " ".join(mods[m].get_ename() for m in self.dep_modules))
-        out += "\tmake -j 16 -C %s\n\tcp %s %s\n" % (
-            self.get_path_to_makefile_dir(), self.get_path_to_output_dir(), self.get_ename()
+        out += "\tmake -j 16 -C %s\n\tcp %s lib\n" % (
+            self.get_path_to_makefile_dir(), self.get_path_to_output_dir()
         )
         return out
 
@@ -196,8 +196,8 @@ class LibConfigureMakefile(LibMakefile):
             os.path.join(self.get_path_to_makefile_dir())
         )
         out += "%s: %s\n" % (self.get_ename(), os.path.join(self.get_path_to_makefile_dir(), "Makefile"))
-        out += "\tmake -j 16 -C %s\n\tcp %s %s\n" % (
-            self.get_path_to_makefile_dir(), self.get_path_to_output_dir(), self.get_ename()
+        out += "\tmake -j 16 -C %s\n\tcp %s lib\n" % (
+            self.get_path_to_makefile_dir(), self.get_path_to_output_dir()
         )
         return out    
 
@@ -213,7 +213,7 @@ class LibCMake(Module):
         return os.path.join(self.get_base_dir(), self.path_to_makefile_dir)
 
     def get_path_to_output_dir(self):
-        return os.path.join(self.get_base_dir(), self.path_to_output)
+        return " ".join(os.path.join(self.get_base_dir(), p) for p in self.path_to_output)
 
     def __init__(self, name, path_to_makefile_dir, path_to_output, dep_modules=None, other_flags="", cmake_flags=""):
         self.source_dir = ""
@@ -236,8 +236,8 @@ class LibCMake(Module):
         out += "%s: %s %s\n" % (self.get_ename(),
                                 self.get_path_to_makefile_dir() + "Makefile",
                                 " ".join(mods[m].get_ename() for m in self.dep_modules))
-        out += "\tmake -j 16 -C %s && cp %s %s\n" % (
-            self.get_path_to_makefile_dir(), self.get_path_to_output_dir(), self.get_ename()
+        out += "\tmake -j 16 -C %s && cp %s lib\n" % (
+            self.get_path_to_makefile_dir(), self.get_path_to_output_dir()
         )
         return out
 
@@ -303,22 +303,25 @@ modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "glfw", "snowmew-loa
            Lib("collision", ["cgmath"]),
            Lib("OpenCL"),
            Lib("stb-image", ["libstb-image.a"]),
-           LibConfigureMakefile("libstb-image.a", "modules/stb-image/", "modules/stb-image/libstb-image.a"),
-           LibMakefile("libovr_wrapper.a", "src/ovr/", "src/ovr/libovr_wrapper.a", ["cgmath", "libOculusVR.a"]),
-           LibCMake("libglfw3.a", "modules/glfw/", "modules/glfw/src/libglfw3.a", cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
+           Lib("ovr", ["libOculusVR.a", "cgmath", "libovr_wrapper.a"]),
+           LibConfigureMakefile("libstb-image.a", "modules/stb-image/", ["modules/stb-image/libstb-image.a"]),
+           LibMakefile("libovr_wrapper.a", "src/ovr/", ["src/ovr/libovr_wrapper.a"], ["cgmath", "libOculusVR.a"]),
+           LibCMake("libglfw3.a", "modules/glfw/", ["modules/glfw/src/libglfw3.a"], cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("glfw", ["libglfw3.a"], 
                 setup="sh %s/modules/glfw-rs/etc/link-rs.sh \\\"`PKG_CONFIG_PATH=%s/modules/glfw/src  sh %s/modules/glfw-rs/etc/glfw-link-args.sh`\\\" > %s/modules/glfw-rs/src/lib/link.rs" %
                 (_base, _base, _base, _base),
                 presetup="touch %s/modules/glfw-rs/src/lib/link.rs" % _base)]
 
 if platform.system() == "Linux":
-    modules += [Lib("ovr", ["libOculusVR.a", "libedid.a", "cgmath", "libovr_wrapper.a"]),
-                LibCMake("libedid.a", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/", "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/libedid.a", ["libOculusVR.a"]),
-                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK/LibOVR/", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]
+    modules += [LibCMake("libOculusVR.a",
+                         "modules/ovr-rs/modules/OculusSDK/LibOVR/",
+                        ["modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a",
+                         "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/libedid.a"])]
 
 elif platform.system() == "Darwin":
-    modules += [Lib("ovr", ["libOculusVR.a", "cgmath", "libovr_wrapper.a"]),
-                LibCMake("libOculusVR.a", "modules/ovr-rs/modules/OculusSDK/LibOVR/", "modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a")]  
+    modules += [LibCMake("libOculusVR.a",
+                         "modules/ovr-rs/modules/OculusSDK/LibOVR/",
+                        ["modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a"])]  
 
 set_output_dir(modules, ".")
 set_source_dir(modules, _base)
