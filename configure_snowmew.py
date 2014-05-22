@@ -178,7 +178,9 @@ class LibMakefile(Module):
             self.dep_modules = []
 
     def make_rule(self, mods):
-        out  = "%s: %s\n" % (self.get_ename(), os.path.join(self.get_path_to_makefile_dir(), "Makefile"))
+        out = "%s: %s %s\n" % (self.get_ename(),
+                                self.get_path_to_makefile_dir() + "Makefile",
+                                " ".join(mods[m].get_ename() for m in self.dep_modules))
         out += "\tmake -j 16 -C %s\n\tcp %s %s\n" % (
             self.get_path_to_makefile_dir(), self.get_path_to_output_dir(), self.get_ename()
         )
@@ -231,7 +233,9 @@ class LibCMake(Module):
     def make_rule(self, mods):
         out  = "%s:\n" % (self.get_path_to_makefile_dir() + "Makefile")
         out += "\tcd %s && cmake %s .\n\n" % (self.get_path_to_makefile_dir(), self.cmake_flags)
-        out += "%s: %s\n" % (self.get_ename(), self.get_path_to_makefile_dir() + "Makefile")
+        out += "%s: %s %s\n" % (self.get_ename(),
+                                self.get_path_to_makefile_dir() + "Makefile",
+                                " ".join(mods[m].get_ename() for m in self.dep_modules))
         out += "\tmake -j 16 -C %s && cp %s %s\n" % (
             self.get_path_to_makefile_dir(), self.get_path_to_output_dir(), self.get_ename()
         )
