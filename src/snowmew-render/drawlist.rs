@@ -9,7 +9,7 @@ use time::precise_time_s;
 use cow::join::join_maps;
 
 use OpenCL::hl::{CommandQueue, Context, Device, Event, EventList};
-use OpenCL::mem::CLBuffer;
+use OpenCL::mem::{Buffer, CLBuffer};
 use OpenCL::CL::CL_MEM_READ_WRITE;
 use cgmath::matrix::Matrix4;
 use cgmath::vector::Vector4;
@@ -17,6 +17,7 @@ use cgmath::ptr::Ptr;
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
 use gl_cl;
+use gl_cl::AcquireRelease;
 
 use graphics::material::Material;
 use snowmew::common::{ObjectKey};
@@ -235,14 +236,19 @@ impl<'r> MatrixManager for GLMatrix<'r> {
 impl Drawlist for DrawlistInstanced {
     fn setup_begin(&mut self) {
         self.materials.map();
-        if self.cl.is_none() {
-            for i in range(0u, 4) {
-                gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
-                self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                        (mem::size_of::<Vector4<f32>>()*self.size) as GLsizeiptr,
-                        gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
-                ) as *mut Vector4<f32>;
-                assert!(0 == gl::GetError());
+        match self.cl {
+            None => {
+                for i in range(0u, 4) {
+                    gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
+                    self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
+                            (mem::size_of::<Vector4<f32>>()*self.size) as GLsizeiptr,
+                            gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
+                    ) as *mut Vector4<f32>;
+                    assert!(0 == gl::GetError());
+                }                
+            }
+            Some((_, ref cq, ref buf)) => {
+                cq.acquire_gl_objects(buf.as_slice(), ()).wait()
             }
         }
 
@@ -307,8 +313,7 @@ impl Drawlist for DrawlistInstanced {
             };
 
             let position = db.compute_positions();
-            let event = evt;
-            sender.send((position, event, ptr_model_matrix, cl))
+            sender.send((position, evt, ptr_model_matrix, cl))
         });
 
         let db1 = data.clone();
@@ -337,7 +342,6 @@ impl Drawlist for DrawlistInstanced {
                     }
                 });
             }
-
             sender.send((material_to_id, id_to_material, ptr_model_info));
         });
 
@@ -375,18 +379,20 @@ impl Drawlist for DrawlistInstanced {
     }
 
     fn setup_complete(&mut self, db: &mut GlState, cfg: &Config) {
-        if self.cl.is_none() {
-            for i in range(0u, 4) {
-                gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
-                gl::UnmapBuffer(gl::TEXTURE_BUFFER);
-                assert!(0 == gl::GetError());
-                self.ptr_model_matrix[i] = ptr::mut_null();
+        let event = self.event.take();
+        match (&self.cl, event) {
+            (&None, None) => {
+                for i in range(0u, 4) {
+                    gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
+                    gl::UnmapBuffer(gl::TEXTURE_BUFFER);
+                    assert!(0 == gl::GetError());
+                    self.ptr_model_matrix[i] = ptr::mut_null();
+                }
             }
-        } else {
-            match self.event {
-                Some(ref e) => e.wait(),
-                None => ()
+            (&Some((_, ref cq, ref buf)), Some(ref event)) => {
+                cq.release_gl_objects(buf.as_slice(), event).wait();
             }
+            _ => fail!("expected both an event and a queue")
         }
 
         gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);

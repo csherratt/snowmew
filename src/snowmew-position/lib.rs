@@ -7,6 +7,7 @@ extern crate snowmew;
 extern crate cgmath;
 extern crate OpenCL;
 extern crate cow;
+extern crate time;
 
 use std::default::Default;
 
@@ -176,22 +177,33 @@ impl Deltas {
     pub fn write_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
                            out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
 
-        cq.map_mut(&ctx.input, (), |out_delta| {
-        cq.map_mut(&ctx.parent, (), |out_parent| {
-            for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-                for (off, delta) in gen.iter() {
-                    out_delta[(off + gen_off) as uint] = delta.delta;
-                    out_parent[(off + gen_off) as uint] = delta.parent.clone();
-                }
+        let last = self.gen.len();
+        let (s, l) = *self.gen.get(last-1);
+        let size = s + l;
+
+        unsafe {
+            ctx.parent_buffer.reserve(size as uint);
+            ctx.parent_buffer.set_len(size as uint);
+            ctx.input_buffer.reserve(size as uint);
+            ctx.input_buffer.set_len(size as uint);
+        }
+
+        for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
+            for (off, delta) in gen.iter() {
+                *ctx.input_buffer.get_mut((off + gen_off) as uint) = delta.delta;
+                *ctx.parent_buffer.get_mut((off + gen_off) as uint) = delta.parent.clone();
             }
-        })});
+        }
+
+        let events = &[cq.write_async(&ctx.input, &ctx.input_buffer.as_slice(), ()),
+                       cq.write_async(&ctx.parent, &ctx.parent_buffer.as_slice(), ())];
 
         // write init value
         ctx.init_kernel.set_arg(0, &out[0]);
         ctx.init_kernel.set_arg(1, &out[1]);
         ctx.init_kernel.set_arg(2, &out[2]);
         ctx.init_kernel.set_arg(3, &out[3]);
-        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel, 1, None, ());
+        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel, 1, None, events);
 
         // run the kernel across the deltas 
         ctx.kernel.set_arg(0, &ctx.input);
@@ -270,7 +282,9 @@ pub struct CalcPositionsCl {
     program: Program,
     kernel: Kernel,
     init_kernel: Kernel,
+    input_buffer: Vec<Transform3D<f32>>,
     input: CLBuffer<Transform3D<f32>>,
+    parent_buffer: Vec<u32>,
     parent: CLBuffer<u32>,
 }
 
@@ -297,7 +311,9 @@ impl CalcPositionsCl {
             kernel: kernel,
             init_kernel: init_kernel,
             input: delta_mem,
-            parent: parent
+            input_buffer: Vec::new(),
+            parent: parent,
+            parent_buffer: Vec::new()
         }
     }
 }
