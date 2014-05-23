@@ -47,7 +47,6 @@ pub struct MaterialBuffer {
 
 impl MaterialBuffer {
     pub fn new(max: uint) -> MaterialBuffer {
-        println!("sizeof {}", mem::size_of::<MaterialStd140>());
         let ub = &mut [0];
 
         unsafe {

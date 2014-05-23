@@ -142,7 +142,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16UI, w, h);
             assert!(0 == gl::GetError());
 
             gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer);
@@ -237,25 +237,27 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         ddt.bind();
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         q.time("defered: shader".to_owned());
-        for idx in range_step(0, textures.len(), 12) {
-            let end = if idx + 12 > textures.len() {
-                textures.len()
-            } else {
-                idx + 12
-            };
-            for (e, i) in range(idx, end).enumerate() {
-                gl::ActiveTexture(gl::TEXTURE4+e as u32);
-                gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
-            }
-
+        let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
+        for idx in range_step(0, total_textures, 12) {
             unsafe {
-                let slice: Vec<i32> = range(idx, end)
-                        .enumerate().map(|(e, _)| (e+4) as i32).collect();
-                gl::Uniform1i(atlas_base, idx as i32);
-                gl::Uniform1iv(atlas_uniform,
-                               slice.len() as i32,
-                               slice.get(0));
+                if textures.len() != 0 {
+                    let end = if idx + 12 > textures.len() {
+                        textures.len()
+                    } else {
+                        idx + 12
+                    };
+                    for (e, i) in range(idx, end).enumerate() {
+                        gl::ActiveTexture(gl::TEXTURE4+e as u32);
+                        gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
+                    }
 
+                    let slice: Vec<i32> = range(idx, end)
+                            .enumerate().map(|(e, _)| (e+4) as i32).collect();
+                    gl::Uniform1i(atlas_base, idx as i32);
+                    gl::Uniform1iv(atlas_uniform,
+                                   slice.len() as i32,
+                                   slice.get(0));
+                }
                 gl::DrawElements(gl::TRIANGLES,
                                  plane.count as i32,
                                  gl::UNSIGNED_INT,

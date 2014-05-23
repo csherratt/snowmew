@@ -97,7 +97,7 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
     gl::Enable(gl::BLEND);
     gl::CullFace(gl::BACK);
 
-    for _ in range(0, 2) {
+    for _ in range(0, config.drawlist_count()) {
         let mut dl = create_drawlist(&config, cl.clone());
         dl.setup_begin();
         output.send(dl);
@@ -152,11 +152,17 @@ fn render_server(command: Receiver<RenderCommand>,
                  mut db: Box<RenderData:Send>,
                  window: Window,
                  size: (i32, i32),
-                 cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
+                 dev: Option<Arc<Device>>) {
 
     let mut scene = 0;
     let mut camera = 0;
     let config = Config::new(window.get_context_version());
+
+    let cl = if config.opencl() {
+        setup_opencl(&window, dev)
+    } else {
+        None
+    };
 
     let mut taskbuilder = TaskBuilder::new();
     taskbuilder = taskbuilder.named("render-thread".into_maybe_owned());
@@ -176,7 +182,7 @@ fn render_server(command: Receiver<RenderCommand>,
 
     let (send_drawlist_render, receiver_drawlist_render)
         : (Sender<Box<Drawlist:Send>>, Receiver<Box<Drawlist:Send>>) = channel();
-    let mut taskpool = TaskPool::new(2, || { 
+    let mut taskpool = TaskPool::new(config.drawlist_count() * 2, || { 
         let ch = send_drawlist_render.clone();
         proc(_: uint) { ch.clone() }
     });
@@ -250,8 +256,6 @@ pub struct RenderManager {
 
 impl RenderManager {
     fn _new(db: Box<RenderData:Send>, window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
-        let cl = setup_opencl(&window, dev);
-
         let mut taskbuilder = TaskBuilder::new();
         taskbuilder = taskbuilder.named("render-server".into_maybe_owned());
         let render_main_result = taskbuilder.future_result();
@@ -261,7 +265,7 @@ impl RenderManager {
             let db = db;
             let window = window;
 
-            render_server(receiver, db, window, size, cl);
+            render_server(receiver, db, window, size, dev.clone());
         });
 
         RenderManager {

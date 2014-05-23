@@ -1,4 +1,5 @@
 use std::os;
+use std::from_str::FromStr;
 
 #[deriving(Eq)]
 enum ConfigOption {
@@ -18,10 +19,12 @@ impl ConfigOption {
 
 pub struct Config {
     max_size: uint,
+    drawlist_count: uint,
     hmd_size: f32,
     bindless: ConfigOption,
     instanced: ConfigOption,
-    profile: ConfigOption
+    profile: ConfigOption,
+    opencl: ConfigOption
 }
 
 fn get_setting_option(name: &str, default: ConfigOption) -> ConfigOption {
@@ -61,13 +64,27 @@ fn check_gl_version(gl_version: (uint, uint), min: (uint, uint), if_supported: C
     }
 }
 
+fn get_setting_from_str<T: FromStr>(name: &str, default: T) -> T {
+    let str_value = match os::getenv(name) {
+        Some(s) => s,
+        None => return default
+    };
+
+    match FromStr::from_str(str_value) {
+        Some(v) => v,
+        None => default
+    }
+}
+
 impl Config
 {
     pub fn new(gl_version: (uint, uint)) -> Config {
         Config {
+            hmd_size: get_setting_from_str("HMD_SIZE", 1.5f32),
+            max_size: get_setting_from_str("MAX_OBJECTS", 64u*1024),
+            drawlist_count: get_setting_from_str("DRAWLIST_COUNT", 2u),
+            opencl: get_setting_option("OPENCL_SUPPORT", Enabled),
             profile: get_setting_option("PROFILE", Disabled),
-            hmd_size: 1.7,
-            max_size: 1024*1024,
             bindless: check_gl_version(gl_version, (4, 4),
                 get_setting_option("BINDLESS", Enabled)
             ),
@@ -78,12 +95,10 @@ impl Config
     }
 
     pub fn use_bindless(&self) -> bool { self.bindless.enabled() }
-
     pub fn max_size(&self) -> uint { self.max_size }
-
     pub fn hmd_size(&self) -> f32 { self.hmd_size }
-
-    pub fn profile(&self) -> bool { self.profile == Enabled }
-
-    pub fn instanced(&self) -> bool { self.instanced == Enabled }
+    pub fn profile(&self) -> bool { self.profile.enabled() }
+    pub fn instanced(&self) -> bool { self.instanced.enabled() }
+    pub fn opencl(&self) -> bool { self.opencl.enabled() }
+    pub fn drawlist_count(&self) -> uint { self.drawlist_count }
 }
