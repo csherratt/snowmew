@@ -289,7 +289,8 @@ def set_source_dir(modules, source_dir):
 
 _base = os.path.abspath(os.path.dirname(__file__))
 
-modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "glfw", "snowmew-loader"]),
+modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
+           Bin("demo-cubes", ["snowmew", "snowmew-render",]),
            Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "ovr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
            Lib("snowmew-loader", ["snowmew", "snowmew-graphics", "stb-image"]),
