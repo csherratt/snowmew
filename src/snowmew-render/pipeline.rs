@@ -1,14 +1,15 @@
 
 use std::iter::range_step;
-use std::ptr;
 use libc;
 
 use gl;
 use gl::types::{GLuint, GLint};
-use ovr::HMDInfo;
+use ovr::{PerEye, EyeRenderDescriptor, HmdDescription, DistortionCapabilities};
+use ovr::{RenderGLConfig, EyeType, SensorCapabilities, EyeLeft, EyeRight};
+use ovr::Texture;
+use ovr::ll::Sizei;
 
-use shader::Shader; 
-
+use snowmew::io::Window;
 use snowmew::camera::DrawMatrices;
 use graphics::Graphics;
 
@@ -16,6 +17,7 @@ use db::GlState;
 use drawlist::Drawlist;
 
 use snowmew::common::Common;
+use snowmew::camera::Camera;
 
 use query::Profiler;
 
@@ -57,8 +59,16 @@ impl DrawTarget {
     }
 }
 
-pub trait Pipeline {
+pub trait Resize {
+    fn resize(&mut self, _: uint, _: uint);
+}
+
+pub trait PipelineState: Resize {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler);
+}
+
+pub trait Pipeline: Resize {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, camera: &Camera, q: &mut Profiler);
 }
 
 pub struct Forward;
@@ -67,7 +77,7 @@ impl Forward {
     pub fn new() -> Forward { Forward }
 }
 
-impl Pipeline for Forward {
+impl PipelineState for Forward {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
         q.time("forward setup".to_owned());
         dt.bind();
@@ -77,6 +87,10 @@ impl Pipeline for Forward {
         q.time("forward render".to_owned());
         drawlist.render(db, &dm.view, &dm.projection);
     }
+}
+
+impl Resize for Forward {
+    fn resize(&mut self, _: uint, _: uint) {}
 }
 
 pub struct Defered<PIPELINE> {
@@ -94,9 +108,9 @@ pub struct Defered<PIPELINE> {
     renderbuffer: GLuint,
 }
 
-impl<PIPELINE: Pipeline> Defered<PIPELINE> {
-    pub fn new(input: PIPELINE, width: uint, height: uint) -> Defered<PIPELINE> {
-        let (w, h) = (width as i32, height as i32);
+impl<PIPELINE: PipelineState> Defered<PIPELINE> {
+    pub fn new(input: PIPELINE) -> Defered<PIPELINE> {
+        let (w, h) = (1i32, 1i32);
         let textures: &mut [GLuint] = &mut [0, 0, 0, 0];
         let mut framebuffer: GLuint = 0;
         let mut renderbuffer: GLuint = 0;
@@ -142,7 +156,7 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16UI, w, h);
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
             assert!(0 == gl::GetError());
 
             gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer);
@@ -191,7 +205,53 @@ impl<PIPELINE: Pipeline> Defered<PIPELINE> {
     }
 }
 
-impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
+impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
+    fn resize(&mut self, width: uint, height: uint) {
+
+        let textures: &mut [GLuint] = &mut [self.pos_texture,
+                                            self.uv_texture,
+                                            self.normals_texture,
+                                            self.material_texture];
+
+        unsafe {
+            gl::DeleteTextures(textures.len() as i32, textures.unsafe_ref(0));
+            gl::GenTextures(textures.len() as i32, textures.unsafe_mut_ref(0));
+
+        }
+
+        let (w, h) = (width as i32, height as i32);
+        gl::BindTexture(gl::TEXTURE_2D, textures[0]);
+        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA16F, w, h);
+        gl::BindTexture(gl::TEXTURE_2D, textures[1]);
+        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16F, w, h);
+        gl::BindTexture(gl::TEXTURE_2D, textures[2]);
+        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGB16F, w, h);
+        gl::BindTexture(gl::TEXTURE_2D, textures[3]);
+        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
+        gl::BindTexture(gl::TEXTURE_2D, 0);
+
+        gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
+        gl::BindRenderbuffer(gl::RENDERBUFFER, self.renderbuffer);
+        gl::RenderbufferStorage(gl::RENDERBUFFER, gl::DEPTH_COMPONENT32F, w, h);
+        gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::RENDERBUFFER, self.renderbuffer);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, textures[0], 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, textures[1], 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, textures[2], 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT3, textures[3], 0);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
+
+        self.pos_texture = textures[0];
+        self.uv_texture = textures[1];
+        self.normals_texture = textures[2];
+        self.material_texture = textures[3];
+
+        self.width = w;
+        self.height = h;
+    }
+}
+
+impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget, q: &mut Profiler) {
         let dt = self.draw_target();
         self.input.render(drawlist, db, dm, &dt, q);
@@ -269,166 +329,166 @@ impl<PIPELINE: Pipeline> Pipeline for Defered<PIPELINE> {
         for i in range(0, 16) {
             gl::ActiveTexture(gl::TEXTURE0 + i as u32);
             gl::BindTexture(gl::TEXTURE_2D, 0);
+            gl::BindTexture(gl::TEXTURE_2D_ARRAY, 0);
         }
+    }
+}
+
+pub struct Swap<PIPELINE> {
+    input: PIPELINE,
+    window: Window,
+    width: uint,
+    height: uint
+}
+
+impl<PIPELINE: PipelineState> Swap<PIPELINE> {
+    pub fn new(input: PIPELINE, window: Window) -> Swap<PIPELINE> {
+        Swap {
+            input: input,
+            window: window,
+            width: 0,
+            height: 0
+        }
+    }
+}
+
+impl<PIPELINE: PipelineState> Pipeline for Swap<PIPELINE> {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, camera: &Camera, q: &mut Profiler) {
+        let dt = DrawTarget::new(0, (0, 0), (self.width, self.height), ~[gl::BACK_LEFT]);
+        let dm = camera.get_matrices((self.width as i32, self.height as i32));
+        self.input.render(drawlist, db, &dm, &dt, q);
+        self.window.swap_buffers()
+    }
+}
+
+impl<PIPELINE: PipelineState> Resize for Swap<PIPELINE> {
+    fn resize(&mut self, width: uint, height: uint) {
+        self.input.resize(width, height);
+        self.width = width;
+        self.height = height;
     }
 }
 
 pub struct Hmd<PIPELINE> {
     input: PIPELINE,
 
-    scale: f32,
-    texture: GLuint,
-    framebuffer: GLuint,
-    renderbuffer: GLuint,
+    textures: PerEye<GLuint>,
+    framebuffers: PerEye<GLuint>,
+    eye_desc: PerEye<EyeRenderDescriptor>,
+    size: PerEye<Sizei>,
+    desc: HmdDescription,
+    window: Window,
+    frame_index: uint
 
-    hmd: HMDInfo
 }
 
-impl<PIPELINE: Pipeline> Hmd<PIPELINE> {
-    pub fn new(input: PIPELINE, scale: f32, hmd: &HMDInfo) -> Hmd<PIPELINE> {
-        let (w, h) = hmd.resolution();
-        let (w, h) = ((w as f32 * scale) as i32, (h as f32 * scale) as i32);
-        let textures: &mut [GLuint] = &mut [0];
-        let framebuffers: &mut [GLuint] = &mut [0];
-        let renderbuffer: &mut [GLuint] = &mut [0];
+impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
+    pub fn new(input: PIPELINE, window: Window) -> Hmd<PIPELINE> {
+        let hmd = window.get_hmd();
+        let desc = hmd.get_description();
+        let caps = SensorCapabilities::new().set_orientation(true);
+        assert!(hmd.start_sensor(caps, caps));
+        let dist = DistortionCapabilities::new()
+                .set_chromatic(true)
+                .set_vignette(true)
+                .set_timewarp(true);
+
+        let rc = RenderGLConfig {
+            size: desc.resolution,
+            multisample: 4,
+            display: Some(window.get_x11_display()),
+            window: None
+        };
+
+        let eye_desc = hmd.configure_rendering(
+                &rc,
+                dist,
+                desc.eye_fovs.map(|_, eye| eye.default_eye_fov)
+        ).expect("Could not create hmd context");
+
+        let size = desc.eye_fovs.map(|which, eye| {
+            hmd.get_fov_texture_size(which, eye.default_eye_fov, 1.0)
+        });
+
+        let mut textures: PerEye<GLuint> = PerEye::new(0, 0);
+        let mut framebuffers: PerEye<GLuint> = PerEye::new(0, 0);
 
         unsafe {
-            gl::GenTextures(1, textures.unsafe_mut_ref(0));
-            gl::GenFramebuffers(1, framebuffers.unsafe_mut_ref(0));
-            gl::GenRenderbuffers(1, renderbuffer.unsafe_mut_ref(0));
+            gl::GenTextures(2, textures.mut_ptr());
+            gl::GenFramebuffers(2, framebuffers.mut_ptr());
+        }
 
-            gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffers[0]);
-            gl::BindTexture(gl::TEXTURE_2D, textures[0]);
+        size.map(|which, size| {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, *framebuffers.eye(which));
+            gl::BindTexture(gl::TEXTURE_2D, *textures.eye(which));
         
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA8, size.x, size.y);
 
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB as i32, w, h, 0, gl::RGB, gl::UNSIGNED_BYTE, ptr::null());
-
-            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, textures[0], 0);
-        }
+            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, *textures.eye(which), 0);
+        });
 
         Hmd {
             input: input,
-            scale: scale,
-            texture: textures[0],
-            framebuffer: framebuffers[0],
-            renderbuffer: renderbuffer[0],
-            hmd: hmd.clone()
+            textures: textures,
+            framebuffers: framebuffers,
+            desc: desc,
+            eye_desc: eye_desc,
+            size: size,
+            window: window,
+            frame_index: 0
         }        
     }
 
-    fn left(&self) -> DrawTarget {
-        let (w, h) = self.hmd.resolution();
-        let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
-
+    fn get_draw_target(&self, which: EyeType) -> DrawTarget {
         DrawTarget {
-            framebuffer: self.framebuffer,
+            framebuffer: *self.framebuffers.eye(which),
             x: 0,
             y: 0,
-            width: w/2,
-            height: h,
+            width: self.size.eye(which).x,
+            height: self.size.eye(which).y,
             draw_buffers: ~[gl::COLOR_ATTACHMENT0]
         }
     }
 
-    fn right(&self) -> DrawTarget {
-        let (w, h) = self.hmd.resolution();
-        let (w, h) = ((w as f32 * self.scale) as i32, (h as f32 * self.scale) as i32);
-
-        DrawTarget {
-            framebuffer: self.framebuffer,
-            x: w/2,
-            y: 0,
-            width: w/2,
-            height: h,
-            draw_buffers: ~[gl::COLOR_ATTACHMENT0]
-        }
-    }
-
-    fn setup_viewport(&self, shader: &Shader, vp: (f32, f32, f32, f32), ws: (f32, f32), offset: f32) {
-        let scale = 1./self.scale;
-
-        let (vpx, vpy, vpw, vph) = vp;
-        let (wsw, wsh) = ws;
-        let (w, h, x, y) = (vpw/wsw, vph/wsh, vpx/wsw, vpy/wsh);
-
-        let lens_center = &[x + (w + offset * 0.5)*0.5, y + h*0.5];
-        let screen_center = &[x + w*0.5, y + h*0.5];
-
-        let aspect_ratio = vpw / vph;
-
-        let scale_out: &[f32] = &[scale * (w/2.),  scale * (h/2.) * aspect_ratio];
-        let scale_in: &[f32] = &[2./w, (2./h) / aspect_ratio];
-
-        //gl::Viewport(vpx as i32, vpy as i32, vpw as i32, vph as i32);
-        gl::Scissor(vpx as i32, vpy as i32, vpw as i32, vph as i32);
-        gl::Uniform2f(shader.uniform("ScreenCenter"), screen_center[0], screen_center[1]);
-        gl::Uniform2f(shader.uniform("LensCenter"), lens_center[0], lens_center[1]);
-        gl::Uniform2f(shader.uniform("ScaleIn"), scale_in[0], scale_in[1]);
-        gl::Uniform2f(shader.uniform("ScaleOut"), scale_out[0], scale_out[1]);
-    }
-
-    fn draw_screen(&self, rd: &Drawlist, db: &GlState, dt: &DrawTarget) {
-        let plane = rd.find("core/geometry/plane").unwrap();
-        let plane = rd.geometry(plane).unwrap();
-
-        let shader = db.ovr_shader.as_ref().unwrap();
-
-        let vbo = db.vertex.find(&plane.vb).unwrap();
-        shader.bind();
-        vbo.bind();
-
-        dt.bind();
-        let (width, height) = self.hmd.resolution();
-        gl::ClearColor(0., 0., 0., 1.);
-        gl::Scissor(0, 0, width as i32, height as i32);
-        gl::Viewport(0, 0, width as i32, height as i32);
-        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        
-        let (horz, _) = self.hmd.size();
-        let lens_separation_distance = self.hmd.lens_separation_distance();
-        let lense_center = 1. - 2.*lens_separation_distance/horz;
-
-        let (width, height) = (width as f32, height as f32);
-        unsafe {
-            let distortion_K = self.hmd.distortion_K();
-            let chrom_ab_param = self.hmd.chroma_ab_correction();
-            gl::Uniform1i(shader.uniform("Texture0"), 0);
-            gl::Uniform4fv(shader.uniform("HmdWarpParam"), 1, distortion_K.unsafe_ref(0));
-            gl::Uniform4fv(shader.uniform("ChromAbParam"), 1, chrom_ab_param.unsafe_ref(0));
-
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, self.texture);
-
-            self.setup_viewport(shader, (0., 0.,       width/2., height as f32), (width, height), lense_center);
-            gl::DrawElements(gl::TRIANGLES,
-                             plane.count as i32,
-                             gl::UNSIGNED_INT,
-                             (plane.offset * 4) as *libc::c_void);
-
-            self.setup_viewport(shader, (width/2., 0., width/2., height as f32), (width, height), -lense_center);
-            gl::DrawElements(gl::TRIANGLES,
-                             plane.count as i32,
-                             gl::UNSIGNED_INT, 
-                             (plane.offset * 4) as *libc::c_void);
-        }
+    fn get_texture(&self, which: EyeType) -> Texture {
+        let size = self.size.eye(which);
+        let texture = self.textures.eye(which);
+        Texture::new(size.x as int,
+                     size.y as int,
+                     0, 0,
+                     size.x as int,
+                     size.y as int,
+                     *texture)
     }
 }
 
-impl<PIPELINE: Pipeline> Pipeline for Hmd<PIPELINE> {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
-        let (left_dm, right_dm) = dm.ovr(&self.hmd, self.scale);
+impl<PIPELINE: PipelineState> Pipeline for Hmd<PIPELINE> {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, camera: &Camera, q: &mut Profiler) {
+        let _ = self.window.get_hmd().begin_frame(self.frame_index);
+        self.frame_index += 1;
+        for &eye in [EyeLeft, EyeRight].iter() {
+            let pose = self.window.get_hmd().begin_eye_render(eye);
+            let dm = camera.ovr(&self.desc.eye_fovs.eye(eye).default_eye_fov, 
+                                self.eye_desc.eye(eye),
+                                &pose);
 
-        let left = self.left();
-        self.input.render(drawlist, db, &left_dm, &left, q);
+            let dt = self.get_draw_target(eye);
+            let texture = self.get_texture(eye);
+            self.input.render(drawlist, db, &dm, &dt, q);
+            self.window.get_hmd().end_eye_render(eye, pose, &texture);
+        }
+        q.time("ovr: end_frame".to_owned());
+        self.window.get_hmd().end_frame();
+    }
+}
 
-        let right = self.right();
-        self.input.render(drawlist, db, &right_dm, &right, q);
-
-        q.time("ovr: draw screen".to_owned());
-        self.draw_screen(drawlist, db, dt);
+impl<PIPELINE: PipelineState> Resize for Hmd<PIPELINE> {
+    fn resize(&mut self, _: uint, _: uint) {
+        let size = self.size.left;
+        self.input.resize(size.x as uint, size.y as uint);
     }
 }

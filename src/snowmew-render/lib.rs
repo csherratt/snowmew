@@ -25,8 +25,6 @@ use std::task::{TaskResult, TaskBuilder};
 use std::comm::{Receiver, Sender};
 use time::precise_time_s;
 
-use cgmath::matrix::{Matrix, ToMatrix4};
-
 use OpenCL::hl::{CommandQueue, Context, Device};
 use sync::{TaskPool, Arc};
 
@@ -38,7 +36,7 @@ use graphics::Graphics;
 
 pub use config::Config;
 
-use pipeline::{DrawTarget, Pipeline};
+use pipeline::Pipeline;
 use drawlist::{Drawlist, create_drawlist};
 use query::{ProfilerDummy, TimeQueryManager, Profiler};
 
@@ -60,15 +58,9 @@ enum RenderCommand {
     Finish
 }
 
-fn swap_buffers_sync(disp: &mut Window) {
-    disp.swap_buffers();
-    gl::Flush();
-    gl::Finish();
-}
-
 fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
                  output: Sender<Box<Drawlist:Send>>,
-                 mut window: Window,
+                 window: Window,
                  size: (i32, i32),
                  config: Config,
                  cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
@@ -77,17 +69,21 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
     let mut db = db::GlState::new();
 
     let mut pipeline = {
-        let (width, height) = size;
         if !window.is_hmd() {
-            box pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint) as Box<Pipeline>
+            box pipeline::Swap::new(
+                pipeline::Defered::new(pipeline::Forward::new()),
+                window
+            ) as Box<Pipeline>
         } else {
             box pipeline::Hmd::new(
-                pipeline::Defered::new(pipeline::Forward::new(), width as uint, height as uint),
-                config.hmd_size(),
-                window.hmdinfo()
+                pipeline::Defered::new(pipeline::Forward::new()),
+                window
             ) as Box<Pipeline>
         }
     };
+
+    let (width, height) = size;
+    pipeline.resize(width as uint, height as uint);
 
     // todo move!
     gl::Enable(gl::SCISSOR_TEST);
@@ -115,21 +111,11 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
 
         let capture = precise_time_s();
         let camera_trans = dl.position(camera);
-        let camera = Camera::new(if window.is_hmd() {
-            let sf = window.sensor_fusion();
-            let rift = sf.get_predicted_orientation(None);
-            camera_trans.mul_m(&rift.to_matrix4())
-        } else {
-            camera_trans
-        });
+        let camera = Camera::new(camera_trans);
 
-        let (x, y) = size;
-        let dt = DrawTarget::new(0, (0, 0), (x as uint, y as uint), ~[gl::BACK_LEFT]);
-        pipeline.render(dl, &mut db, &camera.get_matrices(size), &dt,  qm);
+        pipeline.render(dl, &mut db, &camera, qm);
         // if the device is a hmd we need to stall the gpu
         // to make sure it actually flipped the buffers
-        qm.time("swap buffer".to_owned());
-        swap_buffers_sync(&mut window);
 
         if config.profile() {
             let end = precise_time_s();

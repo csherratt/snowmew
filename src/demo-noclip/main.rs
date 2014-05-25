@@ -147,7 +147,7 @@ fn main() {
         };
         let mut last_input = im.get(&ih);
         let mut timer = Timer::new().unwrap();
-        let timer_port = timer.periodic(1);
+        let timer_port = timer.periodic(10);
         while !last_input.should_close() {
             im.poll();
             let input_state = im.get(&ih);
@@ -175,11 +175,11 @@ fn main() {
             }
 
             let input_vec = Vector3::new(
-                if input_state.key_down(glfw::KeyA) {0.05f32} else {0f32} +
-                if input_state.key_down(glfw::KeyD) {-0.05f32} else {0f32}, 
+                if input_state.key_down(glfw::KeyA) {0.01f32} else {0f32} +
+                if input_state.key_down(glfw::KeyD) {-0.01f32} else {0f32}, 
                 0f32,
-                if input_state.key_down(glfw::KeyW) {0.05f32} else {0f32} +
-                if input_state.key_down(glfw::KeyS) {-0.05f32} else {0f32}
+                if input_state.key_down(glfw::KeyW) {0.01f32} else {0f32} +
+                if input_state.key_down(glfw::KeyS) {-0.01f32} else {0f32}
             );
 
             let rot: Quaternion<f32> = Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());

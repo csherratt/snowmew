@@ -11,7 +11,7 @@ extern crate image = "stb_image";
 
 use cgmath::vector::{Vector3, Vector2};
 use cgmath::point::Point3;
-use collision::aabb::{Aabb, Aabb3};
+use collision::aabb::Aabb3;
 
 use cow::btree::{BTreeMapIterator, BTreeMap};
 use snowmew::common::{Common, ObjectKey};
@@ -163,19 +163,12 @@ pub trait Graphics: Common {
     }
 
     fn geometry_to_aabb3(&self, oid: ObjectKey) -> Option<Aabb3<f32>> {
-        let mut iter = match self.geometry_vertex_iter(oid) {
+        let iter = match self.geometry_vertex_iter(oid) {
             None => return None,
             Some(iter) => iter
         };
 
-        let mut aabb = Aabb3::new(Point3::new(0f32, 0., 0.),
-                                  Point3::new(0f32, 0., 0.));
-
-        for (_, pos, _, _) in iter {
-            aabb = aabb.grow(&Point3::new(pos.x, pos.y, pos.z));
-        }
-
-        Some(aabb)
+        Some(iter.map(|(_, p, _, _)| Point3::new(p.x, p.y, p.z)).collect())
     }
 
     fn new_texture(&mut self, parent: ObjectKey, name: &str, texture: Texture) -> ObjectKey {
