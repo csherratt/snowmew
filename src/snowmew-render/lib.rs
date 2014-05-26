@@ -23,6 +23,7 @@ extern crate graphics = "snowmew-graphics";
 
 use std::task::{TaskResult, TaskBuilder};
 use std::comm::{Receiver, Sender};
+use std::mem;
 use time::precise_time_s;
 
 use OpenCL::hl::{CommandQueue, Context, Device};
@@ -93,11 +94,13 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
     gl::Enable(gl::BLEND);
     gl::CullFace(gl::BACK);
 
-    for _ in range(0, config.drawlist_count()) {
+    for _ in range(1, config.drawlist_count()) {
         let mut dl = create_drawlist(&config, cl.clone());
         dl.setup_begin();
         output.send(dl);
     }
+
+    let mut next_dl = create_drawlist(&config, cl.clone());
 
     let mut qm = if config.profile() {
         box TimeQueryManager::new() as Box<Profiler>
@@ -126,6 +129,7 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
         }
 
         qm.time("setup begin".to_owned());
+        mem::swap(&mut next_dl, &mut dl);
         dl.setup_begin();
         output.send(dl);
 
