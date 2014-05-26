@@ -3,10 +3,8 @@ use libc::c_void;
 
 use glfw::{WindowEvent, Key, MouseButton, Glfw, Context};
 use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
-use glfw::{CloseEvent, FocusEvent};
+use glfw::{CloseEvent, FocusEvent, FullScreen};
 use glfw::{Windowed, RenderContext};
-#[cfg(target_os = "macos")]
-use glfw::FullScreen;
 use glfw;
 use gl;
 
@@ -284,18 +282,37 @@ impl IOManager {
 
     #[cfg(target_os="linux")]
     fn create_hmd_window(&self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
-        let (width, height) = (hmd.resolution.x, hmd.resolution.y);
-        let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew", Windowed);
-        let (window, events) = match win_opt {
-            Some((window, events)) => (window, events),
-            None => return None
-        };
+        self.glfw.with_connected_monitors(|monitors| {
+            for m in monitors.iter() {
+                let (x, y) = m.get_pos();
+                if x == hmd.window_position.x && 
+                   y == hmd.window_position.y {
+                    let (width, height) = (hmd.resolution.x, hmd.resolution.y);
+                    let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
+                    let (window, events) = match win_opt {
+                        Some((window, events)) => (window, events),
+                        None => return None
+                    };
 
-        // move viewport
-        let (dx, dy) = (hmd.window_position.x, hmd.window_position.y);
-        window.set_pos(dx as i32, dy as i32);
+                    return Some((window, events));
+                }
+            }
 
-        Some((window, events))
+            // fallback if we could not guess at the screen
+            let (width, height) = (hmd.resolution.x, hmd.resolution.y);
+            let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew", Windowed);
+            let (window, events) = match win_opt {
+                Some((window, events)) => (window, events),
+                None => return None
+            };
+
+            // move viewport
+            let (dx, dy) = (hmd.window_position.x, hmd.window_position.y);
+            window.set_pos(dx as i32, dy as i32);
+
+            Some((window, events))
+
+        })
     }
 
     #[cfg(target_os="macos")]
@@ -307,7 +324,7 @@ impl IOManager {
                 }
 
                 let (width, height) = hmd.resolution();
-                let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew", FullScreen(m));
+                let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
                 let (window, events) = match win_opt {
                     Some((window, events)) => (window, events),
                     None => return None

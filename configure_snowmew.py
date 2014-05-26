@@ -5,6 +5,7 @@
 import subprocess
 import os.path
 import platform
+import sys
 
 class Module:
     def set_source_dir(self, source_dir):
@@ -286,11 +287,14 @@ def set_output_dir(modules, output_dir):
 def set_source_dir(modules, source_dir):
     for m in modules:
         m.set_source_dir(source_dir)
+
 _base = os.path.abspath(os.path.dirname(__file__))
+
+sys.path.append('./modules/ovr-rs')
 
 modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
            Bin("demo-cubes", ["snowmew", "snowmew-render",]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "ovr"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "oculus-vr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
            Lib("snowmew-loader", ["snowmew", "snowmew-graphics", "stb-image"]),
            Lib("snowmew-physics", ["snowmew", "collision", "snowmew-position", "cow"]),
@@ -310,21 +314,11 @@ modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
                 (_base, _base, _base, _base),
                 presetup="touch %s/modules/glfw-rs/src/lib/link.rs" % _base)]
 
-if platform.system() == "Linux":
-    modules += [Lib("ovr", ["libOVR_C.so", "cgmath"]),
-                LibCMake("libOVR_C.so",
-                         "modules/ovr-rs/modules/OculusSDK/",
-                         ["modules/ovr-rs/modules/OculusSDK/output/libOVR_C.so"])]
-
-elif platform.system() == "Darwin":
-    modules += [Lib("ovr", ["libOVR_C.dylib", "cgmath"]),
-                LibCMake("libOVR_C.dylib",
-                         "modules/ovr-rs/modules/OculusSDK/",
-                         ["modules/ovr-rs/modules/OculusSDK/output/libOVR_C.dylib"])]
-
-
 set_output_dir(modules, ".")
 set_source_dir(modules, _base)
+
+from configure_ovr import modules as modules_ovr
+modules += modules_ovr
 
 if __name__ == "__main__":
     write_makefile(modules)

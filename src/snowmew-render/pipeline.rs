@@ -440,7 +440,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
         ).expect("Could not create hmd context");
 
         let size = desc.eye_fovs.map(|which, eye| {
-            hmd.get_fov_texture_size(which, eye.default_eye_fov, 0.5)
+            hmd.get_fov_texture_size(which, eye.default_eye_fov, 1.0)
         });
 
         let mut textures: PerEye<GLuint> = PerEye::new(0, 0);
