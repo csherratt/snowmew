@@ -5,6 +5,7 @@
 import subprocess
 import os.path
 import platform
+import sys
 
 class Module:
     def set_source_dir(self, source_dir):
@@ -289,9 +290,11 @@ def set_source_dir(modules, source_dir):
 
 _base = os.path.abspath(os.path.dirname(__file__))
 
+sys.path.append('./modules/ovr-rs')
+
 modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
            Bin("demo-cubes", ["snowmew", "snowmew-render",]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "ovr"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "oculus-vr"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
            Lib("snowmew-loader", ["snowmew", "snowmew-graphics", "stb-image"]),
            Lib("snowmew-physics", ["snowmew", "collision", "snowmew-position", "cow"]),
@@ -304,28 +307,18 @@ modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
            Lib("collision", ["cgmath"]),
            Lib("OpenCL"),
            Lib("stb-image", ["libstb-image.a"]),
-           Lib("ovr", ["libOculusVR.a", "cgmath", "libovr_wrapper.a"]),
            LibConfigureMakefile("libstb-image.a", "modules/stb-image/", ["modules/stb-image/libstb-image.a"]),
-           LibMakefile("libovr_wrapper.a", "src/ovr/", ["src/ovr/libovr_wrapper.a"], ["cgmath", "libOculusVR.a"]),
            LibCMake("libglfw3.a", "modules/glfw/", ["modules/glfw/src/libglfw3.a"], cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("glfw", ["libglfw3.a"], 
                 setup="sh %s/modules/glfw-rs/etc/link-rs.sh \\\"`PKG_CONFIG_PATH=%s/modules/glfw/src  sh %s/modules/glfw-rs/etc/glfw-link-args.sh`\\\" > %s/modules/glfw-rs/src/lib/link.rs" %
                 (_base, _base, _base, _base),
                 presetup="touch %s/modules/glfw-rs/src/lib/link.rs" % _base)]
 
-if platform.system() == "Linux":
-    modules += [LibCMake("libOculusVR.a",
-                         "modules/ovr-rs/modules/OculusSDK/LibOVR/",
-                        ["modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a",
-                         "modules/ovr-rs/modules/OculusSDK/3rdParty/EDID/libedid.a"])]
-
-elif platform.system() == "Darwin":
-    modules += [LibCMake("libOculusVR.a",
-                         "modules/ovr-rs/modules/OculusSDK/LibOVR/",
-                        ["modules/ovr-rs/modules/OculusSDK/LibOVR/libOculusVR.a"])]  
-
 set_output_dir(modules, ".")
 set_source_dir(modules, _base)
+
+from configure_ovr import modules as modules_ovr
+modules += modules_ovr
 
 if __name__ == "__main__":
     write_makefile(modules)

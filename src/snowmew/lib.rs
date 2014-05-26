@@ -19,6 +19,7 @@ extern crate std;
 extern crate gl;
 extern crate green;
 extern crate collections;
+extern crate libc;
 extern crate ovr = "oculus-vr";
 
 pub use common::{ObjectKey};

@@ -82,7 +82,7 @@ impl Config
         Config {
             hmd_size: get_setting_from_str("HMD_SIZE", 1.5f32),
             max_size: get_setting_from_str("MAX_OBJECTS", 64u*1024),
-            drawlist_count: get_setting_from_str("DRAWLIST_COUNT", 2u),
+            drawlist_count: get_setting_from_str("DRAWLIST_COUNT", 3u),
             opencl: get_setting_option("OPENCL_SUPPORT", Enabled),
             profile: get_setting_option("PROFILE", Disabled),
             bindless: check_gl_version(gl_version, (4, 4),

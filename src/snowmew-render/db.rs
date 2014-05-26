@@ -8,14 +8,12 @@ use vertex_buffer::VertexBuffer;
 use shader::Shader;
 use texture::TextureAtlas;
 
-use ovr;
 use Config;
 
 static VS_SRC: &'static str = include_str!("shaders/basic_vertex.glsl");
 static VS_INSTANCE_SRC: &'static str = include_str!("shaders/instance_vertex.glsl");
 static BINDLESS_VS_INSTANCED_SRC: &'static str = include_str!("shaders/bindless_instanced_vertex.glsl");
 static VS_PASS_SRC: &'static str = include_str!("shaders/pass_vertex.glsl");
-static VR_FS_SRC: &'static str = ovr::SHADER_FRAG_CHROMAB;
 static FS_FLAT_SRC: &'static str = include_str!("shaders/flat_fragment.glsl");
 static FS_DEFERED_SRC: &'static str = include_str!("shaders/flat_defered_fragment.glsl");
 
@@ -69,13 +67,6 @@ impl GlState {
     }
 
     fn load_shaders(&mut self, _: &RenderData, cfg: &Config) {
-        if self.ovr_shader.is_none() {
-            self.ovr_shader = Some(
-                Shader::new(VS_PASS_SRC, VR_FS_SRC,
-                    &[(0, "pos")],
-                    &[(0, "color")]
-            ));
-        }
         if self.flat_shader.is_none() {
             self.flat_shader = Some(
                 Shader::new(VS_SRC, FS_FLAT_SRC,
