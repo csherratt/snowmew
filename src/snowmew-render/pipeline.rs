@@ -221,12 +221,31 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
 
         let (w, h) = (width as i32, height as i32);
         gl::BindTexture(gl::TEXTURE_2D, textures[0]);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
         gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA16F, w, h);
+
         gl::BindTexture(gl::TEXTURE_2D, textures[1]);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
         gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16F, w, h);
+
         gl::BindTexture(gl::TEXTURE_2D, textures[2]);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+
         gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGB16F, w, h);
         gl::BindTexture(gl::TEXTURE_2D, textures[3]);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
         gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
         gl::BindTexture(gl::TEXTURE_2D, 0);
 
@@ -382,6 +401,26 @@ pub struct Hmd<PIPELINE> {
 
 }
 
+#[cfg(target_os="linux")]
+fn render_config(window: &Window, hmd: &HmdDescription) -> RenderGLConfig {
+    RenderGLConfig {
+        size: hmd.resolution,
+        multisample: 4,
+        display: Some(window.get_x11_display()),
+        window: None
+    }
+}
+
+#[cfg(target_os="macos")]
+fn render_config(_: &Window, hmd: &HmdDescription) -> RenderGLConfig {
+    RenderGLConfig {
+        size: hmd.resolution,
+        multisample: 4,
+        display: None,
+        window: None
+    }
+}
+
 impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
     pub fn new(input: PIPELINE, window: Window) -> Hmd<PIPELINE> {
         let hmd = window.get_hmd();
@@ -389,17 +428,11 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
         let caps = SensorCapabilities::new().set_orientation(true);
         assert!(hmd.start_sensor(caps, caps));
         let dist = DistortionCapabilities::new()
-                .set_chromatic(true)
-                .set_vignette(true)
-                .set_timewarp(true);
+                .set_chromatic(false)
+                .set_vignette(false)
+                .set_timewarp(false);
 
-        let rc = RenderGLConfig {
-            size: desc.resolution,
-            multisample: 4,
-            display: Some(window.get_x11_display()),
-            window: None
-        };
-
+        let rc = render_config(&window, &desc);
         let eye_desc = hmd.configure_rendering(
                 &rc,
                 dist,
@@ -407,7 +440,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
         ).expect("Could not create hmd context");
 
         let size = desc.eye_fovs.map(|which, eye| {
-            hmd.get_fov_texture_size(which, eye.default_eye_fov, 1.0)
+            hmd.get_fov_texture_size(which, eye.default_eye_fov, 0.5)
         });
 
         let mut textures: PerEye<GLuint> = PerEye::new(0, 0);
@@ -430,6 +463,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
 
             gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, *textures.eye(which), 0);
         });
+        gl::GetError();
 
         Hmd {
             input: input,
@@ -483,6 +517,7 @@ impl<PIPELINE: PipelineState> Pipeline for Hmd<PIPELINE> {
         }
         q.time("ovr: end_frame".to_owned());
         self.window.get_hmd().end_frame();
+        gl::GetError();
     }
 }
 
