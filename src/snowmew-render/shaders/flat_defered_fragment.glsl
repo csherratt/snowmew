@@ -3,9 +3,18 @@
 #define ATLAS_SIZE 12
 
 struct material {
+    vec4 ka;
     vec4 kd;
+    vec4 ks;
+
+    ivec2 ka_map;
     ivec2 kd_map;
+    ivec2 ks_map;
+
+    float ns;
+    float ni;
 };
+
 
 layout(std140) uniform Materials {
     material materials[100];

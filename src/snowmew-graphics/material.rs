@@ -104,4 +104,10 @@ impl Material {
     pub fn map_refl(&self) -> Option<ObjectKey> {self.map_refl}
     pub fn set_map_refl(&mut self, oid: ObjectKey) {self.map_refl = Some(oid);}
 
+    pub fn ns(&self) -> f32 {self.ns}
+    pub fn set_ns(&mut self, v: f32) {self.ns = v}
+
+    pub fn ni(&self) -> f32 {self.ni}
+    pub fn set_ni(&mut self, v: f32) {self.ni = v}
+
 }

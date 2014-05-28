@@ -14,9 +14,14 @@ use db::GlState;
 
 #[packed]
 struct MaterialStd140 {
+    ka: Vector4<f32>,
     kd: Vector4<f32>,
+    ks: Vector4<f32>,
+    ka_texture: (i32, i32),
     kd_texture: (i32, i32),
-    padd_end: (i32, i32),
+    ks_texture: (i32, i32),
+    ns: f32,
+    ni: f32
 }
 
 fn get_mat(ka: Option<ObjectKey>, gl: &GlState) -> (i32, i32) {
@@ -28,11 +33,19 @@ fn get_mat(ka: Option<ObjectKey>, gl: &GlState) -> (i32, i32) {
 
 impl MaterialStd140 {
     pub fn from(mat: &Material, gl: &GlState) -> MaterialStd140 {
-        let kd = mat.Ka();
+        let ka = mat.Ka();
+        let kd = mat.Kd();
+        let ks = mat.Ks();
+
         MaterialStd140 {
+            ka: Vector4::new(ka.x, ka.y, ka.z, 1.),
             kd: Vector4::new(kd.x, kd.y, kd.z, 1.),
-            kd_texture: get_mat(mat.map_Ka(), gl),
-            padd_end: (0, 0)
+            ks: Vector4::new(ks.x, ks.y, ks.z, 1.),
+            ka_texture: get_mat(mat.map_Ka(), gl),
+            kd_texture: get_mat(mat.map_Kd(), gl),
+            ks_texture: get_mat(mat.map_Ks(), gl),
+            ns: mat.ns(),
+            ni: mat.ni()
         }
     }
 }
