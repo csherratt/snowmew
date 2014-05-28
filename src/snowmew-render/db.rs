@@ -15,7 +15,7 @@ static VS_INSTANCE_SRC: &'static str = include_str!("shaders/instance_vertex.gls
 static BINDLESS_VS_INSTANCED_SRC: &'static str = include_str!("shaders/bindless_instanced_vertex.glsl");
 static VS_PASS_SRC: &'static str = include_str!("shaders/pass_vertex.glsl");
 static FS_FLAT_SRC: &'static str = include_str!("shaders/flat_fragment.glsl");
-static FS_DEFERED_SRC: &'static str = include_str!("shaders/flat_defered_fragment.glsl");
+static FS_DEFERED_SRC: &'static str = include_str!("shaders/defered_ambient_fragment.glsl");
 
 #[deriving(Clone)]
 pub struct GlState {
