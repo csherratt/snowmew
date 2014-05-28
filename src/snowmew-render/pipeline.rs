@@ -291,14 +291,6 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         let vbo = db.vertex.find(&plane.vb)
                 .expect("No vbo found");
 
-        let view = dm.view.invert()
-                .expect("Could not invert view");
-
-        let proj = dm.projection.invert()
-                .expect("Could not invert projection");
-
-        let mat = proj.mul_m(&view);
-
         vbo.bind();
         shader.bind();
 
@@ -379,7 +371,7 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         self.ambient(drawlist, db);
         for i in range(0, 1) {
             q.time(format!("defered: point light {}", i));
-            self.point_light(drawlist, db, dm, Vector3::new(50f32, 200., 50.), 50000.);
+            self.point_light(drawlist, db, dm, Vector3::new(0f32, 1., 0.), 10.);
         }
 
         q.time("defered: cleanup".to_owned());

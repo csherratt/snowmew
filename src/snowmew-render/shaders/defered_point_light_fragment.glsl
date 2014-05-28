@@ -80,13 +80,29 @@ void main() {
                                          texture(depth, TexPos).x));
     vec4 position = inverse(mat_view) * eye;
     vec4 delta = light_position - position;
-    
     float dist = length(delta);
-
-    vec4 light_normal = normalize(delta);
+    vec4 eye_pos = inverse(mat_view) * vec4(0., 0., 0., 1.);
+    vec4 eye_to_point_normal = normalize(eye_pos - position);
+    vec4 light_to_point_normal = normalize(delta);
     vec4 surface_normal = vec4(texture(normal, TexPos).xyz, 0.);
 
+    vec4 out_color = vec4(0);
+    bool output = false;
     if (kd.found) {
-        color = (kd.value * light_intensity * max(0, dot(light_normal, surface_normal))) / (dist * dist);
+        out_color += (kd.value * light_intensity * max(0, dot(light_to_point_normal, surface_normal))) / (dist * dist);
+        output = true;
+    }
+    if (ks.found) {
+        vec4 h = normalize(light_to_point_normal + eye_to_point_normal);
+        float ns = materials[object.y].ns;
+        float facing = 0;
+        if (dot(light_to_point_normal, surface_normal) > 0) {
+            facing = 1;
+        }
+        out_color += (ks.value * facing * light_intensity * pow(max(0, dot(h, surface_normal)), ns)) / (dist * dist);
+        output = true;
+    }
+    if (output) {
+        color = out_color;
     }
 }
