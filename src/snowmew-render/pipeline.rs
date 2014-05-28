@@ -99,7 +99,6 @@ pub struct Defered<PIPELINE> {
     width: i32,
     height: i32,
 
-    pos_texture: GLuint,
     uv_texture: GLuint,
     normals_texture: GLuint,
     material_texture: GLuint,
@@ -111,7 +110,7 @@ pub struct Defered<PIPELINE> {
 impl<PIPELINE: PipelineState> Defered<PIPELINE> {
     pub fn new(input: PIPELINE) -> Defered<PIPELINE> {
         let (w, h) = (1i32, 1i32);
-        let textures: &mut [GLuint] = &mut [0, 0, 0, 0];
+        let textures: &mut [GLuint] = &mut [0, 0, 0];
         let mut framebuffer: GLuint = 0;
         let mut renderbuffer: GLuint = 0;
 
@@ -123,17 +122,8 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer);
             assert!(0 == gl::GetError());
 
-            // setup pos 
-            gl::BindTexture(gl::TEXTURE_2D, textures[0]);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA16F, w, h);
-            assert!(0 == gl::GetError());
-
             // setup UV texture
-            gl::BindTexture(gl::TEXTURE_2D, textures[1]);
+            gl::BindTexture(gl::TEXTURE_2D, textures[0]);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
@@ -142,7 +132,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             assert!(0 == gl::GetError());
 
             // setup normals
-            gl::BindTexture(gl::TEXTURE_2D, textures[2]);
+            gl::BindTexture(gl::TEXTURE_2D, textures[1]);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
@@ -151,7 +141,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             assert!(0 == gl::GetError());
 
             // setup material texture
-            gl::BindTexture(gl::TEXTURE_2D, textures[3]);
+            gl::BindTexture(gl::TEXTURE_2D, textures[2]);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
@@ -167,7 +157,6 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, textures[0], 0);
             gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, textures[1], 0);
             gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, textures[2], 0);
-            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT3, textures[3], 0);
             assert!(0 == gl::GetError());
 
             let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
@@ -182,10 +171,9 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             width: w,
             height: h,
 
-            pos_texture: textures[0],
-            uv_texture: textures[1],
-            normals_texture: textures[2],
-            material_texture: textures[3],
+            uv_texture: textures[0],
+            normals_texture: textures[1],
+            material_texture: textures[2],
 
             framebuffer: framebuffer,
             renderbuffer: renderbuffer
@@ -200,23 +188,20 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             width: self.width,
             height: self.height,
             draw_buffers: ~[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
-                            gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3]
+                            gl::COLOR_ATTACHMENT2]
         }
     }
 }
 
 impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
     fn resize(&mut self, width: uint, height: uint) {
-
-        let textures: &mut [GLuint] = &mut [self.pos_texture,
-                                            self.uv_texture,
+        let textures: &mut [GLuint] = &mut [self.uv_texture,
                                             self.normals_texture,
                                             self.material_texture];
 
         unsafe {
             gl::DeleteTextures(textures.len() as i32, textures.unsafe_ref(0));
             gl::GenTextures(textures.len() as i32, textures.unsafe_mut_ref(0));
-
         }
 
         let (w, h) = (width as i32, height as i32);
@@ -225,7 +210,7 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA16F, w, h);
+        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16F, w, h);
 
         gl::BindTexture(gl::TEXTURE_2D, textures[1]);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
@@ -235,13 +220,6 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
         gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16F, w, h);
 
         gl::BindTexture(gl::TEXTURE_2D, textures[2]);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-
-        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGB16F, w, h);
-        gl::BindTexture(gl::TEXTURE_2D, textures[3]);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
@@ -256,14 +234,12 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, textures[0], 0);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, textures[1], 0);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, textures[2], 0);
-        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT3, textures[3], 0);
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
 
-        self.pos_texture = textures[0];
-        self.uv_texture = textures[1];
-        self.normals_texture = textures[2];
-        self.material_texture = textures[3];
+        self.uv_texture = textures[0];
+        self.normals_texture = textures[1];
+        self.material_texture = textures[2];
 
         self.width = w;
         self.height = h;
@@ -293,17 +269,14 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         assert!(0 == gl::GetError());
 
         gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindTexture(gl::TEXTURE_2D, self.pos_texture);
-        gl::Uniform1i(shader.uniform("position"), 0);
-        gl::ActiveTexture(gl::TEXTURE1);
         gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
-        gl::Uniform1i(shader.uniform("uv"), 1);
-        gl::ActiveTexture(gl::TEXTURE2);
+        gl::Uniform1i(shader.uniform("uv"), 0);
+        gl::ActiveTexture(gl::TEXTURE1);
         gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
-        gl::Uniform1i(shader.uniform("normal"), 2);
-        gl::ActiveTexture(gl::TEXTURE3);
+        gl::Uniform1i(shader.uniform("normal"), 1);
+        gl::ActiveTexture(gl::TEXTURE2);
         gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
-        gl::Uniform1i(shader.uniform("pixel_drawn_by"), 3);
+        gl::Uniform1i(shader.uniform("pixel_drawn_by"), 2);
 
         let textures = db.texture.textures();
         let atlas_uniform = shader.uniform("atlas");

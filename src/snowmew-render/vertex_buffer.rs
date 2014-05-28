@@ -6,8 +6,8 @@ use std::ptr;
 
 use libc::c_void;
 
-use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGeoNorm, VertexGeoTexNorm};
-use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm};
+use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGeoNorm, VertexGeoTexNorm, VertexGeoTexNormTan};
+use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 
 #[deriving(Clone, Default)]
 pub struct VertexBuffer {
@@ -45,6 +45,11 @@ impl VertexBuffer {
                     (mem::transmute(data.get(0)),
                      data.len() * mem::size_of::<VertexGeoTexNorm>(),
                      mem::size_of::<VertexGeoTexNorm>())
+                },
+                GeoTexNormTan(ref data) => {
+                    (mem::transmute(data.get(0)),
+                     data.len() * mem::size_of::<VertexGeoTexNormTan>(),
+                     mem::size_of::<VertexGeoTexNormTan>())
                 }
             };
             let stride = stride as i32;
@@ -67,20 +72,30 @@ impl VertexBuffer {
 
             let offset = match *vertex {
                 Geo(_) | GeoNorm(_) => offset,
-                GeoTex(_) | GeoTexNorm(_) => {
+                GeoTex(_) | GeoTexNorm(_) | GeoTexNormTan(_) => {
                     gl::EnableVertexAttribArray(1);
                     gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, offset as *c_void);
                     offset + 8
                 }
             };
 
-            match *vertex {
-                Geo(_) | GeoTex(_) => (),
-                GeoNorm(_) | GeoTexNorm(_) => {
+            let offset = match *vertex {
+                Geo(_) | GeoTex(_) => offset,
+                GeoNorm(_) | GeoTexNorm(_) | GeoTexNormTan(_) => {
                     gl::EnableVertexAttribArray(2);
                     gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, offset as *c_void);
+                    offset + 12
                 }
-            }
+            };
+
+
+            match *vertex {
+                Geo(_) | GeoTex(_)| GeoNorm(_) | GeoTexNorm(_) => (),
+                GeoTexNormTan(_) => {
+                    gl::EnableVertexAttribArray(3);
+                    gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, offset as *c_void);
+                }
+            };
 
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, vbo[1]);
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,

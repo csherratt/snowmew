@@ -28,6 +28,7 @@ impl PointLight {
                color: Vector3<f32>,
                intensity: f32,
                geometry: ObjectKey) -> PointLight {
+        
         PointLight {
             center: pos,
             color: color,

@@ -232,6 +232,10 @@ impl<'a> Iterator<(u32, &'a Vector3<f32>, Option<&'a Vector2<f32>>, Option<&'a V
                 let v = v.get(*idx as uint);
                 Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
             }
+            geometry::GeoTexNormTan(ref v) => {
+                let v = v.get(*idx as uint);
+                Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
+            }
         }
     }
 }
