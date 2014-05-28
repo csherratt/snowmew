@@ -18,7 +18,7 @@ in vec3 in_tangent;
 in vec3 in_bitangent;
 
 out vec2 fs_texture;
-out vec2 fs_normal;
+out vec3 fs_normal;
 flat out uint fs_object_id;
 flat out uint fs_material_id;
 
@@ -35,7 +35,7 @@ void main() {
     gl_Position = mat_proj * mat_view * mat_model * vec4(in_position, 1.);
 
     fs_texture = in_texture;
-    fs_normal = normalize(normal).xy;
+    fs_normal = normalize(normal).xyz;
     fs_material_id = info.z;
     fs_object_id = info.x;
 }

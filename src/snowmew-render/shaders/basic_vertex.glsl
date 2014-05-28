@@ -11,7 +11,7 @@ in vec2 in_texture;
 in vec3 in_normal;
 
 out vec2 fs_texture;
-out vec2 fs_normal;
+out vec3 fs_normal;
 flat out uint fs_object_id;
 flat out uint fs_material_id;
 
@@ -22,7 +22,7 @@ void main() {
     gl_Position = mat_proj * mat_model_view * vec4(in_position, 1.);
 
     fs_texture = in_texture;
-    fs_normal = normal.xy;
+    fs_normal = normal.xyz;
     fs_object_id = object_id;
     fs_material_id = material_id;
 }

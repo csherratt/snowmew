@@ -9,6 +9,10 @@ use ovr::{RenderGLConfig, EyeType, SensorCapabilities, EyeLeft, EyeRight};
 use ovr::Texture;
 use ovr::ll::Sizei;
 
+use cgmath::matrix::Matrix;
+use cgmath::vector::Vector3;
+use cgmath::ptr::Ptr;
+
 use snowmew::io::Window;
 use snowmew::camera::DrawMatrices;
 use graphics::Graphics;
@@ -160,7 +164,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         };
 
         set_texture(self.uv_texture, gl::RG16F);
-        set_texture(self.normals_texture, gl::RG16F);
+        set_texture(self.normals_texture, gl::RGB16F);
         set_texture(self.material_texture, gl::RG32UI);
         set_texture(self.depth_buffer, gl::DEPTH_COMPONENT24);
 
@@ -270,6 +274,91 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             }
         }
     }
+
+    fn point_light(&mut self,
+                   drawlist: &mut Drawlist,
+                   db: &GlState,
+                   dm: &DrawMatrices,
+                   light: Vector3<f32>,
+                   intensity: f32) {
+
+        let plane = drawlist.find("core/geometry/plane")
+                .expect("plane not found");
+        let plane = drawlist.geometry(plane)
+                .expect("Could not fetch geometry of plane");
+        let shader = db.defered_shader_point_light
+                .as_ref().expect("Could not load defered_shader");
+        let vbo = db.vertex.find(&plane.vb)
+                .expect("No vbo found");
+
+        let view = dm.view.invert()
+                .expect("Could not invert view");
+
+        let proj = dm.projection.invert()
+                .expect("Could not invert projection");
+
+        let mat = proj.mul_m(&view);
+
+        vbo.bind();
+        shader.bind();
+
+        gl::ActiveTexture(gl::TEXTURE0);
+        gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
+        gl::Uniform1i(shader.uniform("uv"), 0);
+        gl::ActiveTexture(gl::TEXTURE1);
+        gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
+        gl::Uniform1i(shader.uniform("normal"), 1);
+        gl::ActiveTexture(gl::TEXTURE2);
+        gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
+        gl::Uniform1i(shader.uniform("pixel_drawn_by"), 2);
+        gl::ActiveTexture(gl::TEXTURE3);
+        gl::BindTexture(gl::TEXTURE_2D, self.depth_buffer);
+        gl::Uniform1i(shader.uniform("depth"), 3);
+
+        unsafe {
+            gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, dm.projection.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, dm.view.ptr());
+            gl::Uniform4fv(shader.uniform("light_position"), 1, light.ptr());
+            gl::Uniform1f(shader.uniform("light_intensity"), intensity);
+        }
+
+
+        let textures = db.texture.textures();
+        let atlas_uniform = shader.uniform("atlas");
+        let atlas_base = shader.uniform("atlas_base");
+
+        gl::BindBufferBase(gl::UNIFORM_BUFFER,
+                           shader.uniform_block_index("Materials"),
+                           drawlist.material_buffer());
+    
+        let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
+        for idx in range_step(0, total_textures, 12) {
+            unsafe {
+                if textures.len() != 0 {
+                    let end = if idx + 12 > textures.len() {
+                        textures.len()
+                    } else {
+                        idx + 12
+                    };
+                    for (e, i) in range(idx, end).enumerate() {
+                        gl::ActiveTexture(gl::TEXTURE4+e as u32);
+                        gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
+                    }
+
+                    let slice: Vec<i32> = range(idx, end)
+                            .enumerate().map(|(e, _)| (e+4) as i32).collect();
+                    gl::Uniform1i(atlas_base, idx as i32);
+                    gl::Uniform1iv(atlas_uniform,
+                                   slice.len() as i32,
+                                   slice.get(0));
+                }
+                gl::DrawElements(gl::TRIANGLES,
+                                 plane.count as i32,
+                                 gl::UNSIGNED_INT,
+                                 (plane.offset * 4) as *libc::c_void);
+            }
+        }
+    }
 }
 
 impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
@@ -288,9 +377,9 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         gl::Clear(gl::COLOR_BUFFER_BIT);
         q.time("defered: ambient lighting".to_owned());
         self.ambient(drawlist, db);
-        for i in range(0, 16) {
+        for i in range(0, 1) {
             q.time(format!("defered: point light {}", i));
-            self.ambient(drawlist, db);
+            self.point_light(drawlist, db, dm, Vector3::new(50f32, 200., 50.), 50000.);
         }
 
         q.time("defered: cleanup".to_owned());
