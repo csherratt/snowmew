@@ -207,22 +207,18 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
     }
 }
 
-impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget, q: &mut Profiler) {
-        let dt = self.draw_target();
-        self.input.render(drawlist, db, dm, &dt, q);
-        q.time("defered: setup".to_owned());
-
+impl<PIPELINE: PipelineState> Defered<PIPELINE> {
+    fn ambient(&mut self, drawlist: &mut Drawlist, db: &GlState) {
         let plane = drawlist.find("core/geometry/plane")
                 .expect("plane not found");
         let plane = drawlist.geometry(plane)
                 .expect("Could not fetch geometry of plane");
-        let shader = db.defered_shader
+        let shader = db.defered_shader_ambient
                 .as_ref().expect("Could not load defered_shader");
         let vbo = db.vertex.find(&plane.vb)
                 .expect("No vbo found");
-        vbo.bind();
 
+        vbo.bind();
         shader.bind();
 
         assert!(0 == gl::GetError());
@@ -246,10 +242,7 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         gl::BindBufferBase(gl::UNIFORM_BUFFER,
                            shader.uniform_block_index("Materials"),
                            drawlist.material_buffer());
-
-        ddt.bind();
-        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        q.time("defered: shader".to_owned());
+    
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
         for idx in range_step(0, total_textures, 12) {
             unsafe {
@@ -277,6 +270,29 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
                                  (plane.offset * 4) as *libc::c_void);
             }
         }
+    }
+}
+
+impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget, q: &mut Profiler) {
+        let dt = self.draw_target();
+        self.input.render(drawlist, db, dm, &dt, q);
+
+        gl::Disable(gl::DEPTH_TEST);
+        gl::Enable(gl::DITHER);
+        gl::Enable(gl::BLEND);
+        gl::BlendEquation(gl::FUNC_ADD);
+        gl::BlendFunc(gl::ONE, gl::ONE);
+
+        q.time("defered: setup".to_owned());
+        ddt.bind();
+        gl::Clear(gl::COLOR_BUFFER_BIT);
+        q.time("defered: ambient lighting".to_owned());
+        self.ambient(drawlist, db);
+        for i in range(0, 16) {
+            q.time(format!("defered: point light {}", i));
+            self.ambient(drawlist, db);
+        }
 
         q.time("defered: cleanup".to_owned());
         for i in range(0, 16) {
@@ -284,6 +300,8 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
             gl::BindTexture(gl::TEXTURE_2D, 0);
             gl::BindTexture(gl::TEXTURE_2D_ARRAY, 0);
         }
+
+        gl::Disable(gl::BLEND);
     }
 }
 

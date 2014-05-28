@@ -33,8 +33,7 @@ uniform sampler2DArray atlas[ATLAS_SIZE];
 uniform int atlas_base;
 
 in vec2 TexPos;
-
-out vec3 color;
+out vec4 color;
 
 fetch_result fetch_material(vec4 d, ivec2 map) {
     if (map.x == -1) {
@@ -57,5 +56,7 @@ void main() {
     fetch_result ks = fetch_material(materials[object.y].ks,
                                      materials[object.y].ks_map);
 
-    color = ka;
+    if (kd.found) {
+        color = kd.value;
+    }
 }

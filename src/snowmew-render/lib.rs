@@ -88,11 +88,6 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
 
     // todo move!
     gl::Enable(gl::SCISSOR_TEST);
-    gl::Enable(gl::DEPTH_TEST);
-    gl::Enable(gl::CULL_FACE);
-    gl::Enable(gl::LINE_SMOOTH);
-    gl::Enable(gl::BLEND);
-    gl::CullFace(gl::BACK);
 
     for _ in range(1, config.drawlist_count()) {
         let mut dl = create_drawlist(&config, cl.clone());
