@@ -102,21 +102,19 @@ pub struct Defered<PIPELINE> {
     uv_texture: GLuint,
     normals_texture: GLuint,
     material_texture: GLuint,
+    depth_buffer: GLuint,
 
     framebuffer: GLuint,
-    renderbuffer: GLuint,
 }
 
 impl<PIPELINE: PipelineState> Defered<PIPELINE> {
     pub fn new(input: PIPELINE) -> Defered<PIPELINE> {
-        let textures: &mut [GLuint] = &mut [0, 0, 0];
+        let textures: &mut [GLuint] = &mut [0, 0, 0, 0];
         let mut framebuffer: GLuint = 0;
-        let mut renderbuffer: GLuint = 0;
 
         unsafe {
             gl::GenTextures(textures.len() as i32, textures.unsafe_mut_ref(0));
             gl::GenFramebuffers(1, &mut framebuffer);
-            gl::GenRenderbuffers(1, &mut renderbuffer);
         }
 
         let mut new = Defered {
@@ -128,9 +126,9 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             uv_texture: textures[0],
             normals_texture: textures[1],
             material_texture: textures[2],
+            depth_buffer: textures[3],
 
             framebuffer: framebuffer,
-            renderbuffer: renderbuffer
         };
 
         new.setup_framebuffer(1024, 1024);
@@ -164,14 +162,13 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         set_texture(self.uv_texture, gl::RG16F);
         set_texture(self.normals_texture, gl::RG16F);
         set_texture(self.material_texture, gl::RG32UI);
+        set_texture(self.depth_buffer, gl::DEPTH_COMPONENT24);
 
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
-        gl::BindRenderbuffer(gl::RENDERBUFFER, self.renderbuffer);
-        gl::RenderbufferStorage(gl::RENDERBUFFER, gl::DEPTH_COMPONENT32F, w, h);
-        gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::RENDERBUFFER, self.renderbuffer);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, self.uv_texture, 0);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, self.normals_texture, 0);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, self.material_texture, 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, self.depth_buffer, 0);
 
         let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
         if status != gl::FRAMEBUFFER_COMPLETE {
@@ -191,7 +188,8 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
     fn resize(&mut self, width: uint, height: uint) {
         let textures: &mut [GLuint] = &mut [self.uv_texture,
                                             self.normals_texture,
-                                            self.material_texture];
+                                            self.material_texture,
+                                            self.depth_buffer];
 
         unsafe {
             gl::DeleteTextures(textures.len() as i32, textures.unsafe_ref(0));
@@ -201,6 +199,7 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
         self.uv_texture = textures[0];
         self.normals_texture = textures[1];
         self.material_texture = textures[2];
+        self.depth_buffer = textures[3];
 
         let (w, h) = (width as i32, height as i32);
         self.setup_framebuffer(w, h);

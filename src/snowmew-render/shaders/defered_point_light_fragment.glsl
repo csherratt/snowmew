@@ -29,8 +29,10 @@ uniform sampler2D uv;
 uniform usampler2D pixel_drawn_by;
 
 uniform sampler2DArray atlas[ATLAS_SIZE];
-
 uniform int atlas_base;
+
+uniform vec4 light_position;
+uniform float light_value;
 
 in vec2 TexPos;
 out vec4 color;
@@ -49,14 +51,12 @@ fetch_result fetch_material(vec4 d, ivec2 map) {
 
 void main() {
     uvec2 object = texture(pixel_drawn_by, TexPos).xy;
-    fetch_result ka = fetch_material(materials[object.y].ka,
-                                     materials[object.y].ka_map);
     fetch_result kd = fetch_material(materials[object.y].kd,
                                      materials[object.y].kd_map);
     fetch_result ks = fetch_material(materials[object.y].ks,
                                      materials[object.y].ks_map);
 
-    if (kd.found) {
+    if (kd.found && ks.found) {
         color = kd.value;
     }
 }
