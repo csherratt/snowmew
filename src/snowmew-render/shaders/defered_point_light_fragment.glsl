@@ -100,7 +100,7 @@ void main() {
     vec4 eye_to_point_normal = normalize(eye_pos - pos);
 
     if (ka.found) {
-        color = ka.value * 0.1;
+        color = ka.value * 0.2;
     }
 
     for (int i = 0; i < point_count; i++) {
