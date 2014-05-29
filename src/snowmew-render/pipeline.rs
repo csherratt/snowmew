@@ -9,13 +9,10 @@ use ovr::{RenderGLConfig, EyeType, SensorCapabilities, EyeLeft, EyeRight};
 use ovr::Texture;
 use ovr::ll::Sizei;
 
-use cgmath::matrix::Matrix;
 use cgmath::vector::{Vector4};
 use cgmath::ptr::Ptr;
 
-use graphics::light;
 use graphics::Graphics;
-use position::Positions;
 
 use db::GlState;
 use drawlist::Drawlist;
@@ -24,7 +21,6 @@ use snowmew::io::Window;
 use snowmew::camera::DrawMatrices;
 use snowmew::common::Common;
 use snowmew::camera::Camera;
-use snowmew::ObjectKey;
 
 use query::Profiler;
 
@@ -268,9 +264,9 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
 
         gl::BindBufferBase(gl::UNIFORM_BUFFER, lights, drawlist.lights_buffer());
         shader.uniform_block_bind(lights, lights);
+
         gl::BindBufferBase(gl::UNIFORM_BUFFER, materials, drawlist.material_buffer());
         shader.uniform_block_bind(materials, materials);
-
 
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
         for idx in range_step(0, total_textures, 12) {

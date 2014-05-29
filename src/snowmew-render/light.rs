@@ -66,14 +66,6 @@ impl LightsBuffer {
             gl::GetIntegerv(gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT, &mut max_buffer_offset);
         }
 
-        println!("vertex: {} fragment: {}",
-            max_vertex, max_fragment
-        );
-        println!("block size: {} block alignmnet: {}",
-            max_uniform_block_size, max_buffer_offset
-        );
-
-
         LightsBuffer {
             buffer: ub[0],
             ptr: ptr::mut_null()

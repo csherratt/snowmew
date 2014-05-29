@@ -124,4 +124,23 @@ void main() {
                     dist * pow(max(0, dot(h, surface_normal)), ns);
         }
     }
+
+    for (int i = 0; i < direction_count; i++) {
+        vec4 light_to_point_normal = direction_lights[i].normal;
+        if (kd.found) {
+            color += kd.value * direction_lights[i].color * 
+                     max(0, dot(light_to_point_normal, surface_normal));
+        }
+
+        if (ks.found) {
+            vec4 h = normalize(light_to_point_normal + eye_to_point_normal);
+            float ns = materials[object.y].ns;
+            float facing = 0;
+            if (dot(light_to_point_normal, surface_normal) > 0) {
+                facing = 1;
+            }
+            color += ks.value * direction_lights[i].color * facing *
+                     pow(max(0, dot(h, surface_normal)), ns);
+        }
+    }
 }
