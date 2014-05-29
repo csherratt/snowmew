@@ -32,7 +32,7 @@ use OpenCL::hl::{Device, get_platforms, GPU, CPU};
 
 use snowmew::camera::Camera;
 use position::Positions;
-use graphics::Graphics;
+use graphics::{Graphics, PointLight};
 
 use render::RenderManager;
 use loader::Obj;
@@ -145,6 +145,15 @@ fn main() {
         } else {
             Point3::new(0f32, 0f32, 0f32)
         };
+
+        let light = PointLight::new(Vector3::new(1f32, 1., 1.), 1.);
+        let light = db.new_light(camera_loc, "player_light", light);
+        db.update_location(light,
+            Transform3D::new(1f32,
+                             Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
+                             Vector3::new(0f32, 1f32, -5f32))
+        );
+
         let mut last_input = im.get(&ih);
         let mut timer = Timer::new().unwrap();
         let timer_port = timer.periodic(10);

@@ -32,7 +32,9 @@ uniform sampler2D depth;
 uniform sampler2DArray atlas[ATLAS_SIZE];
 uniform int atlas_base;
 
+uniform vec4 viewport;
 uniform vec4 light_position;
+uniform vec3 light_color;
 uniform float light_intensity;
 
 uniform mat4 mat_proj;
@@ -54,7 +56,6 @@ fetch_result fetch_material(vec4 d, ivec2 map) {
 }
 
 vec4 calc_eye_from_window(vec3 window_space) {
-    vec4 viewport = vec4(0., 0., 1280., 800.);
     vec2 depthrange = vec2(0., 1.);
     vec3 ndc_pos;
     ndc_pos.xy = ((2.0 * window_space.xy) - (2.0 * viewport.xy)) / (viewport.zw) - 1;
@@ -81,6 +82,7 @@ void main() {
     vec4 position = inverse(mat_view) * eye;
     vec4 delta = light_position - position;
     float dist = length(delta);
+    dist = 1. / (dist*dist);
     vec4 eye_pos = inverse(mat_view) * vec4(0., 0., 0., 1.);
     vec4 eye_to_point_normal = normalize(eye_pos - position);
     vec4 light_to_point_normal = normalize(delta);
@@ -89,7 +91,7 @@ void main() {
     vec4 out_color = vec4(0);
     bool output = false;
     if (kd.found) {
-        out_color += (kd.value * light_intensity * max(0, dot(light_to_point_normal, surface_normal))) / (dist * dist);
+        out_color += (vec4(light_color, 1.) * kd.value * light_intensity * dist * max(0, dot(light_to_point_normal, surface_normal)));
         output = true;
     }
     if (ks.found) {
@@ -99,7 +101,7 @@ void main() {
         if (dot(light_to_point_normal, surface_normal) > 0) {
             facing = 1;
         }
-        out_color += (ks.value * facing * light_intensity * pow(max(0, dot(h, surface_normal)), ns)) / (dist * dist);
+        out_color += (vec4(light_color, 1.) * ks.value * facing * light_intensity * dist * pow(max(0, dot(h, surface_normal)), ns));
         output = true;
     }
     if (output) {

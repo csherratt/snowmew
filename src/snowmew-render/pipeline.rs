@@ -10,18 +10,20 @@ use ovr::Texture;
 use ovr::ll::Sizei;
 
 use cgmath::matrix::Matrix;
-use cgmath::vector::Vector3;
+use cgmath::vector::{Vector4};
 use cgmath::ptr::Ptr;
 
-use snowmew::io::Window;
-use snowmew::camera::DrawMatrices;
-use graphics::Graphics;
+use graphics::{PointLight, Graphics};
+use position::Positions;
 
 use db::GlState;
 use drawlist::Drawlist;
 
+use snowmew::io::Window;
+use snowmew::camera::DrawMatrices;
 use snowmew::common::Common;
 use snowmew::camera::Camera;
+use snowmew::ObjectKey;
 
 use query::Profiler;
 
@@ -60,6 +62,13 @@ impl DrawTarget {
 
     pub fn size(&self) -> (uint, uint) {
         (self.width as uint, self.height as uint)
+    }
+
+    pub fn to_vec4(&self) -> Vector4<f32> {
+        Vector4::new(self.x as f32,
+                     self.y as f32,
+                     self.width as f32,
+                     self.height as f32)
     }
 }
 
@@ -279,8 +288,9 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
                    drawlist: &mut Drawlist,
                    db: &GlState,
                    dm: &DrawMatrices,
-                   light: Vector3<f32>,
-                   intensity: f32) {
+                   pos: &Vector4<f32>,
+                   light: &PointLight,
+                   dt: &DrawTarget) {
 
         let plane = drawlist.find("core/geometry/plane")
                 .expect("plane not found");
@@ -310,8 +320,10 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         unsafe {
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, dm.projection.ptr());
             gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, dm.view.ptr());
-            gl::Uniform4fv(shader.uniform("light_position"), 1, light.ptr());
-            gl::Uniform1f(shader.uniform("light_intensity"), intensity);
+            gl::Uniform4fv(shader.uniform("light_position"), 1, pos.ptr());
+            gl::Uniform3fv(shader.uniform("light_color"), 1, light.color().ptr());
+            gl::Uniform1f(shader.uniform("light_intensity"), light.intensity());
+            gl::Uniform4fv(shader.uniform("viewport"), 1, dt.to_vec4().ptr());
         }
 
 
@@ -369,9 +381,14 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         gl::Clear(gl::COLOR_BUFFER_BIT);
         q.time("defered: ambient lighting".to_owned());
         self.ambient(drawlist, db);
-        for i in range(0, 1) {
-            q.time(format!("defered: point light {}", i));
-            self.point_light(drawlist, db, dm, Vector3::new(0f32, 1., 0.), 10.);
+
+        let lights: Vec<(ObjectKey, PointLight)> =
+                drawlist.light_iter().map(|(&k, &v)| (k, v)).collect();
+        for &(key, light) in lights.iter() {
+            q.time("defered: point light".to_owned());
+            let mat = drawlist.position(key);
+            let pos = mat.mul_v(&Vector4::new(0f32, 0., 0., 1.));
+            self.point_light(drawlist, db, dm, &pos, &light, &dt);
         }
 
         q.time("defered: cleanup".to_owned());
