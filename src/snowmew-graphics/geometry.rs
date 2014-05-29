@@ -37,11 +37,20 @@ pub struct VertexGeoTexNorm {
 }
 
 #[deriving(Clone)]
+pub struct VertexGeoTexNormTan {
+    pub position: Vector3<f32>,
+    pub texture: Vector2<f32>,
+    pub normal: Vector3<f32>,
+    pub tangent: Vector3<f32>,
+}
+
+#[deriving(Clone)]
 pub enum Vertex {
     Geo(Vec<VertexGeo>),
     GeoTex(Vec<VertexGeoTex>),
     GeoNorm(Vec<VertexGeoNorm>),
-    GeoTexNorm(Vec<VertexGeoTexNorm>)
+    GeoTexNorm(Vec<VertexGeoTexNorm>),
+    GeoTexNormTan(Vec<VertexGeoTexNormTan>)
 }
 
 impl Default for Vertex {
@@ -178,6 +187,13 @@ impl VertexBuffer {
     pub fn new_position_texture_normal(vert: Vec<VertexGeoTexNorm>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
             vertex: GeoTexNorm(vert),
+            index: idx
+        }
+    }
+
+    pub fn new_position_texture_normal_tangent(vert: Vec<VertexGeoTexNormTan>, idx: Vec<u32>) -> VertexBuffer {
+        VertexBuffer {
+            vertex: GeoTexNormTan(vert),
             index: idx
         }
     }

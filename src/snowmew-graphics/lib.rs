@@ -19,11 +19,13 @@ use snowmew::common::{Common, ObjectKey};
 pub use geometry::{Geometry, VertexBuffer};
 pub use material::Material;
 pub use texture::Texture;
+pub use light::Light;
 
 pub mod geometry;
 pub mod material;
 pub mod default;
 pub mod texture;
+pub mod light;
 
 #[deriving(Clone, Default, Eq)]
 pub struct Drawable {
@@ -32,8 +34,7 @@ pub struct Drawable {
 }
 
 impl Ord for Drawable {
-    fn lt(&self, other: &Drawable) -> bool
-    {
+    fn lt(&self, other: &Drawable) -> bool {
         let order = self.geometry.cmp(&other.geometry);
         match order {
             Equal => self.material.cmp(&other.material) == Less,
@@ -62,7 +63,8 @@ pub struct GraphicsData {
     geometry: BTreeMap<ObjectKey, Geometry>,
     vertex:   BTreeMap<ObjectKey, VertexBuffer>,
     material: BTreeMap<ObjectKey, Material>,
-    texture:  BTreeMap<ObjectKey, Texture>
+    texture:  BTreeMap<ObjectKey, Texture>,
+    lights:   BTreeMap<ObjectKey, light::Light>,
 }
 
 impl GraphicsData {
@@ -72,7 +74,8 @@ impl GraphicsData {
             geometry: BTreeMap::new(),
             vertex: BTreeMap::new(),
             material: BTreeMap::new(),
-            texture: BTreeMap::new()
+            texture: BTreeMap::new(),
+            lights: BTreeMap::new()
         }
     }
 }
@@ -184,6 +187,20 @@ pub trait Graphics: Common {
     fn texture_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Texture> {
         self.get_graphics().texture.iter()
     }
+
+    fn new_light(&mut self, parent: ObjectKey, name: &str, light: Light) -> ObjectKey {
+        let oid = self.new_object(Some(parent), name);
+        self.get_graphics_mut().lights.insert(oid, light);
+        oid
+    }
+
+    fn get_light<'a>(&'a self, oid: ObjectKey) -> Option<&'a Light> {
+        self.get_graphics().lights.find(&oid)
+    }
+
+    fn light_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Light> {
+        self.get_graphics().lights.iter()
+    }
 }
 
 pub struct VertexBufferIter<'a> {
@@ -212,6 +229,10 @@ impl<'a> Iterator<(u32, &'a Vector3<f32>, Option<&'a Vector2<f32>>, Option<&'a V
                 Some((*idx, &v.position, None, Some(&v.normal)))
             }
             geometry::GeoTexNorm(ref v) => {
+                let v = v.get(*idx as uint);
+                Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
+            }
+            geometry::GeoTexNormTan(ref v) => {
                 let v = v.get(*idx as uint);
                 Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
             }

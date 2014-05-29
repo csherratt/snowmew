@@ -9,13 +9,16 @@ use ovr::{RenderGLConfig, EyeType, SensorCapabilities, EyeLeft, EyeRight};
 use ovr::Texture;
 use ovr::ll::Sizei;
 
-use snowmew::io::Window;
-use snowmew::camera::DrawMatrices;
+use cgmath::vector::{Vector4};
+use cgmath::ptr::Ptr;
+
 use graphics::Graphics;
 
 use db::GlState;
 use drawlist::Drawlist;
 
+use snowmew::io::Window;
+use snowmew::camera::DrawMatrices;
 use snowmew::common::Common;
 use snowmew::camera::Camera;
 
@@ -56,6 +59,13 @@ impl DrawTarget {
 
     pub fn size(&self) -> (uint, uint) {
         (self.width as uint, self.height as uint)
+    }
+
+    pub fn to_vec4(&self) -> Vector4<f32> {
+        Vector4::new(self.x as f32,
+                     self.y as f32,
+                     self.width as f32,
+                     self.height as f32)
     }
 }
 
@@ -99,97 +109,41 @@ pub struct Defered<PIPELINE> {
     width: i32,
     height: i32,
 
-    pos_texture: GLuint,
     uv_texture: GLuint,
     normals_texture: GLuint,
     material_texture: GLuint,
+    depth_buffer: GLuint,
 
     framebuffer: GLuint,
-    renderbuffer: GLuint,
 }
 
 impl<PIPELINE: PipelineState> Defered<PIPELINE> {
     pub fn new(input: PIPELINE) -> Defered<PIPELINE> {
-        let (w, h) = (1i32, 1i32);
         let textures: &mut [GLuint] = &mut [0, 0, 0, 0];
         let mut framebuffer: GLuint = 0;
-        let mut renderbuffer: GLuint = 0;
 
         unsafe {
             gl::GenTextures(textures.len() as i32, textures.unsafe_mut_ref(0));
             gl::GenFramebuffers(1, &mut framebuffer);
-            gl::GenRenderbuffers(1, &mut renderbuffer);
-
-            gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer);
-            assert!(0 == gl::GetError());
-
-            // setup pos 
-            gl::BindTexture(gl::TEXTURE_2D, textures[0]);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA16F, w, h);
-            assert!(0 == gl::GetError());
-
-            // setup UV texture
-            gl::BindTexture(gl::TEXTURE_2D, textures[1]);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16F, w, h);
-            assert!(0 == gl::GetError());
-
-            // setup normals
-            gl::BindTexture(gl::TEXTURE_2D, textures[2]);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGB16F, w, h);
-            assert!(0 == gl::GetError());
-
-            // setup material texture
-            gl::BindTexture(gl::TEXTURE_2D, textures[3]);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
-            assert!(0 == gl::GetError());
-
-            gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer);
-            gl::RenderbufferStorage(gl::RENDERBUFFER, gl::DEPTH_COMPONENT32F, w, h);
-            gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::RENDERBUFFER, renderbuffer);
-            assert!(0 == gl::GetError());
-
-            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, textures[0], 0);
-            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, textures[1], 0);
-            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, textures[2], 0);
-            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT3, textures[3], 0);
-            assert!(0 == gl::GetError());
-
-            let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
-            if status != gl::FRAMEBUFFER_COMPLETE {
-                fail!("Failed to setup framebuffer {}", status);
-            }
         }
 
-        Defered {
+        let mut new = Defered {
             input: input,
 
-            width: w,
-            height: h,
+            width: 1024,
+            height: 1024,
 
-            pos_texture: textures[0],
-            uv_texture: textures[1],
-            normals_texture: textures[2],
-            material_texture: textures[3],
+            uv_texture: textures[0],
+            normals_texture: textures[1],
+            material_texture: textures[2],
+            depth_buffer: textures[3],
 
             framebuffer: framebuffer,
-            renderbuffer: renderbuffer
-        }
+        };
+
+        new.setup_framebuffer(1024, 1024);
+
+        new
     }
 
     fn draw_target(&self) -> DrawTarget {
@@ -200,122 +154,120 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             width: self.width,
             height: self.height,
             draw_buffers: ~[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
-                            gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3]
+                            gl::COLOR_ATTACHMENT2]
         }
     }
-}
 
-impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
-    fn resize(&mut self, width: uint, height: uint) {
-
-        let textures: &mut [GLuint] = &mut [self.pos_texture,
-                                            self.uv_texture,
-                                            self.normals_texture,
-                                            self.material_texture];
-
-        unsafe {
-            gl::DeleteTextures(textures.len() as i32, textures.unsafe_ref(0));
-            gl::GenTextures(textures.len() as i32, textures.unsafe_mut_ref(0));
-
-        }
-
+    fn setup_framebuffer(&mut self, width: i32, height: i32) {
         let (w, h) = (width as i32, height as i32);
-        gl::BindTexture(gl::TEXTURE_2D, textures[0]);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA16F, w, h);
+        let set_texture = |texture, gl_type| {
+            gl::BindTexture(gl::TEXTURE_2D, texture);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl_type, w, h);
+        };
 
-        gl::BindTexture(gl::TEXTURE_2D, textures[1]);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG16F, w, h);
-
-        gl::BindTexture(gl::TEXTURE_2D, textures[2]);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-
-        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGB16F, w, h);
-        gl::BindTexture(gl::TEXTURE_2D, textures[3]);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RG32UI, w, h);
-        gl::BindTexture(gl::TEXTURE_2D, 0);
+        set_texture(self.uv_texture, gl::RG16F);
+        set_texture(self.normals_texture, gl::RGB16F);
+        set_texture(self.material_texture, gl::RG32UI);
+        set_texture(self.depth_buffer, gl::DEPTH_COMPONENT24);
 
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
-        gl::BindRenderbuffer(gl::RENDERBUFFER, self.renderbuffer);
-        gl::RenderbufferStorage(gl::RENDERBUFFER, gl::DEPTH_COMPONENT32F, w, h);
-        gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::RENDERBUFFER, self.renderbuffer);
-        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, textures[0], 0);
-        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, textures[1], 0);
-        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, textures[2], 0);
-        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT3, textures[3], 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, self.uv_texture, 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, self.normals_texture, 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, self.material_texture, 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, self.depth_buffer, 0);
+
+        let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
+        if status != gl::FRAMEBUFFER_COMPLETE {
+            fail!("Failed to setup framebuffer {}", status);
+        }
+
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
-
-        self.pos_texture = textures[0];
-        self.uv_texture = textures[1];
-        self.normals_texture = textures[2];
-        self.material_texture = textures[3];
 
         self.width = w;
         self.height = h;
     }
+
 }
 
-impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
-    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget, q: &mut Profiler) {
-        let dt = self.draw_target();
-        self.input.render(drawlist, db, dm, &dt, q);
-        q.time("defered: setup".to_owned());
+impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
+    fn resize(&mut self, width: uint, height: uint) {
+        let textures: &mut [GLuint] = &mut [self.uv_texture,
+                                            self.normals_texture,
+                                            self.material_texture,
+                                            self.depth_buffer];
+
+        unsafe {
+            gl::DeleteTextures(textures.len() as i32, textures.unsafe_ref(0));
+            gl::GenTextures(textures.len() as i32, textures.unsafe_mut_ref(0));
+        }
+
+        self.uv_texture = textures[0];
+        self.normals_texture = textures[1];
+        self.material_texture = textures[2];
+        self.depth_buffer = textures[3];
+
+        let (w, h) = (width as i32, height as i32);
+        self.setup_framebuffer(w, h);
+    }
+}
+
+impl<PIPELINE: PipelineState> Defered<PIPELINE> {
+    fn point_light(&mut self,
+                   drawlist: &mut Drawlist,
+                   db: &GlState,
+                   dm: &DrawMatrices,
+                   dt: &DrawTarget) {
 
         let plane = drawlist.find("core/geometry/plane")
                 .expect("plane not found");
         let plane = drawlist.geometry(plane)
                 .expect("Could not fetch geometry of plane");
-        let shader = db.defered_shader
+        let shader = db.defered_shader_point_light
                 .as_ref().expect("Could not load defered_shader");
         let vbo = db.vertex.find(&plane.vb)
                 .expect("No vbo found");
-        vbo.bind();
 
+        vbo.bind();
         shader.bind();
 
-        assert!(0 == gl::GetError());
-        vbo.bind();
-        assert!(0 == gl::GetError());
-
         gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindTexture(gl::TEXTURE_2D, self.pos_texture);
-        gl::Uniform1i(shader.uniform("position"), 0);
-        gl::ActiveTexture(gl::TEXTURE1);
         gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
-        gl::Uniform1i(shader.uniform("uv"), 1);
-        gl::ActiveTexture(gl::TEXTURE2);
+        gl::Uniform1i(shader.uniform("uv"), 0);
+        gl::ActiveTexture(gl::TEXTURE1);
         gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
-        gl::Uniform1i(shader.uniform("normal"), 2);
-        gl::ActiveTexture(gl::TEXTURE3);
+        gl::Uniform1i(shader.uniform("normal"), 1);
+        gl::ActiveTexture(gl::TEXTURE2);
         gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
-        gl::Uniform1i(shader.uniform("pixel_drawn_by"), 3);
+        gl::Uniform1i(shader.uniform("pixel_drawn_by"), 2);
+        gl::ActiveTexture(gl::TEXTURE3);
+        gl::BindTexture(gl::TEXTURE_2D, self.depth_buffer);
+        gl::Uniform1i(shader.uniform("depth"), 3);
+
+        unsafe {
+            gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, dm.projection.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, dm.view.ptr());
+            gl::Uniform4fv(shader.uniform("viewport"), 1, dt.to_vec4().ptr());
+        }
+
 
         let textures = db.texture.textures();
         let atlas_uniform = shader.uniform("atlas");
         let atlas_base = shader.uniform("atlas_base");
 
-        gl::BindBufferBase(gl::UNIFORM_BUFFER,
-                           shader.uniform_block_index("Materials"),
-                           drawlist.material_buffer());
+        let lights = shader.uniform_block_index("Lights");
+        let materials = shader.uniform_block_index("Materials");
 
-        ddt.bind();
-        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        q.time("defered: shader".to_owned());
+        gl::BindBufferBase(gl::UNIFORM_BUFFER, lights, drawlist.lights_buffer());
+        shader.uniform_block_bind(lights, lights);
+
+        gl::BindBufferBase(gl::UNIFORM_BUFFER, materials, drawlist.material_buffer());
+        shader.uniform_block_bind(materials, materials);
+
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
         for idx in range_step(0, total_textures, 12) {
             unsafe {
@@ -343,6 +295,26 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
                                  (plane.offset * 4) as *libc::c_void);
             }
         }
+    }
+}
+
+impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
+    fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, ddt: &DrawTarget, q: &mut Profiler) {
+        let dt = self.draw_target();
+        self.input.render(drawlist, db, dm, &dt, q);
+
+        gl::Disable(gl::DEPTH_TEST);
+        gl::Enable(gl::DITHER);
+        gl::Enable(gl::BLEND);
+        gl::BlendEquation(gl::FUNC_ADD);
+        gl::BlendFunc(gl::ONE, gl::ONE);
+
+        q.time("defered: setup".to_owned());
+        ddt.bind();
+        gl::Clear(gl::COLOR_BUFFER_BIT);
+
+        q.time("defered: lighting".to_owned());
+        self.point_light(drawlist, db, dm, &dt);
 
         q.time("defered: cleanup".to_owned());
         for i in range(0, 16) {
@@ -350,6 +322,8 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
             gl::BindTexture(gl::TEXTURE_2D, 0);
             gl::BindTexture(gl::TEXTURE_2D_ARRAY, 0);
         }
+
+        gl::Disable(gl::BLEND);
     }
 }
 

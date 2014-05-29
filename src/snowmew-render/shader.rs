@@ -142,6 +142,10 @@ impl Shader {
         }
     }
 
+    pub fn uniform_block_bind(&self, idx: u32, buffer: u32) {
+        gl::UniformBlockBinding(self.program, idx, buffer);
+    }
+
     pub fn bind(&self) {
         gl::UseProgram(self.program);
     }

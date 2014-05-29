@@ -453,42 +453,6 @@ impl Window {
         self.hmd.as_ref().expect("no hmd device found!").clone()
     }
 
-    /// Wrapper for `glfwGetWin32Window`
-    #[cfg(target_os="win32")]
-    pub fn get_win32_window(&self) -> *c_void {
-        self.render.get_win32_window()
-    }
-
-    /// Wrapper for `glfwGetWGLContext`
-    #[cfg(target_os="win32")]
-    pub fn get_wgl_context(&self) -> *c_void {
-        self.render.get_wgl_context()
-    }
-
-    /// Wrapper for `glfwGetCocoaWindow`
-    #[cfg(target_os="macos")]
-    pub fn get_cocoa_window(&self) -> *c_void {
-        self.render.get_cocoa_window()
-    }
-
-    /// Wrapper for `glfwGetNSGLContext`
-    #[cfg(target_os="macos")]
-    pub fn get_nsgl_context(&self) -> *c_void {
-        self.render.get_nsgl_context()
-    }
-
-    /// Wrapper for `glfwGetX11Window`
-    #[cfg(target_os="linux")]
-    pub fn get_x11_window(&self) -> *c_void {
-        self.render.get_x11_window()
-    }
-
-    /// Wrapper for `glfwGetGLXContext`
-    #[cfg(target_os="linux")]
-    pub fn get_glx_context(&self) -> *c_void {
-        self.render.get_glx_context()
-    }
-
     /// Wrapper for `glfwGetGLXContext`
     #[cfg(target_os="linux")]
     pub fn get_x11_display(&self) -> *c_void {

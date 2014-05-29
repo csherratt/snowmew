@@ -15,7 +15,8 @@ static VS_INSTANCE_SRC: &'static str = include_str!("shaders/instance_vertex.gls
 static BINDLESS_VS_INSTANCED_SRC: &'static str = include_str!("shaders/bindless_instanced_vertex.glsl");
 static VS_PASS_SRC: &'static str = include_str!("shaders/pass_vertex.glsl");
 static FS_FLAT_SRC: &'static str = include_str!("shaders/flat_fragment.glsl");
-static FS_DEFERED_SRC: &'static str = include_str!("shaders/flat_defered_fragment.glsl");
+static FS_AMBIENT_SRC: &'static str = include_str!("shaders/defered_ambient_fragment.glsl");
+static FS_POINT_LIGHT_SRC: &'static str = include_str!("shaders/defered_point_light_fragment.glsl");
 
 #[deriving(Clone)]
 pub struct GlState {
@@ -23,7 +24,8 @@ pub struct GlState {
     pub flat_shader: Option<Shader>,
     pub flat_instance_shader: Option<Shader>,
     pub flat_bindless_shader: Option<Shader>,
-    pub defered_shader: Option<Shader>,
+    pub defered_shader_ambient: Option<Shader>,
+    pub defered_shader_point_light: Option<Shader>,
     pub ovr_shader: Option<Shader>,
     pub texture: TextureAtlas
 }
@@ -35,7 +37,8 @@ impl GlState {
             flat_shader: None,
             flat_instance_shader: None,
             flat_bindless_shader: None,
-            defered_shader: None,
+            defered_shader_ambient: None,
+            defered_shader_point_light: None,
             ovr_shader: None,
             texture: TextureAtlas::new()
 
@@ -74,14 +77,23 @@ impl GlState {
                     &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]
             ));
         }
-        if self.defered_shader.is_none() {
-            self.defered_shader = Some(Shader::new(VS_PASS_SRC, FS_DEFERED_SRC, &[], &[(0, "color")]));
+        if self.defered_shader_ambient.is_none() {
+            self.defered_shader_ambient = Some(Shader::new(VS_PASS_SRC, FS_AMBIENT_SRC,
+                &[],
+                &[(0, "color")]
+            ));
+        }
+        if self.defered_shader_point_light.is_none() {
+            self.defered_shader_point_light = Some(Shader::new(VS_PASS_SRC, FS_POINT_LIGHT_SRC,
+                &[],
+                &[(0, "color")]
+            ));
         }
         if self.flat_instance_shader.is_none() {
             self.flat_instance_shader = Some(
                 Shader::new(VS_INSTANCE_SRC, FS_FLAT_SRC, 
                     &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
-                    &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]
+                    &[(0, "out_uv"), (1, "out_normal"), (2, "out_material")]
             )); 
         }
         if cfg.use_bindless() {
