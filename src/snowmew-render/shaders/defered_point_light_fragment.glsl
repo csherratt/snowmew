@@ -20,6 +20,25 @@ struct fetch_result {
     bool found;
 };
 
+struct point {
+    vec4 color;
+    vec4 position;
+};
+
+struct direction {
+    vec4 color;
+    vec4 normal;
+};
+
+layout(std140) uniform Lights {
+    int point_count;
+    int direction_count;
+    int _padding0; 
+    int _padding1;
+    point point_lights[480];
+    direction direction_lights[8];
+};
+
 layout(std140) uniform Materials {
     material materials[512];
 };
@@ -33,10 +52,6 @@ uniform sampler2DArray atlas[ATLAS_SIZE];
 uniform int atlas_base;
 
 uniform vec4 viewport;
-uniform vec4 light_position;
-uniform vec3 light_color;
-uniform float light_intensity;
-
 uniform mat4 mat_proj;
 uniform mat4 mat_view;
 
@@ -55,7 +70,7 @@ fetch_result fetch_material(vec4 d, ivec2 map) {
     }
 }
 
-vec4 calc_eye_from_window(vec3 window_space) {
+vec4 calc_pos_from_window(vec3 window_space) {
     vec2 depthrange = vec2(0., 1.);
     vec3 ndc_pos;
     ndc_pos.xy = ((2.0 * window_space.xy) - (2.0 * viewport.xy)) / (viewport.zw) - 1;
@@ -66,45 +81,47 @@ vec4 calc_eye_from_window(vec3 window_space) {
     clip_pose.w = mat_proj[3][2] / (ndc_pos.z - (mat_proj[2][2] / mat_proj[2][3]));
     clip_pose.xyz = ndc_pos * clip_pose.w;
 
-    return inverse(mat_proj) * clip_pose;
+    return inverse(mat_view) * inverse(mat_proj) * clip_pose;
 }
 
 void main() {
     uvec2 object = texture(pixel_drawn_by, TexPos).xy;
+    fetch_result ka = fetch_material(materials[object.y].ka,
+                                     materials[object.y].ka_map);
     fetch_result kd = fetch_material(materials[object.y].kd,
                                      materials[object.y].kd_map);
     fetch_result ks = fetch_material(materials[object.y].ks,
                                      materials[object.y].ks_map);
-
-    vec4 eye = calc_eye_from_window(vec3(gl_FragCoord.x,
+    vec4 pos = calc_pos_from_window(vec3(gl_FragCoord.x,
                                          gl_FragCoord.y,
                                          texture(depth, TexPos).x));
-    vec4 position = inverse(mat_view) * eye;
-    vec4 delta = light_position - position;
-    float dist = length(delta);
-    dist = 1. / (dist*dist);
-    vec4 eye_pos = inverse(mat_view) * vec4(0., 0., 0., 1.);
-    vec4 eye_to_point_normal = normalize(eye_pos - position);
-    vec4 light_to_point_normal = normalize(delta);
     vec4 surface_normal = vec4(texture(normal, TexPos).xyz, 0.);
+    vec4 eye_pos = inverse(mat_view) * vec4(0., 0., 0., 1.);
+    vec4 eye_to_point_normal = normalize(eye_pos - pos);
 
-    vec4 out_color = vec4(0);
-    bool output = false;
-    if (kd.found) {
-        out_color += (vec4(light_color, 1.) * kd.value * light_intensity * dist * max(0, dot(light_to_point_normal, surface_normal)));
-        output = true;
+    if (ka.found) {
+        color = ka.value * 0.1;
     }
-    if (ks.found) {
-        vec4 h = normalize(light_to_point_normal + eye_to_point_normal);
-        float ns = materials[object.y].ns;
-        float facing = 0;
-        if (dot(light_to_point_normal, surface_normal) > 0) {
-            facing = 1;
+
+    for (int i = 0; i < point_count; i++) {
+        vec4 delta = point_lights[i].position - pos;
+        float dist = length(delta);
+        dist = 1. / (dist*dist);
+        vec4 light_to_point_normal = normalize(delta);
+        if (kd.found) {
+            color += kd.value * point_lights[i].color * dist * 
+                        max(0, dot(light_to_point_normal, surface_normal));
         }
-        out_color += (vec4(light_color, 1.) * ks.value * facing * light_intensity * dist * pow(max(0, dot(h, surface_normal)), ns));
-        output = true;
-    }
-    if (output) {
-        color = out_color;
+
+        if (ks.found) {
+            vec4 h = normalize(light_to_point_normal + eye_to_point_normal);
+            float ns = materials[object.y].ns;
+            float facing = 0;
+            if (dot(light_to_point_normal, surface_normal) > 0) {
+                facing = 1;
+            }
+            color += ks.value * point_lights[i].color * facing *
+                    dist * pow(max(0, dot(h, surface_normal)), ns);
+        }
     }
 }

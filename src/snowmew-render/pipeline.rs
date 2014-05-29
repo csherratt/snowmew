@@ -13,7 +13,8 @@ use cgmath::matrix::Matrix;
 use cgmath::vector::{Vector4};
 use cgmath::ptr::Ptr;
 
-use graphics::{PointLight, Graphics};
+use graphics::light;
+use graphics::Graphics;
 use position::Positions;
 
 use db::GlState;
@@ -220,76 +221,10 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
 }
 
 impl<PIPELINE: PipelineState> Defered<PIPELINE> {
-    fn ambient(&mut self, drawlist: &mut Drawlist, db: &GlState) {
-        let plane = drawlist.find("core/geometry/plane")
-                .expect("plane not found");
-        let plane = drawlist.geometry(plane)
-                .expect("Could not fetch geometry of plane");
-        let shader = db.defered_shader_ambient
-                .as_ref().expect("Could not load defered_shader");
-        let vbo = db.vertex.find(&plane.vb)
-                .expect("No vbo found");
-
-        vbo.bind();
-        shader.bind();
-
-        assert!(0 == gl::GetError());
-        vbo.bind();
-        assert!(0 == gl::GetError());
-
-        gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
-        gl::Uniform1i(shader.uniform("uv"), 0);
-        gl::ActiveTexture(gl::TEXTURE1);
-        gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
-        gl::Uniform1i(shader.uniform("normal"), 1);
-        gl::ActiveTexture(gl::TEXTURE2);
-        gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
-        gl::Uniform1i(shader.uniform("pixel_drawn_by"), 2);
-
-        let textures = db.texture.textures();
-        let atlas_uniform = shader.uniform("atlas");
-        let atlas_base = shader.uniform("atlas_base");
-
-        gl::BindBufferBase(gl::UNIFORM_BUFFER,
-                           shader.uniform_block_index("Materials"),
-                           drawlist.material_buffer());
-    
-        let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
-        for idx in range_step(0, total_textures, 12) {
-            unsafe {
-                if textures.len() != 0 {
-                    let end = if idx + 12 > textures.len() {
-                        textures.len()
-                    } else {
-                        idx + 12
-                    };
-                    for (e, i) in range(idx, end).enumerate() {
-                        gl::ActiveTexture(gl::TEXTURE4+e as u32);
-                        gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
-                    }
-
-                    let slice: Vec<i32> = range(idx, end)
-                            .enumerate().map(|(e, _)| (e+4) as i32).collect();
-                    gl::Uniform1i(atlas_base, idx as i32);
-                    gl::Uniform1iv(atlas_uniform,
-                                   slice.len() as i32,
-                                   slice.get(0));
-                }
-                gl::DrawElements(gl::TRIANGLES,
-                                 plane.count as i32,
-                                 gl::UNSIGNED_INT,
-                                 (plane.offset * 4) as *libc::c_void);
-            }
-        }
-    }
-
     fn point_light(&mut self,
                    drawlist: &mut Drawlist,
                    db: &GlState,
                    dm: &DrawMatrices,
-                   pos: &Vector4<f32>,
-                   light: &PointLight,
                    dt: &DrawTarget) {
 
         let plane = drawlist.find("core/geometry/plane")
@@ -320,9 +255,6 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         unsafe {
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, dm.projection.ptr());
             gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, dm.view.ptr());
-            gl::Uniform4fv(shader.uniform("light_position"), 1, pos.ptr());
-            gl::Uniform3fv(shader.uniform("light_color"), 1, light.color().ptr());
-            gl::Uniform1f(shader.uniform("light_intensity"), light.intensity());
             gl::Uniform4fv(shader.uniform("viewport"), 1, dt.to_vec4().ptr());
         }
 
@@ -331,10 +263,15 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         let atlas_uniform = shader.uniform("atlas");
         let atlas_base = shader.uniform("atlas_base");
 
-        gl::BindBufferBase(gl::UNIFORM_BUFFER,
-                           shader.uniform_block_index("Materials"),
-                           drawlist.material_buffer());
-    
+        let lights = shader.uniform_block_index("Lights");
+        let materials = shader.uniform_block_index("Materials");
+
+        gl::BindBufferBase(gl::UNIFORM_BUFFER, lights, drawlist.lights_buffer());
+        shader.uniform_block_bind(lights, lights);
+        gl::BindBufferBase(gl::UNIFORM_BUFFER, materials, drawlist.material_buffer());
+        shader.uniform_block_bind(materials, materials);
+
+
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
         for idx in range_step(0, total_textures, 12) {
             unsafe {
@@ -379,17 +316,9 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         q.time("defered: setup".to_owned());
         ddt.bind();
         gl::Clear(gl::COLOR_BUFFER_BIT);
-        q.time("defered: ambient lighting".to_owned());
-        self.ambient(drawlist, db);
 
-        let lights: Vec<(ObjectKey, PointLight)> =
-                drawlist.light_iter().map(|(&k, &v)| (k, v)).collect();
-        for &(key, light) in lights.iter() {
-            q.time("defered: point light".to_owned());
-            let mat = drawlist.position(key);
-            let pos = mat.mul_v(&Vector4::new(0f32, 0., 0., 1.));
-            self.point_light(drawlist, db, dm, &pos, &light, &dt);
-        }
+        q.time("defered: lighting".to_owned());
+        self.point_light(drawlist, db, dm, &dt);
 
         q.time("defered: cleanup".to_owned());
         for i in range(0, 16) {

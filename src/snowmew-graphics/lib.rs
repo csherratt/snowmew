@@ -19,7 +19,7 @@ use snowmew::common::{Common, ObjectKey};
 pub use geometry::{Geometry, VertexBuffer};
 pub use material::Material;
 pub use texture::Texture;
-pub use light::PointLight;
+pub use light::Light;
 
 pub mod geometry;
 pub mod material;
@@ -64,7 +64,7 @@ pub struct GraphicsData {
     vertex:   BTreeMap<ObjectKey, VertexBuffer>,
     material: BTreeMap<ObjectKey, Material>,
     texture:  BTreeMap<ObjectKey, Texture>,
-    lights:   BTreeMap<ObjectKey, PointLight>,
+    lights:   BTreeMap<ObjectKey, light::Light>,
 }
 
 impl GraphicsData {
@@ -188,17 +188,17 @@ pub trait Graphics: Common {
         self.get_graphics().texture.iter()
     }
 
-    fn new_light(&mut self, parent: ObjectKey, name: &str, light: PointLight) -> ObjectKey {
+    fn new_light(&mut self, parent: ObjectKey, name: &str, light: Light) -> ObjectKey {
         let oid = self.new_object(Some(parent), name);
         self.get_graphics_mut().lights.insert(oid, light);
         oid
     }
 
-    fn get_light<'a>(&'a self, oid: ObjectKey) -> Option<&'a PointLight> {
+    fn get_light<'a>(&'a self, oid: ObjectKey) -> Option<&'a Light> {
         self.get_graphics().lights.find(&oid)
     }
 
-    fn light_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, PointLight> {
+    fn light_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Light> {
         self.get_graphics().lights.iter()
     }
 }

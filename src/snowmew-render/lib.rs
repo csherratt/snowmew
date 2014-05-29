@@ -51,6 +51,7 @@ mod compute_accelerator;
 mod config;
 mod texture;
 mod material;
+mod light;
 
 pub trait RenderData : Graphics + Positions {}
 
