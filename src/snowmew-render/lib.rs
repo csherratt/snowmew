@@ -105,7 +105,7 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
     };
     let mut last_frame = precise_time_s();
     for (mut dl, camera) in input.iter() {
-        qm.time("setup complete".to_owned());
+        qm.time("setup complete".to_string());
         dl.setup_complete(&mut db, &config);
 
         let capture = precise_time_s();
@@ -124,7 +124,7 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
             last_frame = end;
         }
 
-        qm.time("setup begin".to_owned());
+        qm.time("setup begin".to_string());
         mem::swap(&mut next_dl, &mut dl);
         dl.setup_begin();
         output.send(dl);

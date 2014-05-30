@@ -71,7 +71,7 @@ fn main() {
     snowmew::start_manual_input(proc(im) {
         let args = std::os::args();
         let count = if args.len() >= 2 {
-            FromStr::from_str(*args.get(1)).expect("Could not parse int")
+            FromStr::from_str(args.get(1).as_slice()).expect("Could not parse int")
         } else {
             10
         };
@@ -90,7 +90,7 @@ fn main() {
         for x in range(-count, count) {
             for y in range(-count, count) {
                 for z in range(-count, count) {
-                    let new = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z));
+                    let new = db.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z).as_slice());
                     let x = x as f32 * 2.5;
                     let y = y as f32 * 2.5;
                     let z = z as f32 * 2.5;

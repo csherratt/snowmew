@@ -20,8 +20,8 @@ pub type StringKey = u32;
 #[deriving(Clone)]
 pub struct CommonData {
     last_sid:      StringKey,
-    strings:       BTreeMap<StringKey, ~str>,
-    string_to_key: BTreeMap<~str, StringKey>,
+    strings:       BTreeMap<StringKey, String>,
+    string_to_key: BTreeMap<String, StringKey>,
 
     last_oid:      ObjectKey,
     objects:       BTreeMap<ObjectKey, Object>,
@@ -52,7 +52,7 @@ impl CommonData {
             None => return None,
         };
 
-        let str_key = match self.string_to_key.find(&str_key.to_owned()) {
+        let str_key = match self.string_to_key.find(&str_key.to_string()) {
             Some(key) => key,
             None => return None
         };
@@ -63,12 +63,12 @@ impl CommonData {
         }
     }
 
-    fn name(&self, key: ObjectKey) -> ~str {
+    fn name(&self, key: ObjectKey) -> String {
         match self.objects.find(&key) {
             Some(node) => {
                 format!("{:s}/{:s}", self.name(node.parent), *self.strings.find(&node.name).unwrap())
             },
-            None => "base".to_owned()
+            None => "base".to_string()
         }
     }
 
@@ -99,7 +99,7 @@ impl CommonData {
     }
 
     fn new_string(&mut self, s: &str) -> StringKey {
-        let (update, name) = match self.string_to_key.find(&s.to_owned()) {
+        let (update, name) = match self.string_to_key.find(&s.to_string()) {
             None => {
                 (true, 0)
             }
@@ -111,8 +111,8 @@ impl CommonData {
         if update {
             let name = self.last_sid;
             self.last_sid += 1;
-            self.strings.insert(name, s.to_owned());
-            self.string_to_key.insert(s.to_owned(), name);
+            self.strings.insert(name, s.to_string());
+            self.string_to_key.insert(s.to_string(), name);
             name
         } else {
             name
@@ -171,7 +171,7 @@ pub trait Common {
     }
 
 
-    fn name(&self, key: ObjectKey) -> ~str {
+    fn name(&self, key: ObjectKey) -> String {
         self.get_common().name(key)
     }
 }

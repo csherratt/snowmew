@@ -86,14 +86,14 @@ impl TimeStampQuery {
 
 pub trait Profiler {
     fn reset(&mut self);
-    fn time(&mut self, name: ~str);
+    fn time(&mut self, name: String);
     fn dump(&mut self);
 }
 
 pub struct TimeQueryManager {
     saved: Vec<Query>,
-    log: Vec<(TimeElapsedQuery, f64, ~str)>,
-    last: Option<(TimeElapsedQuery, f64, ~str)>
+    log: Vec<(TimeElapsedQuery, f64, String)>,
+    last: Option<(TimeElapsedQuery, f64, String)>
 }
 
 impl TimeQueryManager {
@@ -131,7 +131,7 @@ impl Profiler for TimeQueryManager {
         }
     }
 
-    fn time(&mut self, name: ~str) {
+    fn time(&mut self, name: String) {
         self.done();
         let start = precise_time_s();
         let query = self.get_query().start_time();
@@ -139,7 +139,7 @@ impl Profiler for TimeQueryManager {
     }
 
     fn dump(&mut self) {
-        self.time("done".to_owned());
+        self.time("done".to_string());
         self.done();
 
         let len = self.log.len();
@@ -156,6 +156,6 @@ pub struct ProfilerDummy;
 
 impl Profiler for ProfilerDummy {
     fn reset(&mut self) {}
-    fn time(&mut self, _: ~str) {}
+    fn time(&mut self, _: String) {}
     fn dump(&mut self) {}
 }

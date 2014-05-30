@@ -13,7 +13,7 @@ use OpenCL::mem::{Buffer, CLBuffer};
 use OpenCL::CL::CL_MEM_READ_WRITE;
 use cgmath::matrix::Matrix4;
 use cgmath::vector::Vector4;
-use cgmath::ptr::Ptr;
+use cgmath::array::Array2;
 use gl;
 use gl::types::{GLint, GLuint, GLsizeiptr};
 use gl_cl;

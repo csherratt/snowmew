@@ -128,7 +128,7 @@ impl Deltas {
                     delta: delta,
                 })
             }
-            None => fail!("there was no delta! {:?}", gen)
+            None => fail!("there was no delta! {}", gen)
         };
 
         Id(gen+1, id)

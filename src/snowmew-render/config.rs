@@ -30,7 +30,7 @@ pub struct Config {
 fn get_setting_option(name: &str, default: ConfigOption) -> ConfigOption {
    let is_set = match os::getenv(name) {
         Some(s) => {
-            let s: ~str = s.chars().map(|c| c.to_lowercase()).collect();
+            let s: String = s.as_slice().chars().map(|c| c.to_lowercase()).collect();
             match s.as_slice() {
                 "true" => Some(true),
                 "enabled" => Some(true),
@@ -70,7 +70,7 @@ fn get_setting_from_str<T: FromStr>(name: &str, default: T) -> T {
         None => return default
     };
 
-    match FromStr::from_str(str_value) {
+    match FromStr::from_str(str_value.as_slice()) {
         Some(v) => v,
         None => default
     }

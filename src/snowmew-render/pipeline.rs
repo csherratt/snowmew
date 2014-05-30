@@ -10,7 +10,7 @@ use ovr::Texture;
 use ovr::ll::Sizei;
 
 use cgmath::vector::{Vector4};
-use cgmath::ptr::Ptr;
+use cgmath::array::{Array1, Array2};
 
 use graphics::Graphics;
 
@@ -89,12 +89,12 @@ impl Forward {
 
 impl PipelineState for Forward {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
-        q.time("forward setup".to_owned());
+        q.time("forward setup".to_string());
         dt.bind();
         gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-        q.time("forward render".to_owned());
+        q.time("forward render".to_string());
         drawlist.render(db, &dm.view, &dm.projection);
     }
 }
@@ -309,14 +309,14 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         gl::BlendEquation(gl::FUNC_ADD);
         gl::BlendFunc(gl::ONE, gl::ONE);
 
-        q.time("defered: setup".to_owned());
+        q.time("defered: setup".to_string());
         ddt.bind();
         gl::Clear(gl::COLOR_BUFFER_BIT);
 
-        q.time("defered: lighting".to_owned());
+        q.time("defered: lighting".to_string());
         self.point_light(drawlist, db, dm, &dt);
 
-        q.time("defered: cleanup".to_owned());
+        q.time("defered: cleanup".to_string());
         for i in range(0, 16) {
             gl::ActiveTexture(gl::TEXTURE0 + i as u32);
             gl::BindTexture(gl::TEXTURE_2D, 0);
@@ -489,7 +489,7 @@ impl<PIPELINE: PipelineState> Pipeline for Hmd<PIPELINE> {
             self.input.render(drawlist, db, &dm, &dt, q);
             self.window.get_hmd().end_eye_render(eye, pose, &texture);
         }
-        q.time("ovr: end_frame".to_owned());
+        q.time("ovr: end_frame".to_string());
         self.window.get_hmd().end_frame();
         gl::GetError();
     }
