@@ -9,10 +9,14 @@ extern crate cow;
 extern crate position = "snowmew-position";
 
 use position::Deltas;
+use position::CalcPositionsCl;
+
 use cgmath::matrix::{Matrix4, Matrix};
 use cgmath::transform::Transform3D;
 use cgmath::quaternion::Quaternion;
 use cgmath::vector::{Vector3, Vector4};
+
+use OpenCL::hl::EventList;
 
 #[test]
 fn insert_children() {
@@ -125,27 +129,53 @@ fn to_positions_tree() {
     assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
 }
 
-/*#[test]
-fn calc_positions_opencl()
-{
+fn fetch_matrixs(queue: &OpenCL::hl::CommandQueue,
+                 buffers: &[OpenCL::mem::CLBuffer<Vector4<f32>>, ..4]) -> Vec<Matrix4<f32>> {
+
+    let vec0: Vec<Vector4<f32>> = queue.get(&buffers[0], ());
+    let vec1: Vec<Vector4<f32>> = queue.get(&buffers[1], ());
+    let vec2: Vec<Vector4<f32>> = queue.get(&buffers[2], ());
+    let vec3: Vec<Vector4<f32>> = queue.get(&buffers[3], ());
+
+    vec0.iter().zip(
+    vec1.iter().zip(
+    vec2.iter().zip(
+    vec3.iter()))).map(|(a, (b, (c, d)))| {
+        Matrix4::from_cols(*a, *b, *c, *d)
+    }).collect()
+
+}
+
+#[test]
+fn calc_positions_opencl() {
     let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
     let mut ctx = CalcPositionsCl::new(&context, &device);
 
-    let mut pos = Deltas::new();
+    let mut pos_old = Deltas::new();
+    let buffers: [OpenCL::mem::CLBuffer<Vector4<f32>>, ..4] 
+                = [context.create_buffer(16, OpenCL::CL::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, OpenCL::CL::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, OpenCL::CL::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, OpenCL::CL::CL_MEM_READ_WRITE)];
 
-    let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
-    let id1 = pos.insert(id0, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
-    let id2 = pos.insert(id1, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
-    let id3 = pos.insert(id2, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
-    let id4 = pos.insert(id3, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
+    let id0 = pos_old.insert(Deltas::root(), Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
+    let id1 = pos_old.insert(id0, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
+    let id2 = pos_old.insert(id1, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
+    let id3 = pos_old.insert(id2, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
+    let id4 = pos_old.insert(id3, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
 
-    let pos = pos.to_positions_cl(&queue, &mut ctx);
+    pos_old.write_positions_cl(&queue, &mut ctx, &buffers).wait();
+    let pos = pos_old.compute_positions();
+    let vec = fetch_matrixs(&queue, &buffers);
 
-    let mat0 = pos.get_mat(id0);
-    let mat1 = pos.get_mat(id1);
-    let mat2 = pos.get_mat(id2);
-    let mat3 = pos.get_mat(id3);
-    let mat4 = pos.get_mat(id4);
+    let mat0 = *vec.get(pos.get_loc(id0));
+    let mat1 = *vec.get(pos.get_loc(id1));
+    let mat2 = *vec.get(pos.get_loc(id2));
+    let mat3 = *vec.get(pos.get_loc(id3));
+    let mat4 = *vec.get(pos.get_loc(id4));
+
+    println!("id0 {}", mat0);
+
 
     let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
@@ -157,12 +187,16 @@ fn calc_positions_opencl()
 }
 
 #[test]
-fn calc_positions_opencl_tree()
-{
+fn calc_positions_opencl_tree() {
     let (device, context, queue) = OpenCL::util::create_compute_context_prefer(OpenCL::util::GPUPrefered).unwrap();
     let mut ctx = CalcPositionsCl::new(&context, &device);
 
     let mut pos = Deltas::new();
+    let buffers: [OpenCL::mem::CLBuffer<Vector4<f32>>, ..4] 
+                = [context.create_buffer(16, OpenCL::CL::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, OpenCL::CL::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, OpenCL::CL::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, OpenCL::CL::CL_MEM_READ_WRITE)];
 
     let id0 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
     let id1 = pos.insert(Deltas::root(), Transform3D::new(1f32, Quaternion::identity(), Vector3::new(-1f32, -1f32, -1f32)));
@@ -172,12 +206,16 @@ fn calc_positions_opencl_tree()
     let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
     let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(-1f32, -1f32, -1f32)));
 
-    let pos = pos.to_positions_cl(&queue, &mut ctx);;
+    pos.write_positions_cl(&queue, &mut ctx, &buffers).wait();
+    let pos = pos.compute_positions();
+    let vec = fetch_matrixs(&queue, &buffers);
 
-    let mat0 = pos.get_mat(id0_0);
-    let mat1 = pos.get_mat(id0_1);
-    let mat2 = pos.get_mat(id1_0);
-    let mat3 = pos.get_mat(id1_1);
+    let mat0 = *vec.get(pos.get_loc(id0_0));
+    let mat1 = *vec.get(pos.get_loc(id0_1));
+    let mat2 = *vec.get(pos.get_loc(id1_0));
+    let mat3 = *vec.get(pos.get_loc(id1_1));
+
+    println!("id0_0 {}", mat0);
 
     let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
@@ -185,4 +223,4 @@ fn calc_positions_opencl_tree()
     assert!(mat1.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
     assert!(mat2.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
     assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
-}*/
+}

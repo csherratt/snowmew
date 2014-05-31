@@ -20,9 +20,9 @@ struct mat4 {
 
 struct transform
 {
+    float scale;
     q4 rot;
     f3 pos;
-    float scale;
 };
 
 typedef struct mat4 Matrix4;
