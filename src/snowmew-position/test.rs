@@ -174,9 +174,6 @@ fn calc_positions_opencl() {
     let mat3 = *vec.get(pos.get_loc(id3));
     let mat4 = *vec.get(pos.get_loc(id4));
 
-    println!("id0 {}", mat0);
-
-
     let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
     assert!(mat0.mul_v(&vec) == Vector4::new(1f32, 1f32, 1f32, 1f32));
@@ -214,8 +211,6 @@ fn calc_positions_opencl_tree() {
     let mat1 = *vec.get(pos.get_loc(id0_1));
     let mat2 = *vec.get(pos.get_loc(id1_0));
     let mat3 = *vec.get(pos.get_loc(id1_1));
-
-    println!("id0_0 {}", mat0);
 
     let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
 
