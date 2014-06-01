@@ -74,7 +74,7 @@ impl GlState {
             self.flat_shader = Some(
                 Shader::new(VS_SRC, FS_FLAT_SRC,
                     &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
-                    &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]
+                    &[(0, "out_uv"), (1, "out_normal"), (2, "out_material"), (3, "out_dxdt")]
             ));
         }
         if self.defered_shader_ambient.is_none() {
@@ -93,7 +93,7 @@ impl GlState {
             self.flat_instance_shader = Some(
                 Shader::new(VS_INSTANCE_SRC, FS_FLAT_SRC, 
                     &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
-                    &[(0, "out_uv"), (1, "out_normal"), (2, "out_material")]
+                    &[(0, "out_uv"), (1, "out_normal"), (2, "out_material"), (3, "out_dxdt")]
             )); 
         }
         if cfg.use_bindless() {
@@ -101,7 +101,7 @@ impl GlState {
                 self.flat_bindless_shader = Some(
                     Shader::new(BINDLESS_VS_INSTANCED_SRC, FS_FLAT_SRC,
                         &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
-                        &[(0, "out_position"), (1, "out_uv"), (2, "out_normal"), (3, "out_material")]
+                        &[(0, "out_uv"), (1, "out_normal"), (2, "out_material")]
                 ));
             }
         }

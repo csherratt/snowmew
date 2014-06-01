@@ -113,13 +113,14 @@ pub struct Defered<PIPELINE> {
     normals_texture: GLuint,
     material_texture: GLuint,
     depth_buffer: GLuint,
+    dxdy_texture: GLuint,
 
     framebuffer: GLuint,
 }
 
 impl<PIPELINE: PipelineState> Defered<PIPELINE> {
     pub fn new(input: PIPELINE) -> Defered<PIPELINE> {
-        let textures: &mut [GLuint] = &mut [0, 0, 0, 0];
+        let textures: &mut [GLuint] = &mut [0, 0, 0, 0, 0];
         let mut framebuffer: GLuint = 0;
 
         unsafe {
@@ -137,6 +138,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             normals_texture: textures[1],
             material_texture: textures[2],
             depth_buffer: textures[3],
+            dxdy_texture: textures[4],
 
             framebuffer: framebuffer,
         };
@@ -154,7 +156,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             width: self.width,
             height: self.height,
             draw_buffers: ~[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
-                            gl::COLOR_ATTACHMENT2]
+                            gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3]
         }
     }
 
@@ -172,12 +174,14 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         set_texture(self.uv_texture, gl::RG16F);
         set_texture(self.normals_texture, gl::RGB16F);
         set_texture(self.material_texture, gl::RG32UI);
+        set_texture(self.dxdy_texture, gl::RGBA16F);
         set_texture(self.depth_buffer, gl::DEPTH_COMPONENT24);
 
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, self.uv_texture, 0);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT1, self.normals_texture, 0);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT2, self.material_texture, 0);
+        gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT3, self.dxdy_texture, 0);
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, self.depth_buffer, 0);
 
         let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
@@ -199,7 +203,8 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
         let textures: &mut [GLuint] = &mut [self.uv_texture,
                                             self.normals_texture,
                                             self.material_texture,
-                                            self.depth_buffer];
+                                            self.depth_buffer,
+                                            self.dxdy_texture];
 
         unsafe {
             gl::DeleteTextures(textures.len() as i32, textures.unsafe_ref(0));
@@ -210,6 +215,7 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
         self.normals_texture = textures[1];
         self.material_texture = textures[2];
         self.depth_buffer = textures[3];
+        self.dxdy_texture = textures[4];
 
         let (w, h) = (width as i32, height as i32);
         self.setup_framebuffer(w, h);
@@ -247,6 +253,9 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         gl::ActiveTexture(gl::TEXTURE3);
         gl::BindTexture(gl::TEXTURE_2D, self.depth_buffer);
         gl::Uniform1i(shader.uniform("depth"), 3);
+        gl::ActiveTexture(gl::TEXTURE4);
+        gl::BindTexture(gl::TEXTURE_2D, self.dxdy_texture);
+        gl::Uniform1i(shader.uniform("dxdt"), 4);
 
         unsafe {
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, dm.projection.ptr());
@@ -268,22 +277,25 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         gl::BindBufferBase(gl::UNIFORM_BUFFER, materials, drawlist.material_buffer());
         shader.uniform_block_bind(materials, materials);
 
+        let texture_base = gl::TEXTURE7 - gl::TEXTURE0;
+        let texture_range = gl::TEXTURE15 - gl::TEXTURE0 - texture_base;
+
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
-        for idx in range_step(0, total_textures, 12) {
+        for idx in range_step(0, total_textures, texture_range as uint) {
             unsafe {
                 if textures.len() != 0 {
-                    let end = if idx + 12 > textures.len() {
+                    let end = if idx + texture_range as uint > textures.len() {
                         textures.len()
                     } else {
-                        idx + 12
+                        idx + texture_range as uint
                     };
                     for (e, i) in range(idx, end).enumerate() {
-                        gl::ActiveTexture(gl::TEXTURE4+e as u32);
+                        gl::ActiveTexture(gl::TEXTURE0+texture_base+e as u32);
                         gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
                     }
 
                     let slice: Vec<i32> = range(idx, end)
-                            .enumerate().map(|(e, _)| (e+4) as i32).collect();
+                            .enumerate().map(|(e, _)| (e+texture_base as uint ) as i32).collect();
                     gl::Uniform1i(atlas_base, idx as i32);
                     gl::Uniform1iv(atlas_uniform,
                                    slice.len() as i32,

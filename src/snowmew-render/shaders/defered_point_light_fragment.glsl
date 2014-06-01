@@ -1,6 +1,6 @@
 #version 410
 
-#define ATLAS_SIZE 12
+#define ATLAS_SIZE 8
 
 struct material {
     vec4 ka;
@@ -47,6 +47,7 @@ uniform sampler2D normal;
 uniform sampler2D uv;
 uniform usampler2D pixel_drawn_by;
 uniform sampler2D depth;
+uniform sampler2D dxdt;
 
 uniform sampler2DArray atlas[ATLAS_SIZE];
 uniform int atlas_base;
@@ -63,7 +64,11 @@ fetch_result fetch_material(vec4 d, ivec2 map) {
         return fetch_result(d, true);
     } else if (map.x >= atlas_base && map.x < atlas_base + ATLAS_SIZE) {
         vec2 uv_value = texture(uv, TexPos).xy;
-        vec4 text = texture(atlas[map.x], vec3(uv_value, float(map.y)));
+        vec4 dxdy = texture(dxdt, TexPos); 
+        vec4 text = textureGrad(atlas[map.x],
+                               vec3(uv_value, float(map.y)),
+                               dxdy.xy,
+                               dxdy.zw);
         return fetch_result(vec4(text.xyz, 1.), true);
     } else {
         fetch_result(vec4(0., 0., 0., 0.), false);
