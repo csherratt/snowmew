@@ -518,47 +518,6 @@ impl Drawlist for DrawlistInstanced {
     fn start_time(&self) -> f64 { self.start }
 }
 
-pub struct DrawlistSimple {
-    data: DrawlistGraphicsData,
-    material_to_id: TreeMap<ObjectKey, u32>,
-    id_to_material: TreeMap<u32, ObjectKey>,
-    start: f64 
-}
-
-impl Common for DrawlistSimple {
-    fn get_common<'a>(&'a self) -> &'a CommonData { &self.data.common }
-    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { &mut self.data.common }
-}
-
-impl Graphics for DrawlistSimple {
-    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { &self.data.graphics }
-    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.data.graphics }
-}
-
-impl Positions for DrawlistSimple {
-    fn get_position<'a>(&'a self) -> &'a PositionData { &self.data.position }
-    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.data.position }
-}
-
-impl RenderData for DrawlistSimple {}
-
-impl DrawlistSimple {
-    pub fn from_config(_: &Config,
-                       _: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistSimple {
-        DrawlistSimple {
-            data: DrawlistGraphicsData {
-                common: CommonData::new(),
-                graphics: GraphicsData::new(),
-                position: PositionData::new()
-            },
-            material_to_id: TreeMap::new(),
-            id_to_material: TreeMap::new(),
-            start: 0.
-        }
-    }
-}
-
-
 pub fn create_drawlist(cfg: &Config,
                        cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> Box<Drawlist:Send> {
     box DrawlistInstanced::from_config(cfg, cl) as Box<Drawlist:Send>

@@ -12,7 +12,6 @@ use Config;
 
 static VS_SRC: &'static str = include_str!("shaders/basic_vertex.glsl");
 static VS_INSTANCE_SRC: &'static str = include_str!("shaders/instance_vertex.glsl");
-static BINDLESS_VS_INSTANCED_SRC: &'static str = include_str!("shaders/bindless_instanced_vertex.glsl");
 static VS_PASS_SRC: &'static str = include_str!("shaders/pass_vertex.glsl");
 static FS_FLAT_SRC: &'static str = include_str!("shaders/flat_fragment.glsl");
 static FS_AMBIENT_SRC: &'static str = include_str!("shaders/defered_ambient_fragment.glsl");
@@ -69,7 +68,7 @@ impl GlState {
         self.vertex = vertex; 
     }
 
-    fn load_shaders(&mut self, _: &RenderData, cfg: &Config) {
+    fn load_shaders(&mut self, _: &RenderData, _: &Config) {
         if self.flat_shader.is_none() {
             self.flat_shader = Some(
                 Shader::new(VS_SRC, FS_FLAT_SRC,
@@ -95,15 +94,6 @@ impl GlState {
                     &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
                     &[(0, "out_uv"), (1, "out_normal"), (2, "out_material"), (3, "out_dxdt")]
             )); 
-        }
-        if cfg.use_bindless() {
-            if self.flat_bindless_shader.is_none() {
-                self.flat_bindless_shader = Some(
-                    Shader::new(BINDLESS_VS_INSTANCED_SRC, FS_FLAT_SRC,
-                        &[(0, "in_position"), (1, "in_texture"), (2, "in_normal")],
-                        &[(0, "out_uv"), (1, "out_normal"), (2, "out_material")]
-                ));
-            }
         }
     }
 
