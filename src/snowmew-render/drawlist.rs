@@ -3,7 +3,6 @@ use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
 use sync::{TaskPool, Arc};
 use libc::{c_void};
-use collections::treemap::TreeMap;
 use time::precise_time_s;
 
 use cow::join::join_maps;
@@ -19,7 +18,6 @@ use gl::types::{GLint, GLuint, GLsizeiptr};
 use gl_cl;
 use gl_cl::AcquireRelease;
 
-use graphics::material::Material;
 use snowmew::common::{ObjectKey};
 use position::{ComputedPosition, CalcPositionsCl, MatrixManager};
 
@@ -51,7 +49,6 @@ pub trait Drawlist: RenderData {
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>);
 
     // get materials
-    fn materials(&self) -> Vec<Material>;
     fn material_buffer(&self) -> u32;
     fn lights_buffer(&self) -> u32;
     fn start_time(&self) -> f64;
@@ -96,18 +93,6 @@ impl Positions for DrawlistGraphicsData {
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.position }
 }
 
-fn map_material_to_ids(db: &RenderData) ->(TreeMap<ObjectKey, u32>, TreeMap<u32, ObjectKey>) {
-    let mut material_to_id = TreeMap::new();
-    let mut id_to_material = TreeMap::new();
-
-    for (id, (key, _)) in db.material_iter().enumerate() {
-        material_to_id.insert(*key, (id+1) as u32);
-        id_to_material.insert((id+1) as u32, *key);
-    }
-
-    (material_to_id, id_to_material)
-}
-
 impl RenderData for DrawlistGraphicsData {}
 
 pub struct DrawlistInstanced {
@@ -117,9 +102,6 @@ pub struct DrawlistInstanced {
 
     materials: MaterialBuffer,
     lights: LightsBuffer,
-
-    material_to_id: TreeMap<ObjectKey, u32>,
-    id_to_material: TreeMap<u32, ObjectKey>,
 
     size: uint,
 
@@ -195,8 +177,6 @@ impl DrawlistInstanced {
             text_model_info: texture[4],
             ptr_model_matrix: [ptr::mut_null(), ptr::mut_null(), ptr::mut_null(), ptr::mut_null()],
             ptr_model_info: ptr::mut_null(),
-            material_to_id: TreeMap::new(),
-            id_to_material: TreeMap::new(),
             materials: MaterialBuffer::new(512),
             lights: LightsBuffer::new(),
             cl: clpos,
@@ -272,8 +252,6 @@ impl Drawlist for DrawlistInstanced {
             cl: cl,
             size: size,
             computed_position: _,
-            material_to_id: material_to_id,
-            id_to_material: id_to_material,
             model_matrix: model_matrix,
             model_info: model_info,
             text_model_matrix: text_model_matrix,
@@ -327,26 +305,16 @@ impl Drawlist for DrawlistInstanced {
         let (sender, receiver1) = channel();
         tp.execute(proc(_) {
             let db = db1;
-            let mut material_to_id = material_to_id;
-            let mut id_to_material = id_to_material;
             let position = db.compute_positions();
             let mut lights = lights;
             let mut materials = materials;
-
-            material_to_id.clear();
-            id_to_material.clear();
-
-            for (id, (key, _)) in db.material_iter().enumerate() {
-                material_to_id.insert(*key, id as u32);
-                id_to_material.insert(id as u32, *key);
-            }
 
             unsafe {
                 mut_buf_as_slice(ptr_model_info, size, |info| {
                     for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
                         info[idx] = (id.clone(),
                                      position.get_loc(*pos) as u32,
-                                     material_to_id.find(&draw.material).unwrap().clone(),
+                                     db.material_index(draw.material).unwrap() as u32,
                                      0u32);
                     }
                 });
@@ -355,14 +323,14 @@ impl Drawlist for DrawlistInstanced {
             lights.build(&db);
             materials.build(&db);
 
-            sender.send((material_to_id, id_to_material, ptr_model_info, lights, materials));
+            sender.send((ptr_model_info, lights, materials));
         });
 
         tp.execute(proc(ch) {
             ch.send(
                 match (receiver0.recv(), receiver1.recv()) {
                     ((computed_position, event, ptr_model_matrix, cl),
-                     (material_to_id, id_to_material, ptr_model_info, lights, materials)) => {
+                     (ptr_model_info, lights, materials)) => {
                         box DrawlistInstanced {
                             // from task 0
                             computed_position: Some(computed_position),
@@ -373,8 +341,6 @@ impl Drawlist for DrawlistInstanced {
                             // fromt task 1
                             materials: materials,
                             lights: lights,
-                            material_to_id: material_to_id,
-                            id_to_material: id_to_material,
                             ptr_model_info: ptr_model_info,
 
                             // other
@@ -505,15 +471,6 @@ impl Drawlist for DrawlistInstanced {
 
     fn lights_buffer(&self) -> u32 {
         self.lights.id()
-    }
-
-    fn materials(&self) -> Vec<Material> {
-        let mut mats = Vec::new();
-        for (_, key) in self.id_to_material.iter() {
-            //println!("{:?}", self.material(*key).unwrap().clone());
-            mats.push(self.material(*key).unwrap().clone());
-        }
-        mats
     }
 
     fn start_time(&self) -> f64 { self.start }

@@ -62,14 +62,16 @@ impl TotalOrd for Drawable {
 
 #[deriving(Clone)]
 pub struct GraphicsData {
-    draw:     BTreeMap<ObjectKey, Drawable>,
-    geometry: BTreeMap<ObjectKey, Geometry>,
-    vertex:   BTreeMap<ObjectKey, VertexBuffer>,
-    material: BTreeMap<ObjectKey, Material>,
-    texture:  BTreeMap<ObjectKey, Texture>,
-    texture_to_atlas: BTreeMap<ObjectKey, (uint, uint)>,
-    atlases:  Vec<texture_atlas::Atlas>,
-    lights:   BTreeMap<ObjectKey, light::Light>
+    draw:               BTreeMap<ObjectKey, Drawable>,
+    geometry:           BTreeMap<ObjectKey, Geometry>,
+    vertex:             BTreeMap<ObjectKey, VertexBuffer>,
+    material:           BTreeMap<ObjectKey, Material>,
+    material_index:     BTreeMap<ObjectKey, i32>,
+    material_idx_last:  i32,
+    texture:            BTreeMap<ObjectKey, Texture>,
+    texture_to_atlas:   BTreeMap<ObjectKey, (uint, uint)>,
+    atlases:            Vec<texture_atlas::Atlas>,
+    lights:             BTreeMap<ObjectKey, light::Light>
 }
 
 impl GraphicsData {
@@ -79,10 +81,12 @@ impl GraphicsData {
             geometry: BTreeMap::new(),
             vertex: BTreeMap::new(),
             material: BTreeMap::new(),
+            material_index: BTreeMap::new(),
             texture: BTreeMap::new(),
             lights: BTreeMap::new(),
             atlases: Vec::new(),
-            texture_to_atlas: BTreeMap::new()
+            texture_to_atlas: BTreeMap::new(),
+            material_idx_last: 0
         }
     }
 }
@@ -115,9 +119,19 @@ pub trait Graphics: Common {
         self.get_graphics().material.find(&oid)
     }
 
+    fn material_index(&self, oid: ObjectKey) -> Option<i32> {
+        match self.get_graphics().material_index.find(&oid) {
+            Some(idx) => Some(*idx),
+            None => None
+        }
+    }
+
     fn new_material(&mut self, parent: ObjectKey, name: &str, material: Material) -> ObjectKey {
         let obj = self.new_object(Some(parent), name);
         self.get_graphics_mut().material.insert(obj, material);
+        let idx = self.get_graphics().material_idx_last;
+        self.get_graphics_mut().material_idx_last += 1;
+        self.get_graphics_mut().material_index.insert(obj, idx);
         obj
     }
 
