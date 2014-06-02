@@ -306,8 +306,6 @@ impl Drawlist for DrawlistInstanced {
         tp.execute(proc(_) {
             let db = db1;
             let position = db.compute_positions();
-            let mut lights = lights;
-            let mut materials = materials;
 
             unsafe {
                 mut_buf_as_slice(ptr_model_info, size, |info| {
@@ -320,17 +318,33 @@ impl Drawlist for DrawlistInstanced {
                 });
             }
 
-            lights.build(&db);
-            materials.build(&db);
+            sender.send(ptr_model_info);
+        });
 
-            sender.send((ptr_model_info, lights, materials));
+        let db2 = data.clone();
+        let (sender, receiver2) = channel();
+        tp.execute(proc(_) {
+            let db = db2;
+            let mut lights = lights;
+            lights.build(&db);
+            sender.send(lights);
+        });
+
+        let db3 = data.clone();
+        let (sender, receiver3) = channel();
+        tp.execute(proc(_) {
+            let db = db3;
+            let mut materials = materials;
+            materials.build(&db);
+            sender.send(materials);
         });
 
         tp.execute(proc(ch) {
             ch.send(
-                match (receiver0.recv(), receiver1.recv()) {
+                match (receiver0.recv(), receiver1.recv(),
+                       receiver2.recv(), receiver3.recv()) {
                     ((computed_position, event, ptr_model_matrix, cl),
-                     (ptr_model_info, lights, materials)) => {
+                     ptr_model_info, lights, materials) => {
                         box DrawlistInstanced {
                             // from task 0
                             computed_position: Some(computed_position),

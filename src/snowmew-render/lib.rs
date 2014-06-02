@@ -168,7 +168,7 @@ fn render_server(command: Receiver<RenderCommand>,
 
     let (send_drawlist_render, receiver_drawlist_render)
         : (Sender<Box<Drawlist:Send>>, Receiver<Box<Drawlist:Send>>) = channel();
-    let mut taskpool = TaskPool::new(config.drawlist_count() * 2, || { 
+    let mut taskpool = TaskPool::new(config.drawlist_count() * 4, || { 
         let ch = send_drawlist_render.clone();
         proc(_: uint) { ch.clone() }
     });
