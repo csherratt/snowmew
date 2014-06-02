@@ -25,6 +25,7 @@ pub mod geometry;
 pub mod material;
 pub mod default;
 pub mod texture;
+pub mod texture_atlas;
 pub mod light;
 
 #[deriving(Clone, Default, Eq)]
@@ -65,6 +66,7 @@ pub struct GraphicsData {
     material: BTreeMap<ObjectKey, Material>,
     texture:  BTreeMap<ObjectKey, Texture>,
     lights:   BTreeMap<ObjectKey, light::Light>,
+    atlases:  Vec<texture_atlas::Atlas>
 }
 
 impl GraphicsData {
@@ -75,7 +77,8 @@ impl GraphicsData {
             vertex: BTreeMap::new(),
             material: BTreeMap::new(),
             texture: BTreeMap::new(),
-            lights: BTreeMap::new()
+            lights: BTreeMap::new(),
+            atlases: Vec::new()
         }
     }
 }
@@ -176,6 +179,19 @@ pub trait Graphics: Common {
 
     fn new_texture(&mut self, parent: ObjectKey, name: &str, texture: Texture) -> ObjectKey {
         let oid = self.new_object(Some(parent), name);
+        let mut found = false;
+        for atlas in self.get_graphics_mut().atlases.mut_iter() {
+            if atlas.check_texture(&texture) {
+                found = true;
+                atlas.add_texture(oid, &texture);
+                break;
+            }
+        }
+        if !found {
+            let mut atlas = texture_atlas::Atlas::new(texture.width(), texture.height(), texture.depth());
+            atlas.add_texture(oid, &texture);
+            self.get_graphics_mut().atlases.push(atlas);
+        }
         self.get_graphics_mut().texture.insert(oid, texture);
         oid
     }
