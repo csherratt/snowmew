@@ -414,7 +414,7 @@ impl Drawlist for DrawlistInstanced {
 
         let data = self.data.clone();
         db.load(&data, cfg);
-        self.materials.build(&data, db);
+        self.materials.build(&data);
         self.materials.unmap();
         self.lights.unmap();
     }

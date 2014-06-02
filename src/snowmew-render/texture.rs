@@ -1,9 +1,7 @@
 
 use gl;
 use std::mem;
-use collections::{TreeMap};
-
-use snowmew::ObjectKey;
+use collections::{TreeMap, TreeSet};
 
 use graphics::Texture;
 
@@ -19,15 +17,6 @@ pub struct TextureArray {
     format: u32,
     free: Vec<i32>,
     texture: u32
-}
-
-fn calculate_height(width: i32, height: i32, depth: i32) -> i32 {
-    let size = 50_000_000 / (width*height*depth);
-    if size < 4 {
-        4
-    } else {
-        size
-    }
 }
 
 fn format_to_gl_storage(depth: i32) -> u32 {
@@ -51,8 +40,7 @@ fn format_to_gl_value(depth: i32) -> u32 {
 }
 
 impl TextureArray {
-    pub fn new(width: i32, height: i32, format: i32) -> TextureArray {
-        let depth = calculate_height(width, height, format);
+    pub fn new(width: i32, height: i32, format: i32, depth: i32) -> TextureArray {
         let format = format_to_gl_storage(format);
 
         let textures = &mut [0];
@@ -83,17 +71,10 @@ impl TextureArray {
         format_to_gl_storage(text.depth() as i32) == self.format   
     }
 
-    pub fn load(&mut self, text: &Texture) -> Option<i32> {
+    pub fn load(&mut self, id: uint, text: &Texture) {
         if !self.matches(text) {
             println!("Texture is not the correct size for array {} {}", text.width(), text.height());
-            return None;
         }
-
-        // allocate a new id
-        let id = match self.free.pop() {
-            None => return None,
-            Some(id) => id,
-        };
 
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D_ARRAY, self.texture);
@@ -108,7 +89,6 @@ impl TextureArray {
             gl::BindTexture(gl::TEXTURE_2D_ARRAY, 0);
             assert!(0 == gl::GetError());
         }
-        Some(id)
     }
 
     pub fn has_space(&self) -> bool {
@@ -126,57 +106,48 @@ impl TextureArray {
 
 #[deriving(Clone)]
 pub struct TextureAtlas {
-    arrays: Vec<TextureArray>,
-    mapping: TreeMap<ObjectKey, TextureValue>
+    arrays: TreeMap<uint, TextureArray>,
+    loaded: TreeSet<(uint, uint)>
 }
 
 impl TextureAtlas {
     pub fn new() -> TextureAtlas {
         TextureAtlas {
-            arrays: Vec::new(),
-            mapping: TreeMap::new()
+            arrays: TreeMap::new(),
+            loaded: TreeSet::new()
         }
     }
 
-    pub fn load(&mut self, oid: ObjectKey, text: &Texture) {
-        let mut value = None;
-        for (idx, a) in self.arrays.iter().enumerate() {
-            if a.matches(text) && a.has_space() {
-                value = Some(idx);
-                break;
-            }
+    pub fn load(&mut self,
+                texture_atlas: uint,
+                texture_index: uint,
+                depth: uint,
+                text: &Texture) {
+
+        if self.loaded.contains(&(texture_atlas, texture_index)) {
+            return;
         }
 
-        let array = match value {
-            None => {
-                let id = self.arrays.len();
-                self.arrays.push(
-                    TextureArray::new(text.width() as i32,
-                                      text.height() as i32,
-                                      text.depth() as i32
-                    )
-                );
-                id
-            }
-            Some(id) => id
-        };
-
-        let index = self.arrays.get_mut(array)
-                .load(text).expect("Expected free space");
-        self.mapping.insert(oid, TextureValue {
-            array: array as i32,
-            index: index
-        });
-    }
-
-    pub fn get_index(&self, id: ObjectKey) -> Option<(i32, i32)> {
-        match self.mapping.find(&id) {
-            Some(ref id) => Some((id.array, id.index)),
-            None => None
+        if self.arrays.find(&texture_atlas).is_none() {
+            self.arrays.insert(texture_atlas,
+                TextureArray::new(
+                    text.width() as i32,
+                    text.height() as i32,
+                    text.depth() as i32,
+                    depth as i32
+                )
+            );
         }
+
+        let array = self.arrays.find_mut(&texture_atlas)
+                .expect("could not find textuer array");
+
+        array.load(texture_index, text);
+        self.loaded.insert((texture_atlas, texture_index));
+
     }
 
     pub fn textures(&self) -> Vec<u32> {
-        self.arrays.iter().map(|a| a.texture()).collect()
+        self.arrays.iter().map(|(_, a)| a.texture()).collect()
     }
 }

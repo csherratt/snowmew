@@ -9,6 +9,8 @@ extern crate cgmath;
 extern crate collision;
 extern crate image = "stb_image";
 
+use std::slice;
+
 use cgmath::vector::{Vector3, Vector2};
 use cgmath::point::Point3;
 use collision::aabb::Aabb3;
@@ -65,8 +67,9 @@ pub struct GraphicsData {
     vertex:   BTreeMap<ObjectKey, VertexBuffer>,
     material: BTreeMap<ObjectKey, Material>,
     texture:  BTreeMap<ObjectKey, Texture>,
-    lights:   BTreeMap<ObjectKey, light::Light>,
-    atlases:  Vec<texture_atlas::Atlas>
+    texture_to_atlas: BTreeMap<ObjectKey, (uint, uint)>,
+    atlases:  Vec<texture_atlas::Atlas>,
+    lights:   BTreeMap<ObjectKey, light::Light>
 }
 
 impl GraphicsData {
@@ -78,7 +81,8 @@ impl GraphicsData {
             material: BTreeMap::new(),
             texture: BTreeMap::new(),
             lights: BTreeMap::new(),
-            atlases: Vec::new()
+            atlases: Vec::new(),
+            texture_to_atlas: BTreeMap::new()
         }
     }
 }
@@ -179,20 +183,23 @@ pub trait Graphics: Common {
 
     fn new_texture(&mut self, parent: ObjectKey, name: &str, texture: Texture) -> ObjectKey {
         let oid = self.new_object(Some(parent), name);
-        let mut found = false;
-        for atlas in self.get_graphics_mut().atlases.mut_iter() {
+        let mut found = None;
+        for (idx, atlas) in self.get_graphics_mut().atlases.mut_iter().enumerate() {
             if atlas.check_texture(&texture) {
-                found = true;
-                atlas.add_texture(oid, &texture);
+                found = Some((idx, atlas.add_texture(oid, &texture)));
                 break;
             }
         }
-        if !found {
+        if found.is_none() {
             let mut atlas = texture_atlas::Atlas::new(texture.width(), texture.height(), texture.depth());
-            atlas.add_texture(oid, &texture);
+            let idx = atlas.add_texture(oid, &texture);
+            let idx_atlas = self.get_graphics().atlases.len();
             self.get_graphics_mut().atlases.push(atlas);
+            found = Some((idx_atlas, idx))
         }
+
         self.get_graphics_mut().texture.insert(oid, texture);
+        self.get_graphics_mut().texture_to_atlas.insert(oid, found.unwrap());
         oid
     }
 
@@ -200,8 +207,16 @@ pub trait Graphics: Common {
         self.get_graphics().texture.find(&oid)
     }
 
+    fn get_texture_atlas_index<'a>(&'a self, oid: ObjectKey) -> Option<&'a (uint, uint)> {
+        self.get_graphics().texture_to_atlas.find(&oid)
+    }
+
     fn texture_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Texture> {
         self.get_graphics().texture.iter()
+    }
+
+    fn texture_atlas_iter<'a>(&'a self) -> slice::Items<'a, texture_atlas::Atlas> {
+        self.get_graphics().atlases.iter()
     }
 
     fn new_light(&mut self, parent: ObjectKey, name: &str, light: Light) -> ObjectKey {

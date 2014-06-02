@@ -45,9 +45,11 @@ impl GlState {
     }
 
     fn load_textures(&mut self, db: &RenderData, _: &Config) {
-        for (id, texture) in db.texture_iter() {
-            if self.texture.get_index(*id).is_none() {
-                self.texture.load(*id, texture);
+        for (atlas_idx, atlas) in db.texture_atlas_iter().enumerate() {
+            for (oid, idx) in atlas.texture_iter() {
+                let texture = db.get_texture(*oid)
+                        .expect("Can't find textuer");
+                self.texture.load(atlas_idx, *idx, atlas.max_layers(), texture);   
             }
         }
     }

@@ -1,5 +1,5 @@
 
-use cow::btree::{BTreeMap};
+use cow::btree::{BTreeMap, BTreeMapIterator};
 
 use snowmew::common::ObjectKey;
 
@@ -38,13 +38,20 @@ impl Atlas {
         self.width == text.width()   &&
         self.height == text.height() &&
         self.depth == text.depth()   &&
-        self.free_layers.is_empty()
+        (!self.free_layers.is_empty())
     }
 
-    pub fn add_texture(&mut self, id: ObjectKey, text: &Texture) {
-        assert!(!self.check_texture(text));
+    pub fn add_texture(&mut self, id: ObjectKey, text: &Texture) -> uint {
+        assert!(self.check_texture(text));
 
         let layer = self.free_layers.pop().expect("Failed to get free layer");
         self.layers.insert(id, layer);
+        layer
     }
+
+    pub fn texture_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, uint> {
+        self.layers.iter()
+    }
+
+    pub fn max_layers(&self) -> uint {self.max_layers}
 }
