@@ -331,6 +331,7 @@ impl Drawlist for DrawlistInstanced {
             let mut id_to_material = id_to_material;
             let position = db.compute_positions();
             let mut lights = lights;
+            let mut materials = materials;
 
             material_to_id.clear();
             id_to_material.clear();
@@ -352,15 +353,16 @@ impl Drawlist for DrawlistInstanced {
             }
 
             lights.build(&db);
+            materials.build(&db);
 
-            sender.send((material_to_id, id_to_material, ptr_model_info, lights));
+            sender.send((material_to_id, id_to_material, ptr_model_info, lights, materials));
         });
 
         tp.execute(proc(ch) {
             ch.send(
                 match (receiver0.recv(), receiver1.recv()) {
                     ((computed_position, event, ptr_model_matrix, cl),
-                     (material_to_id, id_to_material, ptr_model_info, lights)) => {
+                     (material_to_id, id_to_material, ptr_model_info, lights, materials)) => {
                         box DrawlistInstanced {
                             // from task 0
                             computed_position: Some(computed_position),
@@ -414,7 +416,6 @@ impl Drawlist for DrawlistInstanced {
 
         let data = self.data.clone();
         db.load(&data, cfg);
-        self.materials.build(&data);
         self.materials.unmap();
         self.lights.unmap();
     }
