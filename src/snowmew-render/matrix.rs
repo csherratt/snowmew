@@ -121,8 +121,8 @@ impl MatrixBuffer {
                     })               
                 }
                 Some((ref mut ctx, ref cq, ref buf)) => {
-                    //let evt = db.write_positions_cl_mat4(cq.deref(), ctx, buf);
-                    None
+                    let evt = db.write_positions_cl_mat4(cq.deref(), ctx, buf.as_slice());
+                    Some(evt)
                 }
             }
         };

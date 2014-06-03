@@ -199,25 +199,68 @@ impl Deltas {
                        cq.write_async(&ctx.parent, &ctx.parent_buffer.as_slice(), ())];
 
         // write init value
-        ctx.init_kernel.set_arg(0, &out[0]);
-        ctx.init_kernel.set_arg(1, &out[1]);
-        ctx.init_kernel.set_arg(2, &out[2]);
-        ctx.init_kernel.set_arg(3, &out[3]);
-        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel, 1, None, events);
+        ctx.init_kernel_vec4.set_arg(0, &out[0]);
+        ctx.init_kernel_vec4.set_arg(1, &out[1]);
+        ctx.init_kernel_vec4.set_arg(2, &out[2]);
+        ctx.init_kernel_vec4.set_arg(3, &out[3]);
+        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_vec4, 1, None, events);
 
         // run the kernel across the deltas 
-        ctx.kernel.set_arg(0, &ctx.input);
-        ctx.kernel.set_arg(1, &ctx.parent);
-        ctx.kernel.set_arg(2, &out[0]);
-        ctx.kernel.set_arg(3, &out[1]);
-        ctx.kernel.set_arg(4, &out[2]);
-        ctx.kernel.set_arg(5, &out[3]);
+        ctx.kernel_vec4.set_arg(0, &ctx.input);
+        ctx.kernel_vec4.set_arg(1, &ctx.parent);
+        ctx.kernel_vec4.set_arg(2, &out[0]);
+        ctx.kernel_vec4.set_arg(3, &out[1]);
+        ctx.kernel_vec4.set_arg(4, &out[2]);
+        ctx.kernel_vec4.set_arg(5, &out[3]);
         for idx in range(1, self.gen.len()) {
             let (off, _) = *self.gen.get(idx-1);
-            ctx.kernel.set_arg(6, &off);
+            ctx.kernel_vec4.set_arg(6, &off);
             let (off2, len) = *self.gen.get(idx);
-            ctx.kernel.set_arg(7, &off2);
-            event = cq.enqueue_async_kernel(&ctx.kernel, len as uint, None, event);
+            ctx.kernel_vec4.set_arg(7, &off2);
+            event = cq.enqueue_async_kernel(&ctx.kernel_vec4, len as uint, None, event);
+        }
+
+        event
+    }
+
+    pub fn write_positions_cl_mat4(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
+                           out: &[CLBuffer<Matrix4<f32>>]) -> Event {
+
+        let last = self.gen.len();
+        let (s, l) = *self.gen.get(last-1);
+        let size = s + l;
+
+        unsafe {
+            ctx.parent_buffer.reserve(size as uint);
+            ctx.parent_buffer.set_len(size as uint);
+            ctx.input_buffer.reserve(size as uint);
+            ctx.input_buffer.set_len(size as uint);
+        }
+
+        for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
+            for (off, delta) in gen.iter() {
+                *ctx.input_buffer.get_mut((off + gen_off) as uint) = delta.delta;
+                *ctx.parent_buffer.get_mut((off + gen_off) as uint) = delta.parent.clone();
+            }
+        }
+
+        let events = &[cq.write_async(&ctx.input, &ctx.input_buffer.as_slice(), ()),
+                       cq.write_async(&ctx.parent, &ctx.parent_buffer.as_slice(), ())];
+
+        // write init value
+        ctx.init_kernel_mat.set_arg(0, &out[0]);
+        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_mat, 1, None, events);
+
+        // run the kernel across the deltas 
+        ctx.kernel_mat.set_arg(0, &ctx.input);
+        ctx.kernel_mat.set_arg(1, &ctx.parent);
+        ctx.kernel_mat.set_arg(2, &out[0]);
+        for idx in range(1, self.gen.len()) {
+            let (off, _) = *self.gen.get(idx-1);
+            ctx.kernel_mat.set_arg(3, &off);
+            let (off2, len) = *self.gen.get(idx);
+            ctx.kernel_mat.set_arg(4, &off2);
+            event = cq.enqueue_async_kernel(&ctx.kernel_mat, len as uint, None, event);
         }
 
         event
@@ -280,8 +323,10 @@ impl ComputedPosition {
 
 pub struct CalcPositionsCl {
     program: Program,
-    kernel: Kernel,
-    init_kernel: Kernel,
+    kernel_vec4: Kernel,
+    init_kernel_vec4: Kernel,
+    kernel_mat: Kernel,
+    init_kernel_mat: Kernel,
     input_buffer: Vec<Transform3D<f32>>,
     input: CLBuffer<Transform3D<f32>>,
     parent_buffer: Vec<u32>,
@@ -301,15 +346,20 @@ impl CalcPositionsCl {
             }
         }
 
-        let kernel = program.create_kernel("calc_gen");
-        let init_kernel = program.create_kernel("set_idenity");
+
+        let kernel_mat = program.create_kernel("calc_gen_mat");
+        let init_kernel_mat = program.create_kernel("set_idenity_mat");
+        let kernel_vec4 = program.create_kernel("calc_gen_vec4");
+        let init_kernel_vec4 = program.create_kernel("set_idenity_vec4");
         let delta_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
         let parent = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
 
         CalcPositionsCl {
             program: program,
-            kernel: kernel,
-            init_kernel: init_kernel,
+            kernel_vec4: kernel_vec4,
+            init_kernel_vec4: init_kernel_vec4,
+            kernel_mat: kernel_mat,
+            init_kernel_mat: init_kernel_mat,
             input: delta_mem,
             input_buffer: Vec::new(),
             parent: parent,
@@ -391,10 +441,10 @@ pub trait Positions: Common {
         self.get_position().position.write_positions_cl_vec4x4(cq, ctx, out)
     }
 
-    /*fn write_positions_cl_mat4(&self, cq: &CommandQueue,
+    fn write_positions_cl_mat4(&self, cq: &CommandQueue,
                         ctx: &mut CalcPositionsCl, out: &[CLBuffer<Matrix4<f32>>]) -> Event {
         self.get_position().position.write_positions_cl_mat4(cq, ctx, out)
-    }*/
+    }
 
     fn compute_positions(&self) -> ComputedPosition {
         self.get_position().position.compute_positions()
