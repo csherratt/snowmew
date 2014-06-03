@@ -5,8 +5,6 @@ use sync::{TaskPool, Arc};
 use libc::{c_void};
 use time::precise_time_s;
 
-use cow::join::join_maps;
-
 use OpenCL::hl::{CommandQueue, Context, Device, Event, EventList};
 use OpenCL::mem::{Buffer, CLBuffer};
 use OpenCL::CL::CL_MEM_READ_WRITE;
@@ -29,6 +27,7 @@ use db::GlState;
 use {Config, RenderData};
 use material::MaterialBuffer;
 use light::LightsBuffer;
+use model::ModelInfoBuffer;
 
 pub trait Drawlist: RenderData {
     // This is done on the OpenGL thread, this will map and setup
@@ -49,6 +48,7 @@ pub trait Drawlist: RenderData {
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>);
 
     // get materials
+    fn model_buffer(&self) -> u32;
     fn material_buffer(&self) -> u32;
     fn lights_buffer(&self) -> u32;
     fn start_time(&self) -> f64;
@@ -102,18 +102,14 @@ pub struct DrawlistInstanced {
 
     materials: MaterialBuffer,
     lights: LightsBuffer,
+    model: ModelInfoBuffer,
 
     size: uint,
 
     // one array for each component
     model_matrix: [GLuint, ..4],
-    model_info: GLuint,
-
     text_model_matrix: [GLuint, ..4],
-    text_model_info: GLuint,
-
     ptr_model_matrix: [*mut Vector4<f32>, ..4],
-    ptr_model_info: *mut (u32, u32, u32, u32),
 
     event: Option<Event>,
     cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>,
@@ -124,8 +120,8 @@ pub struct DrawlistInstanced {
 impl DrawlistInstanced {
     pub fn from_config(cfg: &Config,
                        cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistInstanced {
-        let buffer = &mut [0, 0, 0, 0, 0];
-        let texture = &mut [0, 0, 0, 0, 0];
+        let buffer = &mut [0, 0, 0, 0];
+        let texture = &mut [0, 0, 0, 0];
 
         unsafe {
             gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
@@ -139,15 +135,6 @@ impl DrawlistInstanced {
                                (mem::size_of::<Vector4<f32>>()*cfg.max_size()) as GLsizeiptr,
                                ptr::null(), gl::DYNAMIC_DRAW);
             }
-
-            gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[4]);
-            gl::BindTexture(gl::TEXTURE_BUFFER, texture[4]);
-            gl::TexBuffer(gl::TEXTURE_BUFFER, gl::RGBA32UI, buffer[4]);
-            assert!(0 == gl::GetError());
-            gl::BufferData(gl::TEXTURE_BUFFER,
-                           (mem::size_of::<(u32, u32, u32, u32)>()*cfg.max_size()) as GLsizeiptr,
-                           ptr::null(), gl::DYNAMIC_DRAW);
-            assert!(0 == gl::GetError());
         }
 
         let clpos = match cl {
@@ -172,13 +159,11 @@ impl DrawlistInstanced {
             computed_position: None,
             size: cfg.max_size(),
             model_matrix: [buffer[0], buffer[1], buffer[2], buffer[3]],
-            model_info: buffer[4],
             text_model_matrix: [texture[0], texture[1], texture[2], texture[3]],
-            text_model_info: texture[4],
             ptr_model_matrix: [ptr::mut_null(), ptr::mut_null(), ptr::mut_null(), ptr::mut_null()],
-            ptr_model_info: ptr::mut_null(),
             materials: MaterialBuffer::new(512),
             lights: LightsBuffer::new(),
+            model: ModelInfoBuffer::new(cfg),
             cl: clpos,
             event: None,
             start: 0.
@@ -222,6 +207,7 @@ impl Drawlist for DrawlistInstanced {
     fn setup_begin(&mut self) {
         self.materials.map();
         self.lights.map();
+        self.model.map();
         match self.cl {
             None => {
                 for i in range(0u, 4) {
@@ -237,13 +223,6 @@ impl Drawlist for DrawlistInstanced {
                 cq.acquire_gl_objects(buf.as_slice(), ()).wait()
             }
         }
-
-        gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
-        self.ptr_model_info = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                (mem::size_of::<(u32, u32, u32, u32)>()*self.size) as GLsizeiptr,
-                gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
-        ) as *mut (u32, u32, u32, u32);
-        assert!(0 == gl::GetError());
     }
 
     fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>) {
@@ -253,13 +232,11 @@ impl Drawlist for DrawlistInstanced {
             size: size,
             computed_position: _,
             model_matrix: model_matrix,
-            model_info: model_info,
             text_model_matrix: text_model_matrix,
-            text_model_info: text_model_info,
             ptr_model_matrix: ptr_model_matrix,
-            ptr_model_info: ptr_model_info,
             materials: materials,
             lights: lights,
+            model: model,
             event: _,
             start: _
         } = *self;
@@ -305,20 +282,9 @@ impl Drawlist for DrawlistInstanced {
         let (sender, receiver1) = channel();
         tp.execute(proc(_) {
             let db = db1;
-            let position = db.compute_positions();
-
-            unsafe {
-                mut_buf_as_slice(ptr_model_info, size, |info| {
-                    for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
-                        info[idx] = (id.clone(),
-                                     position.get_loc(*pos) as u32,
-                                     db.material_index(draw.material).unwrap() as u32,
-                                     0u32);
-                    }
-                });
-            }
-
-            sender.send(ptr_model_info);
+            let mut model = model;
+            model.build(&db);
+            sender.send(model);
         });
 
         let db2 = data.clone();
@@ -344,7 +310,7 @@ impl Drawlist for DrawlistInstanced {
                 match (receiver0.recv(), receiver1.recv(),
                        receiver2.recv(), receiver3.recv()) {
                     ((computed_position, event, ptr_model_matrix, cl),
-                     ptr_model_info, lights, materials) => {
+                     model, lights, materials) => {
                         box DrawlistInstanced {
                             // from task 0
                             computed_position: Some(computed_position),
@@ -355,13 +321,11 @@ impl Drawlist for DrawlistInstanced {
                             // fromt task 1
                             materials: materials,
                             lights: lights,
-                            ptr_model_info: ptr_model_info,
+                            model: model,
 
                             // other
                             size: size,
                             model_matrix: model_matrix,
-                            model_info: model_info,
-                            text_model_info: text_model_info,
                             text_model_matrix: text_model_matrix,
                             start: start,
                             data: data
@@ -389,15 +353,11 @@ impl Drawlist for DrawlistInstanced {
             _ => fail!("expected both an event and a queue")
         }
 
-        gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
-        gl::UnmapBuffer(gl::TEXTURE_BUFFER);
-        assert!(0 == gl::GetError());
-        self.ptr_model_info = ptr::mut_null();
-
         let data = self.data.clone();
         db.load(&data, cfg);
         self.materials.unmap();
         self.lights.unmap();
+        self.model.unmap();
     }
 
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
@@ -429,7 +389,7 @@ impl Drawlist for DrawlistInstanced {
             gl::Uniform1i(shader.uniform("mat_model3"), 3);
 
             gl::ActiveTexture(gl::TEXTURE4);
-            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_info);
+            gl::BindTexture(gl::TEXTURE_BUFFER, self.model.id());
             gl::Uniform1i(shader.uniform("info"), 4);
         }
 
@@ -477,6 +437,10 @@ impl Drawlist for DrawlistInstanced {
             instance_draw(last_geo.unwrap(), start, end - start + 1);
         }
 
+    }
+
+    fn model_buffer(&self) -> u32 {
+        self.model.id()
     }
 
     fn material_buffer(&self) -> u32 {
