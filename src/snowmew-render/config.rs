@@ -20,6 +20,7 @@ impl ConfigOption {
 pub struct Config {
     max_size: uint,
     drawlist_count: uint,
+    thread_pool_size: uint,
     hmd_size: f32,
     bindless: ConfigOption,
     instanced: ConfigOption,
@@ -83,7 +84,8 @@ impl Config
             hmd_size: get_setting_from_str("HMD_SIZE", 1.5f32),
             max_size: get_setting_from_str("MAX_OBJECTS", 64u*1024),
             drawlist_count: get_setting_from_str("DRAWLIST_COUNT", 3u),
-            opencl: get_setting_option("OPENCL_SUPPORT", Enabled),
+            thread_pool_size: get_setting_from_str("THREAD_POOL_SIZE", 4u),
+            opencl: get_setting_option("OPENCL", Enabled),
             profile: get_setting_option("PROFILE", Disabled),
             bindless: check_gl_version(gl_version, (4, 4),
                 get_setting_option("BINDLESS", Enabled)
@@ -101,4 +103,5 @@ impl Config
     pub fn instanced(&self) -> bool { self.instanced.enabled() }
     pub fn opencl(&self) -> bool { self.opencl.enabled() }
     pub fn drawlist_count(&self) -> uint { self.drawlist_count }
+    pub fn thread_pool_size(&self) -> uint { self.thread_pool_size }
 }
