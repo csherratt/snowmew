@@ -2,7 +2,6 @@
 use std::mem;
 use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
-use collections::treemap::TreeMap;
 
 use cgmath::vector::Vector4;
 use gl;
@@ -55,8 +54,6 @@ pub struct MaterialBuffer {
     buffer: u32,
     size: uint,
     ptr: *mut MaterialStd140,
-    material_to_id: TreeMap<ObjectKey, u32>,
-    id_to_material: TreeMap<u32, ObjectKey>,
 }
 
 impl MaterialBuffer {
@@ -77,8 +74,6 @@ impl MaterialBuffer {
             buffer: ub[0],
             size: max,
             ptr: ptr::mut_null(),
-            material_to_id: TreeMap::new(),
-            id_to_material: TreeMap::new()
         }
     }
 
@@ -98,14 +93,10 @@ impl MaterialBuffer {
     }
 
     pub fn build(&mut self, graphics: &Graphics) {
-        self.material_to_id.clear();
-        self.id_to_material.clear();
         unsafe {
             mut_buf_as_slice(self.ptr, self.size, |b| {
-                for (id, (key, mat)) in graphics.material_iter().enumerate() {
+                for (id, (_, mat)) in graphics.material_iter().enumerate() {
                     b[id] = MaterialStd140::from(mat, graphics);
-                    self.material_to_id.insert(*key, (id+1) as u32);
-                    self.id_to_material.insert((id+1) as u32, *key);
                 } 
             });
         }
