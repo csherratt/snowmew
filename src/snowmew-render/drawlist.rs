@@ -1,23 +1,15 @@
-use std::mem;
-use std::ptr;
-use std::slice::raw::mut_buf_as_slice;
 use sync::{TaskPool, Arc};
 use libc::{c_void};
 use time::precise_time_s;
 
-use OpenCL::hl::{CommandQueue, Context, Device, Event, EventList};
-use OpenCL::mem::{Buffer, CLBuffer};
-use OpenCL::CL::CL_MEM_READ_WRITE;
+use OpenCL::hl::{CommandQueue, Context, Device};
+use OpenCL::mem::{Buffer};
 use cgmath::matrix::Matrix4;
-use cgmath::vector::Vector4;
 use cgmath::array::Array2;
 use gl;
-use gl::types::{GLint, GLuint, GLsizeiptr};
-use gl_cl;
-use gl_cl::AcquireRelease;
+use gl::types::GLint;
 
 use snowmew::common::{ObjectKey};
-use position::{ComputedPosition, CalcPositionsCl, MatrixManager};
 
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
@@ -28,6 +20,7 @@ use {Config, RenderData};
 use material::MaterialBuffer;
 use light::LightsBuffer;
 use model::ModelInfoBuffer;
+use matrix::MatrixBuffer;
 
 pub trait Drawlist: RenderData {
     // This is done on the OpenGL thread, this will map and setup
@@ -98,57 +91,18 @@ impl RenderData for DrawlistGraphicsData {}
 pub struct DrawlistInstanced {
     data: DrawlistGraphicsData,
 
-    computed_position: Option<ComputedPosition>,
-
     materials: MaterialBuffer,
     lights: LightsBuffer,
     model: ModelInfoBuffer,
+    matrix: MatrixBuffer,
 
     size: uint,
-
-    // one array for each component
-    model_matrix: [GLuint, ..4],
-    text_model_matrix: [GLuint, ..4],
-    ptr_model_matrix: [*mut Vector4<f32>, ..4],
-
-    event: Option<Event>,
-    cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>,
-
     start: f64
 }
 
 impl DrawlistInstanced {
     pub fn from_config(cfg: &Config,
                        cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistInstanced {
-        let buffer = &mut [0, 0, 0, 0];
-        let texture = &mut [0, 0, 0, 0];
-
-        unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
-            gl::GenTextures(buffer.len() as i32, texture.unsafe_mut_ref(0));
-      
-            for i in range(0u, 4) {
-                gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[i]);
-                gl::BindTexture(gl::TEXTURE_BUFFER, texture[i]);
-                gl::TexBuffer(gl::TEXTURE_BUFFER, gl::RGBA32F, buffer[i]);
-                gl::BufferData(gl::TEXTURE_BUFFER,
-                               (mem::size_of::<Vector4<f32>>()*cfg.max_size()) as GLsizeiptr,
-                               ptr::null(), gl::DYNAMIC_DRAW);
-            }
-        }
-
-        let clpos = match cl {
-            Some((ctx, cq, dev)) => {
-                let calc = CalcPositionsCl::new(ctx.deref(), dev.deref());
-                let buffers = [gl_cl::create_from_gl_buffer(ctx.deref(), buffer[0], CL_MEM_READ_WRITE),
-                               gl_cl::create_from_gl_buffer(ctx.deref(), buffer[1], CL_MEM_READ_WRITE),
-                               gl_cl::create_from_gl_buffer(ctx.deref(), buffer[2], CL_MEM_READ_WRITE),
-                               gl_cl::create_from_gl_buffer(ctx.deref(), buffer[3], CL_MEM_READ_WRITE)];
-
-                Some((calc, cq, buffers))
-            },
-            None => None
-        };
 
         DrawlistInstanced {
             data: DrawlistGraphicsData {
@@ -156,88 +110,33 @@ impl DrawlistInstanced {
                 graphics: GraphicsData::new(),
                 position: PositionData::new()
             },
-            computed_position: None,
             size: cfg.max_size(),
-            model_matrix: [buffer[0], buffer[1], buffer[2], buffer[3]],
-            text_model_matrix: [texture[0], texture[1], texture[2], texture[3]],
-            ptr_model_matrix: [ptr::mut_null(), ptr::mut_null(), ptr::mut_null(), ptr::mut_null()],
             materials: MaterialBuffer::new(512),
             lights: LightsBuffer::new(),
             model: ModelInfoBuffer::new(cfg),
-            cl: clpos,
-            event: None,
+            matrix: MatrixBuffer::new(cfg, cl),
             start: 0.
         }
     }
 }
-
-struct GLMatrix<'r> {
-    x: &'r mut [Vector4<f32>],
-    y: &'r mut [Vector4<f32>],
-    z: &'r mut [Vector4<f32>],
-    w: &'r mut [Vector4<f32>]
-}
-
-impl<'r> MatrixManager for GLMatrix<'r> {
-    fn set(&mut self, idx: uint, mat: Matrix4<f32>) {
-        assert!(idx < self.x.len());
-        unsafe {
-            self.x.unsafe_set(idx, mat.x);
-            self.y.unsafe_set(idx, mat.y);
-            self.z.unsafe_set(idx, mat.z);
-            self.w.unsafe_set(idx, mat.w);
-        }
-    }
-
-    fn get(&self, idx: uint) -> Matrix4<f32> {
-        assert!(idx < self.x.len());
-        unsafe {
-            Matrix4 {
-                x: *self.x.unsafe_ref(idx),
-                y: *self.y.unsafe_ref(idx),
-                z: *self.z.unsafe_ref(idx),
-                w: *self.w.unsafe_ref(idx)
-            }
-        }
-    }
-}
-
 
 impl Drawlist for DrawlistInstanced {
     fn setup_begin(&mut self) {
         self.materials.map();
         self.lights.map();
         self.model.map();
-        match self.cl {
-            None => {
-                for i in range(0u, 4) {
-                    gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
-                    self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                            (mem::size_of::<Vector4<f32>>()*self.size) as GLsizeiptr,
-                            gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
-                    ) as *mut Vector4<f32>;
-                    assert!(0 == gl::GetError());
-                }                
-            }
-            Some((_, ref cq, ref buf)) => {
-                cq.acquire_gl_objects(buf.as_slice(), ()).wait()
-            }
-        }
+        self.matrix.map();
+
     }
 
     fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>) {
         let DrawlistInstanced {
             data: _,
-            cl: cl,
             size: size,
-            computed_position: _,
-            model_matrix: model_matrix,
-            text_model_matrix: text_model_matrix,
-            ptr_model_matrix: ptr_model_matrix,
             materials: materials,
             lights: lights,
             model: model,
-            event: _,
+            matrix: matrix,
             start: _
         } = *self;
 
@@ -252,30 +151,9 @@ impl Drawlist for DrawlistInstanced {
         let (sender, receiver0) = channel();
         tp.execute(proc(_) {
             let db = db0;
-            let mut cl = cl;
-            let evt = unsafe {
-                match cl {
-                    None => {
-                        mut_buf_as_slice(ptr_model_matrix[0], size, |mat0| {
-                        mut_buf_as_slice(ptr_model_matrix[1], size, |mat1| {
-                        mut_buf_as_slice(ptr_model_matrix[2], size, |mat2| {
-                        mut_buf_as_slice(ptr_model_matrix[3], size, |mat3| {
-                            let mut mat = GLMatrix {
-                                x: mat0, y: mat1, z: mat2, w: mat3
-                            };
-                            db.write_positions(&mut mat);
-                            None
-                        })})})})               
-                    }
-                    Some((ref mut ctx, ref cq, ref buf)) => {
-                        let evt = db.write_positions_cl(cq.deref(), ctx, buf);
-                        Some(evt)
-                    }
-                }
-            };
-
-            let position = db.compute_positions();
-            sender.send((position, evt, ptr_model_matrix, cl))
+            let mut matrix = matrix;
+            matrix.build(&db);
+            sender.send(matrix)
         });
 
         let db1 = data.clone();
@@ -309,24 +187,15 @@ impl Drawlist for DrawlistInstanced {
             ch.send(
                 match (receiver0.recv(), receiver1.recv(),
                        receiver2.recv(), receiver3.recv()) {
-                    ((computed_position, event, ptr_model_matrix, cl),
-                     model, lights, materials) => {
+                    (matrix, model, lights, materials) => {
                         box DrawlistInstanced {
-                            // from task 0
-                            computed_position: Some(computed_position),
-                            event: event,
-                            ptr_model_matrix: ptr_model_matrix,
-                            cl: cl,
-
-                            // fromt task 1
+                            matrix: matrix,
                             materials: materials,
                             lights: lights,
                             model: model,
 
                             // other
                             size: size,
-                            model_matrix: model_matrix,
-                            text_model_matrix: text_model_matrix,
                             start: start,
                             data: data
                         } as Box<Drawlist:Send>
@@ -337,27 +206,12 @@ impl Drawlist for DrawlistInstanced {
     }
 
     fn setup_complete(&mut self, db: &mut GlState, cfg: &Config) {
-        let event = self.event.take();
-        match (&self.cl, event) {
-            (&None, None) => {
-                for i in range(0u, 4) {
-                    gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
-                    gl::UnmapBuffer(gl::TEXTURE_BUFFER);
-                    assert!(0 == gl::GetError());
-                    self.ptr_model_matrix[i] = ptr::mut_null();
-                }
-            }
-            (&Some((_, ref cq, ref buf)), Some(ref event)) => {
-                cq.release_gl_objects(buf.as_slice(), event).wait();
-            }
-            _ => fail!("expected both an event and a queue")
-        }
-
         let data = self.data.clone();
         db.load(&data, cfg);
         self.materials.unmap();
         self.lights.unmap();
         self.model.unmap();
+        self.matrix.unmap();
     }
 
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
@@ -372,20 +226,21 @@ impl Drawlist for DrawlistInstanced {
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
             gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());
 
+            let text = self.matrix.ids();
             gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[0]);
+            gl::BindTexture(gl::TEXTURE_BUFFER, text[0]);
             gl::Uniform1i(shader.uniform("mat_model0"), 0);
 
             gl::ActiveTexture(gl::TEXTURE1);
-            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[1]);
+            gl::BindTexture(gl::TEXTURE_BUFFER, text[1]);
             gl::Uniform1i(shader.uniform("mat_model1"), 1);
 
             gl::ActiveTexture(gl::TEXTURE2);
-            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[2]);
+            gl::BindTexture(gl::TEXTURE_BUFFER, text[2]);
             gl::Uniform1i(shader.uniform("mat_model2"), 2);
 
             gl::ActiveTexture(gl::TEXTURE3);
-            gl::BindTexture(gl::TEXTURE_BUFFER, self.text_model_matrix[3]);
+            gl::BindTexture(gl::TEXTURE_BUFFER, text[3]);
             gl::Uniform1i(shader.uniform("mat_model3"), 3);
 
             gl::ActiveTexture(gl::TEXTURE4);

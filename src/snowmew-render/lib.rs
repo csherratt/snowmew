@@ -53,6 +53,7 @@ mod texture;
 mod material;
 mod light;
 mod model;
+mod matrix;
 
 pub trait RenderData : Graphics + Positions {}
 
