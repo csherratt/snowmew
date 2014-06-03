@@ -1,15 +1,6 @@
 #version 440
 #extension GL_ARB_shader_draw_parameters: require
 
-uniform int instance_offset;
-uniform mat4 mat_view;
-uniform mat4 mat_proj;
-
-uniform samplerBuffer mat_model0;
-uniform samplerBuffer mat_model1;
-uniform samplerBuffer mat_model2;
-uniform samplerBuffer mat_model3;
-
 struct DrawInfoStruct {
     int id;
     int matrix;
@@ -21,6 +12,13 @@ struct DrawInfoStruct {
 layout(std430, binding=4) buffer DrawInfo {
     DrawInfoStruct info[];
 };
+
+layout(std430, binding=5) buffer ModelMatrix {
+    mat4 model_matrix[];
+};
+
+uniform mat4 mat_view;
+uniform mat4 mat_proj;
 
 in vec3 in_position;
 in vec2 in_texture;
@@ -34,11 +32,7 @@ flat out uint fs_material_id;
 
 void main() {
     int idx = gl_DrawIDARB + gl_InstanceID;
-    int matrix_id = int(info[idx].matrix);
-    mat4 mat_model = mat4(texelFetch(mat_model0, matrix_id),
-                          texelFetch(mat_model1, matrix_id),
-                          texelFetch(mat_model2, matrix_id),
-                          texelFetch(mat_model3, matrix_id));
+    mat4 mat_model = model_matrix[info[idx].matrix];
 
     vec4 normal = mat_model * vec4(in_normal, 0.);
     gl_Position = mat_proj * mat_view * mat_model * vec4(in_position, 1.);

@@ -238,27 +238,12 @@ impl Drawlist for DrawlistInstanced {
 
         unsafe {
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
-            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());
-
-            let text = self.matrix.ids();
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_BUFFER, text[0]);
-            gl::Uniform1i(shader.uniform("mat_model0"), 0);
-
-            gl::ActiveTexture(gl::TEXTURE1);
-            gl::BindTexture(gl::TEXTURE_BUFFER, text[1]);
-            gl::Uniform1i(shader.uniform("mat_model1"), 1);
-
-            gl::ActiveTexture(gl::TEXTURE2);
-            gl::BindTexture(gl::TEXTURE_BUFFER, text[2]);
-            gl::Uniform1i(shader.uniform("mat_model2"), 2);
-
-            gl::ActiveTexture(gl::TEXTURE3);
-            gl::BindTexture(gl::TEXTURE_BUFFER, text[3]);
-            gl::Uniform1i(shader.uniform("mat_model3"), 3);
-
-            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 4, self.model.id());
+            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());    
         }
+        
+        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 4, self.model.id());
+        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 5, self.matrix.id());
+
 
         let instance_offset = shader.uniform("instance_offset");        
 

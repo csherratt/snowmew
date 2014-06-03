@@ -174,7 +174,7 @@ impl Deltas {
         }
     }
 
-    pub fn write_positions_cl(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
+    pub fn write_positions_cl_vec4x4(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
                            out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
 
         let last = self.gen.len();
@@ -386,10 +386,15 @@ pub trait Positions: Common {
         self.get_position().position.write_positions(mm)
     }
 
-    fn write_positions_cl(&self, cq: &CommandQueue,
+    fn write_positions_cl_vec4x4(&self, cq: &CommandQueue,
                         ctx: &mut CalcPositionsCl, out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
-        self.get_position().position.write_positions_cl(cq, ctx, out)
+        self.get_position().position.write_positions_cl_vec4x4(cq, ctx, out)
     }
+
+    /*fn write_positions_cl_mat4(&self, cq: &CommandQueue,
+                        ctx: &mut CalcPositionsCl, out: &[CLBuffer<Matrix4<f32>>]) -> Event {
+        self.get_position().position.write_positions_cl_mat4(cq, ctx, out)
+    }*/
 
     fn compute_positions(&self) -> ComputedPosition {
         self.get_position().position.compute_positions()
