@@ -25,7 +25,8 @@ pub struct Config {
     bindless: ConfigOption,
     instanced: ConfigOption,
     profile: ConfigOption,
-    opencl: ConfigOption
+    opencl: ConfigOption,
+    fps: ConfigOption
 }
 
 fn get_setting_option(name: &str, default: ConfigOption) -> ConfigOption {
@@ -87,6 +88,7 @@ impl Config
             thread_pool_size: get_setting_from_str("THREAD_POOL_SIZE", 4u),
             opencl: get_setting_option("OPENCL", Enabled),
             profile: get_setting_option("PROFILE", Disabled),
+            fps: get_setting_option("FPS", Enabled),
             bindless: check_gl_version(gl_version, (4, 4),
                 get_setting_option("BINDLESS", Enabled)
             ),
@@ -100,6 +102,7 @@ impl Config
     pub fn max_size(&self) -> uint { self.max_size }
     pub fn hmd_size(&self) -> f32 { self.hmd_size }
     pub fn profile(&self) -> bool { self.profile.enabled() }
+    pub fn fps(&self) -> bool { self.profile.enabled() || self.fps.enabled() }
     pub fn instanced(&self) -> bool { self.instanced.enabled() }
     pub fn opencl(&self) -> bool { self.opencl.enabled() }
     pub fn drawlist_count(&self) -> uint { self.drawlist_count }

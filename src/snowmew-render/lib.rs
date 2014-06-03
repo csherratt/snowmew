@@ -4,6 +4,7 @@
 #![comment = "A game engine in rust"]
 #![allow(dead_code)]
 
+//extern crate debug;
 extern crate std;
 extern crate glfw;
 extern crate cgmath;
@@ -54,6 +55,7 @@ mod material;
 mod light;
 mod model;
 mod matrix;
+mod command;
 
 pub trait RenderData : Graphics + Positions {}
 
@@ -118,7 +120,7 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
         // if the device is a hmd we need to stall the gpu
         // to make sure it actually flipped the buffers
 
-        if config.profile() {
+        if config.fps() {
             let end = precise_time_s();
             println!("total: {:4.2f}ms capture: {:4.2f}ms {:4.1}fps", 
                 (end - dl.start_time()) * 1000., (end - capture) * 1000.,

@@ -54,18 +54,6 @@ impl LightsBuffer {
             gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
         }
 
-        let mut max_vertex = 0;
-        let mut max_fragment = 0;
-        let mut max_uniform_block_size = 0;
-        let mut max_buffer_offset = 0;
-
-        unsafe {
-            gl::GetIntegerv(gl::MAX_VERTEX_UNIFORM_BLOCKS, &mut max_vertex);
-            gl::GetIntegerv(gl::MAX_FRAGMENT_UNIFORM_BLOCKS, &mut max_fragment);
-            gl::GetIntegerv(gl::MAX_UNIFORM_BLOCK_SIZE, &mut max_uniform_block_size);
-            gl::GetIntegerv(gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT, &mut max_buffer_offset);
-        }
-
         LightsBuffer {
             buffer: ub[0],
             ptr: ptr::mut_null()

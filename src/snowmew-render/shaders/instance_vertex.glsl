@@ -1,4 +1,5 @@
-#version 400
+#version 440
+#extension GL_ARB_shader_draw_parameters: require
 
 uniform int instance_offset;
 uniform mat4 mat_view;
@@ -14,8 +15,7 @@ uniform usamplerBuffer info;
 in vec3 in_position;
 in vec2 in_texture;
 in vec3 in_normal;
-in vec3 in_tangent;
-in vec3 in_bitangent;
+in uint in_draw_id;
 
 out vec2 fs_texture;
 out vec3 fs_normal;
@@ -23,8 +23,7 @@ flat out uint fs_object_id;
 flat out uint fs_material_id;
 
 void main() {
-    int instance = gl_InstanceID + instance_offset;
-    uvec4 info = texelFetch(info, instance);
+    uvec4 info = texelFetch(info, gl_DrawIDARB + gl_InstanceID);
     int matrix_id = int(info.y);
     mat4 mat_model = mat4(texelFetch(mat_model0, matrix_id),
                           texelFetch(mat_model1, matrix_id),

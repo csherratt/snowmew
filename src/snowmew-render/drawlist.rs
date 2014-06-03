@@ -1,15 +1,12 @@
 use sync::{TaskPool, Arc};
-use libc::{c_void};
 use time::precise_time_s;
 
 use OpenCL::hl::{CommandQueue, Context, Device};
-use OpenCL::mem::{Buffer};
+use OpenCL::mem::Buffer;
 use cgmath::matrix::Matrix4;
 use cgmath::array::Array2;
 use gl;
-use gl::types::GLint;
 
-use snowmew::common::{ObjectKey};
 
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
@@ -21,6 +18,7 @@ use material::MaterialBuffer;
 use light::LightsBuffer;
 use model::ModelInfoBuffer;
 use matrix::MatrixBuffer;
+use command::CommandBuffer;
 
 pub trait Drawlist: RenderData {
     // This is done on the OpenGL thread, this will map and setup
@@ -95,6 +93,7 @@ pub struct DrawlistInstanced {
     lights: LightsBuffer,
     model: ModelInfoBuffer,
     matrix: MatrixBuffer,
+    command: CommandBuffer,
 
     size: uint,
     start: f64
@@ -115,6 +114,7 @@ impl DrawlistInstanced {
             lights: LightsBuffer::new(),
             model: ModelInfoBuffer::new(cfg),
             matrix: MatrixBuffer::new(cfg, cl),
+            command: CommandBuffer::new(cfg),
             start: 0.
         }
     }
@@ -126,6 +126,7 @@ impl Drawlist for DrawlistInstanced {
         self.lights.map();
         self.model.map();
         self.matrix.map();
+        self.command.map();
 
     }
 
@@ -137,6 +138,7 @@ impl Drawlist for DrawlistInstanced {
             lights: lights,
             model: model,
             matrix: matrix,
+            command: command,
             start: _
         } = *self;
 
@@ -183,16 +185,27 @@ impl Drawlist for DrawlistInstanced {
             sender.send(materials);
         });
 
+        let db4 = data.clone();
+        let (sender, receiver4) = channel();
+        tp.execute(proc(_) {
+            let db = db4;
+            let mut command = command;
+            command.build(&db);
+            sender.send(command);
+        });
+
         tp.execute(proc(ch) {
             ch.send(
                 match (receiver0.recv(), receiver1.recv(),
-                       receiver2.recv(), receiver3.recv()) {
-                    (matrix, model, lights, materials) => {
+                       receiver2.recv(), receiver3.recv(),
+                       receiver4.recv()) {
+                    (matrix, model, lights, materials, command) => {
                         box DrawlistInstanced {
                             matrix: matrix,
                             materials: materials,
                             lights: lights,
                             model: model,
+                            command: command,
 
                             // other
                             size: size,
@@ -212,6 +225,7 @@ impl Drawlist for DrawlistInstanced {
         self.lights.unmap();
         self.model.unmap();
         self.matrix.unmap();
+        self.command.unmap();
     }
 
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
@@ -248,50 +262,23 @@ impl Drawlist for DrawlistInstanced {
             gl::Uniform1i(shader.uniform("info"), 4);
         }
 
-        let mut range = (0u, 0u);
-        let mut last_geo: Option<u32> = None;
-        let mut bound_vbo = None;
         let instance_offset = shader.uniform("instance_offset");        
 
-        let instance_draw = |draw_geo: ObjectKey, offset: uint, len: uint| {
-            let draw_geo = self.geometry(draw_geo).expect("geometry not found");
-            if Some(draw_geo.vb) != bound_vbo {
-                let draw_vbo = db.vertex.find(&draw_geo.vb).expect("vbo not found");
-                draw_vbo.bind();
-                bound_vbo = Some(draw_geo.vb);
-            }
+        gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command.id());
+        gl::Uniform1i(instance_offset, 0);
+        for b in self.command.batches().iter() {
+            let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
+            vbo.bind();
             unsafe {
-                gl::Uniform1i(instance_offset, offset as GLint);
-                gl::DrawElementsInstanced(gl::TRIANGLES,
-                    draw_geo.count as GLint,
+                gl::MultiDrawElementsIndirect(
+                    gl::TRIANGLES,
                     gl::UNSIGNED_INT,
-                    (draw_geo.offset * 4) as *c_void,
-                    len as GLint
+                    b.offset(),
+                    b.drawcount(),
+                    b.stride()
                 );
             }
-        };
-
-        for (idx, (_, draw)) in self.drawable_iter().enumerate() {
-            if last_geo.is_some() {
-                let (start, end) = range;
-                if last_geo.unwrap() == draw.geometry {
-                    range = (start, idx);
-                } else {
-                    instance_draw(last_geo.unwrap(), start, end - start + 1);
-                    range = (idx, idx);
-                    last_geo = Some(draw.geometry);
-                }
-            } else {
-                range = (idx, idx);
-                last_geo = Some(draw.geometry);
-            }
         }
-
-        if last_geo.is_some() {
-            let (start, end) = range;
-            instance_draw(last_geo.unwrap(), start, end - start + 1);
-        }
-
     }
 
     fn model_buffer(&self) -> u32 {
