@@ -13,7 +13,7 @@ use std::slice;
 
 use cgmath::vector::{Vector3, Vector2};
 use cgmath::point::Point3;
-use collision::aabb::Aabb3;
+use collision::sphere::Sphere;
 
 use cow::btree::{BTreeMapIterator, BTreeMap};
 use snowmew::common::{Common, ObjectKey};
@@ -64,6 +64,7 @@ impl TotalOrd for Drawable {
 pub struct GraphicsData {
     draw:               BTreeMap<ObjectKey, Drawable>,
     geometry:           BTreeMap<ObjectKey, Geometry>,
+    sphere:             BTreeMap<ObjectKey, Sphere<f32>>,
     vertex:             BTreeMap<ObjectKey, VertexBuffer>,
     material:           BTreeMap<ObjectKey, Material>,
     material_index:     BTreeMap<ObjectKey, i32>,
@@ -86,7 +87,8 @@ impl GraphicsData {
             lights: BTreeMap::new(),
             atlases: Vec::new(),
             texture_to_atlas: BTreeMap::new(),
-            material_idx_last: 0
+            material_idx_last: 0,
+            sphere: BTreeMap::new()
         }
     }
 }
@@ -112,7 +114,17 @@ pub trait Graphics: Common {
     fn new_geometry(&mut self, parent: ObjectKey, name: &str, geo: Geometry) -> ObjectKey {
         let oid = self.new_object(Some(parent), name);
         self.get_graphics_mut().geometry.insert(oid, geo);
+        let sphere = self.geometry_to_collider(oid)
+            .expect("Could not create sphere collider");
+        self.get_graphics_mut().sphere.insert(oid, sphere);
         oid
+    }
+
+    fn sphere(&self, geo: ObjectKey) -> Sphere<f32> {
+        match self.get_graphics().sphere.find(&geo) {
+            Some(s) => { s.clone() }
+            None => Sphere::new(Point3::new(0f32, 0., 0.,), 0f32)
+        }
     }
 
     fn material<'a>(&'a self, oid: ObjectKey) -> Option<&'a Material> {
@@ -186,7 +198,7 @@ pub trait Graphics: Common {
         )
     }
 
-    fn geometry_to_aabb3(&self, oid: ObjectKey) -> Option<Aabb3<f32>> {
+    fn geometry_to_collider<B: FromIterator<Point3<f32>>>(&self, oid: ObjectKey) -> Option<B> {
         let iter = match self.geometry_vertex_iter(oid) {
             None => return None,
             Some(iter) => iter

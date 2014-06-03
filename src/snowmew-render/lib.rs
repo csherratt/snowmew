@@ -19,6 +19,7 @@ extern crate time;
 extern crate libc;
 extern crate sync;
 extern crate gl_cl;
+extern crate collision;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 

@@ -126,6 +126,14 @@ impl Shader {
         }
     }
 
+    pub fn get_program_resouce_location(&self, gltype: u32, s: &str) -> u32 {
+        unsafe {
+            s.with_c_str(|c_str| {
+                gl::GetProgramResourceLocation(self.program, gltype, c_str) as u32
+            })
+        }
+    }
+
     pub fn uniform_block_data_size(&self, idx: u32) -> i32 {
         unsafe {
             let mut val = 0;

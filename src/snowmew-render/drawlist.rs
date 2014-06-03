@@ -257,9 +257,7 @@ impl Drawlist for DrawlistInstanced {
             gl::BindTexture(gl::TEXTURE_BUFFER, text[3]);
             gl::Uniform1i(shader.uniform("mat_model3"), 3);
 
-            gl::ActiveTexture(gl::TEXTURE4);
-            gl::BindTexture(gl::TEXTURE_BUFFER, self.model.id());
-            gl::Uniform1i(shader.uniform("info"), 4);
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 4, self.model.id());
         }
 
         let instance_offset = shader.uniform("instance_offset");        

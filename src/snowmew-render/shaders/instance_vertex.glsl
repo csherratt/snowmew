@@ -10,7 +10,17 @@ uniform samplerBuffer mat_model1;
 uniform samplerBuffer mat_model2;
 uniform samplerBuffer mat_model3;
 
-uniform usamplerBuffer info;
+struct DrawInfoStruct {
+    int id;
+    int matrix;
+    int material;
+    int _padd;
+    vec4 sphere;
+};
+
+layout(std430, binding=4) buffer DrawInfo {
+    DrawInfoStruct info[];
+};
 
 in vec3 in_position;
 in vec2 in_texture;
@@ -23,8 +33,8 @@ flat out uint fs_object_id;
 flat out uint fs_material_id;
 
 void main() {
-    uvec4 info = texelFetch(info, gl_DrawIDARB + gl_InstanceID);
-    int matrix_id = int(info.y);
+    int idx = gl_DrawIDARB + gl_InstanceID;
+    int matrix_id = int(info[idx].matrix);
     mat4 mat_model = mat4(texelFetch(mat_model0, matrix_id),
                           texelFetch(mat_model1, matrix_id),
                           texelFetch(mat_model2, matrix_id),
@@ -35,6 +45,6 @@ void main() {
 
     fs_texture = in_texture;
     fs_normal = normalize(normal).xyz;
-    fs_material_id = info.z;
-    fs_object_id = info.x;
+    fs_material_id = info[idx].material;
+    fs_object_id = info[idx].id;
 }
