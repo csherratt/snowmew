@@ -361,6 +361,10 @@ impl<PIPELINE: PipelineState> Pipeline for Swap<PIPELINE> {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, camera: &Camera, q: &mut Profiler) {
         let dt = DrawTarget::new(0, (0, 0), (self.width, self.height), ~[gl::BACK_LEFT]);
         let dm = camera.get_matrices((self.width as i32, self.height as i32));
+
+        q.time("cull data".to_string());
+        drawlist.cull(db, &dm.view, &dm.projection);
+
         self.input.render(drawlist, db, &dm, &dt, q);
         self.window.swap_buffers()
     }

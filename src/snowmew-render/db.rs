@@ -16,6 +16,7 @@ static VS_PASS_SRC: &'static str = include_str!("shaders/pass_vertex.glsl");
 static FS_FLAT_SRC: &'static str = include_str!("shaders/flat_fragment.glsl");
 static FS_AMBIENT_SRC: &'static str = include_str!("shaders/defered_ambient_fragment.glsl");
 static FS_POINT_LIGHT_SRC: &'static str = include_str!("shaders/defered_point_light_fragment.glsl");
+static CS_CULL_SRC: &'static str = include_str!("shaders/compute_cull.glsl");
 
 #[deriving(Clone)]
 pub struct GlState {
@@ -26,6 +27,7 @@ pub struct GlState {
     pub defered_shader_ambient: Option<Shader>,
     pub defered_shader_point_light: Option<Shader>,
     pub ovr_shader: Option<Shader>,
+    pub compute_cull: Option<Shader>,
     pub texture: TextureAtlas
 }
 
@@ -39,6 +41,7 @@ impl GlState {
             defered_shader_ambient: None,
             defered_shader_point_light: None,
             ovr_shader: None,
+            compute_cull: None,
             texture: TextureAtlas::new()
 
         }
@@ -97,11 +100,14 @@ impl GlState {
                     &[(0, "out_uv"), (1, "out_normal"), (2, "out_material"), (3, "out_dxdt")]
             )); 
         }
+        if self.compute_cull.is_none() {
+            self.compute_cull = Some(Shader::compute(CS_CULL_SRC));
+        }
     }
 
     pub fn load(&mut self, db: &RenderData, cfg: &Config) {
+        self.load_shaders(db, cfg);
         self.load_vertex(db, cfg);
         self.load_textures(db, cfg);
-        self.load_shaders(db, cfg);
     }
 }

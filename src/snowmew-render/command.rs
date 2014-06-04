@@ -8,12 +8,15 @@ use libc::c_void;
 use gl;
 use gl::types::{GLsizei, GLuint};
 
+use cgmath::matrix::Matrix4;
+use cgmath::array::Array2;
+use cgmath::vector::{Vector, EuclideanVector};
+
 use config::Config;
-
 use graphics::Graphics;
-
 use snowmew::common::ObjectKey;
 
+use db::GlState;
 
 struct DrawElementsIndirectCommand {
     count: GLuint,
@@ -99,76 +102,76 @@ impl CommandBuffer {
             count: 0
         };
 
-        let mut idx = -1;
-        let mut last_geo = None;
-        let mut command = DrawElementsIndirectCommand {
-            count: 0,
-            instrance_count: 1,
-            first_index: 0,
-            base_vertex: 0,
-            base_instance: 0
-        };
-
         unsafe {
             self.batches.truncate(0);
             mut_buf_as_slice(self.ptr, self.size, |b| {
                 for (count, (_, draw)) in db.drawable_iter().enumerate() {
-                    if idx == -1 {
-                        let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
-                        last_geo = Some(draw.geometry);
-                        command = DrawElementsIndirectCommand {
-                            count: draw_geo.count as GLuint,
-                            instrance_count: 1,
-                            first_index: draw_geo.offset as GLuint,
-                            base_vertex: 0,
-                            base_instance: count as GLuint
-                        };
+                    let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
 
+                    b[count] = DrawElementsIndirectCommand {
+                        count: draw_geo.count as GLuint,
+                        instrance_count: 1,
+                        first_index: draw_geo.offset as GLuint,
+                        base_vertex: 0,
+                        base_instance: count as GLuint
+                    };
+
+                    if batch.vbo == 0 {
                         batch.vbo = draw_geo.vb;
+                        batch.offset = count;
                         batch.count = 1;
-
-                        idx = 0;
-                    } else if last_geo == Some(draw.geometry) {
-                        command.instrance_count += 1;
+                    } else if batch.vbo == draw_geo.vb {
+                        batch.count += 1;
                     } else {
-                        let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
-                        last_geo = Some(draw.geometry);
-
-                        b[idx] = command;
-                        idx += 1; 
-
-                        command = DrawElementsIndirectCommand {
-                            count: draw_geo.count as GLuint,
-                            instrance_count: 1,
-                            first_index: draw_geo.offset as GLuint,
-                            base_vertex: 0,
-                            base_instance: count as GLuint
-                        };
-
-                        if batch.vbo == 0 {
-                            batch.vbo = draw_geo.vb;
-                            batch.offset = idx;
-                            batch.count = 1;
-                        } else if batch.vbo == draw_geo.vb {
-                            batch.count += 1;
-                        } else {
-                            self.batches.push(batch.clone());
-                            batch.vbo = draw_geo.vb;
-                            batch.offset = idx;
-                            batch.count = 1;
-                        }
-
+                        self.batches.push(batch.clone());
+                        batch.vbo = draw_geo.vb;
+                        batch.offset = count;
+                        batch.count = 1;
                     }
                 }
-                b[idx] = command;
             });
         }
       
         self.batches.push(batch)
     }
 
+    pub fn cull(&self, draw: GLuint, matrix: GLuint, dat: &GlState, mat: &Matrix4<f32>) {
+        let to_plane = |x, scale| {
+            let plane = mat.r(x).mul_s(scale).add_v(&mat.r(3));
+            plane.normalize()
+        };
+
+        let planes = &[
+            to_plane(0,  1.),
+            to_plane(0, -1.),
+            to_plane(1,  1.),
+            to_plane(1, -1.),
+            to_plane(2,  1.),
+            to_plane(2, -1.)
+        ];
+
+        let shader = dat.compute_cull.as_ref().expect("Could not get cull");
+
+        let size = self.batches.iter().fold(0, |a, b| a + b.count);
+
+        let x = 256;
+        let y = size / 256 + 1;
+
+        shader.bind();
+        unsafe {
+            gl::Uniform4fv(shader.uniform("plane"), 6, &planes[0].x);
+            gl::Uniform1i(shader.uniform("max_id"), size as i32);
+        }
+
+        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 0, draw);
+        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 1, matrix);
+        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 2, self.command);
+        gl::DispatchCompute(x as u32, y as u32, 1);
+        gl::MemoryBarrier(gl::COMMAND_BARRIER_BIT);
+    }
+
     pub fn batches<'a>(&'a self) -> &'a [Batch] {
-        self.batches.as_slice()
+        self.batches.slice(0, self.batches.len())
     }
 
     pub fn id(&self) -> GLuint {

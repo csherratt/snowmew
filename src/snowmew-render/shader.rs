@@ -46,19 +46,18 @@ pub fn compile_shader(src: &str, ty: gl::types::GLenum) -> GLuint {
     shader
 }
 
-#[deriving(Clone, Default)]
+#[deriving(Clone, Default)] 
 pub struct Shader {
     program: GLuint,
-    fs: GLuint,
-    vs: GLuint,
-    gs: GLuint
+    shaders: Vec<GLuint>
 }
 
 impl Shader {
-    fn _new(vs: GLuint, gs: GLuint, fs: GLuint, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader {
+    fn _new(shaders: Vec<GLuint>, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader {
         let program = gl::CreateProgram();
-        gl::AttachShader(program, vs);
-        gl::AttachShader(program, fs);
+        for s in shaders.iter() {
+            gl::AttachShader(program, *s);
+        }
  
         unsafe {
             for &(idx, name) in bind_attr.iter() {
@@ -91,23 +90,26 @@ impl Shader {
 
         Shader {
             program: program,
-            fs: fs,
-            vs: vs,
-            gs: gs
+            shaders: shaders
         }
     }
 
     pub fn new(vert: &str, frag: &str, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader {
         let vert = compile_shader(vert, gl::VERTEX_SHADER);
         let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
-        Shader::_new(vert, 0, frag, bind_attr, bind_frag)
+        Shader::_new(vec!(vert, frag), bind_attr, bind_frag)
     }
 
     pub fn new_geo(vert: &str, frag: &str, geo: &str, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader {
         let vert = compile_shader(vert, gl::VERTEX_SHADER);
         let frag = compile_shader(frag, gl::FRAGMENT_SHADER);
         let geo = compile_shader(geo, gl::GEOMETRY_SHADER);
-        Shader::_new(vert, geo, frag, bind_attr, bind_frag)
+        Shader::_new(vec!(vert, geo, frag), bind_attr, bind_frag)
+    }
+
+    pub fn compute(cs: &str) -> Shader {
+        let cs = compile_shader(cs, gl::COMPUTE_SHADER);
+        Shader::_new(vec!(cs), &[], &[])
     }
 
     pub fn uniform(&self, s: &str) -> i32 {

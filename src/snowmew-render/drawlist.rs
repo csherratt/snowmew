@@ -3,7 +3,7 @@ use time::precise_time_s;
 
 use OpenCL::hl::{CommandQueue, Context, Device};
 use OpenCL::mem::Buffer;
-use cgmath::matrix::Matrix4;
+use cgmath::matrix::{Matrix4, Matrix};
 use cgmath::array::Array2;
 use gl;
 
@@ -34,6 +34,9 @@ pub trait Drawlist: RenderData {
     // setup on the OpenGL thread, this will unmap and sync anything that
     // is needed to be done
     fn setup_complete(&mut self, db: &mut GlState, cfg: &Config);
+
+    // setup is complete, render. This is done on the OpenGL thread.
+    fn cull(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>);
 
     // setup is complete, render. This is done on the OpenGL thread.
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>);
@@ -228,8 +231,12 @@ impl Drawlist for DrawlistInstanced {
         self.command.unmap();
     }
 
+    fn cull(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
+        self.command.cull(self.model.id(), self.matrix.id(), db, &projection.mul_m(view));
+    }
+
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
-        let shader = db.flat_instance_shader.unwrap();
+        let shader = db.flat_instance_shader.as_ref().unwrap();
         shader.bind();
 
         gl::Enable(gl::DEPTH_TEST);
@@ -243,7 +250,6 @@ impl Drawlist for DrawlistInstanced {
         
         gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 4, self.model.id());
         gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 5, self.matrix.id());
-
 
         let instance_offset = shader.uniform("instance_offset");        
 

@@ -116,6 +116,7 @@ pub trait Graphics: Common {
         self.get_graphics_mut().geometry.insert(oid, geo);
         let sphere = self.geometry_to_collider(oid)
             .expect("Could not create sphere collider");
+        println!("sphere: {}", sphere);
         self.get_graphics_mut().sphere.insert(oid, sphere);
         oid
     }
