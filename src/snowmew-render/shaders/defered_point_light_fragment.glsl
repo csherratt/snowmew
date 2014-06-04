@@ -59,19 +59,16 @@ uniform mat4 mat_view;
 in vec2 TexPos;
 out vec4 color;
 
-fetch_result fetch_material(vec4 d, ivec2 map) {
-    if (map.x == -1) {
-        return fetch_result(d, true);
-    } else if (map.x >= atlas_base && map.x < atlas_base + ATLAS_SIZE) {
-        vec2 uv_value = texture(uv, TexPos).xy;
-        vec4 dxdy = texture(dxdt, TexPos); 
-        vec4 text = textureGrad(atlas[map.x],
+fetch_result fetch_material(vec4 d, ivec2 map, vec2 uv_value, vec2 xy, vec2 zw) {
+    if (map.x >= atlas_base && map.x < atlas_base + ATLAS_SIZE) {
+        vec4 text = textureGrad(atlas[map.x-atlas_base],
                                vec3(uv_value, float(map.y)),
-                               dxdy.xy,
-                               dxdy.zw);
+                               xy, zw);
         return fetch_result(vec4(text.xyz, 1.), true);
+    } else if (map.x == -1 && atlas_base == 0) {
+        return fetch_result(d, true);
     } else {
-        fetch_result(vec4(0., 0., 0., 0.), false);
+        return fetch_result(vec4(0., 0., 0., 0.), false);
     }
 }
 
@@ -91,12 +88,17 @@ vec4 calc_pos_from_window(vec3 window_space) {
 
 void main() {
     uvec2 object = texture(pixel_drawn_by, TexPos).xy;
+    vec2 uv_value = texture(uv, TexPos).xy;
+    vec4 dxdy = texture(dxdt, TexPos); 
     fetch_result ka = fetch_material(materials[object.y].ka,
-                                     materials[object.y].ka_map);
+                                     materials[object.y].ka_map,
+                                     uv_value, dxdy.xy, dxdy.zw);
     fetch_result kd = fetch_material(materials[object.y].kd,
-                                     materials[object.y].kd_map);
+                                     materials[object.y].kd_map,
+                                     uv_value, dxdy.xy, dxdy.zw);
     fetch_result ks = fetch_material(materials[object.y].ks,
-                                     materials[object.y].ks_map);
+                                     materials[object.y].ks_map,
+                                     uv_value, dxdy.xy, dxdy.zw);
     vec4 pos = calc_pos_from_window(vec3(gl_FragCoord.x,
                                          gl_FragCoord.y,
                                          texture(depth, TexPos).x));
@@ -104,8 +106,10 @@ void main() {
     vec4 eye_pos = inverse(mat_view) * vec4(0., 0., 0., 1.);
     vec4 eye_to_point_normal = normalize(eye_pos - pos);
 
+    color = vec4(0);
+
     if (ka.found) {
-        color = ka.value * 0.2;
+        color += ka.value * 0.2;
     }
 
     for (int i = 0; i < point_count; i++) {
