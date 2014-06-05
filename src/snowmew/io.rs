@@ -1,4 +1,5 @@
 use sync::Arc;
+#[cfg(target_os="linux")]
 use libc::c_void;
 
 use glfw::{WindowEvent, Key, MouseButton, Glfw, Context};
@@ -276,7 +277,7 @@ impl IOManager {
             render: rc,
             version: version,
             hmd: None,
-            display: self.glfw.get_x11_display()
+            os_spec: WindowOSSpec::new(&self.glfw)
         })
     }
 
@@ -323,7 +324,7 @@ impl IOManager {
                     continue;
                 }
 
-                let (width, height) = hmd.resolution();
+                let (width, height) = (hmd.resolution.x, hmd.resolution.y);
                 let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
                 let (window, events) = match win_opt {
                     Some((window, events)) => (window, events),
@@ -373,7 +374,7 @@ impl IOManager {
             render: rc,
             version: version,
             hmd: Some(Arc::new(hmd)),
-            display: self.glfw.get_x11_display()
+            os_spec: WindowOSSpec::new(&self.glfw)
         })
     }
 
@@ -418,13 +419,34 @@ pub struct InputHandle {
     handle: uint,
 }
 
+#[cfg(target_os="macos")]
+struct WindowOSSpec;
+
+#[cfg(target_os="macos")]
+impl WindowOSSpec {
+    fn new(_: &Glfw) -> WindowOSSpec {WindowOSSpec}
+}
+
+#[cfg(target_os="linux")]
+struct WindowOSSpec {
+    display: *c_void
+}
+
+#[cfg(target_os="linux")]
+impl WindowOSSpec {
+    fn new(glfw: &Glfw) -> WindowOSSpec {
+        WindowOSSpec {
+            display: glfw.get_x11_display()
+        }
+    }
+}
 
 pub struct Window {
     handle: InputHandle,
     render: RenderContext,
     version: semver::Version,
     hmd: Option<Arc<ovr::Hmd>>,
-    display: *c_void
+    os_spec: WindowOSSpec
 }
 
 impl Window {
@@ -456,7 +478,7 @@ impl Window {
     /// Wrapper for `glfwGetGLXContext`
     #[cfg(target_os="linux")]
     pub fn get_x11_display(&self) -> *c_void {
-        self.display
+        self.os_spec.display
     }
 
 }

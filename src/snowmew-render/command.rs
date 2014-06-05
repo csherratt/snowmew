@@ -19,14 +19,14 @@ use snowmew::common::ObjectKey;
 use db::GlState;
 
 struct DrawElementsIndirectCommand {
-    count: GLuint,
-    instrance_count: GLuint,
-    first_index: GLuint,
-    base_vertex: GLuint,
-    base_instance: GLuint
+    pub count: GLuint,
+    pub instrance_count: GLuint,
+    pub first_index: GLuint,
+    pub base_vertex: GLuint,
+    pub base_instance: GLuint
 }
 
-pub struct CommandBuffer {
+pub struct CommandBufferIndirect {
     command: GLuint,
     ptr: *mut DrawElementsIndirectCommand,
     size: uint,
@@ -54,11 +54,13 @@ impl Batch {
     pub fn stride(&self) -> GLsizei {
         mem::size_of::<DrawElementsIndirectCommand>() as GLsizei
     }
+
+    pub fn offset_int(&self) -> uint {self.offset}
 }
 
 
-impl CommandBuffer {
-    pub fn new(cfg: &Config) -> CommandBuffer {
+impl CommandBufferIndirect {
+    pub fn new(cfg: &Config) -> CommandBufferIndirect {
         let cb = &mut [0];
         unsafe {
             gl::GenBuffers(1, cb.unsafe_mut_ref(0));
@@ -71,7 +73,7 @@ impl CommandBuffer {
             gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);
         }
 
-        CommandBuffer {
+        CommandBufferIndirect {
             command: cb[0],
             ptr: ptr::mut_null(),
             size: cfg.max_size(),
@@ -176,5 +178,67 @@ impl CommandBuffer {
 
     pub fn id(&self) -> GLuint {
         self.command
+    }
+}
+
+pub struct CommandBufferEmulated {
+    commands: Vec<DrawElementsIndirectCommand>,
+    batches: Vec<Batch>
+}
+
+impl CommandBufferEmulated {
+    pub fn new(_: &Config) -> CommandBufferEmulated {
+        CommandBufferEmulated {
+            commands: Vec::new(),
+            batches: Vec::new()
+        }
+    }
+
+    pub fn map(&mut self) {}
+    pub fn unmap(&mut self) {}
+
+    pub fn build<GD: Graphics>(&mut self, db: &GD) {
+        let mut batch = Batch {
+            vbo: 0,
+            offset: 0,
+            count: 0
+        };
+
+        self.batches.truncate(0);
+        self.commands.truncate(0);
+        for (count, (_, draw)) in db.drawable_iter().enumerate() {
+            let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
+
+            self.commands.push(DrawElementsIndirectCommand {
+                count: draw_geo.count as GLuint,
+                instrance_count: 1,
+                first_index: draw_geo.offset as GLuint,
+                base_vertex: 0,
+                base_instance: count as GLuint
+            });
+
+            if batch.vbo == 0 {
+                batch.vbo = draw_geo.vb;
+                batch.offset = count;
+                batch.count = 1;
+            } else if batch.vbo == draw_geo.vb {
+                batch.count += 1;
+            } else {
+                self.batches.push(batch.clone());
+                batch.vbo = draw_geo.vb;
+                batch.offset = count;
+                batch.count = 1;
+            }
+        }
+      
+        self.batches.push(batch)
+    }
+
+    pub fn batches<'a>(&'a self) -> &'a [Batch] {
+        self.batches.slice(0, self.batches.len())
+    }
+
+    pub fn commands<'a>(&'a self) -> &'a [DrawElementsIndirectCommand] {
+        self.commands.slice(0, self.commands.len())
     }
 }
