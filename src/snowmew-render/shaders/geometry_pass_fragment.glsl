@@ -1,4 +1,3 @@
-#version 400
 
 in vec2 fs_texture;
 in vec3 fs_normal;

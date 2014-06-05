@@ -1,5 +1,3 @@
-#version 410
-
 #define ATLAS_SIZE 8
 
 struct material {
@@ -55,6 +53,8 @@ uniform int atlas_base;
 uniform vec4 viewport;
 uniform mat4 mat_proj;
 uniform mat4 mat_view;
+uniform mat4 mat_inv_proj;
+uniform mat4 mat_inv_view;
 
 in vec2 TexPos;
 out vec4 color;
@@ -83,7 +83,7 @@ vec4 calc_pos_from_window(vec3 window_space) {
     clip_pose.w = mat_proj[3][2] / (ndc_pos.z - (mat_proj[2][2] / mat_proj[2][3]));
     clip_pose.xyz = ndc_pos * clip_pose.w;
 
-    return inverse(mat_view) * inverse(mat_proj) * clip_pose;
+    return mat_inv_view * mat_inv_proj * clip_pose;
 }
 
 void main() {
@@ -103,13 +103,12 @@ void main() {
                                          gl_FragCoord.y,
                                          texture(depth, TexPos).x));
     vec4 surface_normal = vec4(texture(normal, TexPos).xyz, 0.);
-    vec4 eye_pos = inverse(mat_view) * vec4(0., 0., 0., 1.);
+    vec4 eye_pos = mat_inv_view * vec4(0., 0., 0., 1.);
     vec4 eye_to_point_normal = normalize(eye_pos - pos);
 
-    color = vec4(0);
-
+    vec4 c = vec4(0);
     if (ka.found) {
-        color += ka.value * 0.2;
+        c = ka.value * 0.2;
     }
 
     for (int i = 0; i < point_count; i++) {
@@ -118,38 +117,40 @@ void main() {
         dist = 1. / (dist*dist);
         vec4 light_to_point_normal = normalize(delta);
         if (kd.found) {
-            color += kd.value * point_lights[i].color * dist * 
+            c += kd.value * point_lights[i].color * dist * 
                         max(0, dot(light_to_point_normal, surface_normal));
         }
 
-        if (ks.found) {
+        /*if (ks.found) {
             vec4 h = normalize(light_to_point_normal + eye_to_point_normal);
             float ns = materials[object.y].ns;
             float facing = 0;
             if (dot(light_to_point_normal, surface_normal) > 0) {
                 facing = 1;
             }
-            color += ks.value * point_lights[i].color * facing *
+            c += ks.value * point_lights[i].color * facing *
                     dist * pow(max(0, dot(h, surface_normal)), ns);
-        }
+        }*/
     }
 
     for (int i = 0; i < direction_count; i++) {
         vec4 light_to_point_normal = direction_lights[i].normal;
         if (kd.found) {
-            color += kd.value * direction_lights[i].color * 
+            c += kd.value * direction_lights[i].color * 
                      max(0, dot(light_to_point_normal, surface_normal));
         }
 
-        if (ks.found) {
+        /*if (ks.found) {
             vec4 h = normalize(light_to_point_normal + eye_to_point_normal);
             float ns = materials[object.y].ns;
             float facing = 0;
             if (dot(light_to_point_normal, surface_normal) > 0) {
                 facing = 1;
             }
-            color += ks.value * direction_lights[i].color * facing *
+            c += ks.value * direction_lights[i].color * facing *
                      pow(max(0, dot(h, surface_normal)), ns);
-        }
+        }*/
     }
+
+    color = c;
 }

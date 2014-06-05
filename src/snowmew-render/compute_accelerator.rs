@@ -96,7 +96,7 @@ pub struct PositionGlAccelerator {
 impl PositionGlAccelerator {
     pub fn new() -> PositionGlAccelerator {
         let program = gl::CreateProgram();
-        let shader = compile_shader(position_shader, gl::COMPUTE_SHADER);
+        let shader = compile_shader(None, position_shader, gl::COMPUTE_SHADER);
         gl::AttachShader(program, shader);
         gl::LinkProgram(program);
 

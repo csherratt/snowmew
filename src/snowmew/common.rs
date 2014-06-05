@@ -170,7 +170,6 @@ pub trait Common {
         }
     }
 
-
     fn name(&self, key: ObjectKey) -> String {
         self.get_common().name(key)
     }

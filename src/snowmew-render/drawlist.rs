@@ -1,12 +1,12 @@
 use sync::{TaskPool, Arc};
 use time::precise_time_s;
+use libc::c_void;
 
 use OpenCL::hl::{CommandQueue, Context, Device};
 use OpenCL::mem::Buffer;
 use cgmath::matrix::{Matrix4, Matrix};
 use cgmath::array::Array2;
 use gl;
-
 
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
@@ -16,9 +16,9 @@ use db::GlState;
 use {Config, RenderData};
 use material::MaterialBuffer;
 use light::LightsBuffer;
-use model::ModelInfoBuffer;
-use matrix::MatrixBuffer;
-use command::CommandBuffer;
+use model::{ModelInfoTextureBuffer, ModelInfoSSBOBuffer};
+use matrix::{MatrixSSBOBuffer, MatrixTextureBuffer};
+use command::{CommandBufferIndirect, CommandBufferEmulated};
 
 pub trait Drawlist: RenderData {
     // This is done on the OpenGL thread, this will map and setup
@@ -48,22 +48,39 @@ pub trait Drawlist: RenderData {
     fn start_time(&self) -> f64;
 }
 
-impl Common for DrawlistInstanced {
+impl Common for DrawlistSSBOCompute {
     fn get_common<'a>(&'a self) -> &'a CommonData { &self.data.common }
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { &mut self.data.common }
 }
 
-impl Graphics for DrawlistInstanced {
+impl Graphics for DrawlistSSBOCompute {
     fn get_graphics<'a>(&'a self) -> &'a GraphicsData { &self.data.graphics }
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.data.graphics }
 }
 
-impl Positions for DrawlistInstanced {
+impl Positions for DrawlistSSBOCompute {
     fn get_position<'a>(&'a self) -> &'a PositionData { &self.data.position }
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.data.position }
 }
 
-impl RenderData for DrawlistInstanced {}
+impl RenderData for DrawlistSSBOCompute {}
+
+impl Common for DrawlistNoSSBO {
+    fn get_common<'a>(&'a self) -> &'a CommonData { &self.data.common }
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { &mut self.data.common }
+}
+
+impl Graphics for DrawlistNoSSBO {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { &self.data.graphics }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.data.graphics }
+}
+
+impl Positions for DrawlistNoSSBO {
+    fn get_position<'a>(&'a self) -> &'a PositionData { &self.data.position }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.data.position }
+}
+
+impl RenderData for DrawlistNoSSBO {}
 
 #[deriving(Clone)]
 struct DrawlistGraphicsData {
@@ -89,24 +106,24 @@ impl Positions for DrawlistGraphicsData {
 
 impl RenderData for DrawlistGraphicsData {}
 
-pub struct DrawlistInstanced {
+pub struct DrawlistNoSSBO {
     data: DrawlistGraphicsData,
 
     materials: MaterialBuffer,
     lights: LightsBuffer,
-    model: ModelInfoBuffer,
-    matrix: MatrixBuffer,
-    command: CommandBuffer,
+    model: ModelInfoTextureBuffer,
+    matrix: MatrixTextureBuffer,
+    command: CommandBufferEmulated,
 
     size: uint,
     start: f64
 }
 
-impl DrawlistInstanced {
+impl DrawlistNoSSBO {
     pub fn from_config(cfg: &Config,
-                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistInstanced {
+                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistNoSSBO {
 
-        DrawlistInstanced {
+        DrawlistNoSSBO {
             data: DrawlistGraphicsData {
                 common: CommonData::new(),
                 graphics: GraphicsData::new(),
@@ -115,26 +132,25 @@ impl DrawlistInstanced {
             size: cfg.max_size(),
             materials: MaterialBuffer::new(512),
             lights: LightsBuffer::new(),
-            model: ModelInfoBuffer::new(cfg),
-            matrix: MatrixBuffer::new(cfg, cl),
-            command: CommandBuffer::new(cfg),
+            model: ModelInfoTextureBuffer::new(cfg),
+            matrix: MatrixTextureBuffer::new(cfg, cl),
+            command: CommandBufferEmulated::new(cfg),
             start: 0.
         }
     }
 }
 
-impl Drawlist for DrawlistInstanced {
+impl Drawlist for DrawlistNoSSBO {
     fn setup_begin(&mut self) {
         self.materials.map();
         self.lights.map();
         self.model.map();
         self.matrix.map();
         self.command.map();
-
     }
 
     fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>) {
-        let DrawlistInstanced {
+        let DrawlistNoSSBO {
             data: _,
             size: size,
             materials: materials,
@@ -203,7 +219,212 @@ impl Drawlist for DrawlistInstanced {
                        receiver2.recv(), receiver3.recv(),
                        receiver4.recv()) {
                     (matrix, model, lights, materials, command) => {
-                        box DrawlistInstanced {
+                        box DrawlistNoSSBO {
+                            matrix: matrix,
+                            materials: materials,
+                            lights: lights,
+                            model: model,
+                            command: command,
+
+                            // other
+                            size: size,
+                            start: start,
+                            data: data
+                        } as Box<Drawlist:Send>
+                    }
+                }
+            );
+        });
+    }
+
+    fn setup_complete(&mut self, db: &mut GlState, cfg: &Config) {
+        let data = self.data.clone();
+        db.load(&data, cfg);
+        self.materials.unmap();
+        self.lights.unmap();
+        self.model.unmap();
+        self.matrix.unmap();
+        self.command.unmap();
+    }
+
+    fn cull(&mut self, _: &GlState, _: &Matrix4<f32>, _: &Matrix4<f32>) {}
+
+    fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
+        let shader = db.geometry_no_ssbo.as_ref().unwrap();
+        shader.bind();
+
+        gl::Enable(gl::DEPTH_TEST);
+        gl::Enable(gl::CULL_FACE);
+        gl::CullFace(gl::BACK);
+
+        let base_index = shader.uniform("base_index");
+
+        unsafe {
+            gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());    
+        
+            let text = self.matrix.ids();
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_BUFFER, text[0]);
+            gl::Uniform1i(shader.uniform("model_matrix0"), 0);
+
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_BUFFER, text[1]);
+            gl::Uniform1i(shader.uniform("model_matrix1"), 1);
+
+            gl::ActiveTexture(gl::TEXTURE2);
+            gl::BindTexture(gl::TEXTURE_BUFFER, text[2]);
+            gl::Uniform1i(shader.uniform("model_matrix2"), 2);
+
+            gl::ActiveTexture(gl::TEXTURE3);
+            gl::BindTexture(gl::TEXTURE_BUFFER, text[3]);
+            gl::Uniform1i(shader.uniform("model_matrix3"), 3);
+
+            gl::ActiveTexture(gl::TEXTURE4);
+            gl::BindTexture(gl::TEXTURE_BUFFER, self.model.id());
+            gl::Uniform1i(shader.uniform("info_buffer"), 4);
+        }
+        
+        let cmds = self.command.commands();
+        for b in self.command.batches().iter() {
+            let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
+            vbo.bind();
+            shader.validate();
+            for d in range(b.offset_int(), b.drawcount() as uint +b.offset_int()) {
+                gl::Uniform1i(base_index, cmds[d].base_instance as i32);
+                unsafe {
+                    gl::DrawElementsInstanced(
+                        gl::TRIANGLES,
+                        cmds[d].count as i32,
+                        gl::UNSIGNED_INT,
+                        (cmds[d].first_index * 4) as *c_void,
+                        cmds[d].instrance_count as i32
+                    );
+                }
+            }
+        }
+    }
+
+    fn model_buffer(&self) -> u32 { self.model.id() }
+    fn material_buffer(&self) -> u32 { self.materials.id() }
+    fn lights_buffer(&self) -> u32 { self.lights.id() }
+    fn start_time(&self) -> f64 { self.start }
+}
+
+pub struct DrawlistSSBOCompute {
+    data: DrawlistGraphicsData,
+
+    materials: MaterialBuffer,
+    lights: LightsBuffer,
+    model: ModelInfoSSBOBuffer,
+    matrix: MatrixSSBOBuffer,
+    command: CommandBufferIndirect,
+
+    size: uint,
+    start: f64
+}
+
+impl DrawlistSSBOCompute {
+    pub fn from_config(cfg: &Config,
+                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> DrawlistSSBOCompute {
+
+        DrawlistSSBOCompute {
+            data: DrawlistGraphicsData {
+                common: CommonData::new(),
+                graphics: GraphicsData::new(),
+                position: PositionData::new()
+            },
+            size: cfg.max_size(),
+            materials: MaterialBuffer::new(512),
+            lights: LightsBuffer::new(),
+            model: ModelInfoSSBOBuffer::new(cfg),
+            matrix: MatrixSSBOBuffer::new(cfg, cl),
+            command: CommandBufferIndirect::new(cfg),
+            start: 0.
+        }
+    }
+}
+
+impl Drawlist for DrawlistSSBOCompute {
+    fn setup_begin(&mut self) {
+        self.materials.map();
+        self.lights.map();
+        self.model.map();
+        self.matrix.map();
+        self.command.map();
+    }
+
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>) {
+        let DrawlistSSBOCompute {
+            data: _,
+            size: size,
+            materials: materials,
+            lights: lights,
+            model: model,
+            matrix: matrix,
+            command: command,
+            start: _
+        } = *self;
+
+        let data = DrawlistGraphicsData {
+            common: db.get_common().clone(),
+            graphics: db.get_graphics().clone(),
+            position: db.get_position().clone()
+        };
+
+        let start = precise_time_s();
+        let db0 = data.clone();
+        let (sender, receiver0) = channel();
+        tp.execute(proc(_) {
+            let db = db0;
+            let mut matrix = matrix;
+            matrix.build(&db);
+            sender.send(matrix)
+        });
+
+        let db1 = data.clone();
+        let (sender, receiver1) = channel();
+        tp.execute(proc(_) {
+            let db = db1;
+            let mut model = model;
+            model.build(&db);
+            sender.send(model);
+        });
+
+        let db2 = data.clone();
+        let (sender, receiver2) = channel();
+        tp.execute(proc(_) {
+            let db = db2;
+            let mut lights = lights;
+            lights.build(&db);
+            sender.send(lights);
+        });
+
+        let db3 = data.clone();
+        let (sender, receiver3) = channel();
+        tp.execute(proc(_) {
+            let db = db3;
+            let mut materials = materials;
+            materials.build(&db);
+            sender.send(materials);
+        });
+
+        let db4 = data.clone();
+        let (sender, receiver4) = channel();
+        tp.execute(proc(_) {
+            let db = db4;
+            let mut command = command;
+            command.build(&db);
+            sender.send(command);
+        });
+
+        tp.execute(proc(ch) {
+            ch.send(
+                match (receiver0.recv(), receiver1.recv(),
+                       receiver2.recv(), receiver3.recv(),
+                       receiver4.recv()) {
+                    (matrix, model, lights, materials, command) => {
+                        box DrawlistSSBOCompute {
                             matrix: matrix,
                             materials: materials,
                             lights: lights,
@@ -236,7 +457,7 @@ impl Drawlist for DrawlistInstanced {
     }
 
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
-        let shader = db.flat_instance_shader.as_ref().unwrap();
+        let shader = db.geometry_ssbo_drawid.as_ref().unwrap();
         shader.bind();
 
         gl::Enable(gl::DEPTH_TEST);
@@ -251,10 +472,7 @@ impl Drawlist for DrawlistInstanced {
         gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 4, self.model.id());
         gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 5, self.matrix.id());
 
-        let instance_offset = shader.uniform("instance_offset");        
-
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command.id());
-        gl::Uniform1i(instance_offset, 0);
         for b in self.command.batches().iter() {
             let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
             vbo.bind();
@@ -270,22 +488,17 @@ impl Drawlist for DrawlistInstanced {
         }
     }
 
-    fn model_buffer(&self) -> u32 {
-        self.model.id()
-    }
-
-    fn material_buffer(&self) -> u32 {
-        self.materials.id()
-    }
-
-    fn lights_buffer(&self) -> u32 {
-        self.lights.id()
-    }
-
+    fn model_buffer(&self) -> u32 { self.model.id() }
+    fn material_buffer(&self) -> u32 { self.materials.id() }
+    fn lights_buffer(&self) -> u32 { self.lights.id() }
     fn start_time(&self) -> f64 { self.start }
 }
 
 pub fn create_drawlist(cfg: &Config,
                        cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> Box<Drawlist:Send> {
-    box DrawlistInstanced::from_config(cfg, cl) as Box<Drawlist:Send>
+    if cfg.compute() && cfg.ssbo() {
+        box DrawlistSSBOCompute::from_config(cfg, cl) as Box<Drawlist:Send>
+    } else {
+        box DrawlistNoSSBO::from_config(cfg, cl) as Box<Drawlist:Send>
+    }
 }

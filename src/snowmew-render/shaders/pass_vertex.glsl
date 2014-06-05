@@ -1,6 +1,5 @@
-#version 400
-in vec3 pos;
 
+in vec3 pos;
 out vec2 TexPos;
 
 void main() {

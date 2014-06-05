@@ -9,6 +9,7 @@ use ovr::{RenderGLConfig, EyeType, SensorCapabilities, EyeLeft, EyeRight};
 use ovr::Texture;
 use ovr::ll::Sizei;
 
+use cgmath::matrix::Matrix;
 use cgmath::vector::{Vector4};
 use cgmath::array::{Array1, Array2};
 
@@ -260,6 +261,12 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         unsafe {
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, dm.projection.ptr());
             gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, dm.view.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_inv_proj"), 1, gl::FALSE,
+                dm.projection.invert().expect("failed to invert").ptr()
+            );
+            gl::UniformMatrix4fv(shader.uniform("mat_inv_view"), 1, gl::FALSE,
+                dm.view.invert().expect("failed to invert").ptr()
+            );
             gl::Uniform4fv(shader.uniform("viewport"), 1, dt.to_vec4().ptr());
         }
 
@@ -279,6 +286,14 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
 
         let texture_base = gl::TEXTURE7 - gl::TEXTURE0;
         let texture_range = gl::TEXTURE15 - gl::TEXTURE0 - texture_base;
+        let text: Vec<i32> = range(texture_base as i32,
+                                  (texture_base+texture_range) as i32).collect();
+
+        unsafe {
+            gl::Uniform1iv(atlas_uniform,
+                           text.len() as i32,
+                           (text.get(0) as *i32));
+        } 
 
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
         for idx in range_step(0, total_textures, texture_range as uint) {
@@ -293,14 +308,9 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
                         gl::ActiveTexture(gl::TEXTURE0+texture_base+e as u32);
                         gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
                     }
-
-                    let slice: Vec<i32> = range(idx, end)
-                            .enumerate().map(|(e, _)| (e+texture_base as uint ) as i32).collect();
                     gl::Uniform1i(atlas_base, idx as i32);
-                    gl::Uniform1iv(atlas_uniform,
-                                   slice.len() as i32,
-                                   slice.get(0));
                 }
+                shader.validate();
                 gl::DrawElements(gl::TRIANGLES,
                                  plane.count as i32,
                                  gl::UNSIGNED_INT,

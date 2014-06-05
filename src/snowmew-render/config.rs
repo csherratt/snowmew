@@ -22,11 +22,13 @@ pub struct Config {
     drawlist_count: uint,
     thread_pool_size: uint,
     hmd_size: f32,
-    bindless: ConfigOption,
+    ssbo: ConfigOption,
+    compute: ConfigOption,
     instanced: ConfigOption,
     profile: ConfigOption,
     opencl: ConfigOption,
-    fps: ConfigOption
+    fps: ConfigOption,
+
 }
 
 fn get_setting_option(name: &str, default: ConfigOption) -> ConfigOption {
@@ -89,8 +91,11 @@ impl Config
             opencl: get_setting_option("OPENCL", Enabled),
             profile: get_setting_option("PROFILE", Disabled),
             fps: get_setting_option("FPS", Enabled),
-            bindless: check_gl_version(gl_version, (4, 4),
-                get_setting_option("BINDLESS", Enabled)
+            compute: check_gl_version(gl_version, (4, 3), 
+                get_setting_option("COMPUTE", Enabled)
+            ),
+            ssbo: check_gl_version(gl_version, (4, 3), 
+                get_setting_option("SSBO", Enabled)
             ),
             instanced: check_gl_version(gl_version, (3, 1),
                 get_setting_option("INSTANCED", Enabled)
@@ -98,7 +103,8 @@ impl Config
         }
     }
 
-    pub fn use_bindless(&self) -> bool { self.bindless.enabled() }
+    pub fn compute(&self) -> bool { self.compute.enabled() }
+    pub fn ssbo(&self) -> bool { self.ssbo.enabled() }
     pub fn max_size(&self) -> uint { self.max_size }
     pub fn hmd_size(&self) -> f32 { self.hmd_size }
     pub fn profile(&self) -> bool { self.profile.enabled() }
