@@ -121,16 +121,18 @@ void main() {
                         max(0, dot(light_to_point_normal, surface_normal));
         }
 
-        /*if (ks.found) {
+        if (ks.found) {
             vec4 h = normalize(light_to_point_normal + eye_to_point_normal);
             float ns = materials[object.y].ns;
             float facing = 0;
             if (dot(light_to_point_normal, surface_normal) > 0) {
                 facing = 1;
             }
-            c += ks.value * point_lights[i].color * facing *
-                    dist * pow(max(0, dot(h, surface_normal)), ns);
-        }*/
+            float factor = pow(max(0, dot(h, surface_normal)), ns);
+            if (factor > 0) {
+                c += ks.value * direction_lights[i].color * facing * dist * factor;
+            }
+        }
     }
 
     for (int i = 0; i < direction_count; i++) {
@@ -140,17 +142,19 @@ void main() {
                      max(0, dot(light_to_point_normal, surface_normal));
         }
 
-        /*if (ks.found) {
+        if (ks.found) {
             vec4 h = normalize(light_to_point_normal + eye_to_point_normal);
             float ns = materials[object.y].ns;
             float facing = 0;
             if (dot(light_to_point_normal, surface_normal) > 0) {
                 facing = 1;
             }
-            c += ks.value * direction_lights[i].color * facing *
-                     pow(max(0, dot(h, surface_normal)), ns);
-        }*/
+            float factor = pow(max(0, dot(h, surface_normal)), ns);
+            if (factor > 0) {
+                c += ks.value * direction_lights[i].color * facing * factor;
+            }
+        }
     }
 
-    color = c;
+    color = vec4(c.xyz, 1);
 }
