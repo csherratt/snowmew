@@ -68,7 +68,7 @@ pub struct Deltas {
     delta: BTreeMap<u32, BTreeMap<u32, Delta>>,
 }
 
-#[deriving(Clone, Default, Eq, TotalOrd, TotalEq, Ord)]
+#[deriving(Clone, Default, Eq, PartialOrd, PartialEq, Ord)]
 pub struct Id(u32, u32);
 
 impl Deltas {

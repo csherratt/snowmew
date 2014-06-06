@@ -164,7 +164,7 @@ fn calc_positions_opencl() {
     let id3 = pos_old.insert(id2, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
     let id4 = pos_old.insert(id3, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
 
-    pos_old.write_positions_cl(&queue, &mut ctx, &buffers).wait();
+    pos_old.write_positions_cl_vec4x4(&queue, &mut ctx, &buffers).wait();
     let pos = pos_old.compute_positions();
     let vec = fetch_matrixs(&queue, &buffers);
 
@@ -203,7 +203,7 @@ fn calc_positions_opencl_tree() {
     let id1_0 = pos.insert(id1, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(1f32, 1f32, 1f32)));
     let id1_1 = pos.insert(id1, Transform3D::new(1f32, Quaternion::identity(), Vector3::new(-1f32, -1f32, -1f32)));
 
-    pos.write_positions_cl(&queue, &mut ctx, &buffers).wait();
+    pos.write_positions_cl_vec4x4(&queue, &mut ctx, &buffers).wait();
     let pos = pos.compute_positions();
     let vec = fetch_matrixs(&queue, &buffers);
 

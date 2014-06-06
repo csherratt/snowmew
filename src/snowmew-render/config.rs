@@ -1,7 +1,7 @@
 use std::os;
 use std::from_str::FromStr;
 
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 enum ConfigOption {
     Unsupported,
     Disabled,
