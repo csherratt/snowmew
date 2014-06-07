@@ -48,7 +48,7 @@ void main() {
         sphere_center = sphere_center.xyzw / sphere_center.w; 
         float sphere_radius = length(vec4(1/sqrt(3), 1/sqrt(3), 1/sqrt(3), 0.) * mat) * info[id].sphere.w;
 
-        for (int i=0; i<4; i++) {
+        for (int i=0; i<6; i++) {
             if (dot(plane[i], sphere_center) + sphere_radius < 0.) {
                 accept = false;
             }

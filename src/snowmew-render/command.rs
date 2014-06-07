@@ -83,10 +83,12 @@ impl CommandBufferIndirect {
 
     pub fn map(&mut self) {
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command);
-        self.ptr = gl::MapBufferRange(gl::DRAW_INDIRECT_BUFFER, 0,
-                                      (mem::size_of::<DrawElementsIndirectCommand>() *
-                                      self.size) as i64,
-                                      gl::MAP_WRITE_BIT) as *mut DrawElementsIndirectCommand;
+        self.ptr = gl::MapBufferRange(
+            gl::DRAW_INDIRECT_BUFFER, 0,
+            (mem::size_of::<DrawElementsIndirectCommand>() *
+            self.size) as i64,
+            gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+        ) as *mut DrawElementsIndirectCommand;
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);
     }
 

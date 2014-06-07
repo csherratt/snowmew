@@ -112,7 +112,7 @@ impl MatrixSSBOBuffer {
                 gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_matrix);
                 self.ptr_model_matrix = gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0, 
                         (mem::size_of::<Matrix4<f32>>()*self.size) as GLsizeiptr,
-                        gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
+                        gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
                 ) as *mut Matrix4<f32>;
                 assert!(0 == gl::GetError());           
             }
@@ -219,12 +219,13 @@ impl MatrixTextureBuffer {
             None => {
                 for i in range(0u, 4) {
                     gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
-                    self.ptr_model_matrix[i] = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                            (mem::size_of::<Vector4<f32>>()*self.size) as GLsizeiptr,
-                            gl::MAP_WRITE_BIT | gl::MAP_READ_BIT
+                    self.ptr_model_matrix[i] = gl::MapBufferRange(
+                        gl::TEXTURE_BUFFER, 0,
+                        (mem::size_of::<Vector4<f32>>()*self.size) as GLsizeiptr,
+                        gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
                     ) as *mut Vector4<f32>;
                 }
-                assert!(0 == gl::GetError());           
+                assert!(0 == gl::GetError());
             }
             Some((_, ref cq, ref buf)) => {
                 cq.acquire_gl_objects(buf.as_slice(), ()).wait()

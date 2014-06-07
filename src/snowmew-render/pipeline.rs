@@ -92,7 +92,6 @@ impl PipelineState for Forward {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
         q.time("forward setup".to_string());
         dt.bind();
-        gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
         q.time("forward render".to_string());
@@ -310,7 +309,6 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
                     }
                     gl::Uniform1i(atlas_base, idx as i32);
                 }
-                shader.validate();
                 gl::DrawElements(gl::TRIANGLES,
                                  plane.count as i32,
                                  gl::UNSIGNED_INT,
@@ -326,13 +324,13 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         self.input.render(drawlist, db, dm, &dt, q);
 
         gl::Disable(gl::DEPTH_TEST);
-        gl::Enable(gl::DITHER);
         gl::Enable(gl::BLEND);
         gl::BlendEquation(gl::FUNC_ADD);
         gl::BlendFunc(gl::ONE, gl::ONE);
 
         q.time("defered: setup".to_string());
         ddt.bind();
+        gl::ClearColor(0., 0., 0., 1.);
         gl::Clear(gl::COLOR_BUFFER_BIT);
 
         q.time("defered: lighting".to_string());
