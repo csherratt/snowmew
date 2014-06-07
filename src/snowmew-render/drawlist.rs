@@ -11,6 +11,7 @@ use gl;
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use snowmew::common::{Common, CommonData};
+use snowmew::ObjectKey;
 
 use db::GlState;
 use {Config, RenderData};
@@ -29,7 +30,7 @@ pub trait Drawlist: RenderData {
     // data from the scene graph into the any mapped buffers. This can also
     // spawn multiple workers. One of the threads must send the drawlist
     // back to the server
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>);
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>, scene: ObjectKey);
 
     // setup on the OpenGL thread, this will unmap and sync anything that
     // is needed to be done
@@ -149,7 +150,7 @@ impl Drawlist for DrawlistNoSSBO {
         self.command.map();
     }
 
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>) {
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>, scene: ObjectKey) {
         let DrawlistNoSSBO {
             data: _,
             size: size,
@@ -182,7 +183,7 @@ impl Drawlist for DrawlistNoSSBO {
         tp.execute(proc(_) {
             let db = db1;
             let mut model = model;
-            model.build(&db);
+            model.build(&db, scene);
             sender.send(model);
         });
 
@@ -359,7 +360,7 @@ impl Drawlist for DrawlistSSBOCompute {
         self.command.map();
     }
 
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>) {
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>, scene: ObjectKey) {
         let DrawlistSSBOCompute {
             data: _,
             size: size,
@@ -394,7 +395,7 @@ impl Drawlist for DrawlistSSBOCompute {
         tp.execute(proc(_) {
             let db = db1;
             let mut model = model;
-            model.build(&db);
+            model.build(&db, scene);
             sender.send(model);
         });
 
@@ -421,7 +422,7 @@ impl Drawlist for DrawlistSSBOCompute {
         tp.execute(proc(_) {
             let db = db4;
             let mut command = command;
-            command.build(&db, instanced_is_enabled);
+            command.build(&db, scene, instanced_is_enabled);
             sender.send(command);
         });
 

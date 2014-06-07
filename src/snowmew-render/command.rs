@@ -3,6 +3,9 @@ use std::ptr;
 use std::mem;
 use std::slice::raw::mut_buf_as_slice;
 
+use cow::join::{join_set_to_map};
+
+
 use libc::c_void;
 
 use gl;
@@ -13,7 +16,7 @@ use cgmath::array::Array2;
 use cgmath::vector::{Vector, EuclideanVector};
 
 use config::Config;
-use graphics::{Graphics, Drawable, Geometry};
+use graphics::Graphics;
 use snowmew::common::ObjectKey;
 
 
@@ -100,7 +103,7 @@ impl CommandBufferIndirect {
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);
     }
 
-    pub fn build<GD: Graphics>(&mut self, db: &GD, instanced_is_enabled: bool) {
+    pub fn build<GD: Graphics>(&mut self, db: &GD, scene: ObjectKey, instanced_is_enabled: bool) {
         let mut batch = Batch {
             vbo: 0,
             offset: 0,
@@ -120,7 +123,7 @@ impl CommandBufferIndirect {
         unsafe {
             self.batches.truncate(0);
             mut_buf_as_slice(self.ptr, self.size, |b| {
-                for (count, (_, draw)) in db.drawable_iter().enumerate() {
+                for (count, (_, draw)) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()).enumerate() {
                     if idx == -1 {
                         let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
                         last_geo = Some(draw.geometry);

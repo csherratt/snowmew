@@ -3,7 +3,7 @@ use std::ptr;
 use std::mem;
 use std::slice::raw::mut_buf_as_slice;
 
-use cow::join::join_maps;
+use cow::join::{join_set_to_map, join_maps};
 
 use gl;
 use gl::types::{GLsizeiptr, GLuint};
@@ -12,6 +12,8 @@ use collision::sphere::Sphere;
 
 use Config;
 use RenderData;
+
+use snowmew::ObjectKey;
 
 struct ModelInfoSSBO {
     id: u32,
@@ -64,11 +66,12 @@ impl ModelInfoSSBOBuffer {
         self.ptr_model_info = ptr::mut_null();
     }
 
-    pub fn build(&mut self, db: &RenderData) {
+    pub fn build(&mut self, db: &RenderData, scene: ObjectKey) {
         let position = db.compute_positions();
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
-                for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
+                for (idx, (id, (draw, pos))) in join_set_to_map(db.scene_iter(scene),
+                                                join_maps(db.drawable_iter(), db.location_iter())).enumerate() {
                     info[idx] = ModelInfoSSBO {
                         id: id.clone(),
                         matrix: position.get_loc(*pos) as u32,
@@ -139,11 +142,12 @@ impl ModelInfoTextureBuffer {
         self.ptr_model_info = ptr::mut_null();
     }
 
-    pub fn build(&mut self, db: &RenderData) {
+    pub fn build(&mut self, db: &RenderData, scene: ObjectKey) {
         let position = db.compute_positions();
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
-                for (idx, (id, (draw, pos))) in join_maps(db.drawable_iter(), db.location_iter()).enumerate() {
+                for (idx, (id, (draw, pos))) in join_set_to_map(db.scene_iter(scene),
+                                                join_maps(db.drawable_iter(), db.location_iter())).enumerate() {
                     info[idx] = ModelInfoTexture {
                         id: id.clone(),
                         matrix: position.get_loc(*pos) as u32,

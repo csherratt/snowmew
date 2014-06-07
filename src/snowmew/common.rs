@@ -1,4 +1,4 @@
-use cow::btree::{BTreeMap, BTreeMapIterator};
+use cow::btree::{BTreeMap, BTreeMapIterator, BTreeSet, BTreeSetIterator};
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -19,13 +19,15 @@ pub type StringKey = u32;
 
 #[deriving(Clone)]
 pub struct CommonData {
-    last_sid:      StringKey,
-    strings:       BTreeMap<StringKey, String>,
-    string_to_key: BTreeMap<String, StringKey>,
+    last_sid:       StringKey,
+    strings:        BTreeMap<StringKey, String>,
+    string_to_key:  BTreeMap<String, StringKey>,
 
-    last_oid:      ObjectKey,
-    objects:       BTreeMap<ObjectKey, Object>,
-    parent_child:  BTreeMap<ObjectKey, BTreeMap<StringKey, ObjectKey>>,
+    last_oid:       ObjectKey,
+    objects:        BTreeMap<ObjectKey, Object>,
+    parent_child:   BTreeMap<ObjectKey, BTreeMap<StringKey, ObjectKey>>,
+
+    scene_children: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>
 }
 
 impl CommonData {
@@ -38,6 +40,8 @@ impl CommonData {
             last_oid:           1,
             objects:            BTreeMap::new(),
             parent_child:       BTreeMap::new(),
+
+            scene_children:     BTreeMap::new()
         }   
     }
 
@@ -128,9 +132,15 @@ pub trait Common {
         self.new_object(parent, name)
     }
 
+    fn new_scene(&mut self, name: &str) -> ObjectKey {
+        let oid = self.new_object(None, name);
+        self.get_common_mut().scene_children.insert(oid, BTreeSet::new());
+        oid
+    }
+
     fn new_object(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
         let new_key = self.get_common_mut().new_key();
-        let parent = match parent {
+        let mut parent = match parent {
             Some(key) => key,
             None => 0
         };
@@ -143,7 +153,34 @@ pub trait Common {
         self.get_common_mut().objects.insert(new_key, object);
         self.get_common_mut().update_parent_child(parent, object.name, new_key);
 
+        let mut scene_id = None;
+        while parent != 0 {
+            match self.get_common().scene_children.find(&parent) {
+                None => {
+                    parent = self.get_common().objects.find(&parent).unwrap().parent;
+                }
+                Some(_) => {
+                    scene_id = Some(parent);
+                    parent = 0;
+                }
+            }
+        }
+
+        match scene_id {
+            Some(id) => {
+                let sc = self.get_common_mut().scene_children.find_mut(&id).unwrap();
+                sc.insert(new_key);
+            }
+            None => ()
+        }
+
         new_key
+    }
+
+    fn scene_iter<'a>(&'a self, oid: ObjectKey) -> BTreeSetIterator<'a, u32> {
+        let sc = self.get_common().scene_children.find(&oid)
+            .expect("Failed to find scene");
+        sc.iter()
     }
 
     fn object<'a>(&'a self, oid: ObjectKey) -> Option<&'a Object> {

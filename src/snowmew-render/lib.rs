@@ -215,7 +215,7 @@ fn render_server(command: Receiver<RenderCommand>,
 
         if drawlists_ready.len() > 0 && scene != 0 {
             let dl = drawlists_ready.pop().unwrap();
-            dl.setup_compute(db, &mut taskpool);
+            dl.setup_compute(db, &mut taskpool, scene);
             scene = 0;           
         }
     }

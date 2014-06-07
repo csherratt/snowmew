@@ -82,7 +82,7 @@ fn main() {
         });
 
         let mut db = GameData::new();
-        let scene = db.new_object(None, "scene");
+        let scene = db.new_scene("scene");
 
         let cube = db.find("core/geometry/cube").expect("cube not found");
         let red = db.find("core/material/flat/red").expect("red not found");
