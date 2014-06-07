@@ -10,7 +10,8 @@ use glfw;
 use gl;
 
 use semver;
-use collections::{HashSet, TrieMap};
+use std::collections::HashSet;
+use collections::TrieMap;
 
 use cgmath::quaternion::Quaternion;
 
@@ -277,7 +278,7 @@ impl IOManager {
 
         window.make_current();
         gl::load_with(|name| self.glfw.get_proc_address(name));
-        self.glfw.set_swap_interval(1);
+        self.glfw.set_swap_interval(0);
         glfw::make_context_current(None);
 
         window.set_all_polling(true);

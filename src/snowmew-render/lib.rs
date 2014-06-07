@@ -23,7 +23,8 @@ extern crate collision;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 
-use std::task::{TaskResult, TaskBuilder};
+use std::task;
+use std::rt;
 use std::comm::{Receiver, Sender};
 use std::mem;
 use time::precise_time_s;
@@ -155,7 +156,7 @@ fn render_server(command: Receiver<RenderCommand>,
         None
     };
 
-    let mut taskbuilder = TaskBuilder::new();
+    let mut taskbuilder = task::TaskBuilder::new();
     taskbuilder = taskbuilder.named("render-thread".into_maybe_owned());
 
     let (send_drawlist_setup, receiver_drawlist_setup) = channel();
@@ -242,12 +243,12 @@ fn setup_opencl(window: &Window, dev: Option<Arc<Device>>) -> Option<(Arc<Contex
 
 pub struct RenderManager {
     ch: Sender<RenderCommand>,
-    render_done: Receiver<TaskResult>
+    render_done: Receiver<rt::task::Result>
 }
 
 impl RenderManager {
     fn _new(db: Box<RenderData:Send>, window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
-        let mut taskbuilder = TaskBuilder::new();
+        let mut taskbuilder = task::TaskBuilder::new();
         taskbuilder = taskbuilder.named("render-server".into_maybe_owned());
         let render_main_result = taskbuilder.future_result();
 
