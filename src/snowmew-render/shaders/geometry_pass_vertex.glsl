@@ -1,3 +1,4 @@
+
 #ifdef USE_SSBO
     #extension GL_ARB_shader_draw_parameters: require
 #endif
@@ -31,12 +32,12 @@ struct DrawInfoStruct {
 
     DrawInfoCore get_info(int idx) {
         DrawInfoStruct f_info = info[idx];
-        return DrawInfo(f_info.id,
-                        f_info.matrix,
-                        f_info.material);
+        return DrawInfoCore(f_info.id,
+                            f_info.matrix,
+                            f_info.material);
     }
 
-    uint get_index() {
+    int get_index() {
         return gl_DrawIDARB + gl_InstanceID;
     }
 #else

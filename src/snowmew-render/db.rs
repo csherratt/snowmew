@@ -17,7 +17,7 @@ static DEFERED_POINT_LIGHT: &'static str = include_str!("shaders/defered_point_l
 static CULL_SHADER: &'static str = include_str!("shaders/compute_cull.glsl");
 
 static HEADER_410: &'static str = "#version 410\n";
-static HEADER_430: &'static str = "#version 430\n#define USE_SSBO 1";
+static HEADER_430: &'static str = "#version 430\n#define USE_SSBO 1\n";
 
 #[deriving(Clone)]
 pub struct GlState {
