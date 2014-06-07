@@ -29,9 +29,8 @@ pub mod camera;
 pub mod io;
 
 fn setup_glfw() -> glfw::Glfw {
-    let glfw = glfw::init(glfw::FAIL_ON_ERRORS).ok().unwrap();
+    let glfw = glfw::init(glfw::LOG_ERRORS).ok().unwrap();
 
-    glfw.window_hint(glfw::ContextVersion(4, 1));
     glfw.window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
     glfw.window_hint(glfw::OpenglForwardCompat(true));
     glfw.window_hint(glfw::Visible(false));

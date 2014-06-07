@@ -253,9 +253,23 @@ impl IOManager {
         InputHandle{ handle: id }
     }
 
+    fn create_window_context(&self, width: u32, height: u32, name: &str, mode: glfw::WindowMode) 
+            -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
+
+        for i in range(0u32, 4) {
+            self.glfw.window_hint(glfw::ContextVersion(4, 4-i));
+            let window = self.glfw.create_window(width, height, name, mode);
+            if window.is_some() {
+                return window;
+            }
+        }
+
+        None
+    }
+
     pub fn window(&mut self, size: (u32, u32)) -> Option<Window> {
         let (width, height) = size;
-        let win_opt = self.glfw.create_window(width, height, "Snowmew", Windowed);
+        let win_opt = self.create_window_context(width, height, "Snowmew", Windowed);
         let (mut window, events) = match win_opt {
             Some((window, events)) => (window, events),
             None => return None
@@ -289,7 +303,7 @@ impl IOManager {
                 if x == hmd.window_position.x && 
                    y == hmd.window_position.y {
                     let (width, height) = (hmd.resolution.x, hmd.resolution.y);
-                    let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
+                    let win_opt = self.create_window_context(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
                     let (window, events) = match win_opt {
                         Some((window, events)) => (window, events),
                         None => return None
