@@ -321,7 +321,10 @@ pub struct DrawlistSSBOCompute {
     command: CommandBufferIndirect,
 
     size: uint,
-    start: f64
+    start: f64,
+
+    culling_is_enabled: bool,
+    instanced_is_enabled: bool
 }
 
 impl DrawlistSSBOCompute {
@@ -340,7 +343,9 @@ impl DrawlistSSBOCompute {
             model: ModelInfoSSBOBuffer::new(cfg),
             matrix: MatrixSSBOBuffer::new(cfg, cl),
             command: CommandBufferIndirect::new(cfg),
-            start: 0.
+            start: 0.,
+            culling_is_enabled: cfg.culling(),
+            instanced_is_enabled: cfg.instanced()
         }
     }
 }
@@ -363,6 +368,8 @@ impl Drawlist for DrawlistSSBOCompute {
             model: model,
             matrix: matrix,
             command: command,
+            culling_is_enabled: culling_is_enabled,
+            instanced_is_enabled: instanced_is_enabled,
             start: _
         } = *self;
 
@@ -414,7 +421,7 @@ impl Drawlist for DrawlistSSBOCompute {
         tp.execute(proc(_) {
             let db = db4;
             let mut command = command;
-            command.build(&db);
+            command.build(&db, instanced_is_enabled);
             sender.send(command);
         });
 
@@ -434,7 +441,9 @@ impl Drawlist for DrawlistSSBOCompute {
                             // other
                             size: size,
                             start: start,
-                            data: data
+                            data: data,
+                            culling_is_enabled: culling_is_enabled,
+                            instanced_is_enabled: instanced_is_enabled
                         } as Box<Drawlist:Send>
                     }
                 }
@@ -453,7 +462,9 @@ impl Drawlist for DrawlistSSBOCompute {
     }
 
     fn cull(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {
-        self.command.cull(self.model.id(), self.matrix.id(), db, &projection.mul_m(view));
+        if self.culling_is_enabled {
+            self.command.cull(self.model.id(), self.matrix.id(), db, &projection.mul_m(view));
+        }
     }
 
     fn render(&mut self, db: &GlState, view: &Matrix4<f32>, projection: &Matrix4<f32>) {

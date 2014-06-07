@@ -42,11 +42,11 @@ void main() {
         if (commands[id].instance_count > 1) {
             return;
         }
+        DrawInfoStruct info_id = info[id];
 
-        mat4 mat = model_matrix[info[id].matrix];
-        vec4 sphere_center = mat * vec4(info[id].sphere.xyz, 1.);
-        sphere_center = sphere_center.xyzw / sphere_center.w; 
-        float sphere_radius = length(vec4(1/sqrt(3), 1/sqrt(3), 1/sqrt(3), 0.) * mat) * info[id].sphere.w;
+        mat4 mat = model_matrix[info_id.matrix];
+        vec4 sphere_center = mat * vec4(info_id.sphere.xyz, 1.);
+        float sphere_radius = length(vec4(1/sqrt(3), 1/sqrt(3), 1/sqrt(3), 0.) * mat) * info_id.sphere.w;
 
         for (int i=0; i<6; i++) {
             if (dot(plane[i], sphere_center) + sphere_radius < 0.) {

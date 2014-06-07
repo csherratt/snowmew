@@ -28,6 +28,7 @@ pub struct Config {
     profile: ConfigOption,
     opencl: ConfigOption,
     fps: ConfigOption,
+    culling: ConfigOption
 
 }
 
@@ -97,9 +98,8 @@ impl Config
             ssbo: check_gl_version(gl_version, (4, 3), 
                 get_setting_option("SSBO", Enabled)
             ),
-            instanced: check_gl_version(gl_version, (3, 1),
-                get_setting_option("INSTANCED", Enabled)
-            ),
+            instanced: get_setting_option("INSTANCED", Enabled),
+            culling: get_setting_option("CULLING", Enabled)
         }
     }
 
@@ -113,4 +113,5 @@ impl Config
     pub fn opencl(&self) -> bool { self.opencl.enabled() }
     pub fn drawlist_count(&self) -> uint { self.drawlist_count }
     pub fn thread_pool_size(&self) -> uint { self.thread_pool_size }
+    pub fn culling(&self) -> bool { self.culling.enabled() }
 }

@@ -13,8 +13,9 @@ use cgmath::array::Array2;
 use cgmath::vector::{Vector, EuclideanVector};
 
 use config::Config;
-use graphics::Graphics;
+use graphics::{Graphics, Drawable, Geometry};
 use snowmew::common::ObjectKey;
+
 
 use db::GlState;
 
@@ -99,40 +100,75 @@ impl CommandBufferIndirect {
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);
     }
 
-    pub fn build<GD: Graphics>(&mut self, db: &GD) {
+    pub fn build<GD: Graphics>(&mut self, db: &GD, instanced_is_enabled: bool) {
         let mut batch = Batch {
             vbo: 0,
             offset: 0,
             count: 0
         };
 
+        let mut idx = -1;
+        let mut last_geo = None;
+        let mut command = DrawElementsIndirectCommand {
+            count: 0,
+            instrance_count: 1,
+            first_index: 0,
+            base_vertex: 0,
+            base_instance: 0
+        };
+
         unsafe {
             self.batches.truncate(0);
             mut_buf_as_slice(self.ptr, self.size, |b| {
                 for (count, (_, draw)) in db.drawable_iter().enumerate() {
-                    let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
+                    if idx == -1 {
+                        let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
+                        last_geo = Some(draw.geometry);
+                        command = DrawElementsIndirectCommand {
+                            count: draw_geo.count as GLuint,
+                            instrance_count: 1,
+                            first_index: draw_geo.offset as GLuint,
+                            base_vertex: 0,
+                            base_instance: count as GLuint
+                        };
 
-                    b[count] = DrawElementsIndirectCommand {
-                        count: draw_geo.count as GLuint,
-                        instrance_count: 1,
-                        first_index: draw_geo.offset as GLuint,
-                        base_vertex: 0,
-                        base_instance: count as GLuint
-                    };
-
-                    if batch.vbo == 0 {
                         batch.vbo = draw_geo.vb;
-                        batch.offset = count;
                         batch.count = 1;
-                    } else if batch.vbo == draw_geo.vb {
-                        batch.count += 1;
+
+                        idx = 0;
+                    } else if last_geo == Some(draw.geometry) && instanced_is_enabled {
+                        command.instrance_count += 1;
                     } else {
-                        self.batches.push(batch.clone());
-                        batch.vbo = draw_geo.vb;
-                        batch.offset = count;
-                        batch.count = 1;
+                        let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
+                        last_geo = Some(draw.geometry);
+
+                        b[idx] = command;
+                        idx += 1; 
+
+                        command = DrawElementsIndirectCommand {
+                            count: draw_geo.count as GLuint,
+                            instrance_count: 1,
+                            first_index: draw_geo.offset as GLuint,
+                            base_vertex: 0,
+                            base_instance: count as GLuint
+                        };
+
+                        if batch.vbo == 0 {
+                            batch.vbo = draw_geo.vb;
+                            batch.offset = idx;
+                            batch.count = 1;
+                        } else if batch.vbo == draw_geo.vb {
+                            batch.count += 1;
+                        } else {
+                            self.batches.push(batch.clone());
+                            batch.vbo = draw_geo.vb;
+                            batch.offset = idx;
+                            batch.count = 1;
+                        }
+
                     }
                 }
+                b[idx] = command;
             });
         }
       
