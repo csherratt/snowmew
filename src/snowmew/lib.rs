@@ -27,7 +27,7 @@ pub use common::{ObjectKey};
 
 use sync::Arc;
 use OpenCL::hl::{Device, get_platforms, GPU, CPU};
-
+use std::io::timer::Timer;
 
 pub mod common;
 pub mod camera;
@@ -116,15 +116,19 @@ impl DisplayConfig {
     }
 }
 
-pub struct SnowmewConfig {
-    pub display: DisplayConfig,
-    pub use_opencl: bool,
-    pub cadance_ms: uint
-    // render
+pub trait Render<T> {
+    fn update(&mut self, db: T, scene: ObjectKey, camera: ObjectKey);
 }
 
-impl SnowmewConfig {
-    pub fn new() -> SnowmewConfig {
+pub struct SnowmewConfig<GD> {
+    pub display: DisplayConfig,
+    pub use_opencl: bool,
+    pub cadance_ms: u64,
+    pub render: fn(window: io::Window, cl: Option<Arc<Device>>) -> Box<Render<GD>>
+}
+
+impl<GD: Clone> SnowmewConfig<GD> {
+    pub fn new(render: fn(window: io::Window, cl: Option<Arc<Device>>) -> Box<Render<GD>>) -> SnowmewConfig<GD> {
         SnowmewConfig {
             display: DisplayConfig {
                 resolution: None,
@@ -133,18 +137,38 @@ impl SnowmewConfig {
                 window: true,
             },
             use_opencl: true,
-            cadance_ms: 8
+            cadance_ms: 8,
+            render: render
         }
     }
 
-    pub fn start(&self) {
+    pub fn start(&self, gd: GD, game: |GD| -> (GD, ObjectKey, ObjectKey)) {
+        let mut gd = gd;
         let mut im = io::IOManager::new(setup_glfw());
 
         // create display
-        self.display.create_display(&mut im);
+        let display = match self.display.create_display(&mut im) {
+            None => return,
+            Some(display) => display
+        };
+        let ih = display.handle();
 
         let dev = if self.use_opencl { get_cl() } else { None };
+        let r = self.render;
+        let mut render = r(display, dev);
 
+        let mut timer = Timer::new().unwrap();
+        let timer_port = timer.periodic(self.cadance_ms);
 
+        let mut input = im.get(&ih);
+        while !input.should_close() {
+            timer_port.recv();
+            im.poll();
+            input = im.get(&ih);
+            let (new_gd, scene, camera) = game(gd);
+            render.update(new_gd.clone(), scene, camera);
+            gd = new_gd;
+        }
     }
 }
+

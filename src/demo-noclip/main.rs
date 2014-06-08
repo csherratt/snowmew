@@ -128,8 +128,8 @@ fn main() {
         let (wx, wy) = last_input.screen_size();
 
         let mut ren = match get_cl() {
-            Some(dev) => RenderManager::new_cl(box db.clone(), display, (wx, wy), dev),
-            None => RenderManager::new(box db.clone(), display, (wx, wy))
+            Some(dev) => RenderManager::new_cl(display, (wx, wy), dev),
+            None => RenderManager::new(display, (wx, wy))
         };
 
         let (mut rot_x, mut rot_y) = (0_f64, 0_f64);

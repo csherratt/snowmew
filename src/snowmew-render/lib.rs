@@ -141,13 +141,10 @@ fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
 }
 
 fn render_server(command: Receiver<RenderCommand>,
-                 mut db: Box<RenderData:Send>,
                  window: Window,
                  size: (i32, i32),
                  dev: Option<Arc<Device>>) {
 
-    let mut scene = 0;
-    let mut camera = 0;
     let config = Config::new(window.get_context_version());
 
     let cl = if config.opencl() {
@@ -180,6 +177,13 @@ fn render_server(command: Receiver<RenderCommand>,
     });
 
     let mut drawlists_ready = Vec::new();
+
+    let (mut db, mut scene, mut camera) = match command.recv() {
+        Update(rd, s, c) => (rd, s, c),
+        Finish => {
+            return;
+        }
+    };
 
     let select = std::comm::Select::new();
     let mut receiver_drawlist_ready_handle = select.handle(&receiver_drawlist_ready);
@@ -247,17 +251,16 @@ pub struct RenderManager {
 }
 
 impl RenderManager {
-    fn _new(db: Box<RenderData:Send>, window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
+    fn _new(window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
         let mut taskbuilder = task::TaskBuilder::new();
         taskbuilder = taskbuilder.named("render-server".into_maybe_owned());
         let render_main_result = taskbuilder.future_result();
 
         let (sender, receiver) = channel();
         taskbuilder.spawn(proc() {
-            let db = db;
             let window = window;
 
-            render_server(receiver, db, window, size, dev.clone());
+            render_server(receiver, window, size, dev.clone());
         });
 
         RenderManager {
@@ -266,12 +269,12 @@ impl RenderManager {
         }
     }
 
-    pub fn new_cl(db: Box<RenderData:Send>, window: Window, size: (i32, i32), device: Arc<Device>) -> RenderManager {
-        RenderManager::_new(db, window, size, Some(device))
+    pub fn new_cl(window: Window, size: (i32, i32), device: Arc<Device>) -> RenderManager {
+        RenderManager::_new(window, size, Some(device))
     }
 
-    pub fn new(db: Box<RenderData:Send>, window: Window, size: (i32, i32)) -> RenderManager {
-        RenderManager::_new(db, window, size, None)
+    pub fn new(window: Window, size: (i32, i32)) -> RenderManager {
+        RenderManager::_new(window, size, None)
     }
 
     pub fn update(&mut self, db: Box<RenderData:Send>, scene: ObjectKey, camera: ObjectKey) {
@@ -283,5 +286,11 @@ impl Drop for RenderManager {
     fn drop(&mut self) {
         self.ch.send(Finish);
         drop(self.render_done.recv());
+    }
+}
+
+impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
+    fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
+        self.ch.send(Update(box db, scene, camera));
     }
 }
