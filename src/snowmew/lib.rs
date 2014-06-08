@@ -120,15 +120,19 @@ pub trait Render<T> {
     fn update(&mut self, db: T, scene: ObjectKey, camera: ObjectKey);
 }
 
-pub struct SnowmewConfig<GD> {
+pub trait RenderFactory<T, R: Render<T>> {
+    fn init(self, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
+}
+
+pub struct SnowmewConfig<GD, R> {
     pub display: DisplayConfig,
     pub use_opencl: bool,
     pub cadance_ms: u64,
-    pub render: fn(window: io::Window, cl: Option<Arc<Device>>) -> Box<Render<GD>>
+    pub render: Option<R>
 }
 
-impl<GD: Clone> SnowmewConfig<GD> {
-    pub fn new(render: fn(window: io::Window, cl: Option<Arc<Device>>) -> Box<Render<GD>>) -> SnowmewConfig<GD> {
+impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
+    pub fn new() -> SnowmewConfig<GD, RF> {
         SnowmewConfig {
             display: DisplayConfig {
                 resolution: None,
@@ -138,11 +142,11 @@ impl<GD: Clone> SnowmewConfig<GD> {
             },
             use_opencl: true,
             cadance_ms: 8,
-            render: render
+            render: None
         }
     }
 
-    pub fn start(&self, gd: GD, game: |GD| -> (GD, ObjectKey, ObjectKey)) {
+    pub fn start(self, gd: GD, game: |GD, &io::InputState, &io::InputState| -> (GD, ObjectKey, ObjectKey)) {
         let mut gd = gd;
         let mut im = io::IOManager::new(setup_glfw());
 
@@ -153,21 +157,22 @@ impl<GD: Clone> SnowmewConfig<GD> {
         };
         let ih = display.handle();
 
+        let res = im.get_framebuffer_size(&display);
         let dev = if self.use_opencl { get_cl() } else { None };
-        let r = self.render;
-        let mut render = r(display, dev);
+        let mut render = self.render.unwrap().init(display, res, dev);
 
         let mut timer = Timer::new().unwrap();
         let timer_port = timer.periodic(self.cadance_ms);
 
-        let mut input = im.get(&ih);
-        while !input.should_close() {
+        let mut input_last = im.get(&ih);
+        while !input_last.should_close() {
             timer_port.recv();
             im.poll();
-            input = im.get(&ih);
-            let (new_gd, scene, camera) = game(gd);
+            let input = im.get(&ih);
+            let (new_gd, scene, camera) = game(gd, &input, &input_last);
             render.update(new_gd.clone(), scene, camera);
             gd = new_gd;
+            input_last = input;
         }
     }
 }

@@ -294,3 +294,15 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
         self.ch.send(Update(box db, scene, camera));
     }
 }
+
+impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
+    fn init(self, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
+        RenderManager::_new(window, size, cl)
+    }
+}
+
+pub struct RenderFactory;
+
+impl RenderFactory {
+    pub fn new() -> RenderFactory { RenderFactory }
+}

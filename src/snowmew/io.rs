@@ -481,10 +481,15 @@ impl IOManager {
     pub fn set_window_position(&mut self, window: &Window, pos: (i32, i32)) {
         let (w, h) = pos;
         match self.windows.find_mut(&window.handle.handle) {
-            Some(win) => {
-                win.window.set_pos(w, h);
-            }
+            Some(win) => win.window.set_pos(w, h),
             None => ()
+        }
+    }
+
+    pub fn get_framebuffer_size(&mut self, window: &Window) -> (i32, i32) {
+        match self.windows.find_mut(&window.handle.handle) {
+            Some(win) => win.window.get_framebuffer_size(),
+            None => (0, 0)
         }
     }
 }
