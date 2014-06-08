@@ -12,9 +12,7 @@ extern crate OpenCL;
 extern crate sync;
 extern crate glfw;
 
-use std::io::timer::Timer;
 use std::from_str::FromStr;
-use sync::Arc;
 
 use cgmath::quaternion::*;
 use cgmath::transform::*;
@@ -23,8 +21,6 @@ use cgmath::point::*;
 use cgmath::matrix::*;
 use cgmath::rotation::*;
 use cgmath::angle::{ToRad, deg};
-
-use OpenCL::hl::{Device, get_platforms, GPU, CPU};
 
 use snowmew::camera::Camera;
 use position::Positions;
