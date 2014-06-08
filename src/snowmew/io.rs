@@ -296,6 +296,56 @@ impl IOManager {
         })
     }
 
+    pub fn primary(&mut self, size: (u32, u32)) -> Option<Window> {
+        let screen = {
+            self.glfw.with_primary_monitor(|display| {
+                let display = display.unwrap();
+                let (width, height) = size;
+                self.create_window_context(width, height, "Snowmew Fullscreen", FullScreen(display))
+            })
+        };
+
+        match screen {
+            None => None,
+            Some((mut window, events)) => {
+                window.make_current();
+                gl::load_with(|name| self.glfw.get_proc_address(name));
+                self.glfw.set_swap_interval(0);
+                glfw::make_context_current(None);
+
+                window.set_all_polling(true);
+                window.show();
+                let version = window.get_context_version();
+                let rc = window.render_context();
+                let handle = self.add_window(window, events);
+
+                Some(Window {
+                    handle: handle,
+                    render: rc,
+                    version: version,
+                    hmd: None,
+                    os_spec: WindowOSSpec::new(&self.glfw)
+                })
+            }
+        }
+
+    }
+
+    pub fn get_primary_resolution(&self) -> (u32, u32) {
+        self.glfw.with_primary_monitor(|display| {
+            let display = display.expect("Could not get primnay display");
+            let vm = display.get_video_mode().expect("Could not get video mode");
+            (vm.width, vm.height)
+        })
+    }
+
+    pub fn get_primary_position(&self) -> (i32, i32) {
+        self.glfw.with_primary_monitor(|display| {
+            let display = display.expect("Could not get primnay display");
+            display.get_pos()
+        })
+    }
+
     #[cfg(target_os="linux")]
     fn create_hmd_window(&self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
         self.glfw.with_connected_monitors(|monitors| {
@@ -415,7 +465,7 @@ impl IOManager {
         self.update();
     }
 
-    pub fn setup_ovr(&mut self) -> bool {
+    fn setup_ovr(&mut self) -> bool {
         if self.ovr.is_some() &&
            self.ovr.as_ref().unwrap().detect() > 0 {
             return true;
@@ -426,6 +476,16 @@ impl IOManager {
         }
 
         self.ovr.is_some() && self.ovr.as_ref().unwrap().detect() > 0
+    }
+
+    pub fn set_window_position(&mut self, window: &Window, pos: (i32, i32)) {
+        let (w, h) = pos;
+        match self.windows.find_mut(&window.handle.handle) {
+            Some(win) => {
+                win.window.set_pos(w, h);
+            }
+            None => ()
+        }
     }
 }
 
