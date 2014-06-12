@@ -65,32 +65,32 @@ impl Material {
         mat
     }
 
-    pub fn Ka(&self) -> Vector3<f32> {self.ka}
-    pub fn set_Ka(&mut self, c: Vector3<f32>) {self.ka = c;}
+    pub fn ka(&self) -> Vector3<f32> {self.ka}
+    pub fn set_ka(&mut self, c: Vector3<f32>) {self.ka = c;}
 
-    pub fn Kd(&self) -> Vector3<f32> {self.kd}
-    pub fn set_Kd(&mut self, c: Vector3<f32>) {self.kd = c;}
+    pub fn kd(&self) -> Vector3<f32> {self.kd}
+    pub fn set_kd(&mut self, c: Vector3<f32>) {self.kd = c;}
 
-    pub fn Ks(&self) -> Vector3<f32> {self.ks}
-    pub fn set_Ks(&mut self, c: Vector3<f32>) {self.ks = c;}
+    pub fn ks(&self) -> Vector3<f32> {self.ks}
+    pub fn set_ks(&mut self, c: Vector3<f32>) {self.ks = c;}
 
-    pub fn Ke(&self) -> Vector3<f32> {self.ks}
-    pub fn set_Ke(&mut self, c: Vector3<f32>) {self.ke = c;}
+    pub fn ke(&self) -> Vector3<f32> {self.ks}
+    pub fn set_ke(&mut self, c: Vector3<f32>) {self.ke = c;}
 
-    pub fn Tf(&self) -> Vector3<f32> {self.tf}
-    pub fn set_Tf(&mut self, c: Vector3<f32>) {self.tf = c;}
+    pub fn tf(&self) -> Vector3<f32> {self.tf}
+    pub fn set_tf(&mut self, c: Vector3<f32>) {self.tf = c;}
 
-    pub fn map_Ka(&self) -> Option<ObjectKey> {self.map_ka}
-    pub fn set_map_Ka(&mut self, oid: ObjectKey) {self.map_ka = Some(oid);}
+    pub fn map_ka(&self) -> Option<ObjectKey> {self.map_ka}
+    pub fn set_map_ka(&mut self, oid: ObjectKey) {self.map_ka = Some(oid);}
 
-    pub fn map_Kd(&self) -> Option<ObjectKey> {self.map_kd}
-    pub fn set_map_Kd(&mut self, oid: ObjectKey) {self.map_kd = Some(oid);}
+    pub fn map_kd(&self) -> Option<ObjectKey> {self.map_kd}
+    pub fn set_map_kd(&mut self, oid: ObjectKey) {self.map_kd = Some(oid);}
 
-    pub fn map_Ks(&self) -> Option<ObjectKey> {self.map_ks}
-    pub fn set_map_Ks(&mut self, oid: ObjectKey) {self.map_ks = Some(oid);}
+    pub fn map_ks(&self) -> Option<ObjectKey> {self.map_ks}
+    pub fn set_map_ks(&mut self, oid: ObjectKey) {self.map_ks = Some(oid);}
 
-    pub fn map_Ke(&self) -> Option<ObjectKey> {self.map_ke}
-    pub fn set_map_Ke(&mut self, oid: ObjectKey) {self.map_ke = Some(oid);}
+    pub fn map_ke(&self) -> Option<ObjectKey> {self.map_ke}
+    pub fn set_map_ke(&mut self, oid: ObjectKey) {self.map_ke = Some(oid);}
 
     pub fn map_ns(&self) -> Option<ObjectKey> {self.map_ns}
     pub fn set_map_ns(&mut self, oid: ObjectKey) {self.map_ns = Some(oid);}

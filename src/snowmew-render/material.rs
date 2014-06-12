@@ -33,17 +33,17 @@ fn get_mat(ka: Option<ObjectKey>, rd: &Graphics) -> (i32, i32) {
 
 impl MaterialStd140 {
     pub fn from(mat: &Material, rd: &Graphics) -> MaterialStd140 {
-        let ka = mat.Ka();
-        let kd = mat.Kd();
-        let ks = mat.Ks();
+        let ka = mat.ka();
+        let kd = mat.kd();
+        let ks = mat.ks();
 
         MaterialStd140 {
             ka: Vector4::new(ka.x, ka.y, ka.z, 1.),
             kd: Vector4::new(kd.x, kd.y, kd.z, 1.),
             ks: Vector4::new(ks.x, ks.y, ks.z, 1.),
-            ka_texture: get_mat(mat.map_Ka(), rd),
-            kd_texture: get_mat(mat.map_Kd(), rd),
-            ks_texture: get_mat(mat.map_Ks(), rd),
+            ka_texture: get_mat(mat.map_ka(), rd),
+            kd_texture: get_mat(mat.map_kd(), rd),
+            ks_texture: get_mat(mat.map_ks(), rd),
             ns: mat.ns(),
             ni: mat.ni()
         }

@@ -16,7 +16,7 @@ use cgmath::quaternion::Quaternion;
 use cgmath::vector::{Vector3, Vector4};
 use cgmath::matrix::{Matrix4, ToMatrix4, Matrix};
 
-use OpenCL::hl::{Device, Context, CommandQueue, Program, Kernel, Event};
+use OpenCL::hl::{Device, Context, CommandQueue, Kernel, Event};
 use OpenCL::mem::CLBuffer;
 use OpenCL::CL::{CL_MEM_READ_ONLY};
 
@@ -322,7 +322,6 @@ impl ComputedPosition {
 }
 
 pub struct CalcPositionsCl {
-    program: Program,
     kernel_vec4: Kernel,
     init_kernel_vec4: Kernel,
     kernel_mat: Kernel,
@@ -355,7 +354,6 @@ impl CalcPositionsCl {
         let parent = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
 
         CalcPositionsCl {
-            program: program,
             kernel_vec4: kernel_vec4,
             init_kernel_vec4: init_kernel_vec4,
             kernel_mat: kernel_mat,
