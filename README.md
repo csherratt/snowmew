@@ -7,6 +7,10 @@ copy-on-write game state that can be shared safely with tasks in parallel.
 
 ![snowmew-preview](https://s3.amazonaws.com/snowmew/Snowmew_june_5.png)
 
+Last Tested Version
+-------------------
+rustc 0.11.0-pre-nightly (4fdc27e 2014-06-10 23:37:06 -0700)
+
 Building
 --------
 
