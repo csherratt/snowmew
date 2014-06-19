@@ -27,10 +27,11 @@ use std::task;
 use std::rt;
 use std::comm::{Receiver, Sender};
 use std::mem;
+use std::sync::TaskPool;
 use time::precise_time_s;
 
 use OpenCL::hl::{CommandQueue, Context, Device};
-use sync::{TaskPool, Arc};
+use sync::Arc;
 
 use snowmew::common::ObjectKey;
 use snowmew::camera::Camera;
@@ -62,12 +63,12 @@ mod command;
 pub trait RenderData : Graphics + Positions {}
 
 enum RenderCommand {
-    Update(Box<RenderData:Send>, ObjectKey, ObjectKey),
+    Update(Box<RenderData+Send>, ObjectKey, ObjectKey),
     Finish
 }
 
-fn render_thread(input: Receiver<(Box<Drawlist:Send>, ObjectKey)>,
-                 output: Sender<Box<Drawlist:Send>>,
+fn render_thread(input: Receiver<(Box<Drawlist+Send>, ObjectKey)>,
+                 output: Sender<Box<Drawlist+Send>>,
                  window: Window,
                  size: (i32, i32),
                  config: Config,
@@ -170,7 +171,7 @@ fn render_server(command: Receiver<RenderCommand>,
     });
 
     let (send_drawlist_render, receiver_drawlist_render)
-        : (Sender<Box<Drawlist:Send>>, Receiver<Box<Drawlist:Send>>) = channel();
+        : (Sender<Box<Drawlist+Send>>, Receiver<Box<Drawlist+Send>>) = channel();
     let mut taskpool = TaskPool::new(config.thread_pool_size(), || { 
         let ch = send_drawlist_render.clone();
         proc(_: uint) { ch.clone() }
@@ -277,7 +278,7 @@ impl RenderManager {
         RenderManager::_new(window, size, None)
     }
 
-    pub fn update(&mut self, db: Box<RenderData:Send>, scene: ObjectKey, camera: ObjectKey) {
+    pub fn update(&mut self, db: Box<RenderData+Send>, scene: ObjectKey, camera: ObjectKey) {
         self.ch.send(Update(db, scene, camera));
     }
 }

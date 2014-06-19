@@ -1,4 +1,5 @@
-use sync::{TaskPool, Arc};
+use std::sync::TaskPool;
+use sync::Arc;
 use time::precise_time_s;
 use libc::c_void;
 
@@ -30,7 +31,7 @@ pub trait Drawlist: RenderData {
     // data from the scene graph into the any mapped buffers. This can also
     // spawn multiple workers. One of the threads must send the drawlist
     // back to the server
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>, scene: ObjectKey);
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey);
 
     // setup on the OpenGL thread, this will unmap and sync anything that
     // is needed to be done
@@ -150,7 +151,7 @@ impl Drawlist for DrawlistNoSSBO {
         self.command.map();
     }
 
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>, scene: ObjectKey) {
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
         let DrawlistNoSSBO {
             data: _,
             size: size,
@@ -231,7 +232,7 @@ impl Drawlist for DrawlistNoSSBO {
                             size: size,
                             start: start,
                             data: data
-                        } as Box<Drawlist:Send>
+                        } as Box<Drawlist+Send>
                     }
                 }
             );
@@ -360,7 +361,7 @@ impl Drawlist for DrawlistSSBOCompute {
         self.command.map();
     }
 
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist:Send>>>, scene: ObjectKey) {
+    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
         let DrawlistSSBOCompute {
             data: _,
             size: size,
@@ -445,7 +446,7 @@ impl Drawlist for DrawlistSSBOCompute {
                             data: data,
                             culling_is_enabled: culling_is_enabled,
                             instanced_is_enabled: instanced_is_enabled
-                        } as Box<Drawlist:Send>
+                        } as Box<Drawlist+Send>
                     }
                 }
             );
@@ -507,10 +508,10 @@ impl Drawlist for DrawlistSSBOCompute {
 }
 
 pub fn create_drawlist(cfg: &Config,
-                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> Box<Drawlist:Send> {
+                       cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) -> Box<Drawlist+Send> {
     if cfg.compute() && cfg.ssbo() {
-        box DrawlistSSBOCompute::from_config(cfg, cl) as Box<Drawlist:Send>
+        box DrawlistSSBOCompute::from_config(cfg, cl) as Box<Drawlist+Send>
     } else {
-        box DrawlistNoSSBO::from_config(cfg, cl) as Box<Drawlist:Send>
+        box DrawlistNoSSBO::from_config(cfg, cl) as Box<Drawlist+Send>
     }
 }

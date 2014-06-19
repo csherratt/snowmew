@@ -31,11 +31,11 @@ pub struct DrawTarget {
     height: GLint,
     x: GLint,
     y: GLint,
-    draw_buffers: ~[u32]
+    draw_buffers: &'static [u32]
 }
 
 impl DrawTarget {
-    pub fn new(framebuffer: GLuint, offset: (int, int), size: (uint, uint), draw_buffers: ~[u32]) -> DrawTarget {
+    pub fn new(framebuffer: GLuint, offset: (int, int), size: (uint, uint), draw_buffers: &'static [u32]) -> DrawTarget {
         let (x, y) = offset;
         let (width, height) = size;
         DrawTarget {
@@ -149,14 +149,15 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
     }
 
     fn draw_target(&self) -> DrawTarget {
+        static draw_buffers: &'static [u32] = &'static [gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
+                                                        gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3];
         DrawTarget {
             framebuffer: self.framebuffer,
             x: 0,
             y: 0,
             width: self.width,
             height: self.height,
-            draw_buffers: ~[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
-                            gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3]
+            draw_buffers: draw_buffers
         }
     }
 
@@ -367,7 +368,8 @@ impl<PIPELINE: PipelineState> Swap<PIPELINE> {
 
 impl<PIPELINE: PipelineState> Pipeline for Swap<PIPELINE> {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, camera: &Camera, q: &mut Profiler) {
-        let dt = DrawTarget::new(0, (0, 0), (self.width, self.height), ~[gl::BACK_LEFT]);
+        static draw_buffers: &'static [u32] = &'static [gl::BACK_LEFT];
+        let dt = DrawTarget::new(0, (0, 0), (self.width, self.height), draw_buffers);
         let dm = camera.get_matrices((self.width as i32, self.height as i32));
 
         q.time("cull data".to_string());
@@ -476,13 +478,15 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
     }
 
     fn get_draw_target(&self, which: EyeType) -> DrawTarget {
+        static draw_buffers: &'static [u32] = &'static [gl::COLOR_ATTACHMENT0];
+
         DrawTarget {
             framebuffer: *self.framebuffers.eye(which),
             x: 0,
             y: 0,
             width: self.size.eye(which).x,
             height: self.size.eye(which).y,
-            draw_buffers: ~[gl::COLOR_ATTACHMENT0]
+            draw_buffers: draw_buffers
         }
     }
 

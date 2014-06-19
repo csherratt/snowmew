@@ -64,11 +64,8 @@ fn main() {
                 let x = x as f32 * 2.5;
                 let y = y as f32 * 2.5;
                 let z = z as f32 * 2.5;
-                gd.update_location(new,
-                    Transform3D::new(0.25f32,
-                                     Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                                     Vector3::new(x, y, z))
-                );
+                gd.set_scale(new, 0.25);
+                gd.set_displacement(new, Vector3::new(x, y, z));
                 gd.set_draw(new, cube, red);
             }
         }
@@ -82,11 +79,7 @@ fn main() {
     gd.new_light(scene, "sun", light::Directional(sun));
 
     let camera_loc = gd.new_object(None, "camera");
-    gd.update_location(camera_loc,
-        Transform3D::new(1f32,
-                         Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                         Vector3::new(0f32, 0f32, 0f32))
-    );
+    gd.set_to_identity(camera_loc);
 
     sc.start(gd, |gd, current_input, last_input| {
         let mut gd = gd;
@@ -121,10 +114,14 @@ fn main() {
 
         let rot: Quaternion<f32> = Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
         rot.mul_q(&Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
+        let camera = Camera::new(Decomposed{scale: 1f32,
+                                            rot:   rot,
+                                            disp:  pos.to_vec()}.to_matrix4());
 
-        let camera = Camera::new(Transform3D::new(1f32, rot, pos.to_vec()).to_matrix4());
         pos = camera.move(&input_vec.mul_s(-1f32));
-        let head_trans = Transform3D::new(1f32, rot, pos.to_vec());
+        let head_trans = Decomposed{scale: 1f32,
+                                    rot:   rot,
+                                    disp:  pos.to_vec()};
         gd.update_location(camera_loc, head_trans);
 
         (gd, scene, camera_loc)
