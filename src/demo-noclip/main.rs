@@ -74,22 +74,14 @@ fn main() {
             Some(d) => {
                 let obj = db.new_object(Some(scene), name);
                 db.set_draw(obj, d.geometry, d.material);
-                db.update_location(obj,
-                    Transform3D::new(scale,
-                                     Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                                     Vector3::new(0f32, 0f32, 0f32))
-                );
+                db.set_scale(obj, scale);
             }
             None => ()
         }
     }
 
     let camera_loc = db.new_object(None, "camera");
-    db.update_location(camera_loc,
-        Transform3D::new(1f32,
-                         Rotation3::from_euler(deg(0f32).to_rad(), deg(0f32).to_rad(), deg(0f32).to_rad()),
-                         Vector3::new(0f32, 0f32, 0f32))
-    );
+    db.set_to_identity(camera_loc);
 
     let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
     let mut pos = if args.len() >= 6 {
@@ -143,9 +135,13 @@ fn main() {
 
         let rot: Quaternion<f32> = Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
 
-        let camera = Camera::new(Transform3D::new(1f32, rot, pos.to_vec()).to_matrix4());
+        let camera = Camera::new(Decomposed{scale: 1f32,
+                                            rot:   rot,
+                                            disp:  pos.to_vec()}.to_matrix4());
         pos = camera.move(&input_vec.mul_s(-1f32));
-        let head_trans = Transform3D::new(1f32, rot, pos.to_vec());
+        let head_trans = Decomposed{scale: 1f32,
+                                    rot:   rot,
+                                    disp:  pos.to_vec()};
         gd.update_location(camera_loc, head_trans);
 
         (gd, scene, camera_loc)

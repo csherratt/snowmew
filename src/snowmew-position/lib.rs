@@ -11,7 +11,7 @@ extern crate time;
 
 use std::default::Default;
 
-use cgmath::transform::Transform3D;
+use cgmath::transform::{Transform, Decomposed};
 use cgmath::quaternion::Quaternion;
 use cgmath::vector::{Vector3, Vector4};
 use cgmath::matrix::{Matrix4, ToMatrix4, Matrix};
@@ -27,7 +27,7 @@ use snowmew::common::{ObjectKey, Common};
 static opencl_program: &'static str = include_str!("position.c");
 
 pub struct Delta {
-    delta : Transform3D<f32>,
+    delta : Decomposed<f32, Vector3<f32>, Quaternion<f32>>,
     parent: u32,
 }
 
@@ -35,19 +35,18 @@ impl Default for Delta {
     fn default() -> Delta {
         Delta {
             parent: 0,
-            delta: Transform3D::new(1f32, Quaternion::zero(), Vector3::zero()),
+            delta: Transform::identity()
         }
     }
 }
 
 impl Clone for Delta {
     fn clone(&self) -> Delta {
-        let tras = self.delta.get();
         Delta {
             parent: self.parent.clone(),
-            delta: Transform3D::new(tras.scale.clone(),
-                                    tras.rot.clone(),
-                                    tras.disp.clone()),
+            delta: Decomposed{scale: self.delta.scale.clone(),
+                              rot:   self.delta.rot.clone(),
+                              disp:  self.delta.disp.clone()}
         }
     }
 }
@@ -115,7 +114,7 @@ impl Deltas {
         }
     }
 
-    pub fn insert(&mut self, parent: Id, delta: Transform3D<f32>) -> Id {
+    pub fn insert(&mut self, parent: Id, delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) -> Id {
         let Id(gen, pid) = parent;
 
         assert!((gen as uint) < self.gen.len());
@@ -134,12 +133,16 @@ impl Deltas {
         Id(gen+1, id)
     }
 
-    pub fn update(&mut self, id: Id, delta: Transform3D<f32>) {
+    pub fn get_mut<'a>(&'a mut self, id: Id) -> &'a mut Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
         let Id(gen, id) = id;
-        self.delta.find_mut(&gen).unwrap().find_mut(&id).unwrap().delta = delta;
+        &mut self.delta.find_mut(&gen).unwrap().find_mut(&id).unwrap().delta
     }
 
-    pub fn get_delta(&self, id :Id) -> Transform3D<f32> {
+    pub fn update(&mut self, id: Id, delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
+        *self.get_mut(id) = delta;
+    }
+
+    pub fn get_delta(&self, id :Id) -> Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
         let Id(gen, id) = id;
         self.delta.find(&gen).unwrap().find(&id).unwrap().delta
     }
@@ -326,8 +329,8 @@ pub struct CalcPositionsCl {
     init_kernel_vec4: Kernel,
     kernel_mat: Kernel,
     init_kernel_mat: Kernel,
-    input_buffer: Vec<Transform3D<f32>>,
-    input: CLBuffer<Transform3D<f32>>,
+    input_buffer: Vec<Decomposed<f32, Vector3<f32>, Quaternion<f32>>>,
+    input: CLBuffer<Decomposed<f32, Vector3<f32>, Quaternion<f32>>>,
     parent_buffer: Vec<u32>,
     parent: CLBuffer<u32>,
 }
@@ -396,20 +399,38 @@ pub trait Positions: Common {
 
             let poid = self.object(key).unwrap().parent;
             let pid = self.position_id(poid);
-            let id = self.get_position_mut().position.insert(pid,
-                Transform3D::new(1f32, Quaternion::identity(), Vector3::new(0f32, 0f32, 0f32))
-            );
+            let id = self.get_position_mut().position.insert(pid, Transform::identity());
             self.get_position_mut().location.insert(key, id);
             id
         }
     }
 
-    fn update_location(&mut self, key: ObjectKey, location: Transform3D<f32>) {
+    fn update_location(&mut self, key: ObjectKey, location: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
         let id = self.position_id(key);
         self.get_position_mut().position.update(id, location);
     }
 
-    fn location(&self, key: ObjectKey) -> Option<Transform3D<f32>> {
+    fn set_to_identity(&mut self, key: ObjectKey) {
+        let id = self.position_id(key);
+        self.get_position_mut().position.update(id, Transform::identity());
+    }
+
+    fn set_scale(&mut self, key: ObjectKey, scale: f32) {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get_mut(id).scale = scale;
+    }
+
+    fn set_displacement(&mut self, key: ObjectKey, disp: Vector3<f32>) {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get_mut(id).disp = disp;
+    }
+
+    fn set_rotation(&mut self, key: ObjectKey, rot: Quaternion<f32>) {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get_mut(id).rot = rot;
+    }
+
+    fn location(&self, key: ObjectKey) -> Option<Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
         match self.get_position().location.find(&key) {
             Some(id) => Some(self.get_position().position.get_delta(*id)),
             None => None
@@ -424,7 +445,7 @@ pub trait Positions: Common {
         };
 
         let loc = match self.location(oid) {
-            Some(t) => {t.get().to_matrix4()},
+            Some(t) => {t.to_matrix4()},
             None => Matrix4::identity()
         };
         p_mat.mul_m(&loc)

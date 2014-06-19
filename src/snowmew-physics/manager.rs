@@ -4,7 +4,7 @@ use std::vec::Vec;
 use cgmath::point::Point3;
 use cgmath::vector::{Vector, Vector4, Vector3};
 use cgmath::matrix::{Matrix, Matrix4};
-use cgmath::transform::Transform3D;
+use cgmath::transform::Decomposed;
 
 use cow::join::join_maps;
 
@@ -114,10 +114,12 @@ impl PhysicsManager {
                     }
                     if !collided {
                         let t = data.location(*key).expect("unxpeced missing location");
-                        let disp = t.get().disp.add_v(&vel);
-                        let scale = t.get().scale;
-                        let rot = t.get().rot;
-                        data.update_location(*key, Transform3D::new(scale, rot, disp));
+                        let disp = t.disp.add_v(&vel);
+                        let scale = t.scale;
+                        let rot = t.rot;
+                        data.update_location(*key, Decomposed{scale: scale,
+                                                              rot:   rot,
+                                                              disp:  disp});
                     }
                 }                
             }
