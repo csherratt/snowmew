@@ -28,6 +28,7 @@ use std::rt;
 use std::comm::{Receiver, Sender};
 use std::mem;
 use std::sync::TaskPool;
+use std::sync::Future;
 use time::precise_time_s;
 
 use OpenCL::hl::{CommandQueue, Context, Device};
@@ -248,17 +249,16 @@ fn setup_opencl(window: &Window, dev: Option<Arc<Device>>) -> Option<(Arc<Contex
 
 pub struct RenderManager {
     ch: Sender<RenderCommand>,
-    render_done: Receiver<rt::task::Result>
+    render_done: Future<rt::task::Result>
 }
 
 impl RenderManager {
     fn _new(window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
         let mut taskbuilder = task::TaskBuilder::new();
         taskbuilder = taskbuilder.named("render-server".into_maybe_owned());
-        let render_main_result = taskbuilder.future_result();
 
         let (sender, receiver) = channel();
-        taskbuilder.spawn(proc() {
+        let render_main_result = taskbuilder.try_future(proc() {
             let window = window;
 
             render_server(receiver, window, size, dev.clone());
@@ -286,7 +286,7 @@ impl RenderManager {
 impl Drop for RenderManager {
     fn drop(&mut self) {
         self.ch.send(Finish);
-        drop(self.render_done.recv());
+        self.render_done.get_ref();
     }
 }
 
