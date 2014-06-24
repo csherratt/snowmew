@@ -14,6 +14,13 @@ rustc 0.11.0-pre-nightly (4fdc27e 2014-06-10 23:37:06 -0700)
 Building
 --------
 
+Snowmew may require some dependencies to build, travis pulls down the following packages to build:
+
+  sudo apt-get install libudev-dev libglfw-dev opencl-headers xorg-dev libglu1-mesa-dev freeglut3 freeglut3-dev 
+
+In addition you will probably need either fglrx or the nvidia drivers. For the nvidia drivers be sure to include nvidia-opencl-dev
+    
+
 Make sure all submodules were cloned first.
 
     git submodule update --init --recursive
