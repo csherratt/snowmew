@@ -87,7 +87,8 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, ObjectKey)>,
         } else {
             box pipeline::Hmd::new(
                 pipeline::Defered::new(pipeline::Forward::new()),
-                window
+                window,
+                &config
             ) as Box<Pipeline>
         }
     };

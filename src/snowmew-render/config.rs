@@ -28,8 +28,10 @@ pub struct Config {
     profile: ConfigOption,
     opencl: ConfigOption,
     fps: ConfigOption,
-    culling: ConfigOption
-
+    culling: ConfigOption,
+    chromatic: ConfigOption,
+    vignette: ConfigOption,
+    timewarp: ConfigOption
 }
 
 fn get_setting_option(name: &str, default: ConfigOption) -> ConfigOption {
@@ -85,7 +87,7 @@ impl Config
 {
     pub fn new(gl_version: (uint, uint)) -> Config {
         Config {
-            hmd_size: get_setting_from_str("HMD_SIZE", 1.5f32),
+            hmd_size: get_setting_from_str("HMD_SIZE", 0.7f32),
             max_size: get_setting_from_str("MAX_OBJECTS", 64u*1024),
             drawlist_count: get_setting_from_str("DRAWLIST_COUNT", 3u),
             thread_pool_size: get_setting_from_str("THREAD_POOL_SIZE", 4u),
@@ -99,7 +101,10 @@ impl Config
                 get_setting_option("SSBO", Enabled)
             ),
             instanced: get_setting_option("INSTANCED", Enabled),
-            culling: get_setting_option("CULLING", Enabled)
+            culling: get_setting_option("CULLING", Enabled),
+            chromatic: get_setting_option("HMD_CHROMATRIC", Enabled),
+            vignette: get_setting_option("HMD_VIGNETTE", Enabled),
+            timewarp: get_setting_option("HMD_TIMEWARP", Enabled),
         }
     }
 
@@ -114,4 +119,7 @@ impl Config
     pub fn drawlist_count(&self) -> uint { self.drawlist_count }
     pub fn thread_pool_size(&self) -> uint { self.thread_pool_size }
     pub fn culling(&self) -> bool { self.culling.enabled() }
+    pub fn chromatic(&self) -> bool { self.chromatic.enabled() }
+    pub fn vignette(&self) -> bool { self.vignette.enabled() }
+    pub fn timewarp(&self) -> bool { self.timewarp.enabled() }
 }

@@ -24,6 +24,7 @@ use snowmew::common::Common;
 use snowmew::camera::Camera;
 
 use query::Profiler;
+use config::Config;
 
 pub struct DrawTarget {
     framebuffer: GLuint,
@@ -422,15 +423,15 @@ fn render_config(_: &Window, hmd: &HmdDescription) -> RenderGLConfig {
 }
 
 impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
-    pub fn new(input: PIPELINE, window: Window) -> Hmd<PIPELINE> {
+    pub fn new(input: PIPELINE, window: Window, cfg: &Config) -> Hmd<PIPELINE> {
         let hmd = window.get_hmd();
         let desc = hmd.get_description();
         let caps = SensorCapabilities::new().set_orientation(true);
         assert!(hmd.start_sensor(caps, caps));
         let dist = DistortionCapabilities::new()
-                .set_chromatic(false)
-                .set_vignette(false)
-                .set_timewarp(false);
+                .set_chromatic(cfg.chromatic())
+                .set_vignette(cfg.vignette())
+                .set_timewarp(cfg.timewarp());
 
         let rc = render_config(&window, &desc);
         let eye_desc = hmd.configure_rendering(
@@ -440,7 +441,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
         ).expect("Could not create hmd context");
 
         let size = desc.eye_fovs.map(|which, eye| {
-            hmd.get_fov_texture_size(which, eye.default_eye_fov, 1.0)
+            hmd.get_fov_texture_size(which, eye.default_eye_fov, cfg.hmd_size())
         });
 
         let mut textures: PerEye<GLuint> = PerEye::new(0, 0);
