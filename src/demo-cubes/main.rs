@@ -54,7 +54,7 @@ fn main() {
     let count = if args.len() >= 2 {
         FromStr::from_str(args.get(1).as_slice()).expect("Could not parse int")
     } else {
-        10
+        10i
     };
 
     for x in range(-count, count) {

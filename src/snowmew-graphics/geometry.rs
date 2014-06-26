@@ -85,7 +85,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX 
             /* look for candidate */
             let mut found_a = -1;
             let mut found_b = -1;
-            for j in range(0, 3) {
+            for j in range(0i, 3) {
                 if a == index[(i*3+j) as uint] {
                     found_a = j;
                 }
@@ -96,7 +96,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX 
 
             /* found a candidate */
             if found_a != -1 && found_b != -1  {
-                for j in range(0, 3) {
+                for j in range(0i, 3) {
                     if j != found_a && j != found_b {
                         return index[(i*3+j) as uint].clone();
                     }

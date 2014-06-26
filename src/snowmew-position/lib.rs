@@ -206,7 +206,7 @@ impl Deltas {
         ctx.init_kernel_vec4.set_arg(1, &out[1]);
         ctx.init_kernel_vec4.set_arg(2, &out[2]);
         ctx.init_kernel_vec4.set_arg(3, &out[3]);
-        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_vec4, 1, None, events);
+        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_vec4, 1i, None, events);
 
         // run the kernel across the deltas 
         ctx.kernel_vec4.set_arg(0, &ctx.input);
@@ -252,7 +252,7 @@ impl Deltas {
 
         // write init value
         ctx.init_kernel_mat.set_arg(0, &out[0]);
-        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_mat, 1, None, events);
+        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_mat, 1i, None, events);
 
         // run the kernel across the deltas 
         ctx.kernel_mat.set_arg(0, &ctx.input);
