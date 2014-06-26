@@ -19,6 +19,12 @@ use ovr;
 
 pub type WindowId = uint;
 
+#[cfg(target_os="macos")]
+static OS_GL_MINOR_MAX: u32 = 1;
+
+#[cfg(target_os="linux")]
+static OS_GL_MINOR_MAX: u32 = 4;
+
 #[deriving(Clone)]
 struct InputHistory {
     older: Option<Arc<InputHistory>>,
@@ -257,12 +263,10 @@ impl IOManager {
     fn create_window_context(&self, width: u32, height: u32, name: &str, mode: glfw::WindowMode) 
             -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
 
-        for i in range(0u32, 4) {
-            self.glfw.window_hint(glfw::ContextVersion(4, 4-i));
-            let window = self.glfw.create_window(width, height, name, mode);
-            if window.is_some() {
-                return window;
-            }
+        self.glfw.window_hint(glfw::ContextVersion(4, OS_GL_MINOR_MAX));
+        let window = self.glfw.create_window(width, height, name, mode);
+        if window.is_some() {
+            return window;
         }
 
         None
