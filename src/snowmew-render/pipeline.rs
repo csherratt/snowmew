@@ -339,7 +339,7 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         self.point_light(drawlist, db, dm, &dt);
 
         q.time("defered: cleanup".to_string());
-        for i in range(0, 16) {
+        for i in range(0i, 16) {
             gl::ActiveTexture(gl::TEXTURE0 + i as u32);
             gl::BindTexture(gl::TEXTURE_2D, 0);
             gl::BindTexture(gl::TEXTURE_2D_ARRAY, 0);

@@ -113,7 +113,7 @@ class Lib(Module):
     ext = "lib.rs"
     dir = "lib"
     flags = ""
-    def __init__(self, name, dep_modules=None, other_flags="", setup=None, presetup=None):
+    def __init__(self, name, dep_modules=None, other_flags="", setup=None, presetup=None, ext=None):
         self.source_dir = ""
         self.name = name
         self.ename = None
@@ -124,6 +124,10 @@ class Lib(Module):
             self.dep_modules = dep_modules
         else:
             self.dep_modules = []
+        if ext is None:
+            self.ext = Lib.ext
+        else:
+            self.ext = ext
 
     def get_flags(self, mods):
         flags = ["$(RUST_LIB_FLAGS)", self.flags] + self.collect_flags(mods)
@@ -294,13 +298,13 @@ sys.path.append('./modules/ovr-rs')
 
 modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
            Bin("demo-cubes", ["snowmew", "snowmew-render",]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "oculus-vr"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "oculus-vr", "gl_cl"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
            Lib("snowmew-loader", ["snowmew", "snowmew-graphics", "stb-image"]),
            Lib("snowmew-physics", ["snowmew", "collision", "snowmew-position", "cow"]),
            Lib("snowmew-position", ["snowmew", "cgmath", "OpenCL", "cow"]),
            Lib("snowmew-graphics", ["snowmew", "cgmath", "cow", "collision"]),
-           Lib("cgmath"),
+           Lib("cgmath", ext="cgmath.rs"),
            Lib("cow"),
            Lib("gl"),
            Lib("gl_cl", ["gl", "OpenCL"]),
