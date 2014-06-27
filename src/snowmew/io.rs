@@ -394,7 +394,7 @@ impl IOManager {
                 }
 
                 let (width, height) = (hmd.resolution.x, hmd.resolution.y);
-                let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
+                let win_opt = self.create_window_context(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
                 let (window, events) = match win_opt {
                     Some((window, events)) => (window, events),
                     None => return None
