@@ -143,6 +143,6 @@ fn recalc_aabb(aabb: &Aabb3<f32>, mat: &Matrix4<f32>) -> Aabb3<f32> {
 
 fn recalc_aabb_with_vec(aabb: &Aabb3<f32>, mat: &Matrix4<f32>, vec: &Vector3<f32>) -> Aabb3<f32> {
     let start = recalc_aabb(aabb, mat);
-    let end = recalc_aabb(aabb, &mat.mul_m(&Matrix4::translate(vec)));
+    let end = recalc_aabb(aabb, &mat.mul_m(&Matrix4::from_translation(vec)));
     start.merge(&end)
 }

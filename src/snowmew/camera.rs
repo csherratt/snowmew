@@ -56,7 +56,7 @@ impl Camera {
     pub fn ovr(&self, fov: &FovPort, eye: &EyeRenderDescriptor, pose: &Pose) -> DrawMatrices {
         let projection = fov.projection(0.01, 10000., true);
         let view = self.transform.mul_m(&pose.orientation.to_matrix4());
-        let view = view_matrix(&view).mul_m(&Matrix4::translate(&eye.view_adjust));
+        let view = view_matrix(&view).mul_m(&Matrix4::from_translation(&eye.view_adjust));
 
         DrawMatrices {
             projection: projection,
