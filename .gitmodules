@@ -25,3 +25,6 @@
 [submodule "modules/stb-image"]
 	path = modules/stb-image
 	url = https://github.com/mozilla-servo/rust-stb-image.git
+[submodule "modules/gfx-rs"]
+	path = modules/gfx-rs
+	url = https://github.com/bjz/gfx-rs.git
