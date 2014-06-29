@@ -295,7 +295,6 @@ impl Drawlist for DrawlistNoSSBO {
         for b in self.command.batches().iter() {
             let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
             vbo.bind();
-            shader.validate();
             for d in range(b.offset_int(), b.drawcount() as uint +b.offset_int()) {
                 gl::Uniform1i(base_index, cmds[d].base_instance as i32);
                 unsafe {
