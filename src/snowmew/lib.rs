@@ -101,7 +101,7 @@ impl DisplayConfig {
             None => im.get_primary_position()
         };
 
-        if self.window {
+        if !self.window {
             im.primary(resolution)
         } else {
             let win = im.window(resolution);
