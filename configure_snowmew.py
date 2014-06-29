@@ -297,8 +297,9 @@ _base = os.path.abspath(os.path.dirname(__file__))
 sys.path.append('./modules/ovr-rs')
 
 modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
-           Bin("demo-cubes", ["snowmew", "snowmew-render",]),
-           Lib("snowmew", ["cgmath", "cow", "gl", "glfw", "oculus-vr", "gl_cl"]),
+           Bin("rust-gears", ["snowmew", "snowmew-render", "snowmew-loader"]),
+           Bin("demo-cubes", ["snowmew", "snowmew-render"]),
+           Lib("snowmew", ["cgmath", "cow", "gl", "OpenCL", "glfw", "oculus-vr", "gl_cl"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),
            Lib("snowmew-loader", ["snowmew", "snowmew-graphics", "stb-image"]),
            Lib("snowmew-physics", ["snowmew", "collision", "snowmew-position", "cow"]),

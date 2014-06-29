@@ -238,7 +238,7 @@ impl CommandBufferEmulated {
     pub fn map(&mut self) {}
     pub fn unmap(&mut self) {}
 
-    pub fn build<GD: Graphics>(&mut self, db: &GD) {
+    pub fn build<GD: Graphics>(&mut self, db: &GD, scene: ObjectKey, instanced_is_enabled: bool) {
         let mut batch = Batch {
             vbo: 0,
             offset: 0,
@@ -247,7 +247,7 @@ impl CommandBufferEmulated {
 
         self.batches.truncate(0);
         self.commands.truncate(0);
-        for (count, (_, draw)) in db.drawable_iter().enumerate() {
+        for (count, (_, draw)) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()).enumerate() {
             let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
 
             self.commands.push(DrawElementsIndirectCommand {
