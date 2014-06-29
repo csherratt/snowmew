@@ -118,7 +118,8 @@ pub struct DrawlistNoSSBO {
     command: CommandBufferEmulated,
 
     size: uint,
-    start: f64
+    start: f64,
+    instanced_is_enabled: bool
 }
 
 impl DrawlistNoSSBO {
@@ -137,7 +138,8 @@ impl DrawlistNoSSBO {
             model: ModelInfoTextureBuffer::new(cfg),
             matrix: MatrixTextureBuffer::new(cfg, cl),
             command: CommandBufferEmulated::new(cfg),
-            start: 0.
+            start: 0.,
+            instanced_is_enabled: cfg.instanced()
         }
     }
 }
@@ -160,6 +162,7 @@ impl Drawlist for DrawlistNoSSBO {
             model: model,
             matrix: matrix,
             command: command,
+            instanced_is_enabled: instanced_is_enabled,
             start: _
         } = *self;
 
@@ -211,7 +214,7 @@ impl Drawlist for DrawlistNoSSBO {
         tp.execute(proc(_) {
             let db = db4;
             let mut command = command;
-            command.build(&db);
+            command.build(&db, scene, instanced_is_enabled);
             sender.send(command);
         });
 
@@ -231,7 +234,8 @@ impl Drawlist for DrawlistNoSSBO {
                             // other
                             size: size,
                             start: start,
-                            data: data
+                            data: data,
+                            instanced_is_enabled: instanced_is_enabled
                         } as Box<Drawlist+Send>
                     }
                 }
@@ -291,7 +295,6 @@ impl Drawlist for DrawlistNoSSBO {
         for b in self.command.batches().iter() {
             let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
             vbo.bind();
-            shader.validate();
             for d in range(b.offset_int(), b.drawcount() as uint +b.offset_int()) {
                 gl::Uniform1i(base_index, cmds[d].base_instance as i32);
                 unsafe {
