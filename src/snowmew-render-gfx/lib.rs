@@ -11,6 +11,7 @@ extern crate gfx;
 extern crate snowmew;
 extern crate OpenCL;
 extern crate sync;
+extern crate cow;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 
@@ -33,14 +34,15 @@ use snowmew::io::Window;
 use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGeoNorm, VertexGeoTexNorm, VertexGeoTexNormTan};
 use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 
+use cow::join::{join_set_to_map, join_maps};
 
 static VERTEX_SRC: &'static [u8] = b"
     #version 150 core
-    in vec2 a_Pos;
+    in vec3 a_Pos;
     out vec4 v_Color;
     void main() {
-        v_Color = vec4(a_Pos+0.5, 0.0, 1.0);
-        gl_Position = vec4(a_Pos, 0.0, 1.0);
+        v_Color = vec4(a_Pos.xy+0.5, 0.0, 1.0);
+        gl_Position = vec4(a_Pos, 1.0);
     }
 ";
 
@@ -157,12 +159,36 @@ impl RenderManager {
             }
         }
     }
+
+    fn draw<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, camera: ObjectKey) {
+        let cdata = gfx::ClearData {
+            color: Some([0.3, 0.3, 0.3, 1.0]),
+            depth: None,
+            stencil: None,
+        };
+        self.client.clear(cdata, None);
+
+        for (id, (draw, pos)) in join_set_to_map(db.scene_iter(scene),
+                                                 join_maps(db.drawable_iter(),
+                                                           db.location_iter())) {
+
+            let geo = db.geometry(draw.geometry).expect("failed to find geometry");
+            let vb = self.meshes.find(&geo.vb).expect("Could not get vertex buffer");
+            self.client.draw(vb.mesh, 
+                             gfx::IndexSlice(vb.index, geo.offset as u16, geo.count as u16),
+                             None,
+                             self.program.unwrap());
+        }
+
+        self.client.end_frame();
+    }
 }
 
 
 impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
     fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
         self.load(&db);
+        self.draw(&db, scene, camera);
     }
 }
 
