@@ -31,11 +31,22 @@ use snowmew::io::Window;
 
 pub trait RenderData : Graphics + Positions {}
 
-pub struct RenderManager;
+pub struct RenderManager {
+    server: gfx::Device<snowmew::io::Window>,
+    client: gfx::Renderer
+}
 
 impl RenderManager {
-    fn _new(window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
-        fail!("not supported")
+    fn _new(server: gfx::Device<snowmew::io::Window>,
+            client: gfx::Renderer,
+            _: (i32, i32),
+            _: Option<Arc<Device>>) -> RenderManager {
+
+        RenderManager {
+            server: server,
+            client: client
+        }
+
     }
 }
 
@@ -47,8 +58,17 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
 }
 
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
-    fn init(self, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
-        RenderManager::_new(window, size, cl)
+    fn init(self,
+            io: &snowmew::IOManager,
+            window: Window,
+            size: (i32, i32),
+            cl: Option<Arc<Device>>) -> RenderManager {
+
+        window.make_context_current();
+        match gfx::start(window, io) {
+            Ok((render, device)) => RenderManager::_new(device, render, size, cl),
+            Err(err) => fail!("failed to start gfx: {}", err)
+        }
     }
 }
 

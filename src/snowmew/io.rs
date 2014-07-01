@@ -8,6 +8,7 @@ use glfw::{CloseEvent, FocusEvent, FullScreen};
 use glfw::{Windowed, RenderContext};
 use glfw;
 use gl;
+use gfx;
 
 use semver;
 use std::collections::HashSet;
@@ -564,5 +565,24 @@ impl Window {
     pub fn get_x11_display(&self) -> *const c_void {
         self.os_spec.display
     }
+}
 
+impl gfx::platform::GraphicsContext<gfx::platform::GlApi> for Window {
+    fn swap_buffers(&self) {
+        self.render.swap_buffers()
+    }
+
+    fn make_current(&self) {
+        self.render.make_current()
+    }
+}
+
+impl gfx::platform::GlProvider for IOManager {
+    fn get_proc_address(&self, name: &str) -> *const ::libc::c_void {
+        self.glfw.get_proc_address(name)
+    }
+
+    fn is_extension_supported(&self, name: &str) -> bool {
+        self.glfw.is_extension_supported(name)
+    }
 }
