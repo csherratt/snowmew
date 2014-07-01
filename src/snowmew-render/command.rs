@@ -47,8 +47,8 @@ pub struct Batch {
 impl Batch {
     pub fn vbo(&self) -> ObjectKey {self.vbo}
 
-    pub fn offset(&self) -> *c_void {
-        (self.offset * mem::size_of::<DrawElementsIndirectCommand>()) as *c_void
+    pub fn offset(&self) -> *const c_void {
+        (self.offset * mem::size_of::<DrawElementsIndirectCommand>()) as *const c_void
     }
 
     pub fn drawcount(&self) -> GLsizei {
@@ -197,7 +197,7 @@ impl CommandBufferIndirect {
 
         let size = self.batches.iter().fold(0, |a, b| a + b.count);
 
-        let x = 256;
+        let x = 256i;
         let y = size / 256 + 1;
 
         shader.bind();

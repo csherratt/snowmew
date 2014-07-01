@@ -30,21 +30,10 @@ pub mod texture;
 pub mod texture_atlas;
 pub mod light;
 
-#[deriving(Clone, Default, Eq, PartialEq)]
+#[deriving(Clone, Default, Eq, PartialEq, PartialOrd)]
 pub struct Drawable {
     pub geometry: ObjectKey,
     pub material: ObjectKey
-}
-
-impl PartialOrd for Drawable {
-    fn lt(&self, other: &Drawable) -> bool {
-        let order = self.geometry.cmp(&other.geometry);
-        match order {
-            Equal => self.material.cmp(&other.material) == Less,
-            Greater => false,
-            Less => true
-        }        
-    }
 }
 
 impl Ord for Drawable {

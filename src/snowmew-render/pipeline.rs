@@ -293,7 +293,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         unsafe {
             gl::Uniform1iv(atlas_uniform,
                            text.len() as i32,
-                           (text.get(0) as *i32));
+                           (text.get(0) as *const i32));
         } 
 
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
@@ -314,7 +314,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
                 gl::DrawElements(gl::TRIANGLES,
                                  plane.count as i32,
                                  gl::UNSIGNED_INT,
-                                 (plane.offset * 4) as *libc::c_void);
+                                 (plane.offset * 4) as *const libc::c_void);
             }
         }
     }

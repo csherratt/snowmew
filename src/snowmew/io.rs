@@ -74,7 +74,7 @@ impl Iterator<(Option<f64>, WindowEvent)> for DeltaIterator {
         match (&self.current, &self.origin) {
             (&None, &None) => return None,
             (&Some(ref a), &Some(ref b)) => {
-                if a.deref() as *InputHistory == b.deref() as *InputHistory {
+                if a.deref() as *const InputHistory == b.deref() as *const InputHistory {
                     return None
                 }
             }
@@ -513,7 +513,7 @@ impl WindowOSSpec {
 
 #[cfg(target_os="linux")]
 struct WindowOSSpec {
-    display: *c_void
+    display: *const c_void
 }
 
 #[cfg(target_os="linux")]
@@ -561,7 +561,7 @@ impl Window {
 
     /// Wrapper for `glfwGetGLXContext`
     #[cfg(target_os="linux")]
-    pub fn get_x11_display(&self) -> *c_void {
+    pub fn get_x11_display(&self) -> *const c_void {
         self.os_spec.display
     }
 

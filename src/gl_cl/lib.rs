@@ -46,17 +46,17 @@ extern {
 
     fn clEnqueueAcquireGLObjects(cq: cl_command_queue,
                                  num_object: cl_uint,
-                                 mem_objects: *cl_mem,
+                                 mem_objects: *const cl_mem,
                                  num_events_in_wait_list: cl_uint,
-                                 event_wait_list: *cl_event,
-                                 event: *cl_event) -> cl_int;
+                                 event_wait_list: *const cl_event,
+                                 event: *mut cl_event) -> cl_int;
 
     fn clEnqueueReleaseGLObjects(cq: cl_command_queue,
                                  num_object: cl_uint,
-                                 mem_objects: *cl_mem,
+                                 mem_objects: *const cl_mem,
                                  num_events_in_wait_list: cl_uint,
-                                 event_wait_list: *cl_event,
-                                 event: *cl_event) -> cl_int;
+                                 event_wait_list: *const cl_event,
+                                 event: *mut cl_event) -> cl_int;
 }
 
 #[cfg(target_os = "macos")]
@@ -104,7 +104,7 @@ pub trait AcquireRelease {
 impl AcquireRelease for CommandQueue {
     fn acquire_gl_objects<T, E: EventList>(&self, mem: &[CLBuffer<T>], events: E) -> Event {
         let mem: Vec<cl_mem> = mem.iter().map(|m| m.id()).collect();
-        let event: cl_event = ptr::null();
+        let mut event: cl_event = ptr::null();
         let check = events.as_event_list(|evt, evt_len| {
             unsafe {
                 clEnqueueAcquireGLObjects(self.cqueue,
@@ -112,7 +112,7 @@ impl AcquireRelease for CommandQueue {
                                           mem.get(0),
                                           evt_len,
                                           evt,
-                                          &event)
+                                          &mut event as *mut cl_event)
 
             }
         });
@@ -122,7 +122,7 @@ impl AcquireRelease for CommandQueue {
 
     fn release_gl_objects<T, E: EventList>(&self, mem: &[CLBuffer<T>], events: E) -> Event {
         let mem: Vec<cl_mem> = mem.iter().map(|m| m.id()).collect();
-        let event: cl_event = ptr::null();
+        let mut event: cl_event = ptr::null();
         let check = events.as_event_list(|evt, evt_len| {
             unsafe {
                 clEnqueueReleaseGLObjects(self.cqueue,
@@ -130,7 +130,7 @@ impl AcquireRelease for CommandQueue {
                                           mem.get(0),
                                           evt_len,
                                           evt,
-                                          &event)
+                                          &mut event as *mut cl_event)
 
             }
         });

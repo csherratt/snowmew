@@ -66,7 +66,7 @@ impl VertexBuffer {
                            gl::STATIC_DRAW
             );
 
-            let offset = 12;
+            let offset = 12i;
             gl::EnableVertexAttribArray(0);
             gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, ptr::null());
 
@@ -74,7 +74,7 @@ impl VertexBuffer {
                 Geo(_) | GeoNorm(_) => offset,
                 GeoTex(_) | GeoTexNorm(_) | GeoTexNormTan(_) => {
                     gl::EnableVertexAttribArray(1);
-                    gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, offset as *c_void);
+                    gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, stride, offset as *const c_void);
                     offset + 8
                 }
             };
@@ -83,7 +83,7 @@ impl VertexBuffer {
                 Geo(_) | GeoTex(_) => offset,
                 GeoNorm(_) | GeoTexNorm(_) | GeoTexNormTan(_) => {
                     gl::EnableVertexAttribArray(2);
-                    gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, offset as *c_void);
+                    gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, offset as *const c_void);
                     offset + 12
                 }
             };
@@ -93,7 +93,7 @@ impl VertexBuffer {
                 Geo(_) | GeoTex(_)| GeoNorm(_) | GeoTexNorm(_) => (),
                 GeoTexNormTan(_) => {
                     gl::EnableVertexAttribArray(3);
-                    gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, offset as *c_void);
+                    gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, stride, offset as *const c_void);
                 }
             };
 

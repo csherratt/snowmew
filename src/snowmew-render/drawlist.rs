@@ -302,7 +302,7 @@ impl Drawlist for DrawlistNoSSBO {
                         gl::TRIANGLES,
                         cmds[d].count as i32,
                         gl::UNSIGNED_INT,
-                        (cmds[d].first_index * 4) as *c_void,
+                        (cmds[d].first_index * 4) as *const c_void,
                         cmds[d].instrance_count as i32
                     );
                 }
