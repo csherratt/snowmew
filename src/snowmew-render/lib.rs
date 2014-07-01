@@ -298,7 +298,7 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
 }
 
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
-    fn init(self, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
+    fn init(self, _: &snowmew::IOManager, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
         RenderManager::_new(window, size, cl)
     }
 }

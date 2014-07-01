@@ -21,9 +21,11 @@ extern crate green;
 extern crate collections;
 extern crate libc;
 extern crate OpenCL;
+extern crate gfx;
 extern crate ovr = "oculus-vr";
 
 pub use common::{ObjectKey};
+pub use io::IOManager;
 
 use sync::Arc;
 use OpenCL::hl::{Device, get_platforms, GPU, CPU};
@@ -121,7 +123,7 @@ pub trait Render<T> {
 }
 
 pub trait RenderFactory<T, R: Render<T>> {
-    fn init(self, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
+    fn init(self, im: &IOManager, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
 }
 
 pub struct SnowmewConfig<GD, R> {
@@ -159,7 +161,7 @@ impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
 
         let res = im.get_framebuffer_size(&display);
         let dev = if self.use_opencl { get_cl() } else { None };
-        let mut render = self.render.unwrap().init(display, res, dev);
+        let mut render = self.render.unwrap().init(&im, display, res, dev);
 
         let mut timer = Timer::new().unwrap();
         let timer_port = timer.periodic(self.cadance_ms);
