@@ -298,6 +298,7 @@ sys.path.append('./modules/ovr-rs')
 
 modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
            Bin("rust-gears", ["snowmew", "snowmew-render", "snowmew-loader"]),
+           Bin("rust-gears-gfx", ["snowmew", "snowmew-render", "snowmew-loader", "gfx"]),
            Bin("demo-cubes", ["snowmew", "snowmew-render"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "OpenCL", "glfw", "oculus-vr", "gl_cl"]),
            Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics"]),

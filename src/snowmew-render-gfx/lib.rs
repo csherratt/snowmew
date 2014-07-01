@@ -29,13 +29,7 @@ use graphics::Graphics;
 use snowmew::common::ObjectKey;
 use snowmew::io::Window;
 
-
 pub trait RenderData : Graphics + Positions {}
-
-enum RenderCommand {
-    Update(Box<RenderData+Send>, ObjectKey, ObjectKey),
-    Finish
-}
 
 pub struct RenderManager;
 
