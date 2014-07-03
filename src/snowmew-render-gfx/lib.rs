@@ -15,6 +15,7 @@ extern crate cow;
 extern crate gl;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
+extern crate render_data = "render-data";
 
 use std::task;
 use std::rt;
@@ -36,6 +37,7 @@ use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGeoNorm, VertexG
 use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 
 use cow::join::{join_set_to_map, join_maps};
+use render_data::RenderData;
 
 static VERTEX_SRC: &'static [u8] = b"
     #version 150 core
@@ -61,7 +63,6 @@ static FRAGMENT_SRC: &'static [u8] = b"
     }
 ";
 
-pub trait RenderData : Graphics + Positions {}
 
 struct Mesh {
     mesh: uint,
@@ -292,7 +293,7 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
 }
 
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
-    fn init(self,
+    fn init(~self,
             io: &snowmew::IOManager,
             window: Window,
             size: (i32, i32),

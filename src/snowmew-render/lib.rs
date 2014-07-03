@@ -22,6 +22,7 @@ extern crate gl_cl;
 extern crate collision;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
+extern crate render_data = "render-data";
 
 use std::task;
 use std::rt;
@@ -46,6 +47,8 @@ use pipeline::Pipeline;
 use drawlist::{Drawlist, create_drawlist};
 use query::{ProfilerDummy, TimeQueryManager, Profiler};
 
+use render_data::RenderData;
+
 mod db;
 mod shader;
 mod vertex_buffer;
@@ -60,8 +63,6 @@ mod light;
 mod model;
 mod matrix;
 mod command;
-
-pub trait RenderData : Graphics + Positions {}
 
 enum RenderCommand {
     Update(Box<RenderData+Send>, ObjectKey, ObjectKey),
@@ -298,7 +299,7 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
 }
 
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
-    fn init(self, _: &snowmew::IOManager, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
+    fn init(~self, _: &snowmew::IOManager, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
         RenderManager::_new(window, size, cl)
     }
 }

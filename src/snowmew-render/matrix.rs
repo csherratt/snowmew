@@ -3,6 +3,7 @@ use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
 use sync::Arc;
 
+
 use OpenCL::hl::{CommandQueue, Context, Device, Event, EventList};
 use OpenCL::mem::{Buffer, CLBuffer};
 use OpenCL::CL::CL_MEM_READ_WRITE;
@@ -14,10 +15,11 @@ use gl_cl;
 use gl_cl::AcquireRelease;
 
 use position::{CalcPositionsCl, MatrixManager};
-
 use position::Positions;
+use render_data::RenderData;
 
-use {Config, RenderData};
+
+use Config;
 
 struct GLTextureMatrix<'r> {
     x: &'r mut [Vector4<f32>],

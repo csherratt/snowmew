@@ -2,6 +2,7 @@ use std::sync::TaskPool;
 use sync::Arc;
 use time::precise_time_s;
 use libc::c_void;
+use render_data::RenderData;
 
 use OpenCL::hl::{CommandQueue, Context, Device};
 use OpenCL::mem::Buffer;
@@ -15,7 +16,7 @@ use snowmew::common::{Common, CommonData};
 use snowmew::ObjectKey;
 
 use db::GlState;
-use {Config, RenderData};
+use Config;
 use material::MaterialBuffer;
 use light::LightsBuffer;
 use model::{ModelInfoTextureBuffer, ModelInfoSSBOBuffer};

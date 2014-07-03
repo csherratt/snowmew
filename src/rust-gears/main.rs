@@ -5,7 +5,7 @@
 extern crate glfw;
 extern crate gl;
 extern crate snowmew;
-extern crate render = "snowmew-render";
+extern crate render = "snowmew-render-mux";
 extern crate loader = "snowmew-loader";
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
@@ -15,6 +15,8 @@ extern crate green;
 extern crate ovr = "oculus-vr";
 extern crate OpenCL;
 extern crate sync;
+extern crate render_data = "render-data";
+
 
 use cgmath::transform::Decomposed;
 use cgmath::vector::Vector3;
@@ -40,7 +42,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
 
 fn main() {
     let mut sc = snowmew::SnowmewConfig::new();
-    sc.render = Some(RenderFactory::new());
+    sc.render = Some(box RenderFactory::new());
 
     let mut gd = GameData::new();
     let loader = Obj::load(&Path::new("assets/rust_logo.obj")).expect("Failed to load OBJ");
