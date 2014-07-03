@@ -13,19 +13,16 @@ extern crate OpenCL;
 extern crate sync;
 extern crate cow;
 extern crate gl;
+extern crate time;
+extern crate device;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 extern crate render_data = "render-data";
 
-use std::task;
-use std::rt;
-use std::comm::{Receiver, Sender};
-use std::mem;
-use std::sync::TaskPool;
-use std::sync::Future;
+
 use std::collections::hashmap::HashMap;
 
-use OpenCL::hl::{CommandQueue, Context, Device};
+use OpenCL::hl::Device;
 use sync::Arc;
 
 use position::Positions;
@@ -33,7 +30,6 @@ use graphics::Graphics;
 use snowmew::common::ObjectKey;
 use snowmew::io::Window;
 
-use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGeoNorm, VertexGeoTexNorm, VertexGeoTexNormTan};
 use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 
 use cow::join::{join_set_to_map, join_maps};
@@ -85,7 +81,7 @@ pub struct RenderManager {
 }
 
 impl RenderManager {
-    fn _new(server: gfx::Device<snowmew::io::Window>,
+    fn _new(server: gfx::Device<snowmew::io::Window, device::Device>,
             client: gfx::Renderer,
             _: (i32, i32),
             _: Option<Arc<Device>>) -> RenderManager {
@@ -94,7 +90,13 @@ impl RenderManager {
         spawn(proc() {
             let mut server = server;
             server.make_current();
-            loop { server.update(); }
+            let mut start = time::precise_time_s();
+            loop { 
+                server.update();
+                let end = time::precise_time_s();
+                println!("{:4.1}fps", 1. / (end - start));
+                start = end;
+            }
         });
 
         RenderManager {
@@ -212,7 +214,7 @@ impl RenderManager {
     fn draw<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, camera: ObjectKey) {
         let env = self.environment.as_ref().expect("Could not get environment");
         let cdata = gfx::ClearData {
-            color: Some([0.3, 0.3, 0.3, 1.0]),
+            color: Some(device::Color([0.3, 0.3, 0.3, 1.0])),
             depth: None,
             stencil: None,
         };
