@@ -3,7 +3,7 @@ use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use graphics::default::load_default;
-use render::RenderData;
+use render_data::RenderData;
 
 #[deriving(Clone)]
 pub struct GameData {

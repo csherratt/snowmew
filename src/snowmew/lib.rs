@@ -123,14 +123,14 @@ pub trait Render<T> {
 }
 
 pub trait RenderFactory<T, R: Render<T>> {
-    fn init(self, im: &IOManager, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
+    fn init(~self, im: &IOManager, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
 }
 
 pub struct SnowmewConfig<GD, R> {
     pub display: DisplayConfig,
     pub use_opencl: bool,
     pub cadance_ms: u64,
-    pub render: Option<R>
+    pub render: Option<Box<R>>
 }
 
 impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {

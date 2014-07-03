@@ -296,13 +296,14 @@ _base = os.path.abspath(os.path.dirname(__file__))
 
 sys.path.append('./modules/ovr-rs')
 
-modules = [Bin("demo-noclip", ["snowmew", "snowmew-render", "snowmew-loader"]),
-           Bin("rust-gears", ["snowmew", "snowmew-render", "snowmew-loader"]),
-           Bin("rust-gears-gfx", ["snowmew", "snowmew-render", "snowmew-loader", "gfx"]),
-           Bin("demo-cubes", ["snowmew", "snowmew-render"]),
+modules = [Bin("demo-noclip", ["snowmew", "snowmew-render-mux", "snowmew-loader"]),
+           Bin("rust-gears", ["snowmew", "snowmew-render-mux", "snowmew-loader"]),
+           Bin("demo-cubes", ["snowmew", "snowmew-render-mux"]),
            Lib("snowmew", ["cgmath", "cow", "gl", "OpenCL", "glfw", "oculus-vr", "gl_cl", "gfx"]),
-           Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "snowmew-position", "snowmew-graphics", "gfx"]),
-           Lib("snowmew-render-gfx", ["snowmew", "gfx", "snowmew-position", "snowmew-graphics"]),
+           Lib("snowmew-render", ["snowmew", "gl", "OpenCL", "gl_cl", "render-data", "gfx"]),
+           Lib("snowmew-render-gfx", ["snowmew", "gfx", "render-data"]),
+           Lib("snowmew-render-mux", ["snowmew-render", "snowmew-render-gfx", "snowmew", "render-data"]),
+           Lib("render-data", ["snowmew-position", "snowmew-graphics"]),
            Lib("snowmew-loader", ["snowmew", "snowmew-graphics", "stb-image"]),
            Lib("snowmew-physics", ["snowmew", "collision", "snowmew-position", "cow"]),
            Lib("snowmew-position", ["snowmew", "cgmath", "OpenCL", "cow"]),

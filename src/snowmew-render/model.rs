@@ -2,6 +2,7 @@
 use std::ptr;
 use std::mem;
 use std::slice::raw::mut_buf_as_slice;
+use render_data::RenderData;
 
 use cow::join::{join_set_to_map, join_maps};
 
@@ -11,7 +12,6 @@ use gl::types::{GLsizeiptr, GLuint};
 use collision::sphere::Sphere;
 
 use Config;
-use RenderData;
 
 use snowmew::ObjectKey;
 

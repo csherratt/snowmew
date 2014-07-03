@@ -3,7 +3,7 @@
 #![feature(globs)]
 
 extern crate snowmew;
-extern crate render = "snowmew-render";
+extern crate render = "snowmew-render-mux";
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 extern crate cgmath;
@@ -11,6 +11,7 @@ extern crate native;
 extern crate OpenCL;
 extern crate sync;
 extern crate glfw;
+extern crate render_data = "render-data";
 
 use std::from_str::FromStr;
 
@@ -27,7 +28,6 @@ use position::Positions;
 use graphics::Graphics;
 use graphics::light;
 
-
 use render::RenderFactory;
 use snowmew::common::Common;
 
@@ -42,7 +42,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
 
 fn main() {
     let mut sc = snowmew::SnowmewConfig::new();
-    sc.render = Some(RenderFactory::new());
+    sc.render = Some(box RenderFactory::new());
 
     let mut gd = GameData::new();
     let scene = gd.new_scene("scene");

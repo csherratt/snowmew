@@ -2,8 +2,8 @@ use cow::btree::BTreeMap;
 use graphics::{Graphics};
 use snowmew::common::{Common};
 use snowmew::common::ObjectKey;
-use {RenderData};
 
+use render_data::RenderData;
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
 use texture::TextureAtlas;
