@@ -15,14 +15,11 @@ extern crate render_data = "render-data";
 
 use std::os;
 
-use OpenCL::hl::{CommandQueue, Context, Device};
+use OpenCL::hl::Device;
 use sync::Arc;
 
 use snowmew::common::ObjectKey;
 use snowmew::io::Window;
-
-use position::Positions;
-use graphics::Graphics;
 
 use render_data::RenderData;
 
@@ -32,7 +29,7 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderMux<RD> {
     }
 }
 
-struct RenderMux<RD> {
+pub struct RenderMux<RD> {
     render: Box<snowmew::Render<RD>>
 }
 

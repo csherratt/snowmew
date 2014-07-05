@@ -15,6 +15,7 @@ extern crate cow;
 extern crate gl;
 extern crate time;
 extern crate device;
+extern crate libc;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 extern crate render_data = "render-data";
@@ -77,12 +78,13 @@ pub struct RenderManager {
     client: gfx::Renderer,
     program: Option<gfx::ProgramHandle>,
     environment: Option<Env>,
-    meshes: HashMap<ObjectKey, Mesh>
+    meshes: HashMap<ObjectKey, Mesh>,
+    frame: Option<gfx::Frame>
 }
 
 impl RenderManager {
     fn _new(server: gfx::Device<snowmew::io::Window, device::Device>,
-            client: gfx::Renderer,
+            client: std::sync::Future<gfx::Renderer>,
             _: (i32, i32),
             _: Option<Arc<Device>>) -> RenderManager {
 
@@ -100,10 +102,11 @@ impl RenderManager {
         });
 
         RenderManager {
-            client: client,
+            client: client.unwrap(),
             program: None,
             environment: None,
-            meshes: HashMap::new()
+            meshes: HashMap::new(),
+            frame: None
         }
     }
 
@@ -113,6 +116,10 @@ impl RenderManager {
                 self.client.create_program(VERTEX_SRC.to_owned(),
                                            FRAGMENT_SRC.to_owned())
             );
+        }
+
+        if self.frame.is_none() {
+            self.frame = Some(gfx::Frame::new());
         }
 
         if self.environment.is_none() {
@@ -214,11 +221,11 @@ impl RenderManager {
     fn draw<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, camera: ObjectKey) {
         let env = self.environment.as_ref().expect("Could not get environment");
         let cdata = gfx::ClearData {
-            color: Some(device::Color([0.3, 0.3, 0.3, 1.0])),
+            color: Some(gfx::Color([0.3, 0.3, 0.3, 1.0])),
             depth: None,
             stencil: None,
         };
-        self.client.clear(cdata, None);
+        self.client.clear(cdata, self.frame.unwrap());
 
         let camera_trans = db.position(camera);
         let camera = snowmew::camera::Camera::new(camera_trans);
@@ -247,10 +254,9 @@ impl RenderManager {
             )
         );
 
-        for (id, (draw, pos)) in join_set_to_map(db.scene_iter(scene),
-                                                 join_maps(db.drawable_iter(),
-                                                           db.location_iter())) {
-
+        for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
+                                               join_maps(db.drawable_iter(),
+                                                         db.location_iter())) {
             let geo = db.geometry(draw.geometry).expect("failed to find geometry");
             let mat = db.material(draw.material).expect("Could not find material");
             let vb = self.meshes.find(&geo.vb).expect("Could not get vertex buffer");
@@ -276,7 +282,7 @@ impl RenderManager {
 
             self.client.draw(vb.mesh, 
                              gfx::IndexSlice(vb.index, geo.offset as u16, geo.count as u16),
-                             None,
+                             self.frame.unwrap(),
                              self.program.unwrap(),
                              env.env
             );
@@ -294,6 +300,20 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
     }
 }
 
+struct Wrap<'a>(&'a snowmew::io::IOManager);
+
+impl<'a> device::GlProvider for Wrap<'a> {
+    fn get_proc_address(&self, name: &str) -> *const ::libc::c_void {
+        let Wrap(provider) = *self;
+        provider.get_proc_address(name)
+    }
+
+    fn is_extension_supported(&self, name: &str) -> bool {
+        let Wrap(provider) = *self;
+        provider.is_extension_supported(name)
+    }
+}
+
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
     fn init(~self,
             io: &snowmew::IOManager,
@@ -302,8 +322,11 @@ impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFa
             cl: Option<Arc<Device>>) -> RenderManager {
 
         window.make_context_current();
-        match gfx::start(window, io) {
-            Ok((render, device)) => RenderManager::_new(device, render, size, cl),
+        match gfx::start(window, gfx::Options(Wrap(io), 1)) {
+            Ok((render, device)) => {
+                let res = RenderManager::_new(device, render, size, cl);
+                res
+            }
             Err(err) => fail!("failed to start gfx: {}", err)
         }
     }

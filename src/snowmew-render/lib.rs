@@ -39,7 +39,6 @@ use snowmew::common::ObjectKey;
 use snowmew::camera::Camera;
 use snowmew::io::Window;
 use position::Positions;
-use graphics::Graphics;
 
 pub use config::Config;
 

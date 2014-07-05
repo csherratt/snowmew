@@ -238,7 +238,7 @@ impl CommandBufferEmulated {
     pub fn map(&mut self) {}
     pub fn unmap(&mut self) {}
 
-    pub fn build<GD: Graphics>(&mut self, db: &GD, scene: ObjectKey, instanced_is_enabled: bool) {
+    pub fn build<GD: Graphics>(&mut self, db: &GD, scene: ObjectKey, _: bool) {
         let mut batch = Batch {
             vbo: 0,
             offset: 0,
