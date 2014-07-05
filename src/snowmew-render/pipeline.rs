@@ -150,8 +150,8 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
     }
 
     fn draw_target(&self) -> DrawTarget {
-        static draw_buffers: &'static [u32] = &'static [gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
-                                                        gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3];
+        static draw_buffers: &'static [u32] = &[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
+                                                gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3];
         DrawTarget {
             framebuffer: self.framebuffer,
             x: 0,
@@ -369,7 +369,7 @@ impl<PIPELINE: PipelineState> Swap<PIPELINE> {
 
 impl<PIPELINE: PipelineState> Pipeline for Swap<PIPELINE> {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, camera: &Camera, q: &mut Profiler) {
-        static draw_buffers: &'static [u32] = &'static [gl::BACK_LEFT];
+        static draw_buffers: &'static [u32] = &[gl::BACK_LEFT];
         let dt = DrawTarget::new(0, (0, 0), (self.width, self.height), draw_buffers);
         let dm = camera.get_matrices((self.width as i32, self.height as i32));
 
@@ -479,7 +479,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
     }
 
     fn get_draw_target(&self, which: EyeType) -> DrawTarget {
-        static draw_buffers: &'static [u32] = &'static [gl::COLOR_ATTACHMENT0];
+        static draw_buffers: &'static [u32] = &[gl::COLOR_ATTACHMENT0];
 
         DrawTarget {
             framebuffer: *self.framebuffers.eye(which),
