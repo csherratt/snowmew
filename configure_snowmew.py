@@ -263,7 +263,7 @@ def write_makefile(modules):
     with open("Makefile", "w+") as f:
         f.write("RUST_FLAGS=-L lib --opt-level=3\n")
         f.write("RUST_LIB_FLAGS=$(RUST_FLAGS)\n")
-        f.write("RUST_BIN_FLAGS=$(RUST_FLAGS) -Zlto\n")
+        f.write("RUST_BIN_FLAGS=$(RUST_FLAGS)\n")
         f.write("RUST_TEST_FLAGS=$(RUST_FLAGS)\n")
         f.write("\n")
         f.write("all: lib bin test %s\n" % all)
