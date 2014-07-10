@@ -1,4 +1,4 @@
-#![crate_id = "rust-gears"]
+#![crate_name = "rust-gears"]
 #![feature(macro_rules)]
 #![feature(globs)]
 

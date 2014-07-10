@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![crate_id = "github.com/bjz/gl-rs#gl:0.1"]
+#![crate_name = "gl"]
 #![comment = "An OpenGL function loader."]
 #![license = "ASL2"]
 #![crate_type = "lib"]

@@ -1,4 +1,4 @@
-#![crate_id = "demo-noclip"]
+#![crate_name = "demo-noclip"]
 #![feature(macro_rules)]
 #![feature(globs)]
 

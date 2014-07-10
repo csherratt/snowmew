@@ -1,4 +1,4 @@
-#![crate_id = "github.com/csherratt/snowmew#snowmew-physics:0.1"]
+#![crate_name = "snowmew-physics"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A collison detection manager for snowmew"]

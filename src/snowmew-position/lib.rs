@@ -1,4 +1,4 @@
-#![crate_id = "github.com/csherratt/snowmew#snowmew-position:0.1"]
+#![crate_name = "snowmew-position"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A position manager for snowmew"]

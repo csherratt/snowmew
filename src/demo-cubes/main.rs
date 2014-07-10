@@ -1,4 +1,4 @@
-#![crate_id = "demo-cubes"]
+#![crate_name = "demo-cubes"]
 #![feature(macro_rules)]
 #![feature(globs)]
 

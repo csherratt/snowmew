@@ -1,4 +1,4 @@
-#![crate_id = "github.com/csherratt/snowmew#snowmew-graphics:0.1"]
+#![crate_name = "snowmew-graphics"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A graphics collection for snowmew"]

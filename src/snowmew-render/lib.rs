@@ -1,4 +1,4 @@
- #![crate_id = "github.com/csherratt/snowmew#snowmew-render:0.1"]
+ #![crate_name = "snowmew-render"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A game engine in rust"]
