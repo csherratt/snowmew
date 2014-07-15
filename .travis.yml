@@ -3,9 +3,7 @@ env:
     - RUST_THREADS=2
 
 install:
-  - wget http://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - tar xzf rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-  - export PATH=$PATH:$(pwd)/rust-nightly-x86_64-unknown-linux-gnu/bin
+  - curl -s http://www.rust-lang.org/rustup.sh | sudo sh
   - rustc --version
   - sudo apt-get update
   - sudo apt-get install libudev-dev libglfw-dev fglrx opencl-headers xorg-dev libglu1-mesa-dev freeglut3 freeglut3-dev 
