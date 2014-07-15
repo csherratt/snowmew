@@ -1,4 +1,4 @@
-#![crate_id = "github.com/csherratt/snowmew#gl_cl:0.1"]
+#![crate_name = "gl_cl"]
 #![comment = "An OpenGL OpenCL bridge utility library"]
 #![license = "ASL2"]
 #![crate_type = "lib"]

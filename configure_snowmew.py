@@ -40,7 +40,7 @@ class Module:
             return f.read().split("\n")[0]
 
     def get_name(self):
-        args = ["rustc", "--crate-file-name", self.get_source_crate()]
+        args = ["rustc", "--print-file-name", self.get_source_crate()]
         with open(".tmp.txt", "w+") as f:
             subprocess.call(args, stdout=f)
             f.seek(0)
