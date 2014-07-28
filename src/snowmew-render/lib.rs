@@ -11,7 +11,7 @@ extern crate cgmath;
 extern crate snowmew;
 extern crate cow;
 extern crate gl;
-extern crate OpenCL;
+extern crate opencl;
 extern crate ovr = "oculus-vr";
 extern crate collections;
 extern crate native;
@@ -32,7 +32,7 @@ use std::sync::TaskPool;
 use std::sync::Future;
 use time::precise_time_s;
 
-use OpenCL::hl::{CommandQueue, Context, Device};
+use opencl::hl::{CommandQueue, Context, Device};
 use sync::Arc;
 
 use snowmew::common::ObjectKey;
@@ -298,7 +298,7 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
 }
 
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
-    fn init(~self, _: &snowmew::IOManager, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
+    fn init(self: Box<RenderFactory>, _: &snowmew::IOManager, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
         RenderManager::_new(window, size, cl)
     }
 }

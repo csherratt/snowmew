@@ -515,7 +515,7 @@ impl WindowOSSpec {
 
 #[cfg(target_os="linux")]
 struct WindowOSSpec {
-    display: *const c_void
+    display: *mut c_void
 }
 
 #[cfg(target_os="linux")]
@@ -563,7 +563,7 @@ impl Window {
 
     /// Wrapper for `glfwGetGLXContext`
     #[cfg(target_os="linux")]
-    pub fn get_x11_display(&self) -> *const c_void {
+    pub fn get_x11_display(&self) -> *mut c_void {
         self.os_spec.display
     }
 }

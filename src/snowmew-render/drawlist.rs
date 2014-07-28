@@ -4,8 +4,8 @@ use time::precise_time_s;
 use libc::c_void;
 use render_data::RenderData;
 
-use OpenCL::hl::{CommandQueue, Context, Device};
-use OpenCL::mem::Buffer;
+use opencl::hl::{CommandQueue, Context, Device};
+use opencl::mem::Buffer;
 use cgmath::matrix::{Matrix4, Matrix};
 use cgmath::array::Array2;
 use gl;
@@ -32,7 +32,7 @@ pub trait Drawlist: RenderData {
     // data from the scene graph into the any mapped buffers. This can also
     // spawn multiple workers. One of the threads must send the drawlist
     // back to the server
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey);
+    fn setup_compute(self: Box<Self>, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey);
 
     // setup on the OpenGL thread, this will unmap and sync anything that
     // is needed to be done
@@ -154,7 +154,7 @@ impl Drawlist for DrawlistNoSSBO {
         self.command.map();
     }
 
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
+    fn setup_compute(self: Box<DrawlistNoSSBO>, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
         let DrawlistNoSSBO {
             data: _,
             size: size,
@@ -365,7 +365,7 @@ impl Drawlist for DrawlistSSBOCompute {
         self.command.map();
     }
 
-    fn setup_compute(~self, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
+    fn setup_compute(self: Box<DrawlistSSBOCompute>, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
         let DrawlistSSBOCompute {
             data: _,
             size: size,

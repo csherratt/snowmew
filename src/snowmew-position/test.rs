@@ -4,7 +4,7 @@
 
 extern crate snowmew;
 extern crate cgmath;
-extern crate OpenCL;
+extern crate opencl;
 extern crate cow;
 extern crate position = "snowmew-position";
 
@@ -16,7 +16,7 @@ use cgmath::transform::Decomposed;
 use cgmath::quaternion::Quaternion;
 use cgmath::vector::{Vector3, Vector4};
 
-use OpenCL::hl::EventList;
+use opencl::hl::EventList;
 
 #[test]
 fn insert_children() {

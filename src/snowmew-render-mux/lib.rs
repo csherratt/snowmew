@@ -6,7 +6,7 @@
 
 extern crate snowmew;
 extern crate sync;
-extern crate OpenCL;
+extern crate opencl;
 extern crate gfx = "snowmew-render-gfx";
 extern crate azdo = "snowmew-render";
 extern crate position = "snowmew-position";
@@ -15,7 +15,7 @@ extern crate render_data = "render-data";
 
 use std::os;
 
-use OpenCL::hl::Device;
+use opencl::hl::Device;
 use sync::Arc;
 
 use snowmew::common::ObjectKey;
@@ -34,7 +34,7 @@ pub struct RenderMux<RD> {
 }
 
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderMux<RD>> for RenderFactory {
-    fn init(~self,
+    fn init(self: Box<RenderFactory>,
             io: &snowmew::IOManager,
             window: Window,
             size: (i32, i32),

@@ -5,7 +5,7 @@
 
 extern crate snowmew;
 extern crate cgmath;
-extern crate OpenCL;
+extern crate opencl;
 extern crate cow;
 extern crate time;
 
@@ -16,9 +16,9 @@ use cgmath::quaternion::Quaternion;
 use cgmath::vector::{Vector3, Vector4};
 use cgmath::matrix::{Matrix4, ToMatrix4, Matrix};
 
-use OpenCL::hl::{Device, Context, CommandQueue, Kernel, Event};
-use OpenCL::mem::CLBuffer;
-use OpenCL::CL::{CL_MEM_READ_ONLY};
+use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
+use opencl::mem::CLBuffer;
+use opencl::CL::{CL_MEM_READ_ONLY};
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 

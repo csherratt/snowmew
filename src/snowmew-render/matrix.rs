@@ -4,9 +4,9 @@ use std::slice::raw::mut_buf_as_slice;
 use sync::Arc;
 
 
-use OpenCL::hl::{CommandQueue, Context, Device, Event, EventList};
-use OpenCL::mem::{Buffer, CLBuffer};
-use OpenCL::CL::CL_MEM_READ_WRITE;
+use opencl::hl::{CommandQueue, Context, Device, Event, EventList};
+use opencl::mem::{Buffer, CLBuffer};
+use opencl::CL::CL_MEM_READ_WRITE;
 use cgmath::matrix::Matrix4;
 use cgmath::vector::Vector4;
 use gl;

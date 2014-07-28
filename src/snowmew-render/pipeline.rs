@@ -404,11 +404,13 @@ pub struct Hmd<PIPELINE> {
 
 #[cfg(target_os="linux")]
 fn render_config(window: &Window, hmd: &HmdDescription) -> RenderGLConfig {
-    RenderGLConfig {
-        size: hmd.resolution,
-        multisample: 4,
-        display: Some(window.get_x11_display()),
-        window: None
+    unsafe {
+        RenderGLConfig {
+            size: hmd.resolution,
+            multisample: 4,
+            display: Some(window.get_x11_display() as *const libc::c_void),
+            window: None
+        }
     }
 }
 

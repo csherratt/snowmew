@@ -9,7 +9,7 @@ extern crate std;
 extern crate glfw;
 extern crate gfx;
 extern crate snowmew;
-extern crate OpenCL;
+extern crate opencl;
 extern crate sync;
 extern crate cow;
 extern crate gl;
@@ -23,7 +23,7 @@ extern crate render_data = "render-data";
 
 use std::collections::hashmap::HashMap;
 
-use OpenCL::hl::Device;
+use opencl::hl::Device;
 use sync::Arc;
 
 use position::Positions;
@@ -315,7 +315,7 @@ impl<'a> device::GlProvider for Wrap<'a> {
 }
 
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
-    fn init(~self,
+    fn init(self: Box<RenderFactory>,
             io: &snowmew::IOManager,
             window: Window,
             size: (i32, i32),

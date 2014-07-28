@@ -316,7 +316,7 @@ modules = [Bin("demo-noclip", ["snowmew", "snowmew-render-mux", "snowmew-loader"
            Lib("OpenCL"),
            Lib("gfx", ["glfw", "gl", "device"], other_flags="--cfg=gl --cfg=glfw"),
            Lib("device", ["gl"], other_flags="--cfg=gl --cfg=glfw"),
-           Lib("stb-image", ["libstb-image.a"]),
+           Lib("stb-image", ["libstb-image.a"], ),
            LibConfigureMakefile("libstb-image.a", "modules/stb-image/", ["modules/stb-image/libstb-image.a"]),
            LibCMake("libglfw3.a", "modules/glfw/", ["modules/glfw/src/libglfw3.a"], cmake_flags="-DCMAKE_C_FLAGS=\"-fPIC\""),
            Lib("glfw", ["libglfw3.a"], 

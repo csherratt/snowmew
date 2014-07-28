@@ -13,7 +13,7 @@ extern crate cgmath;
 extern crate native;
 extern crate green;
 extern crate ovr = "oculus-vr";
-extern crate OpenCL;
+extern crate opencl;
 extern crate sync;
 extern crate render_data = "render-data";
 

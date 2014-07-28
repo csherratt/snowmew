@@ -4,17 +4,17 @@
 #![crate_type = "lib"]
 
 extern crate gl;
-extern crate OpenCL;
+extern crate opencl;
 extern crate libc;
 
 use std::ptr;
 
-use OpenCL::CL::{cl_mem, cl_mem_flags, cl_context, cl_int, cl_uint, cl_event};
-use OpenCL::CL::{cl_command_queue};
-use OpenCL::hl::{Context, Device, EventList, Event, CommandQueue};
-use OpenCL::hl::create_context_with_properties;
-use OpenCL::mem::{CLBuffer, Buffer};
-use OpenCL::error;
+use opencl::CL::{cl_mem, cl_mem_flags, cl_context, cl_int, cl_uint, cl_event};
+use opencl::CL::{cl_command_queue};
+use opencl::hl::{Context, Device, EventList, Event, CommandQueue};
+use opencl::hl::create_context_with_properties;
+use opencl::mem::{CLBuffer, Buffer};
+use opencl::error;
 
 type CGLContextObj = libc::intptr_t;
 type CGLShareGroupObj = libc::intptr_t;
@@ -87,12 +87,12 @@ pub fn create_context(dev: &Device) -> Option<Context> {
     }
 }
 
-pub fn create_from_gl_buffer<T>(ctx: &Context, buf: gl::types::GLuint, flags: cl_mem_flags) -> OpenCL::mem::CLBuffer<T> {
+pub fn create_from_gl_buffer<T>(ctx: &Context, buf: gl::types::GLuint, flags: cl_mem_flags) -> opencl::mem::CLBuffer<T> {
     unsafe {
         let mut status = 0;
         let mem = clCreateFromGLBuffer(ctx.ctx, flags, buf, &mut status);
         assert!(status == 0);
-        OpenCL::mem::CLBuffer{cl_buffer: mem}
+        opencl::mem::CLBuffer{cl_buffer: mem}
     }
 }
 
@@ -104,7 +104,7 @@ pub trait AcquireRelease {
 impl AcquireRelease for CommandQueue {
     fn acquire_gl_objects<T, E: EventList>(&self, mem: &[CLBuffer<T>], events: E) -> Event {
         let mem: Vec<cl_mem> = mem.iter().map(|m| m.id()).collect();
-        let mut event: cl_event = ptr::null();
+        let mut event: cl_event = ptr::mut_null();
         let check = events.as_event_list(|evt, evt_len| {
             unsafe {
                 clEnqueueAcquireGLObjects(self.cqueue,
@@ -122,7 +122,7 @@ impl AcquireRelease for CommandQueue {
 
     fn release_gl_objects<T, E: EventList>(&self, mem: &[CLBuffer<T>], events: E) -> Event {
         let mem: Vec<cl_mem> = mem.iter().map(|m| m.id()).collect();
-        let mut event: cl_event = ptr::null();
+        let mut event: cl_event = ptr::mut_null();
         let check = events.as_event_list(|evt, evt_len| {
             unsafe {
                 clEnqueueReleaseGLObjects(self.cqueue,
