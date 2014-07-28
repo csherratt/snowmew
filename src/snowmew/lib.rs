@@ -23,7 +23,7 @@ extern crate libc;
 extern crate opencl;
 extern crate device;
 extern crate gfx;
-extern crate ovr = "oculus-vr";
+extern crate ovr = "ovr-vr";
 
 pub use common::{ObjectKey};
 pub use io::IOManager;

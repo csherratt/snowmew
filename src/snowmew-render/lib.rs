@@ -12,7 +12,7 @@ extern crate snowmew;
 extern crate cow;
 extern crate gl;
 extern crate opencl;
-extern crate ovr = "oculus-vr";
+extern crate ovr = "ovr-vr";
 extern crate collections;
 extern crate native;
 extern crate time;
