@@ -86,7 +86,7 @@ impl Deltas {
 
     pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = *self.gen.get(gen as uint);
+        let (gen_offset, _) = self.gen[gen as uint];
 
         (gen_offset + offset) as uint
     }
@@ -94,7 +94,7 @@ impl Deltas {
     fn add_location(&mut self, gen: u32) -> u32 {
         // create a new generation if this is the first in it
         if gen as uint == self.gen.len() {
-            let (s, len) = *self.gen.get((gen-1) as uint);
+            let (s, len) = self.gen[(gen-1) as uint];
             self.gen.push((s+len, 1));
 
             self.delta.insert(gen, BTreeMap::new());
@@ -107,7 +107,7 @@ impl Deltas {
                 *t = (off+1, len);
             }
 
-            let (off, len) = *self.gen.get(gen as uint);
+            let (off, len) = self.gen[gen as uint];
             *self.gen.get_mut(gen as uint) = (off, len+1);
 
             len
@@ -181,7 +181,7 @@ impl Deltas {
                            out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
 
         let last = self.gen.len();
-        let (s, l) = *self.gen.get(last-1);
+        let (s, l) = self.gen[last-1];
         let size = s + l;
 
         unsafe {
@@ -216,9 +216,9 @@ impl Deltas {
         ctx.kernel_vec4.set_arg(4, &out[2]);
         ctx.kernel_vec4.set_arg(5, &out[3]);
         for idx in range(1, self.gen.len()) {
-            let (off, _) = *self.gen.get(idx-1);
+            let (off, _) = self.gen[idx-1];
             ctx.kernel_vec4.set_arg(6, &off);
-            let (off2, len) = *self.gen.get(idx);
+            let (off2, len) = self.gen[idx];
             ctx.kernel_vec4.set_arg(7, &off2);
             event = cq.enqueue_async_kernel(&ctx.kernel_vec4, len as uint, None, event);
         }
@@ -230,7 +230,7 @@ impl Deltas {
                            out: &[CLBuffer<Matrix4<f32>>]) -> Event {
 
         let last = self.gen.len();
-        let (s, l) = *self.gen.get(last-1);
+        let (s, l) = self.gen[last-1];
         let size = s + l;
 
         unsafe {
@@ -259,9 +259,9 @@ impl Deltas {
         ctx.kernel_mat.set_arg(1, &ctx.parent);
         ctx.kernel_mat.set_arg(2, &out[0]);
         for idx in range(1, self.gen.len()) {
-            let (off, _) = *self.gen.get(idx-1);
+            let (off, _) = self.gen[idx-1];
             ctx.kernel_mat.set_arg(3, &off);
-            let (off2, len) = *self.gen.get(idx);
+            let (off2, len) = self.gen[idx];
             ctx.kernel_mat.set_arg(4, &off2);
             event = cq.enqueue_async_kernel(&ctx.kernel_mat, len as uint, None, event);
         }
@@ -295,7 +295,7 @@ pub struct ComputedPositionGL {
 impl ComputedPositionGL {
     pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = *self.gen.get(gen as uint);
+        let (gen_offset, _) = self.gen[gen as uint];
 
         (gen_offset + offset) as uint
     }
@@ -318,7 +318,7 @@ impl ComputedPosition {
 
     pub fn get_loc(&self, id: Id) -> uint {
         let Id(gen, offset) = id;
-        let (gen_offset, _) = *self.gen.get(gen as uint);
+        let (gen_offset, _) = self.gen[gen as uint];
 
         (gen_offset + offset) as uint
     }
@@ -475,7 +475,7 @@ pub trait Positions: Common {
 
     fn position_count(&self) -> uint {
         let last = self.get_position().position.gen.len();
-        let (s, l) = *self.get_position().position.gen.get(last-1);
+        let (s, l) = self.get_position().position.gen[last-1];
         (s + l) as uint
     }
 }

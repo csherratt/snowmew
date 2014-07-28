@@ -27,27 +27,27 @@ impl VertexBuffer {
         let (vertex_size, index_size) = unsafe {
             let (addr, size, stride) = match *vertex {
                 Geo(ref data) => {
-                    (mem::transmute(data.get(0)),
+                    (mem::transmute(&data[0]),
                      data.len() * mem::size_of::<VertexGeo>(),
                      mem::size_of::<VertexGeo>())
                 },
                 GeoTex(ref data) => {
-                    (mem::transmute(data.get(0)),
+                    (mem::transmute(&data[0]),
                      data.len() * mem::size_of::<VertexGeoTex>(),
                      mem::size_of::<VertexGeoTex>())
                 },
                 GeoNorm(ref data) => {
-                    (mem::transmute(data.get(0)),
+                    (mem::transmute(&data[0]),
                      data.len() * mem::size_of::<VertexGeoNorm>(),
                      mem::size_of::<VertexGeoNorm>())
                 },
                 GeoTexNorm(ref data) => {
-                    (mem::transmute(data.get(0)),
+                    (mem::transmute(&data[0]),
                      data.len() * mem::size_of::<VertexGeoTexNorm>(),
                      mem::size_of::<VertexGeoTexNorm>())
                 },
                 GeoTexNormTan(ref data) => {
-                    (mem::transmute(data.get(0)),
+                    (mem::transmute(&data[0]),
                      data.len() * mem::size_of::<VertexGeoTexNormTan>(),
                      mem::size_of::<VertexGeoTexNormTan>())
                 }

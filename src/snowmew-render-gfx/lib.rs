@@ -113,8 +113,8 @@ impl RenderManager {
     fn load<RD: RenderData>(&mut self, db: &RD) {
         if self.program.is_none() {
             self.program = Some(
-                self.client.create_program(VERTEX_SRC.to_owned(),
-                                           FRAGMENT_SRC.to_owned())
+                self.client.create_program(VERTEX_SRC.to_vec(),
+                                           FRAGMENT_SRC.to_vec())
             );
         }
 

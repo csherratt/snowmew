@@ -293,7 +293,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         unsafe {
             gl::Uniform1iv(atlas_uniform,
                            text.len() as i32,
-                           (text.get(0) as *const i32));
+                           (&text[0] as *const i32));
         } 
 
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
@@ -307,7 +307,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
                     };
                     for (e, i) in range(idx, end).enumerate() {
                         gl::ActiveTexture(gl::TEXTURE0+texture_base+e as u32);
-                        gl::BindTexture(gl::TEXTURE_2D_ARRAY, *textures.get(i));
+                        gl::BindTexture(gl::TEXTURE_2D_ARRAY, textures[i]);
                     }
                     gl::Uniform1i(atlas_base, idx as i32);
                 }
@@ -404,13 +404,11 @@ pub struct Hmd<PIPELINE> {
 
 #[cfg(target_os="linux")]
 fn render_config(window: &Window, hmd: &HmdDescription) -> RenderGLConfig {
-    unsafe {
-        RenderGLConfig {
-            size: hmd.resolution,
-            multisample: 4,
-            display: Some(window.get_x11_display() as *const libc::c_void),
-            window: None
-        }
+    RenderGLConfig {
+        size: hmd.resolution,
+        multisample: 4,
+        display: Some(window.get_x11_display() as *const libc::c_void),
+        window: None
     }
 }
 

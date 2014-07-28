@@ -43,7 +43,7 @@ fn get_cl() -> Option<Arc<Device>> {
     for platform in platforms.iter() {
         let devices = platform.get_devices_by_types(&[GPU]);
         if devices.len() != 0 {
-            return Some(Arc::new(*devices.get(0)));
+            return Some(Arc::new(devices[0]));
         } 
     }
 
@@ -51,7 +51,7 @@ fn get_cl() -> Option<Arc<Device>> {
     for platform in platforms.iter() {
         let devices = platform.get_devices_by_types(&[CPU, GPU]);
         if devices.len() != 0 {
-            return Some(Arc::new(*devices.get(0)));
+            return Some(Arc::new(devices[0]));
         } 
     }
 

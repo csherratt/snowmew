@@ -80,7 +80,7 @@ impl PhysicsManager {
         };
 
         for (key, (loc, &Collider(ref coll))) in join_maps(data.location_iter(), data.get_physics().static_colliders.iter()) {
-            let aabb = recalc_aabb(coll, self.matrix.get(pos.get_loc(*loc)));
+            let aabb = recalc_aabb(coll, &self.matrix[pos.get_loc(*loc)]);
             bvh.add(aabb, *key);
         }
 
@@ -106,7 +106,7 @@ impl PhysicsManager {
                         join_maps(join_maps(old.location_iter(), old.get_physics().velocity.iter()),
                                             old.get_physics().colliders.iter()) {
                     let vel = vel.mul_s(time);
-                    let aabb = recalc_aabb_with_vec(coll, self.matrix.get(pos.get_loc(*loc)), &vel);
+                    let aabb = recalc_aabb_with_vec(coll, &self.matrix[pos.get_loc(*loc)], &vel);
                     let mut collided = false;
                     for _ in bvh.collision_iter(&aabb) {
                         collided = true;

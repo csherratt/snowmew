@@ -109,7 +109,7 @@ impl AcquireRelease for CommandQueue {
             unsafe {
                 clEnqueueAcquireGLObjects(self.cqueue,
                                           mem.len() as cl_uint,
-                                          mem.get(0),
+                                          &mem[0],
                                           evt_len,
                                           evt,
                                           &mut event as *mut cl_event)
@@ -127,7 +127,7 @@ impl AcquireRelease for CommandQueue {
             unsafe {
                 clEnqueueReleaseGLObjects(self.cqueue,
                                           mem.len() as cl_uint,
-                                          mem.get(0),
+                                          &mem[0],
                                           evt_len,
                                           evt,
                                           &mut event as *mut cl_event)

@@ -22,8 +22,8 @@ fn flip(dat: &mut Vec<u8>, height: uint, width: uint, depth: uint) {
             for d in range(0, depth) {
                 let a_addr = offset(width, depth, row, column, d);
                 let b_addr = offset(width, depth, swap_row, column, d);
-                let temp = *dat.get(a_addr);
-                *dat.get_mut(a_addr) = *dat.get(b_addr);
+                let temp = (*dat)[a_addr];
+                *dat.get_mut(a_addr) = (*dat)[b_addr];
                 *dat.get_mut(b_addr) = temp;
             }
         }
