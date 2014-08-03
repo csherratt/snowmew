@@ -155,17 +155,18 @@ impl Drawlist for DrawlistNoSSBO {
     }
 
     fn setup_compute(self: Box<DrawlistNoSSBO>, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
+        let s = *self;
         let DrawlistNoSSBO {
             data: _,
             size: size,
             materials: materials,
             lights: lights,
             model: model,
-            matrix: matrix,
             command: command,
+            matrix: matrix,
             instanced_is_enabled: instanced_is_enabled,
             start: _
-        } = *self;
+        } = s;
 
         let data = DrawlistGraphicsData {
             common: db.get_common().clone(),
@@ -366,6 +367,7 @@ impl Drawlist for DrawlistSSBOCompute {
     }
 
     fn setup_compute(self: Box<DrawlistSSBOCompute>, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
+        let s = *self;
         let DrawlistSSBOCompute {
             data: _,
             size: size,
@@ -377,7 +379,7 @@ impl Drawlist for DrawlistSSBOCompute {
             culling_is_enabled: culling_is_enabled,
             instanced_is_enabled: instanced_is_enabled,
             start: _
-        } = *self;
+        } = s;
 
         let data = DrawlistGraphicsData {
             common: db.get_common().clone(),
