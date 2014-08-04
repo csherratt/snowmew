@@ -21,8 +21,8 @@ extern crate green;
 extern crate collections;
 extern crate libc;
 extern crate opencl;
-extern crate device;
-extern crate gfx;
+//extern crate device;
+//extern crate gfx;
 extern crate ovr = "ovr-vr";
 
 pub use common::{ObjectKey};
