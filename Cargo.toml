@@ -27,3 +27,6 @@ path = "src/snowmew-render-mux/"
 
 [dependencies.snowmew-loader]
 path = "src/snowmew-loader/"
+
+[dependencies.snowmew-physics]
+path = "src/snowmew-physics/"
