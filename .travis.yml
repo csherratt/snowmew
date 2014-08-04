@@ -8,4 +8,7 @@ install:
 
 script:
  - cargo build
- - cargo test
+ - cd examples/cubes && cargo build
+ - cd examples/noclip && cargo build
+ - cd examples/gears && cargo build
+

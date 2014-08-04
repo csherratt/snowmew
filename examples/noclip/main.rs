@@ -1,4 +1,4 @@
-#![crate_name = "demo-noclip"]
+#![crate_name = "noclip"]
 #![feature(macro_rules)]
 #![feature(globs)]
 
@@ -11,10 +11,6 @@ extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 extern crate cgmath;
 extern crate native;
-extern crate green;
-extern crate ovr = "ovr-vr";
-extern crate opencl;
-extern crate sync;
 extern crate render_data = "render-data";
 
 use std::from_str::FromStr;
