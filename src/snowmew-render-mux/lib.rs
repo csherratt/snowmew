@@ -4,8 +4,9 @@
 #![comment = "A game engine in rust"]
 #![allow(dead_code)]
 
-extern crate snowmew  = "snowmew-core";
 extern crate sync;
+
+extern crate snowmew  = "snowmew-core";
 extern crate opencl;
 //extern crate gfx = "snowmew-render-gfx";
 extern crate azdo = "snowmew-render";

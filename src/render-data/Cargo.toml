@@ -1,0 +1,17 @@
+[package]
+
+name = "render-data"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[[lib]]
+name = "render-data"
+path = "lib.rs"
+
+[dependencies.snowmew-position]
+path = "../snowmew-position"
+
+[dependencies.snowmew-graphics]
+path = "../snowmew-graphics"

@@ -6,20 +6,23 @@
 
 //extern crate debug;
 extern crate std;
-extern crate glfw;
-extern crate cgmath;
-extern crate snowmew  = "snowmew-core";
-extern crate cow;
-extern crate gl;
-extern crate opencl;
-extern crate ovr = "ovr-vr";
 extern crate collections;
 extern crate native;
 extern crate time;
 extern crate libc;
 extern crate sync;
+
+extern crate glfw;
+extern crate cgmath;
+extern crate cow;
+extern crate gl;
+extern crate opencl;
+extern crate ovr;
+
 extern crate gl_cl;
 extern crate collision;
+
+extern crate snowmew  = "snowmew-core";
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 extern crate render_data = "render-data";

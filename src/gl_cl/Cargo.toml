@@ -1,0 +1,17 @@
+[package]
+
+name = "gl_cl"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[[lib]]
+name = "gl_cl"
+path = "lib.rs"
+
+[dependencies.gl]
+git = "https://github.com/bjz/gl-rs.git"
+
+[dependencies.opencl]
+git = "https://github.com/csherratt/rust-opencl.git"
