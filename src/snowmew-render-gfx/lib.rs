@@ -18,7 +18,7 @@ extern crate device;
 extern crate libc;
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
-extern crate render_data = "render-data";
+extern crate render_data = "snowmew-render-data";
 
 
 use std::collections::hashmap::HashMap;

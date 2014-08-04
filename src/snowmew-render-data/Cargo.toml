@@ -1,13 +1,13 @@
 [package]
 
-name = "render-data"
+name = "snowmew-render-data"
 version = "0.1.0"
 authors = [
     "Colin Sherratt <colin.sherratt@gmail.com>",
 ]
 
 [[lib]]
-name = "render-data"
+name = "snowmew-render-data"
 path = "lib.rs"
 
 [dependencies.snowmew-position]
