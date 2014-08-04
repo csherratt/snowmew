@@ -8,7 +8,7 @@
 extern crate std;
 extern crate glfw;
 extern crate cgmath;
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate cow;
 extern crate gl;
 extern crate opencl;

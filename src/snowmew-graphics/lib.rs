@@ -4,7 +4,7 @@
 #![comment = "A graphics collection for snowmew"]
 
 extern crate cow;
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate cgmath;
 extern crate collision;
 extern crate image = "stb_image";

@@ -4,7 +4,7 @@
 
 extern crate glfw;
 extern crate gl;
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate render = "snowmew-render-mux";
 extern crate loader = "snowmew-loader";
 extern crate position = "snowmew-position";

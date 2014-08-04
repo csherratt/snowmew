@@ -4,10 +4,10 @@
 #![comment = "A game engine in rust"]
 #![allow(dead_code)]
 
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate sync;
 extern crate opencl;
-extern crate gfx = "snowmew-render-gfx";
+//extern crate gfx = "snowmew-render-gfx";
 extern crate azdo = "snowmew-render";
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
@@ -56,13 +56,13 @@ impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderMux<RD>> for RenderFa
             _ => None
         };
 
-        let rm: RenderMux<RD> = if use_gfx.is_some() && use_gfx.unwrap() {
+        let rm: RenderMux<RD> = /*if use_gfx.is_some() && use_gfx.unwrap() {
             let rf: Box<snowmew::RenderFactory<RD, gfx::RenderManager>> = box gfx::RenderFactory::new();
             let render: Box<gfx::RenderManager> = box rf.init(io, window, size, cl);
             RenderMux {
                 render: render as Box<snowmew::Render<RD>>
             }
-        } else {
+        } else */{
             let rf: Box<snowmew::RenderFactory<RD, azdo::RenderManager>> = box azdo::RenderFactory::new();
             let render: Box<azdo::RenderManager> = box rf.init(io, window, size, cl);
             RenderMux {

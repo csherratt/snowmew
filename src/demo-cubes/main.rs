@@ -2,7 +2,7 @@
 #![feature(macro_rules)]
 #![feature(globs)]
 
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate render = "snowmew-render-mux";
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";

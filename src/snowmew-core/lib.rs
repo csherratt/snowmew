@@ -1,4 +1,4 @@
-#![crate_name = "snowmew"]
+#![crate_name = "snowmew-core"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A game engine in rust"]
