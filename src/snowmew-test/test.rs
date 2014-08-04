@@ -1,5 +1,5 @@
 
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 
 mod db {
     use snowmew::common::Database;

@@ -1,16 +1,17 @@
-#![crate_name = "demo-cubes"]
+#![crate_name = "cubes"]
 #![feature(macro_rules)]
 #![feature(globs)]
 
-extern crate snowmew;
-extern crate render = "snowmew-render-mux";
-extern crate position = "snowmew-position";
-extern crate graphics = "snowmew-graphics";
 extern crate cgmath;
 extern crate native;
 extern crate opencl;
 extern crate sync;
 extern crate glfw;
+
+extern crate snowmew  = "snowmew-core";
+extern crate render = "snowmew-render-mux";
+extern crate position = "snowmew-position";
+extern crate graphics = "snowmew-graphics";
 extern crate render_data = "render-data";
 
 use std::from_str::FromStr;

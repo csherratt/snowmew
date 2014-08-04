@@ -1,10 +1,10 @@
-#![crate_name = "rust-gears"]
+#![crate_name = "gears"]
 #![feature(macro_rules)]
 #![feature(globs)]
 
 extern crate glfw;
 extern crate gl;
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate render = "snowmew-render-mux";
 extern crate loader = "snowmew-loader";
 extern crate position = "snowmew-position";
@@ -12,7 +12,6 @@ extern crate graphics = "snowmew-graphics";
 extern crate cgmath;
 extern crate native;
 extern crate green;
-extern crate ovr = "ovr-vr";
 extern crate opencl;
 extern crate sync;
 extern crate render_data = "render-data";

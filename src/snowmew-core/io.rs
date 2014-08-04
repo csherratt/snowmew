@@ -8,8 +8,8 @@ use glfw::{CloseEvent, FocusEvent, FullScreen};
 use glfw::{Windowed, RenderContext};
 use glfw;
 use gl;
-use device;
-use gfx;
+//use device;
+//use gfx;
 
 use semver;
 use std::collections::HashSet;
@@ -567,7 +567,7 @@ impl Window {
         self.os_spec.display
     }
 }
-
+/*
 impl device::GraphicsContext<gfx::platform::GlApi> for Window {
     fn swap_buffers(&self) {
         self.render.swap_buffers()
@@ -587,3 +587,4 @@ impl device::GlProvider for IOManager {
         self.glfw.extension_supported(name)
     }
 }
+*/

@@ -1,0 +1,44 @@
+[package]
+
+name = "snowmew-render"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[[lib]]
+name = "snowmew-render"
+path = "lib.rs"
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs.git"
+
+[dependencies.cow]
+git = "https://github.com/csherratt/cow-rs.git"
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs.git"
+
+[dependencies.gl]
+git = "https://github.com/bjz/gl-rs.git"
+
+[dependencies.opencl]
+git = "https://github.com/csherratt/rust-opencl.git"
+
+[dependencies.ovr]
+git = "https://github.com/csherratt/vr-rs.git"
+
+[dependencies.gl_cl]
+path = "../gl_cl"
+
+[dependencies.snowmew-core]
+path = "../snowmew-core"
+
+[dependencies.snowmew-position]
+path = "../snowmew-position"
+
+[dependencies.snowmew-graphics]
+path = "../snowmew-graphics"
+
+[dependencies.render-data]
+path = "../render-data"

@@ -3,7 +3,7 @@
 #![crate_type = "lib"]
 #![comment = "A collison detection manager for snowmew"]
 
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate cow;
 extern crate cgmath;
 extern crate position = "snowmew-position";

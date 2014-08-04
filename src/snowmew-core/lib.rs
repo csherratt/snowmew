@@ -1,4 +1,4 @@
-#![crate_name = "snowmew"]
+#![crate_name = "snowmew-core"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A game engine in rust"]
@@ -21,9 +21,9 @@ extern crate green;
 extern crate collections;
 extern crate libc;
 extern crate opencl;
-extern crate device;
-extern crate gfx;
-extern crate ovr = "ovr-vr";
+//extern crate device;
+//extern crate gfx;
+extern crate ovr;
 
 pub use common::{ObjectKey};
 pub use io::IOManager;

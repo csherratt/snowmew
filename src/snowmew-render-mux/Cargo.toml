@@ -1,0 +1,29 @@
+[package]
+
+name = "snowmew-render-mux"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[[lib]]
+name = "snowmew-render-mux"
+path = "lib.rs"
+
+[dependencies.snowmew-core]
+path = "../snowmew-core"
+
+[dependencies.snowmew-render]
+path = "../snowmew-render"
+
+[dependencies.snowmew-position]
+path = "../snowmew-position"
+
+[dependencies.snowmew-graphics]
+path = "../snowmew-graphics"
+
+[dependencies.render-data]
+path = "../render-data"
+
+[dependencies.opencl]
+git = "https://github.com/csherratt/rust-opencl.git"

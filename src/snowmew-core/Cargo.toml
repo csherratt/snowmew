@@ -1,0 +1,29 @@
+[package]
+
+name = "snowmew-core"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[[lib]]
+name = "snowmew-core"
+path = "lib.rs"
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs.git"
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs.git"
+
+[dependencies.cow]
+git = "https://github.com/csherratt/cow-rs.git"
+
+[dependencies.gl]
+git = "https://github.com/bjz/gl-rs.git"
+
+[dependencies.opencl]
+git = "https://github.com/csherratt/rust-opencl.git"
+
+[dependencies.ovr]
+git = "https://github.com/csherratt/vr-rs.git"

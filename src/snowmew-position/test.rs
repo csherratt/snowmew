@@ -2,7 +2,7 @@
 #![feature(globs)]
 #![feature(phase)]
 
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate cgmath;
 extern crate opencl;
 extern crate cow;

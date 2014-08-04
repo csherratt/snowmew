@@ -1,6 +1,6 @@
 #![feature(globs)]
 
-extern crate snowmew;
+extern crate snowmew  = "snowmew-core";
 extern crate cow;
 
 mod core {
