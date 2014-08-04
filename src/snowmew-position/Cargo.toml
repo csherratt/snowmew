@@ -1,0 +1,20 @@
+[package]
+
+name = "snowmew-position"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[[lib]]
+name = "snowmew-position"
+path = "lib.rs"
+
+[dependencies.snowmew-core]
+path = "../snowmew-core/"
+
+[dependencies.opencl]
+git = "https://github.com/csherratt/rust-opencl.git"
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs.git"

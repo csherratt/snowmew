@@ -15,3 +15,6 @@ path = "src/snowmew-core/"
 
 [dependencies.snowmew-graphics]
 path = "src/snowmew-graphics/"
+
+[dependencies.snowmew-position]
+path = "src/snowmew-position/"
