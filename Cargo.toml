@@ -1,0 +1,17 @@
+[package]
+
+name = "snowmew"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[[lib]]
+name = "snowmew"
+path = "src/snowmew.rs"
+
+[dependencies.snowmew-core]
+path = "src/snowmew-core/"
+
+[dependencies.snowmew-graphics]
+path = "src/snowmew-graphics/"
