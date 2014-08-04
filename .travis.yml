@@ -4,12 +4,8 @@ env:
 
 install:
   - curl -s http://www.rust-lang.org/rustup.sh | sudo sh
-  - rustc --version
-  - sudo apt-get update
-  - sudo apt-get install libudev-dev libglfw-dev fglrx opencl-headers xorg-dev libglu1-mesa-dev freeglut3 freeglut3-dev 
-  - git submodule update --init --recursive
+  - sudo apt-get install libudev-dev libglfw-dev fglrx opencl-headers xorg-dev libglu1-mesa-dev freeglut3 freeglut3-dev libglfw3
 
 script:
-  - ./configure
-  - make 
-  - make check
+ - cargo build
+ - cargo test
