@@ -12,7 +12,7 @@ extern crate snowmew  = "snowmew-core";
 extern crate render = "snowmew-render-mux";
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
-extern crate render_data = "render-data";
+extern crate render_data = "snowmew-render-data";
 
 use std::from_str::FromStr;
 

@@ -1,4 +1,4 @@
-#![crate_name = "render-data"]
+#![crate_name = "snowmew-render-data"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A game engine in rust"]

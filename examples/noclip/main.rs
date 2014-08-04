@@ -11,7 +11,7 @@ extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 extern crate cgmath;
 extern crate native;
-extern crate render_data = "render-data";
+extern crate render_data = "snowmew-render-data";
 
 use std::from_str::FromStr;
 

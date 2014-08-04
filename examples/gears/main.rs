@@ -14,7 +14,7 @@ extern crate native;
 extern crate green;
 extern crate opencl;
 extern crate sync;
-extern crate render_data = "render-data";
+extern crate render_data = "snowmew-render-data";
 
 
 use cgmath::transform::Decomposed;

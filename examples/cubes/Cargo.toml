@@ -22,5 +22,5 @@ path = "../../src/snowmew-position"
 [dependencies.snowmew-graphics]
 path = "../../src/snowmew-graphics"
 
-[dependencies.render-data]
-path = "../../src/render-data"
+[dependencies.snowmew-render-data]
+path = "../../src/snowmew-render-data"
