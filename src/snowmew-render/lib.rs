@@ -1,8 +1,9 @@
- #![crate_name = "snowmew-render"]
+#![crate_name = "snowmew-render"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A game engine in rust"]
 #![allow(dead_code)]
+#![feature(phase)]
 
 //extern crate debug;
 extern crate std;
@@ -18,9 +19,12 @@ extern crate cow;
 extern crate gl;
 extern crate opencl;
 extern crate ovr;
+extern crate collision;
+extern crate gfx;
+#[phase(plugin)]
+extern crate gfx_macros;
 
 extern crate gl_cl;
-extern crate collision;
 
 extern crate snowmew  = "snowmew-core";
 extern crate position = "snowmew-position";

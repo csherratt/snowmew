@@ -4,13 +4,12 @@ use cgmath::vector::Vector3;
 
 use snowmew::ObjectKey;
 
-#[deriving(Clone)]
 pub struct Material {
-    ka: Vector3<f32>,
-    kd: Vector3<f32>,
-    ks: Vector3<f32>,
-    ke: Vector3<f32>,
-    tf: Vector3<f32>,
+    ka: [f32, ..3],
+    kd: [f32, ..3],
+    ks: [f32, ..3],
+    ke: [f32, ..3],
+    tf: [f32, ..3],
     ns: f32,
     ni: f32,
     tr: f32,
@@ -27,6 +26,31 @@ pub struct Material {
     map_refl: Option<ObjectKey>,
 }
 
+impl Clone for Material {
+    fn clone(&self) -> Material {
+        Material {
+            ka: self.ka,
+            kd: self.kd,
+            ks: self.ks,
+            ke: self.ke,
+            tf: self.tf,
+            ns: self.ns,
+            ni: self.ni,
+            tr: self.tr,
+            d: self.d,
+            illum: self.illum,
+            map_ka: self.map_ka,
+            map_kd: self.map_kd,
+            map_ks: self.map_ks,
+            map_ke: self.map_ke,
+            map_ns: self.map_ns,
+            map_d: self.map_d,
+            map_bump: self.map_bump,
+            map_refl: self.map_refl
+        }
+    }
+}
+
 impl Default for Material {
     fn default() -> Material {
         Material::new()
@@ -36,11 +60,11 @@ impl Default for Material {
 impl Material {
     pub fn new() -> Material {
         Material {
-            ka: Vector3::new(0f32, 0., 0.),
-            kd: Vector3::new(0f32, 0., 0.),
-            ks: Vector3::new(0f32, 0., 0.),
-            ke: Vector3::new(0f32, 0., 0.),
-            tf: Vector3::new(0f32, 0., 0.),
+            ka: [0., ..3],
+            kd: [0., ..3],
+            ks: [0., ..3],
+            ke: [0., ..3],
+            tf: [0., ..3],
             ns: 0.,
             ni: 0.,
             tr: 0.,
@@ -57,28 +81,28 @@ impl Material {
         }      
     }
 
-    pub fn simple(color: Vector3<f32>) -> Material {
+    pub fn simple(color: [f32, ..3]) -> Material {
         let mut mat = Material::new();
-        mat.ka = color.clone();
-        mat.kd = color.clone();
-        mat.ks = color.clone();
+        mat.ka = color;
+        mat.kd = color;
+        mat.ks = color;
         mat
     }
 
-    pub fn ka(&self) -> Vector3<f32> {self.ka}
-    pub fn set_ka(&mut self, c: Vector3<f32>) {self.ka = c;}
+    pub fn ka(&self) -> [f32, ..3] {self.ka}
+    pub fn set_ka(&mut self, c: [f32, ..3]) {self.ka = c;}
 
-    pub fn kd(&self) -> Vector3<f32> {self.kd}
-    pub fn set_kd(&mut self, c: Vector3<f32>) {self.kd = c;}
+    pub fn kd(&self) -> [f32, ..3] {self.kd}
+    pub fn set_kd(&mut self, c: [f32, ..3]) {self.kd = c;}
 
-    pub fn ks(&self) -> Vector3<f32> {self.ks}
-    pub fn set_ks(&mut self, c: Vector3<f32>) {self.ks = c;}
+    pub fn ks(&self) -> [f32, ..3] {self.ks}
+    pub fn set_ks(&mut self, c: [f32, ..3]) {self.ks = c;}
 
-    pub fn ke(&self) -> Vector3<f32> {self.ks}
-    pub fn set_ke(&mut self, c: Vector3<f32>) {self.ke = c;}
+    pub fn ke(&self) -> [f32, ..3] {self.ks}
+    pub fn set_ke(&mut self, c: [f32, ..3]) {self.ke = c;}
 
-    pub fn tf(&self) -> Vector3<f32> {self.tf}
-    pub fn set_tf(&mut self, c: Vector3<f32>) {self.tf = c;}
+    pub fn tf(&self) -> [f32, ..3] {self.tf}
+    pub fn set_tf(&mut self, c: [f32, ..3]) {self.tf = c;}
 
     pub fn map_ka(&self) -> Option<ObjectKey> {self.map_ka}
     pub fn set_map_ka(&mut self, oid: ObjectKey) {self.map_ka = Some(oid);}
@@ -109,5 +133,4 @@ impl Material {
 
     pub fn ni(&self) -> f32 {self.ni}
     pub fn set_ni(&mut self, v: f32) {self.ni = v}
-
 }

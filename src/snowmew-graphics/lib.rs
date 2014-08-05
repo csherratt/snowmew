@@ -2,12 +2,17 @@
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A graphics collection for snowmew"]
+#![feature(phase)]
 
+#[phase(plugin)]
+extern crate gfx_macros;
+extern crate gfx;
 extern crate cow;
-extern crate snowmew  = "snowmew-core";
 extern crate cgmath;
 extern crate collision;
 extern crate image = "stb_image";
+
+extern crate snowmew  = "snowmew-core";
 
 use std::slice;
 
@@ -192,7 +197,7 @@ pub trait Graphics: Common {
             Some(iter) => iter
         };
 
-        Some(iter.map(|(_, p, _, _)| Point3::new(p.x, p.y, p.z)).collect())
+        Some(iter.map(|(_, &[x, y, z], _, _)| Point3::new(x, y, z)).collect())
     }
 
     fn new_texture(&mut self, parent: ObjectKey, name: &str, texture: Texture) -> ObjectKey {
@@ -253,8 +258,15 @@ pub struct VertexBufferIter<'a> {
     idx_iter: std::slice::Items<'a, u32>
 }
 
-impl<'a> Iterator<(u32, &'a Vector3<f32>, Option<&'a Vector2<f32>>, Option<&'a Vector3<f32>>)> for VertexBufferIter<'a> {
-    fn next(&mut self) -> Option<(u32, &'a Vector3<f32>, Option<&'a Vector2<f32>>, Option<&'a Vector3<f32>>)> {
+impl<'a> Iterator<(u32,
+                   &'a [f32, ..3],
+                   Option<&'a [f32, ..2]>,
+                   Option<&'a [f32, ..3]>)> for VertexBufferIter<'a> {
+    fn next(&mut self) -> Option<(u32,
+                                  &'a [f32, ..3],
+                                  Option<&'a [f32, ..2]>,
+                                  Option<&'a [f32, ..3]>)> {
+
         let idx = match self.idx_iter.next() {
             None => return None,
             Some(idx) => idx,

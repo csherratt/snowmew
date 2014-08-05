@@ -11,9 +11,9 @@ use graphics::{Material, Graphics};
 
 #[packed]
 struct MaterialStd140 {
-    ka: Vector4<f32>,
-    kd: Vector4<f32>,
-    ks: Vector4<f32>,
+    ka: [f32, ..4],
+    kd: [f32, ..4],
+    ks: [f32, ..4],
     ka_texture: (i32, i32),
     kd_texture: (i32, i32),
     ks_texture: (i32, i32),
@@ -38,9 +38,9 @@ impl MaterialStd140 {
         let ks = mat.ks();
 
         MaterialStd140 {
-            ka: Vector4::new(ka.x, ka.y, ka.z, 1.),
-            kd: Vector4::new(kd.x, kd.y, kd.z, 1.),
-            ks: Vector4::new(ks.x, ks.y, ks.z, 1.),
+            ka: [ka[0], ka[1], ka[2], 1.],
+            kd: [kd[0], kd[1], kd[2], 1.],
+            ks: [ks[0], ks[1], ks[2], 1.],
             ka_texture: get_mat(mat.map_ka(), rd),
             kd_texture: get_mat(mat.map_kd(), rd),
             ks_texture: get_mat(mat.map_ks(), rd),

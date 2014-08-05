@@ -1,7 +1,8 @@
 
+use gfx;
+
 use std::default::Default;
 use cgmath::vector::{Vector2, Vector3};
-
 use snowmew::common::ObjectKey;
 
 #[deriving(Clone)]
@@ -11,38 +12,85 @@ pub enum Primative {
     Triangle,
     TriangleAdjacency
 }
-
-#[deriving(Clone)]
+#[vertex_format]
 pub struct VertexGeo {
-    pub position: Vector3<f32>
+    pub position: [f32, ..3]
 }
 
-#[deriving(Clone)]
+impl Clone for VertexGeo {
+    fn clone(&self) -> VertexGeo {
+        VertexGeo {
+            position: self.position
+        }
+    }
+}
+
+#[vertex_format]
 pub struct VertexGeoNorm {
-    pub position: Vector3<f32>,
-    pub normal: Vector3<f32>
+    pub position: [f32, ..3],
+    pub normal:   [f32, ..3]
 }
 
-#[deriving(Clone)]
+impl Clone for VertexGeoNorm {
+    fn clone(&self) -> VertexGeoNorm {
+        VertexGeoNorm {
+            position: self.position,
+            normal: self.normal
+        }
+    }
+}
+
+#[vertex_format]
 pub struct VertexGeoTex {
-    pub position: Vector3<f32>,
-    pub texture: Vector2<f32>
+    pub position: [f32, ..3],
+    pub texture:  [f32, ..2]
 }
 
-#[deriving(Clone)]
+impl Clone for VertexGeoTex {
+    fn clone(&self) -> VertexGeoTex {
+        VertexGeoTex {
+            position: self.position,
+            texture: self.texture
+        }
+    }
+}
+
+#[vertex_format]
 pub struct VertexGeoTexNorm {
-    pub position: Vector3<f32>,
-    pub texture: Vector2<f32>,
-    pub normal: Vector3<f32>
+    pub position: [f32, ..3],
+    pub texture:  [f32, ..2],
+    pub normal:   [f32, ..3]
 }
 
-#[deriving(Clone)]
-pub struct VertexGeoTexNormTan {
-    pub position: Vector3<f32>,
-    pub texture: Vector2<f32>,
-    pub normal: Vector3<f32>,
-    pub tangent: Vector3<f32>,
+impl Clone for VertexGeoTexNorm {
+    fn clone(&self) -> VertexGeoTexNorm {
+        VertexGeoTexNorm {
+            position: self.position,
+            texture: self.texture,
+            normal: self.normal
+        }
+    }
 }
+
+#[vertex_format]
+pub struct VertexGeoTexNormTan {
+    pub position: [f32, ..3],
+    pub texture:  [f32, ..2],
+    pub normal:   [f32, ..3],
+    pub tangent:  [f32, ..3],
+}
+
+impl Clone for VertexGeoTexNormTan {
+    fn clone(&self) -> VertexGeoTexNormTan {
+        VertexGeoTexNormTan {
+            position: self.position,
+            texture: self.texture,
+            normal: self.normal,
+            tangent: self.tangent
+        }
+    }
+}
+
 
 #[deriving(Clone)]
 pub enum Vertex {
