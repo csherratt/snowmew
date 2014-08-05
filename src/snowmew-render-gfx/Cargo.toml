@@ -1,0 +1,38 @@
+[package]
+
+name = "snowmew-render-gfx"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[[lib]]
+name = "snowmew-render-gfx"
+path = "lib.rs"
+
+[dependencies.collision]
+git = "https://github.com/csherratt/collision-rs.git"
+
+[dependencies.cow]
+git = "https://github.com/csherratt/cow-rs.git"
+
+[dependencies.snowmew-core]
+path = "../snowmew-core/"
+
+[dependencies.snowmew-position]
+path = "../snowmew-position/"
+
+[dependencies.snowmew-graphics]
+path = "../snowmew-graphics/"
+
+[dependencies.snowmew-render-data]
+path = "../snowmew-render-data/"
+
+[dependencies.gl]
+git = "https://github.com/bjz/gl-rs.git"
+
+[dependencies.stb_image]
+git = "https://github.com/servo/rust-stb-image.git"
+
+[dependencies.gfx]
+git = "https://github.com/gfx-rs/gfx-rs"

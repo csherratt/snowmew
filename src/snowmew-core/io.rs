@@ -22,8 +22,7 @@ use glfw::{CloseEvent, FocusEvent, FullScreen};
 use glfw::{Windowed, RenderContext};
 use glfw;
 use gl;
-//use device;
-//use gfx;
+use device;
 
 use semver;
 use std::collections::HashSet;
@@ -581,8 +580,8 @@ impl Window {
         self.os_spec.display
     }
 }
-/*
-impl device::GraphicsContext<gfx::platform::GlApi> for Window {
+
+impl device::GraphicsContext<device::GlBackEnd> for Window {
     fn swap_buffers(&self) {
         self.render.swap_buffers()
     }
@@ -596,9 +595,4 @@ impl device::GlProvider for IOManager {
     fn get_proc_address(&self, name: &str) -> *const ::libc::c_void {
         self.glfw.get_proc_address(name)
     }
-
-    fn is_extension_supported(&self, name: &str) -> bool {
-        self.glfw.extension_supported(name)
-    }
 }
-*/
