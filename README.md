@@ -9,7 +9,7 @@ copy-on-write game state that can be shared safely with tasks in parallel.
 
 Last Tested Version
 -------------------
-`rustc 0.11.0-pre-nightly (94343da1bdf4de84d0ece90d920400697ad7e143 2014-06-30 16:36:33 +0000)`
+`rustc 0.12.0-pre-nightly (25741603f 2014-08-03 23:46:10 +0000)`
 
 Building
 --------
