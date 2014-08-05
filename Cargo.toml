@@ -22,6 +22,9 @@ path = "src/snowmew-position/"
 [dependencies.snowmew-render]
 path = "src/snowmew-render/"
 
+[dependencies.snowmew-render-gfx]
+path = "src/snowmew-render-gfx/"
+
 [dependencies.snowmew-render-mux]
 path = "src/snowmew-render-mux/"
 

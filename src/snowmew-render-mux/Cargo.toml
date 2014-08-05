@@ -16,6 +16,9 @@ path = "../snowmew-core"
 [dependencies.snowmew-render]
 path = "../snowmew-render"
 
+[dependencies.snowmew-render-gfx]
+path = "../snowmew-render-gfx"
+
 [dependencies.snowmew-position]
 path = "../snowmew-position"
 

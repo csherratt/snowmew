@@ -13,27 +13,32 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-render-gfx"]
-#![license = "ASL2"]
 #![crate_type = "lib"]
-#![comment = "A game engine in rust"]
+
+#![feature(phase)]
 #![allow(dead_code)]
 
 //extern crate debug;
 extern crate std;
-extern crate glfw;
-extern crate gfx;
-extern crate snowmew  = "snowmew-core";
-extern crate opencl;
 extern crate sync;
+extern crate time;
+extern crate libc;
+
+extern crate opencl;
 extern crate cow;
 extern crate gl;
-extern crate time;
+extern crate glfw;
+
+#[phase(plugin)]
+extern crate gfx_macros;
+extern crate gfx;
 extern crate device;
-extern crate libc;
+extern crate render;
+
+extern crate snowmew  = "snowmew-core";
 extern crate position = "snowmew-position";
 extern crate graphics = "snowmew-graphics";
 extern crate render_data = "snowmew-render-data";
-
 
 use std::collections::hashmap::HashMap;
 
@@ -50,56 +55,58 @@ use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use cow::join::{join_set_to_map, join_maps};
 use render_data::RenderData;
 
-static VERTEX_SRC: &'static [u8] = b"
+static VERTEX_SRC: gfx::ShaderSource = shaders! {
+GLSL_150: b"
     #version 150 core
     uniform mat4 proj_mat;
     uniform mat4 view_mat;
     uniform mat4 model_mat;
 
-    in vec3 a_Pos;
-    out vec4 v_Color;
-    void main() {
-        v_Color = vec4(a_Pos.xy+0.5, 0.0, 1.0);
-        gl_Position = proj_mat * view_mat * model_mat * vec4(a_Pos, 1.0);
-    }
-";
+    in vec3 position;
 
-static FRAGMENT_SRC: &'static [u8] = b"
+    void main() {
+        gl_Position = proj_mat * view_mat * model_mat * vec4(position, 1.0);
+    }
+"
+};
+
+static FRAGMENT_SRC: gfx::ShaderSource = shaders! {
+GLSL_150: b"
     #version 150 core
-    in vec4 v_Color;
     out vec4 o_Color;
     uniform vec4 color;
     void main() {
         o_Color = color;
     }
-";
+"
+};
 
-
-struct Mesh {
-    mesh: uint,
-    index: u32
+#[shader_param]
+struct Params {
+    proj_mat: [[f32, ..4], ..4],
+    view_mat: [[f32, ..4], ..4],
+    model_mat: [[f32, ..4], ..4],
+    color: [f32, ..4]
 }
 
-struct Env {
-    env: gfx::EnvirHandle,
-    proj_mat: gfx::UniformVar,
-    view_mat: gfx::UniformVar,
-    model_mat: gfx::UniformVar,
-    color: gfx::UniformVar,
+struct Mesh {
+    mesh: render::mesh::Mesh,
+    index: render::BufferHandle
 }
 
 pub struct RenderManager {
     client: gfx::Renderer,
-    program: Option<gfx::ProgramHandle>,
-    environment: Option<Env>,
-    meshes: HashMap<ObjectKey, Mesh>,
-    frame: Option<gfx::Frame>
+    frame: render::target::Frame,
+    state: render::state::DrawState,
+    prog: render::shade::CustomShell<_ParamsLink,Params>,
+    meshes: HashMap<ObjectKey, Mesh>
 }
 
 impl RenderManager {
-    fn _new(server: gfx::Device<snowmew::io::Window, device::Device>,
-            client: std::sync::Future<gfx::Renderer>,
-            _: (i32, i32),
+
+    fn _new(server: gfx::Device<render::Token, device::GlBackEnd, Window>,
+            mut client: gfx::Renderer,
+            size: (i32, i32),
             _: Option<Arc<Device>>) -> RenderManager {
 
         glfw::make_context_current(None);
@@ -115,114 +122,69 @@ impl RenderManager {
             }
         });
 
+        let (width, height) = size;
+        let frame =  gfx::Frame::new(width as u16, height as u16);
+        let state = gfx::DrawState::new().depth(gfx::state::LessEqual, true);
+
+        let prog = {
+            let data = Params {
+                proj_mat: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                view_mat: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                model_mat: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                color: [1., 1., 1., 1.]
+            };
+            let handle = client.create_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone());
+            client.connect_program(handle, data).unwrap()
+        };
+
         RenderManager {
-            client: client.unwrap(),
-            program: None,
-            environment: None,
-            meshes: HashMap::new(),
-            frame: None
+            client: client,
+            frame: frame,
+            state: state,
+            prog: prog,
+            meshes: HashMap::new()
         }
     }
 
     fn load<RD: RenderData>(&mut self, db: &RD) {
-        if self.program.is_none() {
-            self.program = Some(
-                self.client.create_program(VERTEX_SRC.to_vec(),
-                                           FRAGMENT_SRC.to_vec())
-            );
-        }
-
-        if self.frame.is_none() {
-            self.frame = Some(gfx::Frame::new());
-        }
-
-        if self.environment.is_none() {
-            let mut env = gfx::Environment::new();
-            let proj_mat = env.add_uniform("proj_mat",
-                gfx::ValueF32Matrix(
-                    [[1., 0., 0., 0.],
-                     [0., 1., 0., 0.],
-                     [0., 0., 1., 0.],
-                     [0., 0., 0., 1.]]
-                )
-            );
-            let view_mat = env.add_uniform("view_mat",
-                gfx::ValueF32Matrix(
-                    [[1., 0., 0., 0.],
-                     [0., 1., 0., 0.],
-                     [0., 0., 1., 0.],
-                     [0., 0., 0., 1.]]
-                )
-            );
-            let model_mat = env.add_uniform("model_mat",
-                gfx::ValueF32Matrix(
-                    [[1., 0., 0., 0.],
-                     [0., 1., 0., 0.],
-                     [0., 0., 1., 0.],
-                     [0., 0., 0., 1.]]
-                )
-            );
-            let color = env.add_uniform("color", gfx::ValueF32Vec([0.1, 0.1, 0.1, 0.1]));
-            self.environment = Some(Env {
-                env: self.client.create_environment(env),
-                proj_mat: proj_mat,
-                view_mat: view_mat,
-                model_mat: model_mat,
-                color: color
-            });
-        }
-
         for (oid, vb) in db.vertex_buffer_iter() {
             if self.meshes.find(oid).is_none() {
-                let mut data: Vec<f32> = Vec::new();
-                match vb.vertex {
+                let mesh = match vb.vertex {
                     Geo(ref d) => {
-                        for v in d.iter() {
-                            data.push(v.position.x);
-                            data.push(v.position.y);
-                            data.push(v.position.z);
-                        }
+                        self.client.create_mesh(d.clone())
                     },
                     GeoTex(ref d) => {
-                        for v in d.iter() {
-                            data.push(v.position.x);
-                            data.push(v.position.y);
-                            data.push(v.position.z);
-                        }
+                        self.client.create_mesh(d.clone())
                     },
                     GeoNorm(ref d) => {
-                        for v in d.iter() {
-                            data.push(v.position.x);
-                            data.push(v.position.y);
-                            data.push(v.position.z);
-                        }
+                        self.client.create_mesh(d.clone())
                     },
                     GeoTexNorm(ref d) => {
-                        for v in d.iter() {
-                            data.push(v.position.x);
-                            data.push(v.position.y);
-                            data.push(v.position.z);
-                        }
+                        self.client.create_mesh(d.clone())
                     },
                     GeoTexNormTan(ref d) => {
-                        for v in d.iter() {
-                            data.push(v.position.x);
-                            data.push(v.position.y);
-                            data.push(v.position.z);
-                        }
+                        self.client.create_mesh(d.clone())
                     }
-                }
-                let mesh = self.client.create_mesh((data.len() / 3) as u16,
-                                                   data,
-                                                   3,
-                                                   12);
+                };
 
-                let mut index = Vec::new();
-                for &i in vb.index.iter() {
-                    index.push(i as u16);
-                }
+                let vb: Vec<u16> = vb.index.iter().map(|&x| x as u16).collect();
 
-                let index = self.client.create_index_buffer(index);
+                let index = self.client.create_buffer(Some(vb));
 
                 self.meshes.insert(*oid, Mesh {
                     index: index,
@@ -233,73 +195,56 @@ impl RenderManager {
     }
 
     fn draw<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, camera: ObjectKey) {
-        let env = self.environment.as_ref().expect("Could not get environment");
         let cdata = gfx::ClearData {
             color: Some(gfx::Color([0.3, 0.3, 0.3, 1.0])),
-            depth: None,
+            depth: Some(1.0),
             stencil: None,
         };
-        self.client.clear(cdata, self.frame.unwrap());
+        self.client.clear(cdata, self.frame);
 
         let camera_trans = db.position(camera);
         let camera = snowmew::camera::Camera::new(camera_trans);
 
         let proj = camera.projection_matrix(16. / 9.);
-        self.client.set_env_uniform(
-            env.env,
-            env.proj_mat, 
-            gfx::ValueF32Matrix(
-                [[proj.x.x, proj.x.y, proj.x.z, proj.x.w],
-                 [proj.y.x, proj.y.y, proj.y.z, proj.y.w],
-                 [proj.z.x, proj.z.y, proj.z.z, proj.z.w],
-                 [proj.w.x, proj.w.y, proj.w.z, proj.w.w]]
-            )
-        );
+        self.prog.data.proj_mat =
+            [[proj.x.x, proj.x.y, proj.x.z, proj.x.w],
+             [proj.y.x, proj.y.y, proj.y.z, proj.y.w],
+             [proj.z.x, proj.z.y, proj.z.z, proj.z.w],
+             [proj.w.x, proj.w.y, proj.w.z, proj.w.w]];
 
         let view = camera.view_matrix();
-        self.client.set_env_uniform(
-            env.env,
-            env.view_mat, 
-            gfx::ValueF32Matrix(
-                [[view.x.x, view.x.y, view.x.z, view.x.w],
-                 [view.y.x, view.y.y, view.y.z, view.y.w],
-                 [view.z.x, view.z.y, view.z.z, view.z.w],
-                 [view.w.x, view.w.y, view.w.z, view.w.w]]
-            )
-        );
+        self.prog.data.view_mat =
+            [[view.x.x, view.x.y, view.x.z, view.x.w],
+             [view.y.x, view.y.y, view.y.z, view.y.w],
+             [view.z.x, view.z.y, view.z.z, view.z.w],
+             [view.w.x, view.w.y, view.w.z, view.w.w]];
+
 
         for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
                                                join_maps(db.drawable_iter(),
                                                          db.location_iter())) {
+
             let geo = db.geometry(draw.geometry).expect("failed to find geometry");
             let mat = db.material(draw.material).expect("Could not find material");
             let vb = self.meshes.find(&geo.vb).expect("Could not get vertex buffer");
 
             let model = db.position(*id);
-            self.client.set_env_uniform(
-                env.env,
-                env.model_mat, 
-                gfx::ValueF32Matrix(
-                    [[model.x.x, model.x.y, model.x.z, model.x.w],
-                     [model.y.x, model.y.y, model.y.z, model.y.w],
-                     [model.z.x, model.z.y, model.z.z, model.z.w],
-                     [model.w.x, model.w.y, model.w.z, model.w.w]]
-                )
-            );
 
-            let ka = mat.ka();
-            self.client.set_env_uniform(
-                env.env,
-                env.color,
-                gfx::ValueF32Vec([ka.x, ka.y, ka.z, 1.])
-            );
+            self.prog.data.model_mat =
+                [[model.x.x, model.x.y, model.x.z, model.x.w],
+                 [model.y.x, model.y.y, model.y.z, model.y.w],
+                 [model.z.x, model.z.y, model.z.z, model.z.w],
+                 [model.w.x, model.w.y, model.w.z, model.w.w]];
 
-            self.client.draw(vb.mesh, 
-                             gfx::IndexSlice(vb.index, geo.offset as u16, geo.count as u16),
-                             self.frame.unwrap(),
-                             self.program.unwrap(),
-                             env.env
-            );
+            let [r, g, b] = mat.ka();
+            self.prog.data.color = [r, g, b, 1.];
+
+            self.client.draw(&vb.mesh, 
+                             gfx::IndexSlice(vb.index, geo.offset as u32, geo.count as u32),
+                             self.frame,
+                             &self.prog,
+                             self.state
+            ).ok().expect("Failed to render");
         }
 
         self.client.end_frame();
@@ -321,11 +266,6 @@ impl<'a> device::GlProvider for Wrap<'a> {
         let Wrap(provider) = *self;
         provider.get_proc_address(name)
     }
-
-    fn is_extension_supported(&self, name: &str) -> bool {
-        let Wrap(provider) = *self;
-        provider.is_extension_supported(name)
-    }
 }
 
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
@@ -336,13 +276,15 @@ impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFa
             cl: Option<Arc<Device>>) -> RenderManager {
 
         window.make_context_current();
-        match gfx::start(window, gfx::Options(Wrap(io), 1)) {
-            Ok((render, device)) => {
-                let res = RenderManager::_new(device, render, size, cl);
-                res
-            }
-            Err(err) => fail!("failed to start gfx: {}", err)
-        }
+
+        let (renderer, device) = gfx::build()
+            .with_context(window)
+            .with_provider(Wrap(io))
+            .with_queue_size(2)
+            .create()
+            .unwrap();
+
+        RenderManager::_new(device, renderer, size, cl)
     }
 }
 
