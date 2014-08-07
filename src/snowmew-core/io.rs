@@ -24,7 +24,6 @@ use glfw;
 use gl;
 use device;
 
-use semver;
 use std::collections::HashSet;
 use collections::TrieMap;
 
@@ -309,7 +308,7 @@ impl IOManager {
         Some(Window {
             handle: handle,
             render: rc,
-            version: version,
+            version: (version.major, version.minor),
             hmd: None,
             os_spec: WindowOSSpec::new(&self.glfw)
         })
@@ -341,7 +340,7 @@ impl IOManager {
                 Some(Window {
                     handle: handle,
                     render: rc,
-                    version: version,
+                    version: (version.major, version.minor),
                     hmd: None,
                     os_spec: WindowOSSpec::new(&self.glfw)
                 })
@@ -456,7 +455,7 @@ impl IOManager {
         Some(Window {
             handle: handle,
             render: rc,
-            version: version,
+            version: (version.major, version.minor),
             hmd: Some(Arc::new(hmd)),
             os_spec: WindowOSSpec::new(&self.glfw)
         })
@@ -543,7 +542,7 @@ impl WindowOSSpec {
 pub struct Window {
     handle: InputHandle,
     render: RenderContext,
-    version: semver::Version,
+    version: (uint, uint),
     hmd: Option<Arc<ovr::Hmd>>,
     os_spec: WindowOSSpec
 }
@@ -558,8 +557,7 @@ impl Window {
     }
 
     pub fn get_context_version(&self) -> (uint, uint) {
-        let version = self.version.clone();
-        (version.major, version.minor)
+        self.version
     }
 
     pub fn handle(&self) -> InputHandle {
