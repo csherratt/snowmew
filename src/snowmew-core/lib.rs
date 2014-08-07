@@ -21,7 +21,6 @@
 #![feature(globs)]
 #![allow(experimental)]
 
-extern crate semver;
 extern crate std;
 extern crate time;
 extern crate glfw;
