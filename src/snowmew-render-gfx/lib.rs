@@ -245,8 +245,8 @@ impl RenderManager {
                     mipmap_range: (0, 1),
                     kind: gfx::tex::Texture2D,
                     format: match text.depth() {
-                        4 => gfx::tex::RGBA8,
-                        3 => gfx::tex::RGB8,
+                        4 => gfx::tex::Unsigned(gfx::tex::RGBA, 8, gfx::attrib::IntNormalized),
+                        3 => gfx::tex::Unsigned(gfx::tex::RGB, 8, gfx::attrib::IntNormalized),
                         _ => fail!("Unsupported color depth")
                     }
                 };
