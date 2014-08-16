@@ -30,11 +30,7 @@ extern crate opencl;
 extern crate sync;
 extern crate render_data = "snowmew-render-data";
 
-
-use cgmath::transform::Decomposed;
-use cgmath::vector::Vector3;
-use cgmath::rotation::*;
-use cgmath::angle::{ToRad, deg, rad};
+use cgmath::*;
 
 use position::Positions;
 use graphics::{Graphics};

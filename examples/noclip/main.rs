@@ -29,13 +29,7 @@ extern crate render_data = "snowmew-render-data";
 
 use std::from_str::FromStr;
 
-use cgmath::quaternion::*;
-use cgmath::transform::*;
-use cgmath::vector::*;
-use cgmath::point::*;
-use cgmath::matrix::*;
-use cgmath::rotation::*;
-use cgmath::angle::{ToRad, deg};
+use cgmath::*;
 
 use snowmew::camera::Camera;
 use position::Positions;
