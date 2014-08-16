@@ -25,10 +25,10 @@ extern crate time;
 
 use std::default::Default;
 
-use cgmath::transform::{Transform, Decomposed};
-use cgmath::quaternion::Quaternion;
-use cgmath::vector::{Vector3, Vector4};
-use cgmath::matrix::{Matrix4, ToMatrix4, Matrix};
+use cgmath::{Transform, Decomposed};
+use cgmath::Quaternion;
+use cgmath::{Vector3, Vector4};
+use cgmath::{Matrix4, ToMatrix4, Matrix};
 
 use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
 use opencl::mem::CLBuffer;

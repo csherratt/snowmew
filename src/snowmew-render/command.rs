@@ -25,9 +25,9 @@ use libc::c_void;
 use gl;
 use gl::types::{GLsizei, GLuint};
 
-use cgmath::matrix::Matrix4;
-use cgmath::array::Array2;
-use cgmath::vector::{Vector, EuclideanVector};
+use cgmath::Matrix4;
+use cgmath::Array2;
+use cgmath::{Vector, EuclideanVector};
 
 use config::Config;
 use graphics::Graphics;
@@ -194,7 +194,7 @@ impl CommandBufferIndirect {
 
     pub fn cull(&self, draw: GLuint, matrix: GLuint, dat: &GlState, mat: &Matrix4<f32>) {
         let to_plane = |x, scale| {
-            let plane = mat.r(x).mul_s(scale).add_v(&mat.r(3));
+            let plane = mat.row(x).mul_s(scale).add_v(&mat.row(3));
             plane.normalize()
         };
 

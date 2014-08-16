@@ -14,10 +14,10 @@
 
 use std::vec::Vec;
 
-use cgmath::point::Point3;
-use cgmath::vector::{Vector, Vector4, Vector3};
-use cgmath::matrix::{Matrix, Matrix4};
-use cgmath::transform::Decomposed;
+use cgmath::Point3;
+use cgmath::{Vector, Vector4, Vector3};
+use cgmath::{Matrix, Matrix4};
+use cgmath::Decomposed;
 
 use cow::join::join_maps;
 

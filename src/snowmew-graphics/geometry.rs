@@ -15,7 +15,7 @@
 use gfx;
 
 use std::default::Default;
-use cgmath::vector::{Vector2, Vector3};
+use cgmath::{Vector2, Vector3};
 use snowmew::common::ObjectKey;
 
 #[deriving(Clone)]

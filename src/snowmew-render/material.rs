@@ -16,7 +16,7 @@ use std::mem;
 use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
 
-use cgmath::vector::Vector4;
+use cgmath::Vector4;
 use gl;
 
 use snowmew::ObjectKey;

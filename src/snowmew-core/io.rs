@@ -27,7 +27,7 @@ use device;
 use std::collections::HashSet;
 use collections::TrieMap;
 
-use cgmath::quaternion::Quaternion;
+use cgmath::Quaternion;
 
 use ovr;
 

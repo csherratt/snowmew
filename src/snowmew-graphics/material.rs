@@ -14,7 +14,7 @@
 
 use std::default::Default;
 
-use cgmath::vector::Vector3;
+use cgmath::Vector3;
 
 use snowmew::ObjectKey;
 

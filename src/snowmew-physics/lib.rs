@@ -29,8 +29,8 @@ use position::Positions;
 
 use collision::aabb::{Aabb3};
 
-use cgmath::point::Point3;
-use cgmath::vector::{Vector3};
+use cgmath::Point3;
+use cgmath::{Vector3};
 
 use cow::btree::BTreeMap;
 

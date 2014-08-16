@@ -22,9 +22,9 @@ use ovr::{RenderGLConfig, EyeType, SensorCapabilities, EyeLeft, EyeRight};
 use ovr::Texture;
 use ovr::ll::Sizei;
 
-use cgmath::matrix::Matrix;
-use cgmath::vector::{Vector4};
-use cgmath::array::{Array1, Array2};
+use cgmath::Matrix;
+use cgmath::{Vector4};
+use cgmath::{Array1, Array2};
 
 use graphics::Graphics;
 

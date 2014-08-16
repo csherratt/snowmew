@@ -18,8 +18,8 @@ use std::mem;
 use gl;
 use gl::types::GLuint;
 
-use cgmath::matrix::Matrix;
-use cgmath::vector::{EuclideanVector, Vector, Vector3, Vector4};
+use cgmath::Matrix;
+use cgmath::{EuclideanVector, Vector, Vector3, Vector4};
 
 use position::Positions;
 use graphics::Graphics;

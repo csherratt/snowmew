@@ -12,11 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use cgmath::matrix::{Matrix, Matrix4, ToMatrix4};
-use cgmath::vector::{Vector3, Vector4};
-use cgmath::point::{Point, Point3};
-use cgmath::projection::perspective;
-use cgmath::angle::deg;
+use cgmath::{Matrix, Matrix4, ToMatrix4};
+use cgmath::{Vector3, Vector4};
+use cgmath::{Point, Point3};
+use cgmath::perspective;
+use cgmath::deg;
 
 //use ovr;
 use ovr::{EyeRenderDescriptor, FovPort, Pose};

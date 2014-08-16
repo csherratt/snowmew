@@ -30,8 +30,8 @@ extern crate snowmew  = "snowmew-core";
 
 use std::slice;
 
-use cgmath::vector::{Vector3, Vector2};
-use cgmath::point::Point3;
+use cgmath::{Vector3, Vector2};
+use cgmath::Point3;
 use collision::sphere::Sphere;
 
 use cow::btree::{BTreeMapIterator, BTreeMap};

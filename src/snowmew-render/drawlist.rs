@@ -20,8 +20,8 @@ use render_data::RenderData;
 
 use opencl::hl::{CommandQueue, Context, Device};
 use opencl::mem::Buffer;
-use cgmath::matrix::{Matrix4, Matrix};
-use cgmath::array::Array2;
+use cgmath::{Matrix4, Matrix};
+use cgmath::Array2;
 use gl;
 
 use position::{Positions, PositionData};

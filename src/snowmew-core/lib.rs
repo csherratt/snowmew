@@ -43,6 +43,7 @@ pub use io::IOManager;
 use sync::Arc;
 use opencl::hl::{Device, get_platforms, GPU, CPU};
 use std::io::timer::Timer;
+use std::time::Duration;
 
 pub mod common;
 pub mod camera;
@@ -177,7 +178,7 @@ impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
         let mut render = self.render.unwrap().init(&im, display, res, dev);
 
         let mut timer = Timer::new().unwrap();
-        let timer_port = timer.periodic(self.cadance_ms);
+        let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms as i32));
 
         let mut input_last = im.get(&ih);
         while !input_last.should_close() {

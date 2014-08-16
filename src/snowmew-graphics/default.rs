@@ -16,7 +16,7 @@ use geometry::{VertexBuffer, Geometry, VertexGeoTexNorm};
 use material::Material;
 use Graphics;
 
-use cgmath::vector::{Vector3, Vector2};
+use cgmath::{Vector3, Vector2};
 
 static VERTEX_DATA: [VertexGeoTexNorm, ..30] = [
     VertexGeoTexNorm{position: [1f32, -1f32, -1f32], //0
