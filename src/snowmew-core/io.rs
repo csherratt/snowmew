@@ -510,6 +510,10 @@ impl IOManager {
             None => (0, 0)
         }
     }
+
+    pub fn get_proc_address(&self, name: &str) -> *const ::libc::c_void {
+        self.glfw.get_proc_address(name)
+    }
 }
 
 #[deriving(Clone)]
@@ -576,21 +580,5 @@ impl Window {
     #[cfg(target_os="linux")]
     pub fn get_x11_display(&self) -> *mut c_void {
         self.os_spec.display
-    }
-}
-
-impl device::GraphicsContext<device::GlBackEnd> for Window {
-    fn swap_buffers(&self) {
-        self.render.swap_buffers()
-    }
-
-    fn make_current(&self) {
-        self.render.make_current()
-    }
-}
-
-impl device::GlProvider for IOManager {
-    fn get_proc_address(&self, name: &str) -> *const ::libc::c_void {
-        self.glfw.get_proc_address(name)
     }
 }

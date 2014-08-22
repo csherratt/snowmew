@@ -20,7 +20,7 @@
 #![feature(phase)]
 
 //extern crate debug;
-extern crate std;
+
 extern crate collections;
 extern crate native;
 extern crate time;

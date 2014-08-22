@@ -22,6 +22,6 @@ extern crate position = "snowmew-position";
 extern crate render = "snowmew-render-mux";
 
 pub mod config  {
-    pub use SnowmewConfig = core::SnowmewConfig;
+    pub use core::SnowmewConfig as SnowmewConfig;
 }
 

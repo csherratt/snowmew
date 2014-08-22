@@ -19,7 +19,7 @@
 #![allow(dead_code)]
 
 //extern crate debug;
-extern crate std;
+
 extern crate sync;
 extern crate time;
 extern crate libc;
@@ -42,7 +42,7 @@ extern crate render_data = "snowmew-render-data";
 
 use std::collections::hashmap::HashMap;
 
-use opencl::hl::Device;
+use opencl::hl;
 use sync::Arc;
 
 use position::Positions;
@@ -54,6 +54,8 @@ use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 
 use cow::join::{join_set_to_map, join_maps};
 use render_data::RenderData;
+
+use gfx::{Device, DeviceHelper};
 
 static VERTEX_SRC: gfx::ShaderSource = shaders! {
 GLSL_150: b"
@@ -95,7 +97,7 @@ GLSL_150: b"
 "
 };
 
-#[shader_param]
+#[shader_param(Program)]
 struct Params {
     proj_mat: [[f32, ..4], ..4],
     view_mat: [[f32, ..4], ..4],
@@ -107,50 +109,40 @@ struct Params {
 
 struct Mesh {
     mesh: render::mesh::Mesh,
-    index: render::BufferHandle
+    index: device::BufferHandle<u32>
 }
 
 pub struct RenderManager {
-    client: gfx::Renderer,
+    data: Params,
+    renderer: render::front::Renderer,
+    device: gfx::GlDevice,
     frame: render::target::Frame,
     state: render::state::DrawState,
-    prog: render::shade::CustomShell<_ParamsLink,Params>,
+    prog: Program,
     meshes: HashMap<ObjectKey, Mesh>,
-    textures: HashMap<ObjectKey, render::TextureHandle>,
-    sampler: render::SamplerHandle
+    textures: HashMap<ObjectKey, device::TextureHandle>,
+    sampler: device::SamplerHandle,
+    window: Window
 }
 
 impl RenderManager {
 
-    fn _new(server: gfx::Device<render::Token, device::GlBackEnd, Window>,
-            mut client: gfx::Renderer,
+    fn _new(mut device: gfx::GlDevice,
+            window: Window,
             size: (i32, i32),
-            _: Option<Arc<Device>>) -> RenderManager {
-
-        glfw::make_context_current(None);
-        spawn(proc() {
-            let mut server = server;
-            server.make_current();
-            let mut start = time::precise_time_s();
-            loop { 
-                server.update();
-                let end = time::precise_time_s();
-                //println!("{:4.1}fps", 1. / (end - start));
-                start = end;
-            }
-        });
+            _: Option<Arc<hl::Device>>) -> RenderManager {
 
         let (width, height) = size;
-        let frame =  gfx::Frame::new(width as u16, height as u16);
+        let frame = gfx::Frame::new(width as u16, height as u16);
         let state = gfx::DrawState::new().depth(gfx::state::LessEqual, true);
 
-        let sampler = client.create_sampler(
+        let sampler = device.create_sampler(
             gfx::tex::SamplerInfo::new(
                     gfx::tex::Bilinear, gfx::tex::Tile
             )
         );
 
-        let prog = {
+        let (prog, data) = {
             let tinfo = gfx::tex::TextureInfo {
                 width: 1,
                 height: 1,
@@ -161,8 +153,9 @@ impl RenderManager {
             };
 
             let img_info = tinfo.to_image_info();
-            let dummy_texture = client.create_texture(tinfo);
-            client.update_texture(dummy_texture, img_info, vec![0u8, 0, 0, 0]);
+            let dummy_texture = device.create_texture(tinfo)
+                                      .ok().expect("Failed to create texture");
+            device.update_texture(&dummy_texture, &img_info, &vec![0u8, 0, 0, 0]);
 
             let data = Params {
                 proj_mat: [
@@ -187,18 +180,22 @@ impl RenderManager {
                 ka_color: [1., 1., 1., 1.],
                 ka_texture: (dummy_texture, Some(sampler))
             };
-            let handle = client.create_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone());
-            client.connect_program(handle, data).unwrap()
+            (device.link_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone())
+                  .ok().expect("Failed to link program"),
+             data)
         };
 
         RenderManager {
-            client: client,
+            data: data,
+            renderer: device.create_renderer(),
+            device: device,
             frame: frame,
             state: state,
             prog: prog,
             meshes: HashMap::new(),
             textures: HashMap::new(),
-            sampler: sampler
+            sampler: sampler,
+            window: window
         }
     }
 
@@ -207,25 +204,25 @@ impl RenderManager {
             if self.meshes.find(oid).is_none() {
                 let mesh = match vb.vertex {
                     Geo(ref d) => {
-                        self.client.create_mesh(d.clone())
+                        self.device.create_mesh(d.clone(), gfx::TriangleList)
                     },
                     GeoTex(ref d) => {
-                        self.client.create_mesh(d.clone())
+                        self.device.create_mesh(d.clone(), gfx::TriangleList)
                     },
                     GeoNorm(ref d) => {
-                        self.client.create_mesh(d.clone())
+                        self.device.create_mesh(d.clone(), gfx::TriangleList)
                     },
                     GeoTexNorm(ref d) => {
-                        self.client.create_mesh(d.clone())
+                        self.device.create_mesh(d.clone(), gfx::TriangleList)
                     },
                     GeoTexNormTan(ref d) => {
-                        self.client.create_mesh(d.clone())
+                        self.device.create_mesh(d.clone(), gfx::TriangleList)
                     }
                 };
 
                 let vb: Vec<u32> = vb.index.iter().map(|&x| x as u32).collect();
 
-                let index = self.client.create_buffer(Some(vb));
+                let index = self.device.create_buffer_static(&vb);
 
                 self.meshes.insert(*oid, Mesh {
                     index: index,
@@ -252,8 +249,9 @@ impl RenderManager {
                 };
 
                 let img_info = tinfo.to_image_info();
-                let texture = self.client.create_texture(tinfo);
-                self.client.update_texture(texture, img_info, text.data().to_vec());
+                let texture = self.device.create_texture(tinfo)
+                                         .ok().expect("Failed to create texture");
+                self.device.update_texture(&texture, &img_info, &text.data().to_vec());
                 self.textures.insert(*oid, texture);
             }
         }
@@ -265,20 +263,21 @@ impl RenderManager {
             depth: Some(1.0),
             stencil: None,
         };
-        self.client.clear(cdata, self.frame);
+        self.renderer.reset();
+        self.renderer.clear(cdata, &self.frame);
 
         let camera_trans = db.position(camera);
         let camera = snowmew::camera::Camera::new(camera_trans);
 
         let proj = camera.projection_matrix(16. / 9.);
-        self.prog.data.proj_mat =
+        self.data.proj_mat =
             [[proj.x.x, proj.x.y, proj.x.z, proj.x.w],
              [proj.y.x, proj.y.y, proj.y.z, proj.y.w],
              [proj.z.x, proj.z.y, proj.z.z, proj.z.w],
              [proj.w.x, proj.w.y, proj.w.z, proj.w.w]];
 
         let view = camera.view_matrix();
-        self.prog.data.view_mat =
+        self.data.view_mat =
             [[view.x.x, view.x.y, view.x.z, view.x.w],
              [view.y.x, view.y.y, view.y.z, view.y.w],
              [view.z.x, view.z.y, view.z.z, view.z.w],
@@ -295,35 +294,36 @@ impl RenderManager {
 
             let model = db.position(*id);
 
-            self.prog.data.model_mat =
+            self.data.model_mat =
                 [[model.x.x, model.x.y, model.x.z, model.x.w],
                  [model.y.x, model.y.y, model.y.z, model.y.w],
                  [model.z.x, model.z.y, model.z.z, model.z.w],
                  [model.w.x, model.w.y, model.w.z, model.w.w]];
 
 
-            self.prog.data.ka_use_texture = match mat.map_ka() {
+            self.data.ka_use_texture = match mat.map_ka() {
                 Some(tid) => {
                     let &texture = self.textures.find(&tid).expect("Texture not loaded");
-                    self.prog.data.ka_texture = (texture, Some(self.sampler));
+                    self.data.ka_texture = (texture, Some(self.sampler));
                     1
                 }
                 None => {
                     let [r, g, b] = mat.ka();
-                    self.prog.data.ka_color = [r, g, b, 1.];
+                    self.data.ka_color = [r, g, b, 1.];
                     0
                 }
             };
 
-            let _ = self.client.draw(&vb.mesh, 
-                 gfx::IndexSlice(vb.index, geo.offset as u32, geo.count as u32),
+            let _ = self.renderer.draw(&vb.mesh, 
+                 gfx::IndexSlice32(vb.index, geo.offset as u32, geo.count as u32),
                  &self.frame,
-                 &self.prog,
+                 (&self.prog, &self.data),
                  &self.state
             );
         }
 
-        self.client.end_frame();
+        self.device.submit(self.renderer.as_buffer());
+        self.window.swap_buffers();
     }
 }
 
@@ -336,32 +336,17 @@ impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
     }
 }
 
-struct Wrap<'a>(&'a snowmew::io::IOManager);
-
-impl<'a> device::GlProvider for Wrap<'a> {
-    fn get_proc_address(&self, name: &str) -> *const ::libc::c_void {
-        let Wrap(provider) = *self;
-        provider.get_proc_address(name)
-    }
-}
-
 impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &snowmew::IOManager,
             window: Window,
             size: (i32, i32),
-            cl: Option<Arc<Device>>) -> RenderManager {
+            cl: Option<Arc<hl::Device>>) -> RenderManager {
 
         window.make_context_current();
 
-        let (renderer, device) = gfx::build()
-            .with_context(window)
-            .with_provider(Wrap(io))
-            .with_queue_size(2)
-            .create()
-            .unwrap();
-
-        RenderManager::_new(device, renderer, size, cl)
+        let mut device = gfx::GlDevice::new(|s| io.get_proc_address(s));
+        RenderManager::_new(device, window, size, cl)
     }
 }
 

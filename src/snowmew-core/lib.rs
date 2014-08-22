@@ -21,14 +21,14 @@
 #![feature(globs)]
 #![allow(experimental)]
 
-extern crate std;
+
 extern crate time;
 extern crate glfw;
 extern crate cgmath;
 extern crate cow;
 extern crate sync;
 extern crate native;
-extern crate std;
+
 extern crate gl;
 extern crate green;
 extern crate collections;
