@@ -6,7 +6,7 @@ authors = [
     "Colin Sherratt <colin.sherratt@gmail.com>",
 ]
 
-[[lib]]
+[lib]
 name = "gl_cl"
 path = "lib.rs"
 

@@ -147,7 +147,7 @@ impl RenderManager {
                 width: 1,
                 height: 1,
                 depth: 1,
-                mipmap_range: (0, 1),
+                levels: 1,
                 kind: gfx::tex::Texture2D,
                 format: gfx::tex::RGBA8,
             };
@@ -204,19 +204,19 @@ impl RenderManager {
             if self.meshes.find(oid).is_none() {
                 let mesh = match vb.vertex {
                     Geo(ref d) => {
-                        self.device.create_mesh(d.clone(), gfx::TriangleList)
+                        self.device.create_mesh(d.clone())
                     },
                     GeoTex(ref d) => {
-                        self.device.create_mesh(d.clone(), gfx::TriangleList)
+                        self.device.create_mesh(d.clone())
                     },
                     GeoNorm(ref d) => {
-                        self.device.create_mesh(d.clone(), gfx::TriangleList)
+                        self.device.create_mesh(d.clone())
                     },
                     GeoTexNorm(ref d) => {
-                        self.device.create_mesh(d.clone(), gfx::TriangleList)
+                        self.device.create_mesh(d.clone())
                     },
                     GeoTexNormTan(ref d) => {
-                        self.device.create_mesh(d.clone(), gfx::TriangleList)
+                        self.device.create_mesh(d.clone())
                     }
                 };
 
@@ -239,7 +239,7 @@ impl RenderManager {
                     width: text.width() as u16,
                     height: text.height() as u16,
                     depth: 1 as u16,
-                    mipmap_range: (0, 1),
+                    levels: 1,
                     kind: gfx::tex::Texture2D,
                     format: match text.depth() {
                         4 => gfx::tex::Unsigned(gfx::tex::RGBA, 8, gfx::attrib::IntNormalized),
@@ -259,7 +259,7 @@ impl RenderManager {
 
     fn draw<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, camera: ObjectKey) {
         let cdata = gfx::ClearData {
-            color: Some(gfx::Color([0.3, 0.3, 0.3, 1.0])),
+            color: Some([0.3, 0.3, 0.3, 1.0]),
             depth: Some(1.0),
             stencil: None,
         };
@@ -315,7 +315,7 @@ impl RenderManager {
             };
 
             let _ = self.renderer.draw(&vb.mesh, 
-                 gfx::IndexSlice32(vb.index, geo.offset as u32, geo.count as u32),
+                 gfx::IndexSlice32(gfx::TriangleList, vb.index, geo.offset as u32, geo.count as u32, ),
                  &self.frame,
                  (&self.prog, &self.data),
                  &self.state

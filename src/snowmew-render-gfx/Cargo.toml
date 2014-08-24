@@ -6,7 +6,7 @@ authors = [
     "Colin Sherratt <colin.sherratt@gmail.com>",
 ]
 
-[[lib]]
+[lib]
 name = "snowmew-render-gfx"
 path = "lib.rs"
 
@@ -35,4 +35,4 @@ git = "https://github.com/bjz/gl-rs.git"
 git = "https://github.com/servo/rust-stb-image.git"
 
 [dependencies.gfx]
-git = "https://github.com/csherratt/gfx-rs"
+git = "https://github.com/gfx-rs/gfx-rs"

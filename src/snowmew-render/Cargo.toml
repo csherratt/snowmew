@@ -6,7 +6,7 @@ authors = [
     "Colin Sherratt <colin.sherratt@gmail.com>",
 ]
 
-[[lib]]
+[lib]
 name = "snowmew-render"
 path = "lib.rs"
 

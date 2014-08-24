@@ -6,7 +6,7 @@ authors = [
     "Colin Sherratt <colin.sherratt@gmail.com>",
 ]
 
-[[lib]]
+[lib]
 name = "snowmew-core"
 path = "lib.rs"
 
@@ -29,4 +29,4 @@ git = "https://github.com/csherratt/rust-opencl.git"
 git = "https://github.com/csherratt/vr-rs.git"
 
 [dependencies.gfx]
-git = "https://github.com/csherratt/gfx-rs"
+git = "https://github.com/gfx-rs/gfx-rs"
