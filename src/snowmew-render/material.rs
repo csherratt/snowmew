@@ -22,7 +22,7 @@ use gl;
 use snowmew::ObjectKey;
 use graphics::{Material, Graphics};
 
-#[packed]
+#[repl(pack)]
 struct MaterialStd140 {
     ka: [f32, ..4],
     kd: [f32, ..4],

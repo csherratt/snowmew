@@ -28,19 +28,19 @@ use graphics::light::{Directional, Point};
 static POINT_LIGHT_MAX: uint = 480;
 static DIRECTIONAL_MAX: uint = 8;
 
-#[packed]
+#[repl(pack)]
 struct PointLight {
     color: Vector4<f32>,
     position: Vector4<f32>
 }
 
-#[packed]
+#[repl(pack)]
 struct DirectionLight {
     color: Vector4<f32>,
     normal: Vector4<f32>
 }
 
-#[packed]
+#[repl(pack)]
 struct LightsStd140 {
     point_count: u32,
     direction_count: u32,
