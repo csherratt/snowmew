@@ -24,13 +24,13 @@ extern crate gfx;
 extern crate cow;
 extern crate cgmath;
 extern crate collision;
+extern crate genmesh;
 extern crate image = "stb_image";
 
 extern crate snowmew  = "snowmew-core";
 
 use std::slice;
 
-use cgmath::{Vector3, Vector2};
 use cgmath::Point3;
 use collision::sphere::Sphere;
 

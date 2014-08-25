@@ -12,10 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use gfx;
 
 use std::default::Default;
-use cgmath::{Vector2, Vector3};
 use snowmew::common::ObjectKey;
 
 #[deriving(Clone)]
@@ -38,6 +36,12 @@ impl Clone for VertexGeo {
     }
 }
 
+impl PartialEq for VertexGeo {
+    fn eq(&self, other: &VertexGeo) -> bool {
+        self.position.as_slice() == other.position.as_slice()
+    }
+}
+
 #[vertex_format]
 pub struct VertexGeoNorm {
     pub position: [f32, ..3],
@@ -50,6 +54,13 @@ impl Clone for VertexGeoNorm {
             position: self.position,
             normal: self.normal
         }
+    }
+}
+
+impl PartialEq for VertexGeoNorm {
+    fn eq(&self, other: &VertexGeoNorm) -> bool {
+        self.position.as_slice() == other.position.as_slice() &&
+        self.normal.as_slice() == other.normal.as_slice()
     }
 }
 
@@ -68,6 +79,14 @@ impl Clone for VertexGeoTex {
     }
 }
 
+impl PartialEq for VertexGeoTex {
+    fn eq(&self, other: &VertexGeoTex) -> bool {
+        self.position.as_slice() == other.position.as_slice() &&
+        self.texture.as_slice() == other.texture.as_slice()
+    }
+}
+
+
 #[vertex_format]
 pub struct VertexGeoTexNorm {
     pub position: [f32, ..3],
@@ -84,6 +103,15 @@ impl Clone for VertexGeoTexNorm {
         }
     }
 }
+
+impl PartialEq for VertexGeoTexNorm {
+    fn eq(&self, other: &VertexGeoTexNorm) -> bool {
+        self.position.as_slice() == other.position.as_slice() &&
+        self.normal.as_slice() == other.normal.as_slice() &&
+        self.texture.as_slice() == other.texture.as_slice()
+    }
+}
+
 
 #[vertex_format]
 pub struct VertexGeoTexNormTan {

@@ -16,121 +16,10 @@ use geometry::{VertexBuffer, Geometry, VertexGeoTexNorm};
 use material::Material;
 use Graphics;
 
-use cgmath::{Vector3, Vector2};
-
-static VERTEX_DATA: [VertexGeoTexNorm, ..30] = [
-    VertexGeoTexNorm{position: [1f32, -1f32, -1f32], //0
-                     texture:  [0.666667f32, 0f32],
-                     normal:   [0f32, -1f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, -1f32, 1f32],  //1
-                     texture:  [1f32, 0f32],
-                     normal:   [0f32, -1f32, 0f32]},
-    VertexGeoTexNorm{position: [-1f32, -1f32, -1f32],  //2
-                     texture:  [0.666667f32, 0.333333f32],
-                     normal:   [0f32, -1f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, 1f32, -1f32],  //3
-                     texture:  [0f32, 0.666667f32],
-                     normal:   [0f32, 1f32, 0f32]},
-    VertexGeoTexNorm{position: [-1f32, 1f32, -1f32],  //4
-                     texture:  [0f32, 0.333333f32],
-                     normal:   [0f32, 1f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, 1f32, 1f32], //5
-                     texture:  [0.333333f32, 0.666667f32],
-                     normal:   [0f32, 1f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, -1f32, -1f32],  //6
-                     texture:  [0.666667f32, 0.333333f32],
-                     normal:   [1f32, 0f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, 1f32, -1f32],  //7
-                     texture:  [0.333333f32, 0.333333f32],
-                     normal:   [1f32, 0f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, -1f32, 1f32], //8
-                     texture:  [0.666667f32, 0f32],
-                     normal:   [1f32, 0f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, -1f32, 1f32],  //9
-                     texture:  [0f32, 0.333333f32],
-                     normal:   [0f32, 0f32, 1f32]},
-    VertexGeoTexNorm{position: [1f32, 1f32, 1f32],  //10
-                     texture:  [0f32, 0f32],
-                     normal:   [0f32, 0f32, 1f32]},
-    VertexGeoTexNorm{position: [-1f32, -1f32, 1f32],  //11
-                     texture:  [0.333333f32, 0.333333f32],
-                     normal:   [0f32, 0f32, 1f32]},
-    VertexGeoTexNorm{position: [-1f32, -1f32, 1f32],  //12
-                     texture:  [0.666667f32, 0.333333f32],
-                     normal:   [-1f32, 0f32, 0f32]},
-    VertexGeoTexNorm{position: [-1f32, 1f32, 1f32], //13
-                     texture:  [1f32, 0.333333f32],
-                     normal:   [-1f32, 0f32, 0f32]},
-    VertexGeoTexNorm{position: [-1f32, -1f32, -1f32],  //14
-                     texture:  [0.666667f32, 0.666667f32],
-                     normal:   [-1f32, 0f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, 1f32, -1f32],  //15
-                     texture:  [0.333333f32, 0.333333f32],
-                     normal:   [0f32, 0f32, -1f32]},
-    VertexGeoTexNorm{position: [1f32, -1f32, -1f32], //16
-                     texture:  [0.666667f32, 0.333333f32],
-                     normal:   [0f32, 0f32, -1f32]},
-    VertexGeoTexNorm{position: [-1f32, 1f32, -1f32], //17
-                     texture:  [0.333333f32, 0.666667f32],
-                     normal:   [0f32, 0f32, -1f32]},
-    VertexGeoTexNorm{position: [-1f32, -1f32, 1f32], //18
-                     texture:  [1f32, 0.333333f32],
-                     normal:   [0f32, -1f32, 0f32]},
-    VertexGeoTexNorm{position: [-1f32, 1f32, 1f32], //19
-                     texture:  [0.333333f32, 0.333334f32],
-                     normal:   [0f32, 1f32, 0f32]},
-    VertexGeoTexNorm{position: [1f32, 1f32, -1f32],  //20
-                     texture:  [0.333333f32, 0.333333f32],
-                     normal:   [1f32, 0f32, 0.000001f32]},
-    VertexGeoTexNorm{position: [1f32, 1f32, 1f32],  //21
-                     texture:  [0.333333f32, 0f32],
-                     normal:   [1f32, 0f32, 0.000001f32]},
-    VertexGeoTexNorm{position: [1f32, -1f32, 1f32],  //22
-                     texture:  [0.666667f32, 0f32],
-                     normal:   [1f32, 0f32, 0.000001f32]},
-    VertexGeoTexNorm{position: [-1f32, 1f32, 1f32],  //23
-                     texture:  [0.333333f32, 0f32],
-                     normal:   [0f32, 0f32, 1f32]},
-    VertexGeoTexNorm{position: [-1f32, 1f32, -1f32], //24
-                     texture:  [1f32, 0.666667f32],
-                     normal:   [-1f32, 0f32, 0f32]},
-    VertexGeoTexNorm{position: [-1f32, -1f32, -1f32],  //25
-                     texture:  [0.666667f32, 0.666667f32],
-                     normal:   [0f32, 0f32, -1f32]},
-
-    VertexGeoTexNorm{position: [-1f32, -1f32, 0f32],
-                     texture:  [-1f32, -1f32],
-                     normal:   [0f32, 0f32, 1f32]},
-    VertexGeoTexNorm{position: [-1f32, 1f32, 0f32],
-                     texture:  [-1f32, 1f32],
-                     normal:   [0f32, 0f32, 1f32]},
-    VertexGeoTexNorm{position: [1f32, -1f32, 0f32],
-                     texture:  [1f32, -1f32],
-                     normal:   [0f32, 0f32, 1f32]},
-    VertexGeoTexNorm{position: [1f32, 1f32, 0f32],
-                     texture:  [1f32, 1f32],
-                     normal:   [0f32, 0f32, 1f32]},
-
-];
-
-static INDEX_DATA: [u32, ..42] = [
-    0,  1,  2,
-    3,  4,  5,
-    6,  7,  8,
-    9,  10, 11,
-    12, 13, 14,
-    15, 16, 17,
-    1,  18, 2,
-    4,  19, 5,
-    20, 21, 22,
-    10, 23, 11,
-    13, 24, 14,
-    16, 25, 17,
-
-    26, 28, 27,
-    28, 29, 27,
-];
-
+use genmesh::generators::{Plane, Cube};
+use genmesh::{MapToVertices, Indexer, LruIndexer};
+use genmesh::{Vertices, Triangulate, Quad};
+use cgmath::{Vector3, EuclideanVector};
 
 static WEB_COLORS: [(&'static str, [f32, ..3]), ..16] = [
     ("white",   [1., 1., 1.]),
@@ -151,6 +40,46 @@ static WEB_COLORS: [(&'static str, [f32, ..3]), ..16] = [
     ("pruple",  [0.5, 0., 0.5]),
 ];
 
+fn build_vectors<T: Iterator<Quad<VertexGeoTexNorm>>>(input: T)
+    -> (Vec<VertexGeoTexNorm>, Vec<u32>) {
+
+    let mut mesh_data: Vec<VertexGeoTexNorm> = Vec::new();
+    let mut index: Vec<u32> = {
+        let mut indexer = LruIndexer::new(16, |_, v| mesh_data.push(v));
+        input.map(|mut p| {
+            let a = Vector3::new(p.x.position[0],
+                                 p.x.position[1],
+                                 p.x.position[2]);
+            let b = Vector3::new(p.y.position[0],
+                                 p.y.position[1],
+                                 p.y.position[2]);
+            let c = Vector3::new(p.z.position[0],
+                                 p.z.position[1],
+                                 p.z.position[2]);
+
+            let normal = (a - b).cross(&(b - c)).normalize();
+
+            p.x.normal = [normal.x, normal.y, normal.z];
+            p.y.normal = [normal.x, normal.y, normal.z];
+            p.z.normal = [normal.x, normal.y, normal.z];
+            p.w.normal = [normal.x, normal.y, normal.z];
+
+            p.x.texture = [-1., -1.];
+            p.y.texture = [-1.,  1.];
+            p.z.texture = [ 1.,  1.];
+            p.w.texture = [ 1., -1.];
+
+            p
+        })
+        .vertex(|v| indexer.index(v) as u32)
+        .triangulate()
+        .vertices()
+        .collect()
+    };
+
+    (mesh_data, index)
+}
+
 pub fn load_default(db: &mut Graphics) {
     let core_dir = db.add_dir(None, "core");
     let mat_dir = db.add_dir(Some(core_dir), "material");
@@ -161,8 +90,32 @@ pub fn load_default(db: &mut Graphics) {
     }
 
     let geo_dir = db.add_dir(Some(core_dir), "geometry");
-    let vbo = VertexBuffer::new_position_texture_normal(Vec::from_slice(VERTEX_DATA), Vec::from_slice(INDEX_DATA));
-    let vbo = db.new_vertex_buffer(geo_dir, "vbo", vbo);
-    db.new_geometry(geo_dir, "cube", Geometry::triangles(vbo, 0, 36));
-    db.new_geometry(geo_dir, "plane", Geometry::triangles(vbo, 36, 6));
+
+    let (cube_v, cube_i) = build_vectors(
+        Cube::new().vertex(|(x, y, z)| {
+            VertexGeoTexNorm {
+                position: [x, y, z],
+                texture: [0., 0.],
+                normal: [0., 0., 0.]
+            }
+        }
+    ));
+    let cube_len = cube_i.len();
+    let cube_vb = VertexBuffer::new_position_texture_normal(cube_v, cube_i);
+    let cube_vbo = db.new_vertex_buffer(geo_dir, "cube_vbo", cube_vb);
+    db.new_geometry(geo_dir, "cube", Geometry::triangles(cube_vbo, 0, cube_len));
+
+    let (plane_v, plane_i) = build_vectors(
+        Plane::new().vertex(|(x, y)| {
+            VertexGeoTexNorm {
+                position: [-x, y, 0.],
+                texture: [0., 0.],
+                normal: [0., 0., 0.]
+            }
+        }
+    ));
+    let plane_len = plane_i.len();
+    let plane_vb = VertexBuffer::new_position_texture_normal(plane_v, plane_i);
+    let plane_vbo = db.new_vertex_buffer(geo_dir, "plane_vbo", plane_vb);
+    db.new_geometry(geo_dir, "plane", Geometry::triangles(plane_vbo, 0, plane_len));
 }

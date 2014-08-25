@@ -13,9 +13,6 @@
 //   limitations under the License.
 
 use std::default::Default;
-
-use cgmath::Vector3;
-
 use snowmew::ObjectKey;
 
 pub struct Material {
