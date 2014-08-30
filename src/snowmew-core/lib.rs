@@ -143,7 +143,7 @@ pub trait RenderFactory<T, R: Render<T>> {
 pub struct SnowmewConfig<GD, R> {
     pub display: DisplayConfig,
     pub use_opencl: bool,
-    pub cadance_ms: u64,
+    pub cadance_ms: i64,
     pub render: Option<Box<R>>
 }
 
@@ -178,7 +178,7 @@ impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
         let mut render = self.render.unwrap().init(&im, display, res, dev);
 
         let mut timer = Timer::new().unwrap();
-        let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms as i32));
+        let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms));
 
         let mut input_last = im.get(&ih);
         while !input_last.should_close() {

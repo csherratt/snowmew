@@ -36,6 +36,7 @@ use snowmew::common::ObjectKey;
 
 use db::GlState;
 
+#[repr(packed)]
 struct DrawElementsIndirectCommand {
     pub count: GLuint,
     pub instrance_count: GLuint,
@@ -62,6 +63,7 @@ impl Batch {
     pub fn vbo(&self) -> ObjectKey {self.vbo}
 
     pub fn offset(&self) -> *const c_void {
+        assert!(mem::size_of::<DrawElementsIndirectCommand>() == 20);
         (self.offset * mem::size_of::<DrawElementsIndirectCommand>()) as *const c_void
     }
 
@@ -70,6 +72,7 @@ impl Batch {
     }
 
     pub fn stride(&self) -> GLsizei {
+        assert!(mem::size_of::<DrawElementsIndirectCommand>() == 20);
         mem::size_of::<DrawElementsIndirectCommand>() as GLsizei
     }
 

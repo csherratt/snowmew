@@ -97,7 +97,7 @@ GLSL_150: b"
 "
 };
 
-#[shader_param(Program)]
+#[shader_param(MyProgram)]
 struct Params {
     proj_mat: [[f32, ..4], ..4],
     view_mat: [[f32, ..4], ..4],
@@ -114,11 +114,10 @@ struct Mesh {
 
 pub struct RenderManager {
     data: Params,
-    renderer: render::front::Renderer,
-    device: gfx::GlDevice,
+    graphics: render::Graphics<device::gl::GlDevice>,
     frame: render::target::Frame,
     state: render::state::DrawState,
-    prog: Program,
+    prog: device::Handle<u32,device::shade::ProgramInfo>,
     meshes: HashMap<ObjectKey, Mesh>,
     textures: HashMap<ObjectKey, device::TextureHandle>,
     sampler: device::SamplerHandle,
@@ -155,7 +154,9 @@ impl RenderManager {
             let img_info = tinfo.to_image_info();
             let dummy_texture = device.create_texture(tinfo)
                                       .ok().expect("Failed to create texture");
-            device.update_texture(&dummy_texture, &img_info, &vec![0u8, 0, 0, 0]);
+            device.update_texture(&dummy_texture,
+                                  &img_info,
+                                  &vec![0u8, 0, 0, 0].as_slice());
 
             let data = Params {
                 proj_mat: [
@@ -187,8 +188,7 @@ impl RenderManager {
 
         RenderManager {
             data: data,
-            renderer: device.create_renderer(),
-            device: device,
+            graphics: gfx::Graphics::new(device),
             frame: frame,
             state: state,
             prog: prog,
@@ -204,25 +204,25 @@ impl RenderManager {
             if self.meshes.find(oid).is_none() {
                 let mesh = match vb.vertex {
                     Geo(ref d) => {
-                        self.device.create_mesh(d.clone())
+                        self.graphics.device.create_mesh(d.clone())
                     },
                     GeoTex(ref d) => {
-                        self.device.create_mesh(d.clone())
+                        self.graphics.device.create_mesh(d.clone())
                     },
                     GeoNorm(ref d) => {
-                        self.device.create_mesh(d.clone())
+                        self.graphics.device.create_mesh(d.clone())
                     },
                     GeoTexNorm(ref d) => {
-                        self.device.create_mesh(d.clone())
+                        self.graphics.device.create_mesh(d.clone())
                     },
                     GeoTexNormTan(ref d) => {
-                        self.device.create_mesh(d.clone())
+                        self.graphics.device.create_mesh(d.clone())
                     }
                 };
 
                 let vb: Vec<u32> = vb.index.iter().map(|&x| x as u32).collect();
 
-                let index = self.device.create_buffer_static(&vb);
+                let index = self.graphics.device.create_buffer_static(&vb);
 
                 self.meshes.insert(*oid, Mesh {
                     index: index,
@@ -249,9 +249,9 @@ impl RenderManager {
                 };
 
                 let img_info = tinfo.to_image_info();
-                let texture = self.device.create_texture(tinfo)
+                let texture = self.graphics.device.create_texture(tinfo)
                                          .ok().expect("Failed to create texture");
-                self.device.update_texture(&texture, &img_info, &text.data().to_vec());
+                self.graphics.device.update_texture(&texture, &img_info, &text.data().to_vec());
                 self.textures.insert(*oid, texture);
             }
         }
@@ -263,8 +263,7 @@ impl RenderManager {
             depth: Some(1.0),
             stencil: None,
         };
-        self.renderer.reset();
-        self.renderer.clear(cdata, &self.frame);
+        //self.graphics.clear(cdata, &self.frame);
 
         let camera_trans = db.position(camera);
         let camera = snowmew::camera::Camera::new(camera_trans);
@@ -314,15 +313,20 @@ impl RenderManager {
                 }
             };
 
-            let _ = self.renderer.draw(&vb.mesh, 
-                 gfx::IndexSlice32(gfx::TriangleList, vb.index, geo.offset as u32, geo.count as u32, ),
-                 &self.frame,
-                 (&self.prog, &self.data),
-                 &self.state
-            );
+            let batch: MyProgram = self.graphics.make_batch(
+                &vb.mesh,
+                gfx::IndexSlice32(gfx::TriangleList,
+                                  vb.index,
+                                  geo.offset as u32,
+                                  geo.count as u32),
+                &self.prog,
+                &self.state
+            ).unwrap();
+
+            self.graphics.draw(&batch, &self.data, &self.frame);
         }
 
-        self.device.submit(self.renderer.as_buffer());
+        //self.graphics.device.submit(self.renderer.as_buffer());
         self.window.swap_buffers();
     }
 }

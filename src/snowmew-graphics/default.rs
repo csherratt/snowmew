@@ -108,7 +108,7 @@ pub fn load_default(db: &mut Graphics) {
     let (plane_v, plane_i) = build_vectors(
         Plane::new().vertex(|(x, y)| {
             VertexGeoTexNorm {
-                position: [-x, y, 0.],
+                position: [x, y, 0.],
                 texture: [0., 0.],
                 normal: [0., 0., 0.]
             }
