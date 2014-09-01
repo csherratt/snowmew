@@ -116,8 +116,8 @@ struct Mesh {
 
 pub struct RenderManager {
     data: Params,
-    graphics: render::Graphics<device::gl_device::GlDevice,
-                               device::gl_device::GlCommandBuffer>,
+    graphics: gfx::Graphics<device::gl_device::GlDevice,
+                            device::gl_device::GlCommandBuffer>,
     frame: render::target::Frame,
     state: render::state::DrawState,
     prog: device::Handle<u32,device::shade::ProgramInfo>,
