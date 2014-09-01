@@ -33,6 +33,7 @@ extern crate gfx_macros;
 extern crate gfx;
 extern crate device;
 extern crate render;
+extern crate genmesh;
 
 extern crate snowmew  = "snowmew-core";
 extern crate position = "snowmew-position";
@@ -50,6 +51,7 @@ use snowmew::common::ObjectKey;
 use snowmew::io::Window;
 
 use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
+use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 
 use cow::join::{join_set_to_map, join_maps};
 use render_data::RenderData;
@@ -204,18 +206,39 @@ impl RenderManager {
             if self.meshes.find(oid).is_none() {
                 let mesh = match vb.vertex {
                     Geo(ref d) => {
-                        self.graphics.device.create_mesh(d.clone())
+                        println!("Geo");
+                        let data: Vec<VertexGeoTex> = d.iter()
+                            .map(|v| {
+                                VertexGeoTex {
+                                    position: v.position,
+                                    texture: [0., 0.]
+                                }
+                            })
+                            .collect();
+                        self.graphics.device.create_mesh(data)
                     },
                     GeoTex(ref d) => {
+                        println!("GeoTex");
                         self.graphics.device.create_mesh(d.clone())
                     },
                     GeoNorm(ref d) => {
-                        self.graphics.device.create_mesh(d.clone())
+                        let data: Vec<VertexGeoTexNorm> = d.iter()
+                            .map(|v| {
+                                VertexGeoTexNorm {
+                                    position: v.position,
+                                    texture: [0., 0.],
+                                    normal: v.normal
+                                }
+                            })
+                            .collect();
+                        self.graphics.device.create_mesh(data)
                     },
                     GeoTexNorm(ref d) => {
+                        println!("GeoTexNorm");
                         self.graphics.device.create_mesh(d.clone())
                     },
                     GeoTexNormTan(ref d) => {
+                        println!("GeoTexNormTan");
                         self.graphics.device.create_mesh(d.clone())
                     }
                 };
