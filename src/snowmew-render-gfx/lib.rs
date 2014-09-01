@@ -26,7 +26,6 @@ extern crate libc;
 
 extern crate opencl;
 extern crate cow;
-extern crate gl;
 extern crate glfw;
 
 #[phase(plugin)]
@@ -114,7 +113,8 @@ struct Mesh {
 
 pub struct RenderManager {
     data: Params,
-    graphics: render::Graphics<device::gl::GlDevice, device::gl::draw::GlCommandBuffer>,
+    graphics: render::Graphics<device::gl_device::GlDevice,
+                               device::gl_device::GlCommandBuffer>,
     frame: render::target::Frame,
     state: render::state::DrawState,
     prog: device::Handle<u32,device::shade::ProgramInfo>,
@@ -315,12 +315,12 @@ impl RenderManager {
             };
 
             let batch: MyProgram = self.graphics.make_batch(
+                &self.prog,
                 &vb.mesh,
                 gfx::IndexSlice32(gfx::TriangleList,
                                   vb.index,
                                   geo.offset as u32,
                                   geo.count as u32),
-                &self.prog,
                 &self.state
             ).unwrap();
 
