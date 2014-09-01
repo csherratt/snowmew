@@ -52,6 +52,7 @@ use snowmew::io::Window;
 
 use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
+use graphics::Drawable;
 
 use cow::join::{join_set_to_map, join_maps};
 use render_data::RenderData;
@@ -306,15 +307,34 @@ impl RenderManager {
              [view.z.x, view.z.y, view.z.z, view.z.w],
              [view.w.x, view.w.y, view.w.z, view.w.w]];
 
+        let mut batches: HashMap<u32, MyProgram> = HashMap::new();
+
+        for (_, draw) in db.drawable_iter() {
+            if batches.contains_key(&draw.geometry) {
+                continue;
+            }
+
+            let geo = db.geometry(draw.geometry).expect("failed to find geometry");
+            let vb = self.meshes.find(&geo.vb).expect("Could not get vertex buffer");
+
+            let batch: MyProgram = self.graphics.make_batch(
+                &self.prog,
+                &vb.mesh,
+                gfx::IndexSlice32(gfx::TriangleList,
+                                  vb.index,
+                                  geo.offset as u32,
+                                  geo.count as u32),
+                &self.state
+            ).unwrap();
+
+            batches.insert(draw.geometry, batch);
+        }
 
         for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
                                                join_maps(db.drawable_iter(),
                                                          db.location_iter())) {
 
-            let geo = db.geometry(draw.geometry).expect("failed to find geometry");
             let mat = db.material(draw.material).expect("Could not find material");
-            let vb = self.meshes.find(&geo.vb).expect("Could not get vertex buffer");
-
             let model = db.position(*id);
 
             self.data.model_mat =
@@ -337,17 +357,11 @@ impl RenderManager {
                 }
             };
 
-            let batch: MyProgram = self.graphics.make_batch(
-                &self.prog,
-                &vb.mesh,
-                gfx::IndexSlice32(gfx::TriangleList,
-                                  vb.index,
-                                  geo.offset as u32,
-                                  geo.count as u32),
-                &self.state
-            ).unwrap();
-
-            self.graphics.draw(&batch, &self.data, &self.frame);
+            self.graphics.draw(
+                batches.find(&draw.geometry).expect("Missing draw"),
+                &self.data,
+                &self.frame
+            );
         }
 
         self.graphics.end_frame();

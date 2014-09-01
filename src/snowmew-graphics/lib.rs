@@ -49,7 +49,7 @@ pub mod texture;
 pub mod texture_atlas;
 pub mod light;
 
-#[deriving(Clone, Default, Eq, PartialEq, PartialOrd)]
+#[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show)]
 pub struct Drawable {
     pub geometry: ObjectKey,
     pub material: ObjectKey
