@@ -114,7 +114,7 @@ struct Mesh {
 
 pub struct RenderManager {
     data: Params,
-    graphics: render::Graphics<device::gl::GlDevice>,
+    graphics: render::Graphics<device::gl::GlDevice, device::gl::draw::GlCommandBuffer>,
     frame: render::target::Frame,
     state: render::state::DrawState,
     prog: device::Handle<u32,device::shade::ProgramInfo>,
@@ -263,7 +263,8 @@ impl RenderManager {
             depth: Some(1.0),
             stencil: None,
         };
-        //self.graphics.clear(cdata, &self.frame);
+        let start = time::precise_time_s();
+        self.graphics.clear(cdata, &self.frame);
 
         let camera_trans = db.position(camera);
         let camera = snowmew::camera::Camera::new(camera_trans);
@@ -326,8 +327,10 @@ impl RenderManager {
             self.graphics.draw(&batch, &self.data, &self.frame);
         }
 
-        //self.graphics.device.submit(self.renderer.as_buffer());
+        self.graphics.end_frame();
         self.window.swap_buffers();
+        let end = time::precise_time_s();
+        println!("{0:4.3}ms", (end - start) * 1000.);
     }
 }
 
