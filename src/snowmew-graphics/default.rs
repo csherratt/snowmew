@@ -83,55 +83,19 @@ fn build_vectors<T: Iterator<Quad<VertexGeoTexNorm>>>(input: T)
     (mesh_data, index)
 }
 
-fn build_vectors_poly<T: Iterator<Polygon<VertexGeoTexNorm>>>(input: T)
+fn build_vectors_poly<T: Iterator<Polygon<(f32, f32, f32)>>>(input: T)
     -> (Vec<VertexGeoTexNorm>, Vec<u32>) {
 
     let mut mesh_data: Vec<VertexGeoTexNorm> = Vec::new();
     let mut index: Vec<u32> = {
         let mut indexer = LruIndexer::new(16, |_, v| mesh_data.push(v));
-        input.map(|mut p| {
-            let (a, b, c) = match p {
-                PolyQuad(Quad{x: a, y: b, z: c, w: _}) => (a, b, c),
-                PolyTri(Triangle{x: a, y: b, z: c}) => (a, b, c)
-            };
-
-            let a = Vector3::new(a.position[0],
-                                 a.position[1],
-                                 a.position[2]);
-            let b = Vector3::new(b.position[0],
-                                 b.position[1],
-                                 b.position[2]);
-            let c = Vector3::new(c.position[0],
-                                 c.position[1],
-                                 c.position[2]);
-
-            let normal = (a - b).cross(&(b - c)).normalize();
-
-            match p {
-                PolyQuad(Quad{x: mut a, y: mut b, z: mut c, w: mut d}) => {
-                    a.normal = [normal.x, normal.y, normal.z];
-                    b.normal = [normal.x, normal.y, normal.z];
-                    c.normal = [normal.x, normal.y, normal.z];
-                    d.normal = [normal.x, normal.y, normal.z];
-
-                    a.texture = [-1., -1.];
-                    b.texture = [-1.,  1.];
-                    c.texture = [ 1.,  1.];
-                    d.texture = [ 1., -1.];
-
-                    PolyQuad(Quad::new(a, b, c, d))
-                }
-                PolyTri(Triangle{x: mut a, y: mut b, z: mut c}) => {
-                    a.normal = [normal.x, normal.y, normal.z];
-                    b.normal = [normal.x, normal.y, normal.z];
-                    c.normal = [normal.x, normal.y, normal.z];
-
-                    a.texture = [-1., -1.];
-                    b.texture = [-1.,  1.];
-                    c.texture = [ 1.,  1.];
-
-                    PolyTri(Triangle::new(a, b, c))
-                }
+        input
+        .vertex(|(x, y, z)| {
+            let n = Vector3::new(x, y, z).normalize();
+            VertexGeoTexNorm {
+                position: [x, y, z],
+                texture: [0., 0.],
+                normal: [n.x, n.y, n.z]
             }
         })
         .vertex(|v| indexer.index(v) as u32)
@@ -186,15 +150,7 @@ pub fn load_default(db: &mut Graphics) {
         for j in range(2, 8) {
             let i = pow(2, i);
             let j = pow(2, j);
-            let (sphere_v, sphere_i) = build_vectors_poly(
-                SphereUV::new(i, j).vertex(|(x, y, z)| {
-                    VertexGeoTexNorm {
-                        position: [x, y, z],
-                        texture: [0., 0.],
-                        normal: [0., 0., 0.]
-                    }
-                }
-            ));
+            let (sphere_v, sphere_i) = build_vectors_poly(SphereUV::new(i, j));
             let sphere_len = sphere_i.len();
             let sphere_vb = VertexBuffer::new_position_texture_normal(sphere_v, sphere_i);
             let sphere_vbo = db.new_vertex_buffer(geo_dir,
