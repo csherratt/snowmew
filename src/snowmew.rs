@@ -14,14 +14,76 @@
 
 #![crate_name = "snowmew"]
 
-extern crate core = "snowmew-core";
-extern crate graphics = "snowmew-graphics";
-extern crate loader = "snowmew-loader";
-extern crate physics = "snowmew-physics";
-extern crate position = "snowmew-position";
-extern crate render = "snowmew-render-mux";
+extern crate _core = "snowmew-core";
+extern crate _graphics = "snowmew-graphics";
+extern crate _loader = "snowmew-loader";
+extern crate _physics = "snowmew-physics";
+extern crate _position = "snowmew-position";
+extern crate _render = "snowmew-render-mux";
+extern crate _render_data = "snowmew-render-data";
+
+pub mod render {
+    pub use _render::RenderFactory as DefaultRender;
+    pub use _render_data::RenderData as RenderData;
+    pub use _core::{
+        RenderFactory,
+        Render
+    };
+}
+
+pub mod graphics {
+    pub use _graphics::{
+        default,
+        Drawable,
+        Geometry,
+        geometry,
+        Graphics,
+        GraphicsData,
+        light,
+        Light,
+        material,
+        Material,
+        texture,
+        Texture,
+        texture_atlas,
+        VertexBuffer,
+        VertexBufferIter,
+    };
+}
+
+pub mod position {
+    pub use _position::{
+        MatrixManager,
+        Deltas,
+        ComputedPositionGL,
+        ComputedPosition,
+        CalcPositionsCl,
+        PositionData,
+        Positions
+    };
+}
+
+pub mod core {
+    pub use _core::{
+        DisplayConfig,
+        Render,
+        IOManager,
+    };
+
+    pub use _core::io::{
+        InputHandle,
+        Window,
+    };
+}
+
+pub mod common {
+    pub use _core::common::{
+        Common,
+        CommonData
+    };
+}
 
 pub mod config  {
-    pub use core::SnowmewConfig as SnowmewConfig;
+    pub use _core::SnowmewConfig as SnowmewConfig;
 }
 
