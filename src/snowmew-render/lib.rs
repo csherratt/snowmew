@@ -143,7 +143,7 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, ObjectKey)>,
         let camera_trans = dl.position(camera);
         let camera = Camera::new(camera_trans);
 
-        pipeline.render(dl, &mut db, &camera, qm);
+        pipeline.render(&mut *dl, &mut db, &camera, &mut *qm);
         // if the device is a hmd we need to stall the gpu
         // to make sure it actually flipped the buffers
 
@@ -245,7 +245,7 @@ fn render_server(command: Receiver<RenderCommand>,
 
         if drawlists_ready.len() > 0 && scene != 0 {
             let dl = drawlists_ready.pop().unwrap();
-            dl.setup_compute(db, &mut taskpool, scene);
+            dl.setup_compute(&mut *db, &mut taskpool, scene);
             scene = 0;           
         }
     }
