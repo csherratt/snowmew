@@ -310,12 +310,12 @@ impl RenderManager {
 
     fn draw<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, camera: ObjectKey) {
         let cdata = gfx::ClearData {
-            color: Some([0.3, 0.3, 0.3, 1.0]),
-            depth: Some(1.0),
-            stencil: None,
+            color: [0.3, 0.3, 0.3, 1.0],
+            depth: 1.0,
+            stencil: 0,
         };
         let start = time::precise_time_s();
-        self.graphics.clear(cdata, &self.frame);
+        self.graphics.clear(cdata, gfx::Color | gfx::Depth, &self.frame);
 
         let camera_trans = db.position(camera);
         let camera = snowmew::camera::Camera::new(camera_trans);
