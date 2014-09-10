@@ -21,8 +21,8 @@ extern crate cow;
 extern crate cgmath;
 extern crate collision;
 
-extern crate snowmew  = "snowmew-core";
-extern crate position = "snowmew-position";
+extern crate "snowmew-core" as snowmew;
+extern crate "snowmew-position" as position;
 
 use snowmew::common::{ObjectKey, Common};
 use position::Positions;

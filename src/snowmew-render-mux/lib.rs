@@ -21,12 +21,12 @@
 extern crate sync;
 
 extern crate opencl;
-extern crate gfx = "snowmew-render-gfx";
-extern crate snowmew  = "snowmew-core";
-extern crate azdo = "snowmew-render";
-extern crate position = "snowmew-position";
-extern crate graphics = "snowmew-graphics";
-extern crate render_data = "snowmew-render-data";
+extern crate "snowmew-render-gfx" as gfx;
+extern crate "snowmew-core" as snowmew;
+extern crate "snowmew-render" as azdo;
+extern crate "snowmew-position" as position;
+extern crate "snowmew-graphics" as graphics;
+extern crate "snowmew-render-data" as render_data;
 
 use std::os;
 

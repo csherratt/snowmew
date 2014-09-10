@@ -22,10 +22,10 @@ extern crate collections;
 extern crate core;
 
 extern crate cgmath;
-extern crate image = "stb_image";
+extern crate "stb_image" as image;
 
-extern crate snowmew  = "snowmew-core";
-extern crate graphics = "snowmew-graphics";
+extern crate "snowmew-core" as snowmew;
+extern crate "snowmew-graphics" as graphics;
 
 pub use obj::Obj;
 

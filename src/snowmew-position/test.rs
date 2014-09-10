@@ -16,11 +16,11 @@
 #![feature(globs)]
 #![feature(phase)]
 
-extern crate snowmew  = "snowmew-core";
+extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
 extern crate opencl;
 extern crate cow;
-extern crate position = "snowmew-position";
+extern crate "snowmew-position" as position;
 
 use position::Deltas;
 use position::CalcPositionsCl;

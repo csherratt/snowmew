@@ -19,7 +19,7 @@
 #![allow(dead_code)]
 
 
-extern crate position = "snowmew-position";
-extern crate graphics = "snowmew-graphics";
+extern crate "snowmew-position" as position;
+extern crate "snowmew-graphics" as graphics;
 
 pub trait RenderData: graphics::Graphics + position::Positions {}

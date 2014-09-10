@@ -25,9 +25,9 @@ extern crate cow;
 extern crate cgmath;
 extern crate collision;
 extern crate genmesh;
-extern crate image = "stb_image";
+extern crate "stb_image" as image;
 
-extern crate snowmew  = "snowmew-core";
+extern crate "snowmew-core" as snowmew;
 
 use std::slice;
 

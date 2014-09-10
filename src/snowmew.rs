@@ -14,13 +14,13 @@
 
 #![crate_name = "snowmew"]
 
-extern crate _core = "snowmew-core";
-extern crate _graphics = "snowmew-graphics";
-extern crate _loader = "snowmew-loader";
-extern crate _physics = "snowmew-physics";
-extern crate _position = "snowmew-position";
-extern crate _render = "snowmew-render-mux";
-extern crate _render_data = "snowmew-render-data";
+extern crate "snowmew-core"         as _core;
+extern crate "snowmew-graphics"     as _graphics;
+extern crate "snowmew-loader"       as _loader;
+extern crate "snowmew-physics"      as _physics;
+extern crate "snowmew-position"     as _position;
+extern crate "snowmew-render-mux"   as _render;
+extern crate "snowmew-render-data"  as _render_data;
 
 pub mod render {
     pub use _render::RenderFactory as DefaultRender;

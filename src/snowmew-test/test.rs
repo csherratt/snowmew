@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-extern crate snowmew  = "snowmew-core";
+extern crate "snowmew-core" as snowmew;
 
 mod db {
     use snowmew::common::Database;

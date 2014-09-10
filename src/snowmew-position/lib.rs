@@ -17,7 +17,7 @@
 #![crate_type = "lib"]
 #![comment = "A position manager for snowmew"]
 
-extern crate snowmew  = "snowmew-core";
+extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
 extern crate opencl;
 extern crate cow;

@@ -35,10 +35,10 @@ extern crate device;
 extern crate render;
 extern crate genmesh;
 
-extern crate snowmew  = "snowmew-core";
-extern crate position = "snowmew-position";
-extern crate graphics = "snowmew-graphics";
-extern crate render_data = "snowmew-render-data";
+extern crate "snowmew-core" as snowmew;
+extern crate "snowmew-position" as position;
+extern crate "snowmew-graphics" as graphics;
+extern crate "snowmew-render-data" as render_data;
 
 use std::collections::hashmap::HashMap;
 
