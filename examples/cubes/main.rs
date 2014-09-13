@@ -22,11 +22,11 @@ extern crate opencl;
 extern crate sync;
 extern crate glfw;
 
-extern crate snowmew  = "snowmew-core";
-extern crate render = "snowmew-render-mux";
-extern crate position = "snowmew-position";
-extern crate graphics = "snowmew-graphics";
-extern crate render_data = "snowmew-render-data";
+extern crate "snowmew-core" as snowmew;
+extern crate "snowmew-render-mux" as render;
+extern crate "snowmew-position" as position;
+extern crate "snowmew-graphics" as graphics;
+extern crate "snowmew-render-data" as render_data;
 
 use std::from_str::FromStr;
 
