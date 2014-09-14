@@ -16,6 +16,8 @@
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A position manager for snowmew"]
+#![feature(macro_rules)]
+#![feature(tuple_indexing)]
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
@@ -36,7 +38,7 @@ use opencl::CL::{CL_MEM_READ_ONLY};
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 
-use snowmew::common::{ObjectKey, Common};
+use snowmew::common::{ObjectKey, Common, Duplicate};
 
 static opencl_program: &'static str = include_str!("position.c");
 
@@ -491,5 +493,17 @@ pub trait Positions: Common {
         let last = self.get_position().position.gen.len();
         let (s, l) = self.get_position().position.gen[last-1];
         (s + l) as uint
+    }
+}
+
+impl Duplicate for PositionData {
+    fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey) {
+        let loc = self.location.find(&src).map(|&x| x);
+        loc.map(|loc| {
+            let id = Id(loc.0, self.position.add_location(loc.0));
+            let delta = self.position.get_delta(loc);
+            self.position.update(id, delta);
+            self.location.insert(dst, id);
+        });
     }
 }

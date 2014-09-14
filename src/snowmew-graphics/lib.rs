@@ -17,6 +17,7 @@
 #![crate_type = "lib"]
 #![comment = "A graphics collection for snowmew"]
 #![feature(phase)]
+#![feature(macro_rules)]
 
 #[phase(plugin)]
 extern crate gfx_macros;
@@ -35,7 +36,7 @@ use cgmath::Point3;
 use collision::sphere::Sphere;
 
 use cow::btree::{BTreeMapIterator, BTreeMap};
-use snowmew::common::{Common, ObjectKey};
+use snowmew::common::{Common, ObjectKey, Duplicate};
 
 pub use geometry::{Geometry, VertexBuffer};
 pub use material::Material;
@@ -264,6 +265,29 @@ pub trait Graphics: Common {
 
     fn light_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Light> {
         self.get_graphics().lights.iter()
+    }
+}
+
+macro_rules! dup(
+    ($field:expr, $src:ident, $dst:ident) => (
+        {
+            let x = $field.find(&$src).map(|x| x.clone());
+            x.map(|x| $field.insert($dst, x));
+        }
+    )
+)
+
+impl Duplicate for GraphicsData {
+    fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey) {
+        dup!(self.draw, src, dst);
+        dup!(self.geometry, src, dst);
+        dup!(self.vertex, src, dst);
+        dup!(self.material, src, dst);
+        dup!(self.material_index, src, dst);
+        dup!(self.texture, src, dst);
+        dup!(self.lights, src, dst);
+        dup!(self.texture_to_atlas, src, dst);
+        dup!(self.sphere, src, dst);
     }
 }
 

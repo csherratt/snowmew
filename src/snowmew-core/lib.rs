@@ -20,7 +20,7 @@
 #![feature(macro_rules)]
 #![feature(globs)]
 #![allow(experimental)]
-
+#![feature(macro_rules)]
 
 extern crate time;
 extern crate glfw;

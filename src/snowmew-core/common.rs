@@ -226,6 +226,10 @@ pub trait Common {
     }
 }
 
+pub trait Duplicate {
+    fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey);
+}
+
 impl Common for CommonData {
     fn get_common<'a>(&'a self) -> &'a CommonData {self}
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}

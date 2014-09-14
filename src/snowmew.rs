@@ -82,7 +82,8 @@ pub mod common {
     pub use _core::common::{
         Common,
         CommonData,
-        ObjectKey
+        ObjectKey,
+        Duplicate
     };
 }
 
