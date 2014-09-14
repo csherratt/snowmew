@@ -83,7 +83,7 @@ pub struct Deltas {
     delta: BTreeMap<u32, BTreeMap<u32, Delta>>,
 }
 
-#[deriving(Clone, Default, Eq, PartialOrd, PartialEq, Ord)]
+#[deriving(Clone, Default, Eq, PartialOrd, PartialEq, Ord, Show)]
 pub struct Id(u32, u32);
 
 impl Deltas {
@@ -149,9 +149,23 @@ impl Deltas {
         Id(gen+1, id)
     }
 
+    pub fn dup(&mut self, id: Id) -> Id {
+        let Id(gen, oid) = id;
+
+        let id = self.add_location(gen);
+        self.delta.find_mut(&gen)
+                  .map(|d| {
+                      let old = d.find(&oid).map(|x| *x).expect("old value not found");
+                      d.insert(id, old)
+                  });
+
+        Id(gen, id)
+    }
+
     pub fn get_mut<'a>(&'a mut self, id: Id) -> &'a mut Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
         let Id(gen, id) = id;
-        &mut self.delta.find_mut(&gen).unwrap().find_mut(&id).unwrap().delta
+        &mut self.delta.find_mut(&gen).expect("Generation not found")
+                       .find_mut(&id).expect("Delta not found").delta
     }
 
     pub fn update(&mut self, id: Id, delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
@@ -500,9 +514,7 @@ impl Duplicate for PositionData {
     fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey) {
         let loc = self.location.find(&src).map(|&x| x);
         loc.map(|loc| {
-            let id = Id(loc.0, self.position.add_location(loc.0));
-            let delta = self.position.get_delta(loc);
-            self.position.update(id, delta);
+            let id = self.position.dup(loc);
             self.location.insert(dst, id);
         });
     }
