@@ -159,7 +159,7 @@ impl RenderManager {
                                       .ok().expect("Failed to create texture");
             device.update_texture(&dummy_texture,
                                   &img_info,
-                                  &vec![0u8, 0, 0, 0].as_slice());
+                                  vec![0u8, 0, 0, 0].as_slice());
 
             let data = Params {
                 proj_mat: [
@@ -216,11 +216,11 @@ impl RenderManager {
                                 }
                             })
                             .collect();
-                        self.graphics.device.create_mesh(data)
+                        self.graphics.device.create_mesh(data.as_slice())
                     },
                     GeoTex(ref d) => {
                         println!("GeoTex");
-                        self.graphics.device.create_mesh(d.clone())
+                        self.graphics.device.create_mesh(d.as_slice())
                     },
                     GeoNorm(ref d) => {
                         let data: Vec<VertexGeoTexNorm> = d.iter()
@@ -232,21 +232,21 @@ impl RenderManager {
                                 }
                             })
                             .collect();
-                        self.graphics.device.create_mesh(data)
+                        self.graphics.device.create_mesh(data.as_slice())
                     },
                     GeoTexNorm(ref d) => {
                         println!("GeoTexNorm");
-                        self.graphics.device.create_mesh(d.clone())
+                        self.graphics.device.create_mesh(d.as_slice())
                     },
                     GeoTexNormTan(ref d) => {
                         println!("GeoTexNormTan");
-                        self.graphics.device.create_mesh(d.clone())
+                        self.graphics.device.create_mesh(d.as_slice())
                     }
                 };
 
                 let vb: Vec<u32> = vb.index.iter().map(|&x| x as u32).collect();
 
-                let index = self.graphics.device.create_buffer_static(&vb);
+                let index = self.graphics.device.create_buffer_static(vb.as_slice());
 
                 self.meshes.insert(*oid, Mesh {
                     index: index,
@@ -275,7 +275,7 @@ impl RenderManager {
                 let img_info = tinfo.to_image_info();
                 let texture = self.graphics.device.create_texture(tinfo)
                                          .ok().expect("Failed to create texture");
-                self.graphics.device.update_texture(&texture, &img_info, &text.data().to_vec());
+                self.graphics.device.update_texture(&texture, &img_info, text.data());
                 self.textures.insert(*oid, texture);
             }
         }
