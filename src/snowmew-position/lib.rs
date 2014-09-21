@@ -162,14 +162,30 @@ impl Deltas {
         Id(gen, id)
     }
 
-    pub fn get_mut<'a>(&'a mut self, id: Id) -> &'a mut Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
+    pub fn get<'a>(&'a self, id: Id) -> Option<&'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
         let Id(gen, id) = id;
-        &mut self.delta.find_mut(&gen).expect("Generation not found")
-                       .find_mut(&id).expect("Delta not found").delta
+        let mut out = None;
+        let delta = self.delta.find(&gen).map(|delta| {
+            delta.find(&id).map(|x| {
+                out = Some(&x.delta);
+            })
+        });
+        out
+    }
+
+    pub fn get_mut<'a>(&'a mut self, id: Id) -> Option<&'a mut Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
+        let Id(gen, id) = id;
+        let mut out = None;
+        let delta = self.delta.find_mut(&gen).map(|delta| {
+            delta.find_mut(&id).map(|x| {
+                out = Some(&mut x.delta);
+            })
+        });
+        out
     }
 
     pub fn update(&mut self, id: Id, delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
-        *self.get_mut(id) = delta;
+        self.get_mut(id).map(|d| {*d = delta;});
     }
 
     pub fn get_delta(&self, id :Id) -> Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
@@ -447,17 +463,47 @@ pub trait Positions: Common {
 
     fn set_scale(&mut self, key: ObjectKey, scale: f32) {
         let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).scale = scale;
+        self.get_position_mut().position.get_mut(id).map(|d| {d.scale = scale;});
     }
 
     fn set_displacement(&mut self, key: ObjectKey, disp: Vector3<f32>) {
         let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).disp = disp;
+        self.get_position_mut().position.get_mut(id).map(|d| {d.disp = disp;});
     }
 
     fn set_rotation(&mut self, key: ObjectKey, rot: Quaternion<f32>) {
         let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).rot = rot;
+        self.get_position_mut().position.get_mut(id).map(|d| {d.rot = rot;});
+    }
+
+    fn get_scale(&mut self, key: ObjectKey) -> Option<&f32> {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get(id).map(|x| &x.scale)
+    }
+
+    fn get_displacement(&mut self, key: ObjectKey) -> Option<&Vector3<f32>> {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get(id).map(|x| &x.disp)
+    }
+
+    fn get_rotation(&mut self, key: ObjectKey) -> Option<&Quaternion<f32>> {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get(id).map(|x| &x.rot)
+    }
+
+    fn get_mut_scale(&mut self, key: ObjectKey) -> Option<&mut f32> {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get_mut(id).map(|x| &mut x.scale)
+    }
+
+    fn get_mut_displacement(&mut self, key: ObjectKey) -> Option<&mut Vector3<f32>> {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get_mut(id).map(|x| &mut x.disp)
+    }
+
+    fn get_mut_rotation(&mut self, key: ObjectKey) -> Option<&mut Quaternion<f32>> {
+        let id = self.position_id(key);
+        self.get_position_mut().position.get_mut(id).map(|x| &mut x.rot)
     }
 
     fn location(&self, key: ObjectKey) -> Option<Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
