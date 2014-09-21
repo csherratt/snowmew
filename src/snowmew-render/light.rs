@@ -22,6 +22,7 @@ use cgmath::Matrix;
 use cgmath::{EuclideanVector, Vector, Vector3, Vector4};
 
 use position::Positions;
+use graphics;
 use graphics::Graphics;
 use graphics::light::{Directional, Point};
 
@@ -103,7 +104,7 @@ impl LightsBuffer {
 
         for (key, light) in graphics.light_iter() {
             match light {
-                &Point(p) => {
+                &graphics::PointLight(p) => {
                     if point_light_count == POINT_LIGHT_MAX {
                         println!("Dropping point light, overflow dropping light");
                     } else {
@@ -115,7 +116,7 @@ impl LightsBuffer {
                         point_light_count += 1;
                     }
                 }
-                &Directional(d) => {
+                &graphics::DirectionalLight(d) => {
                     if direction_light_count == DIRECTIONAL_MAX {
                         println!("Dropping directional light, overflow dropping light");
                     } else {

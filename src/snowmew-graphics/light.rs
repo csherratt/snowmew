@@ -63,13 +63,13 @@ impl Directional {
 
 #[deriving(Clone)]
 pub enum Light {
-    Directional(Directional),
-    Point(Point)
+    DirectionalLight(Directional),
+    PointLight(Point)
 }
 
 impl Default for Light {
     fn default() -> Light {
-        Point(Point {
+        PointLight(Point {
             color: Vector3::new(0f32, 0., 0.),
             intensity: 0.
         })

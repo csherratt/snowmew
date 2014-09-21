@@ -43,6 +43,13 @@ pub use material::Material;
 pub use texture::Texture;
 pub use light::Light;
 
+pub use light::{
+    DirectionalLight,
+    PointLight,
+    Directional,
+    Point
+};
+
 pub mod geometry;
 pub mod material;
 pub mod default;
