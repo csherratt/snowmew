@@ -105,7 +105,7 @@ fn main() {
 
     let sun = light::Directional::new(Vector3::new(0.5f32, 1., 0.5),
                                       Vector3::new(1f32, 1., 1.), 1.);
-    db.new_light(scene, "sun", light::Directional(sun));
+    db.new_light(scene, "sun", light::DirectionalLight(sun));
 
     sc.start(db, |gd, input_state, last_input| {
         let mut gd = gd;

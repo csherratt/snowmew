@@ -87,7 +87,7 @@ fn main() {
     let sun = light::Directional::new(Vector3::new(0.5f32, 1., 0.5),
                                       Vector3::new(1f32, 1., 1.), 0.25);
 
-    gd.new_light(scene, "sun", light::Directional(sun));
+    gd.new_light(scene, "sun", light::DirectionalLight(sun));
 
     let mut gear_rot = 90f32;
 
