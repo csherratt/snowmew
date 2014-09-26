@@ -47,7 +47,7 @@ impl ModelInfoSSBOBuffer {
         let buffer = &mut [0];
 
         unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
+            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
         }
 
         gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer[0]);
@@ -59,7 +59,7 @@ impl ModelInfoSSBOBuffer {
         assert!(0 == gl::GetError());
 
         ModelInfoSSBOBuffer {
-            ptr_model_info: ptr::mut_null(),
+            ptr_model_info: ptr::null_mut(),
             model_info: buffer[0],
             size: cfg.max_size()
         }
@@ -76,7 +76,7 @@ impl ModelInfoSSBOBuffer {
     pub fn unmap(&mut self) {
         gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_info);
         gl::UnmapBuffer(gl::SHADER_STORAGE_BUFFER);
-        self.ptr_model_info = ptr::mut_null();
+        self.ptr_model_info = ptr::null_mut();
     }
 
     pub fn build(&mut self, db: &RenderData, scene: ObjectKey) {
@@ -119,8 +119,8 @@ impl ModelInfoTextureBuffer {
         let texture = &mut [0];
 
         unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
-            gl::GenTextures(texture.len() as i32, texture.unsafe_mut_ref(0));
+            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
+            gl::GenTextures(texture.len() as i32, texture.unsafe_mut(0));
         }
 
         gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[0]);
@@ -134,7 +134,7 @@ impl ModelInfoTextureBuffer {
         assert!(0 == gl::GetError());
 
         ModelInfoTextureBuffer {
-            ptr_model_info: ptr::mut_null(),
+            ptr_model_info: ptr::null_mut(),
             model_info: buffer[0],
             texture_model_info: texture[0],
             size: cfg.max_size()
@@ -152,7 +152,7 @@ impl ModelInfoTextureBuffer {
     pub fn unmap(&mut self) {
         gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
         gl::UnmapBuffer(gl::TEXTURE_BUFFER);
-        self.ptr_model_info = ptr::mut_null();
+        self.ptr_model_info = ptr::null_mut();
     }
 
     pub fn build(&mut self, db: &RenderData, scene: ObjectKey) {

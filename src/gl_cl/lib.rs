@@ -118,7 +118,7 @@ pub trait AcquireRelease {
 impl AcquireRelease for CommandQueue {
     fn acquire_gl_objects<T, E: EventList>(&self, mem: &[CLBuffer<T>], events: E) -> Event {
         let mem: Vec<cl_mem> = mem.iter().map(|m| m.id()).collect();
-        let mut event: cl_event = ptr::mut_null();
+        let mut event: cl_event = ptr::null_mut();
         let check = events.as_event_list(|evt, evt_len| {
             unsafe {
                 clEnqueueAcquireGLObjects(self.cqueue,
@@ -136,7 +136,7 @@ impl AcquireRelease for CommandQueue {
 
     fn release_gl_objects<T, E: EventList>(&self, mem: &[CLBuffer<T>], events: E) -> Event {
         let mem: Vec<cl_mem> = mem.iter().map(|m| m.id()).collect();
-        let mut event: cl_event = ptr::mut_null();
+        let mut event: cl_event = ptr::null_mut();
         let check = events.as_event_list(|evt, evt_len| {
             unsafe {
                 clEnqueueReleaseGLObjects(self.cqueue,

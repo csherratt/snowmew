@@ -55,10 +55,10 @@ impl<'r> MatrixManager for GLTextureMatrix<'r> {
         assert!(idx < self.x.len());
         unsafe {
             Matrix4 {
-                x: self.x.unsafe_ref(idx).clone(),
-                y: self.y.unsafe_ref(idx).clone(),
-                z: self.z.unsafe_ref(idx).clone(),
-                w: self.w.unsafe_ref(idx).clone(),
+                x: self.x.unsafe_get(idx).clone(),
+                y: self.y.unsafe_get(idx).clone(),
+                z: self.z.unsafe_get(idx).clone(),
+                w: self.w.unsafe_get(idx).clone(),
             }
         }
     }
@@ -76,7 +76,7 @@ impl<'r> MatrixManager for GLSSBOMatrix<'r> {
 
     fn get(&self, idx: uint) -> Matrix4<f32> {
         assert!(idx < self.mat.len());
-        unsafe { self.mat.unsafe_ref(idx).clone() }
+        unsafe { self.mat.unsafe_get(idx).clone() }
     }
 }
 
@@ -95,7 +95,7 @@ impl MatrixSSBOBuffer {
         let buffer = &mut [0];
 
         unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
+            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
       
             gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer[0]);
             gl::BufferData(gl::SHADER_STORAGE_BUFFER,
@@ -115,7 +115,7 @@ impl MatrixSSBOBuffer {
 
         MatrixSSBOBuffer {
             model_matrix: buffer[0],
-            ptr_model_matrix: ptr::mut_null(),
+            ptr_model_matrix: ptr::null_mut(),
             size: cfg.max_size(),
             cl: clpos,
             event: None,
@@ -145,7 +145,7 @@ impl MatrixSSBOBuffer {
                 gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_matrix);
                 gl::UnmapBuffer(gl::SHADER_STORAGE_BUFFER);
                 assert!(0 == gl::GetError());
-                self.ptr_model_matrix = ptr::mut_null();
+                self.ptr_model_matrix = ptr::null_mut();
             }
             (&Some((_, ref cq, ref buf)), Some(ref event)) => {
                 cq.release_gl_objects(buf.as_slice(), event).wait();
@@ -194,8 +194,8 @@ impl MatrixTextureBuffer {
         let texture = &mut [0, 0, 0, 0];
 
         unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut_ref(0));
-            gl::GenTextures(texture.len() as i32, texture.unsafe_mut_ref(0));
+            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
+            gl::GenTextures(texture.len() as i32, texture.unsafe_mut(0));
       
             for (b, t) in buffer.iter().zip(texture.iter()) {
                 gl::BindBuffer(gl::TEXTURE_BUFFER, *b);
@@ -223,7 +223,7 @@ impl MatrixTextureBuffer {
         MatrixTextureBuffer {
             model_matrix: [buffer[0], buffer[1], buffer[2], buffer[3]],
             texture_model_matrix: [texture[0], texture[1], texture[2], texture[3]],
-            ptr_model_matrix: [ptr::mut_null(), ptr::mut_null(), ptr::mut_null(), ptr::mut_null()],
+            ptr_model_matrix: [ptr::null_mut(), ptr::null_mut(), ptr::null_mut(), ptr::null_mut()],
             size: cfg.max_size(),
             cl: clpos,
             event: None,
@@ -257,7 +257,7 @@ impl MatrixTextureBuffer {
                     gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
                     gl::UnmapBuffer(gl::TEXTURE_BUFFER);
                     assert!(0 == gl::GetError());
-                    self.ptr_model_matrix[i] = ptr::mut_null();
+                    self.ptr_model_matrix[i] = ptr::null_mut();
                 }
             }
             (&Some((_, ref cq, ref buf)), Some(ref event)) => {

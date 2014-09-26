@@ -24,7 +24,6 @@ use cgmath::{EuclideanVector, Vector, Vector3, Vector4};
 use position::Positions;
 use graphics;
 use graphics::Graphics;
-use graphics::light::{Directional, Point};
 
 static POINT_LIGHT_MAX: uint = 480;
 static DIRECTIONAL_MAX: uint = 8;
@@ -59,7 +58,7 @@ impl LightsBuffer {
     pub fn new() -> LightsBuffer {
         let ub = &mut [0];
         unsafe {
-            gl::GenBuffers(1, ub.unsafe_mut_ref(0));
+            gl::GenBuffers(1, ub.unsafe_mut(0));
             gl::BindBuffer(gl::UNIFORM_BUFFER, ub[0]);
             gl::BufferData(gl::UNIFORM_BUFFER,
                            mem::size_of::<LightsStd140>() as i64,
@@ -70,7 +69,7 @@ impl LightsBuffer {
 
         LightsBuffer {
             buffer: ub[0],
-            ptr: ptr::mut_null()
+            ptr: ptr::null_mut()
         }
     }
 
@@ -85,13 +84,13 @@ impl LightsBuffer {
     }
 
     pub fn unmap(&mut self) {
-        self.ptr = ptr::mut_null();
+        self.ptr = ptr::null_mut();
         gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
         gl::UnmapBuffer(gl::UNIFORM_BUFFER);
         gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
     }
 
-    pub fn build<g: Graphics + Positions>(&mut self, graphics: &g) {
+    pub fn build<G: Graphics + Positions>(&mut self, graphics: &G) {
         let ptr: &mut LightsStd140 = unsafe { mem::transmute(self.ptr) };
         let base = Vector4::new(0f32, 0., 0., 1.);
         let mut point_light_count = 0u;

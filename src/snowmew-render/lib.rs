@@ -96,7 +96,6 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, ObjectKey)>,
                  config: Config,
                  cl: Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)>) {
 
-    let cat: uint = 0;
     window.make_context_current();
     let mut db = db::GlState::new();
 

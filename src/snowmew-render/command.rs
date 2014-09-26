@@ -84,7 +84,7 @@ impl CommandBufferIndirect {
     pub fn new(cfg: &Config) -> CommandBufferIndirect {
         let cb = &mut [0];
         unsafe {
-            gl::GenBuffers(1, cb.unsafe_mut_ref(0));
+            gl::GenBuffers(1, cb.unsafe_mut(0));
             gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, cb[0]);
             gl::BufferData(gl::DRAW_INDIRECT_BUFFER,
                            (mem::size_of::<DrawElementsIndirectCommand>() *
@@ -96,7 +96,7 @@ impl CommandBufferIndirect {
 
         CommandBufferIndirect {
             command: cb[0],
-            ptr: ptr::mut_null(),
+            ptr: ptr::null_mut(),
             size: cfg.max_size(),
             batches: Vec::new()
         }
@@ -114,7 +114,7 @@ impl CommandBufferIndirect {
     }
 
     pub fn unmap(&mut self) {
-        self.ptr = ptr::mut_null();
+        self.ptr = ptr::null_mut();
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command);
         gl::UnmapBuffer(gl::DRAW_INDIRECT_BUFFER);
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);

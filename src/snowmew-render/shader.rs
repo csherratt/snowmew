@@ -59,8 +59,8 @@ pub fn compile_shader(header: Option<&str>, src: &str, ty: gl::types::GLenum) ->
             let mut buf = Vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
             gl::GetShaderInfoLog(shader,
                                  len,
-                                 ptr::mut_null(),
-                                 mem::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
+                                 ptr::null_mut(),
+                                 mem::transmute(buf.as_mut_slice().unsafe_mut(0)));
             if status == gl::FALSE as i32 {
                 fail!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf.as_slice()));
             } else {
@@ -107,8 +107,8 @@ impl Shader {
                 let mut buf = Vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
                 gl::GetProgramInfoLog(program,
                                       len,
-                                      ptr::mut_null(),
-                                      mem::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
+                                      ptr::null_mut(),
+                                      mem::transmute(buf.as_mut_slice().unsafe_mut(0)));
                 fail!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
             }
         }
@@ -209,8 +209,8 @@ impl Shader {
                     let mut buf = Vec::from_elem(len as uint, 0u8);     // subtract 1 to skip the trailing null character
                     gl::GetProgramInfoLog(self.program,
                                           len,
-                                          ptr::mut_null(),
-                                          mem::transmute(buf.as_mut_slice().unsafe_mut_ref(0)));
+                                          ptr::null_mut(),
+                                          mem::transmute(buf.as_mut_slice().unsafe_mut(0)));
                     fail!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
                 }
             }

@@ -16,7 +16,6 @@ use std::mem;
 use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
 
-use cgmath::Vector4;
 use gl;
 
 use snowmew::ObjectKey;
@@ -74,7 +73,7 @@ impl MaterialBuffer {
         let ub = &mut [0];
 
         unsafe {
-            gl::GenBuffers(1, ub.unsafe_mut_ref(0));
+            gl::GenBuffers(1, ub.unsafe_mut(0));
             gl::BindBuffer(gl::UNIFORM_BUFFER, ub[0]);
             gl::BufferData(gl::UNIFORM_BUFFER,
                            (max * mem::size_of::<MaterialStd140>()) as i64,
@@ -86,7 +85,7 @@ impl MaterialBuffer {
         MaterialBuffer {
             buffer: ub[0],
             size: max,
-            ptr: ptr::mut_null(),
+            ptr: ptr::null_mut(),
         }
     }
 
@@ -100,7 +99,7 @@ impl MaterialBuffer {
     }
 
     pub fn unmap(&mut self) {
-        self.ptr = ptr::mut_null();
+        self.ptr = ptr::null_mut();
         gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
         gl::UnmapBuffer(gl::UNIFORM_BUFFER);
         gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
