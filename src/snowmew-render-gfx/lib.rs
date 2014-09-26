@@ -34,6 +34,7 @@ extern crate gfx;
 extern crate device;
 extern crate render;
 extern crate genmesh;
+extern crate cgmath;
 
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
@@ -59,6 +60,8 @@ use render_data::RenderData;
 
 use gfx::{Device, DeviceHelper};
 
+use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
+
 static VERTEX_SRC: gfx::ShaderSource = shaders! {
 GLSL_150: b"
     #version 150 core
@@ -68,12 +71,15 @@ GLSL_150: b"
 
     in vec3 position;
     in vec2 texture;
+    in vec3 normal;
 
     out vec2 o_texture;
+    out vec3 o_normal;
 
     void main() {
         gl_Position = proj_mat * view_mat * model_mat * vec4(position, 1.0);
         o_texture = texture;
+        o_normal = normalize((model_mat * vec4(normal, 0.)).xyz);
     }
 "
 };
@@ -85,16 +91,47 @@ GLSL_150: b"
     uniform int ka_use_texture;
     uniform sampler2D ka_texture;
 
+    uniform vec4 kd_color;
+    uniform int kd_use_texture;
+    uniform sampler2D kd_texture;
+
+    uniform vec4 ks_color;
+    uniform int ks_use_texture;
+    uniform sampler2D ks_texture;
+
+    uniform vec4 light_normal;
+    uniform vec4 light_color;
+
     in vec2 o_texture;
+    in vec3 o_normal;
 
     out vec4 o_Color;
 
     void main() {
+        vec4 normal = vec4(o_normal, 0.);
+        vec4 color;
+        vec4 ka, kd, ks;
         if (1 == ka_use_texture) {
-            o_Color = texture(ka_texture, o_texture);
+            ka = texture(ka_texture, o_texture);
         } else {
-            o_Color = ka_color;
+            ka = ka_color;
         }
+ 
+        if (1 == ks_use_texture) {
+            ks = texture(ks_texture, o_texture);
+        } else {
+            ks = ka_color;
+        }
+
+        if (1 == kd_use_texture) {
+            kd = texture(kd_texture, o_texture);
+        } else {
+            kd = ka_color;
+        }
+
+        color  = ka * 0.2;
+        color += kd * light_color * max(0, dot(light_normal, normal));
+        o_Color = color;
     }
 "
 };
@@ -104,9 +141,21 @@ struct Params {
     proj_mat: [[f32, ..4], ..4],
     view_mat: [[f32, ..4], ..4],
     model_mat: [[f32, ..4], ..4],
+
     ka_color: [f32, ..4],
     ka_use_texture: i32,
     ka_texture: gfx::shade::TextureParam,
+
+    kd_color: [f32, ..4],
+    kd_use_texture: i32,
+    kd_texture: gfx::shade::TextureParam,
+
+    ks_color: [f32, ..4],
+    ks_use_texture: i32,
+    ks_texture: gfx::shade::TextureParam,
+
+    light_normal: [f32, ..4],
+    light_color: [f32, ..4]
 }
 
 struct Mesh {
@@ -180,9 +229,21 @@ impl RenderManager {
                     [0.0, 0.0, 1.0, 0.0],
                     [0.0, 0.0, 0.0, 1.0],
                 ],
+
                 ka_use_texture: 0,
                 ka_color: [1., 1., 1., 1.],
-                ka_texture: (dummy_texture, Some(sampler))
+                ka_texture: (dummy_texture, Some(sampler)),
+
+                kd_use_texture: 0,
+                kd_color: [1., 1., 1., 1.],
+                kd_texture: (dummy_texture, Some(sampler)),
+
+                ks_use_texture: 0,
+                ks_color: [1., 1., 1., 1.],
+                ks_texture: (dummy_texture, Some(sampler)),
+
+                light_color: [1., 1., 1., 1.],
+                light_normal: [1., 0., 0., 0.]
             };
             (device.link_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone())
                   .ok().expect("Failed to link program"),
@@ -336,6 +397,20 @@ impl RenderManager {
 
         let batches = self.create_geometry_batches(db, scene);
 
+        for (key, light) in db.light_iter() {
+            match light {
+                &graphics::PointLight(p) => {}
+                &graphics::DirectionalLight(d) => {
+                    let n = d.normal();
+                    let n = Vector4::new(n.x, n.y, n.z, 0.);
+                    let n = db.position(*key).mul_v(&n).normalize();
+                    let color = d.color().mul_s(d.intensity());
+                    self.data.light_color = [color.x, color.y, color.z, 1.];
+                    self.data.light_normal = [n.x, n.y, n.z, n.w];
+                }
+            }
+        }
+
         for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
                                                join_maps(db.drawable_iter(),
                                                          db.location_iter())) {
@@ -359,6 +434,32 @@ impl RenderManager {
                 None => {
                     let [r, g, b] = mat.ka();
                     self.data.ka_color = [r, g, b, 1.];
+                    0
+                }
+            };
+
+            self.data.kd_use_texture = match mat.map_kd() {
+                Some(tid) => {
+                    let &texture = self.textures.find(&tid).expect("Texture not loaded");
+                    self.data.kd_texture = (texture, Some(self.sampler));
+                    1
+                }
+                None => {
+                    let [r, g, b] = mat.kd();
+                    self.data.kd_color = [r, g, b, 1.];
+                    0
+                }
+            };
+
+            self.data.ks_use_texture = match mat.map_ks() {
+                Some(tid) => {
+                    let &texture = self.textures.find(&tid).expect("Texture not loaded");
+                    self.data.ks_texture = (texture, Some(self.sampler));
+                    1
+                }
+                None => {
+                    let [r, g, b] = mat.ks();
+                    self.data.ks_color = [r, g, b, 1.];
                     0
                 }
             };
