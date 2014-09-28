@@ -60,11 +60,14 @@ use render_data::RenderData;
 
 use gfx::{Device, DeviceHelper};
 
-use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
+use cgmath::{Vector4, Vector, EuclideanVector, Matrix, Point3, Matrix4, Vector3};
 
 static VERTEX_SRC: gfx::ShaderSource = shaders! {
 GLSL_150: b"
     #version 150 core
+    uniform mat4 shadow_proj_mat;
+    uniform mat4 shadow_view_mat;
+    uniform mat4 shadow_bias_mat;
     uniform mat4 proj_mat;
     uniform mat4 view_mat;
     uniform mat4 model_mat;
@@ -75,11 +78,18 @@ GLSL_150: b"
 
     out vec2 o_texture;
     out vec3 o_normal;
+    out vec4 o_shadow_coord;
 
     void main() {
         gl_Position = proj_mat * view_mat * model_mat * vec4(position, 1.0);
         o_texture = texture;
         o_normal = normalize((model_mat * vec4(normal, 0.)).xyz);
+
+        o_shadow_coord = shadow_bias_mat *
+                         shadow_proj_mat *
+                         shadow_view_mat *
+                         model_mat *
+                         vec4(position, 1.0);
     }
 "
 };
@@ -101,14 +111,18 @@ GLSL_150: b"
 
     uniform vec4 light_normal;
     uniform vec4 light_color;
+    uniform sampler2DShadow shadow;
 
     in vec2 o_texture;
     in vec3 o_normal;
+    in vec4 o_shadow_coord;
 
     out vec4 o_Color;
 
     void main() {
         vec4 normal = vec4(o_normal, 0.);
+        vec3 shadow_coord = o_shadow_coord.xyz / o_shadow_coord.w;
+        shadow_coord.z -= 0.001;
         vec4 color;
         vec4 ka, kd, ks;
         if (1 == ka_use_texture) {
@@ -129,8 +143,26 @@ GLSL_150: b"
             kd = ka_color;
         }
 
-        color  = ka * 0.2;
-        color += kd * light_color * max(0, dot(light_normal, normal));
+        float shadow_sum = 0;
+        float x, y;
+
+        shadow_sum += texture(shadow, shadow_coord) * 0.25;
+
+        shadow_sum += textureOffset(shadow, shadow_coord, ivec2(1, 0)) * 0.125;
+        shadow_sum += textureOffset(shadow, shadow_coord, ivec2(-1, 0)) * 0.125;
+        shadow_sum += textureOffset(shadow, shadow_coord, ivec2(0, 1)) * 0.125;
+        shadow_sum += textureOffset(shadow, shadow_coord, ivec2(0, -1)) * 0.125;
+
+        shadow_sum += textureOffset(shadow, shadow_coord, ivec2(-1,-1)) * 0.0625;
+        shadow_sum += textureOffset(shadow, shadow_coord, ivec2(-1, 1)) * 0.0625;
+        shadow_sum += textureOffset(shadow, shadow_coord, ivec2( 1,-1)) * 0.0625;
+        shadow_sum += textureOffset(shadow, shadow_coord, ivec2( 1, 1)) * 0.0625;
+
+        color = ka * 0.2;
+        color += shadow_sum *
+                 kd *
+                 light_color *
+                 max(0, dot(light_normal, normal));
         o_Color = color;
     }
 "
@@ -138,6 +170,9 @@ GLSL_150: b"
 
 #[shader_param(MyProgram)]
 struct Params {
+    shadow_proj_mat: [[f32, ..4], ..4],
+    shadow_view_mat: [[f32, ..4], ..4],
+    shadow_bias_mat: [[f32, ..4], ..4],
     proj_mat: [[f32, ..4], ..4],
     view_mat: [[f32, ..4], ..4],
     model_mat: [[f32, ..4], ..4],
@@ -155,7 +190,38 @@ struct Params {
     ks_texture: gfx::shade::TextureParam,
 
     light_normal: [f32, ..4],
-    light_color: [f32, ..4]
+    light_color: [f32, ..4],
+    shadow: gfx::shade::TextureParam
+}
+
+static SHADOW_VERTEX_SRC: gfx::ShaderSource = shaders! {
+GLSL_150: b"
+    #version 150 core
+    uniform mat4 proj_mat;
+    uniform mat4 view_mat;
+    uniform mat4 model_mat;
+
+    in vec3 position;
+
+    void main() {
+        gl_Position = proj_mat * view_mat * model_mat * vec4(position, 1.0);
+    }
+"
+};
+
+static SHADOW_FRAGMENT_SRC: gfx::ShaderSource = shaders! {
+GLSL_150: b"
+    #version 150 core
+
+    void main() {}
+"
+};
+
+#[shader_param(ShadowProgram)]
+struct ShadowParams {
+    proj_mat: [[f32, ..4], ..4],
+    view_mat: [[f32, ..4], ..4],
+    model_mat: [[f32, ..4], ..4],
 }
 
 struct Mesh {
@@ -164,16 +230,23 @@ struct Mesh {
 }
 
 pub struct RenderManager {
+    prog: device::Handle<u32,device::shade::ProgramInfo>,
     data: Params,
+
+    shadow_data: ShadowParams,
+    shadow_prog: device::Handle<u32,device::shade::ProgramInfo>,
+    shadow_frame: render::target::Frame,
+    shadow: device::TextureHandle,
+    shadow_sampler: device::SamplerHandle,
+
     graphics: gfx::Graphics<device::gl_device::GlDevice,
                             device::gl_device::GlCommandBuffer>,
     frame: render::target::Frame,
     state: render::state::DrawState,
-    prog: device::Handle<u32,device::shade::ProgramInfo>,
     meshes: HashMap<ObjectKey, Mesh>,
     textures: HashMap<ObjectKey, device::TextureHandle>,
     sampler: device::SamplerHandle,
-    window: Window
+    window: Window,
 }
 
 impl RenderManager {
@@ -189,7 +262,7 @@ impl RenderManager {
 
         let sampler = device.create_sampler(
             gfx::tex::SamplerInfo::new(
-                    gfx::tex::Bilinear, gfx::tex::Tile
+                    gfx::tex::Anisotropic(16), gfx::tex::Tile
             )
         );
 
@@ -229,7 +302,24 @@ impl RenderManager {
                     [0.0, 0.0, 1.0, 0.0],
                     [0.0, 0.0, 0.0, 1.0],
                 ],
-
+                shadow_proj_mat: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                shadow_view_mat: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                shadow_bias_mat: [
+                    [0.5, 0.0, 0.0, 0.0],
+                    [0.0, 0.5, 0.0, 0.0],
+                    [0.0, 0.0, 0.5, 0.0],
+                    [0.5, 0.5, 0.5, 1.0],
+                ],
                 ka_use_texture: 0,
                 ka_color: [1., 1., 1., 1.],
                 ka_texture: (dummy_texture, Some(sampler)),
@@ -243,12 +333,71 @@ impl RenderManager {
                 ks_texture: (dummy_texture, Some(sampler)),
 
                 light_color: [1., 1., 1., 1.],
-                light_normal: [1., 0., 0., 0.]
+                light_normal: [1., 0., 0., 0.],
+                shadow: (dummy_texture, Some(sampler)),
             };
             (device.link_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone())
                   .ok().expect("Failed to link program"),
              data)
         };
+
+        let (shadow_prog, shadow_data) = {
+            let data = ShadowParams {
+                proj_mat: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                view_mat: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                model_mat: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+            };
+            (device.link_program(SHADOW_VERTEX_SRC.clone(),
+                                 SHADOW_FRAGMENT_SRC.clone())
+                  .ok().expect("Failed to link program"),
+             data)
+        };
+
+        let shadow_info = gfx::tex::TextureInfo {
+            width: 2048,
+            height: 2048,
+            depth: 1,
+            levels: 1,
+            kind: gfx::tex::Texture2D,
+            format: gfx::tex::DEPTH24STENCIL8,
+        };
+
+        let mut shadow_sampler = gfx::tex::SamplerInfo::new(
+            gfx::tex::Anisotropic(16), gfx::tex::Tile
+        );
+        shadow_sampler.comparison = gfx::tex::CompareRefToTexture(gfx::state::LessEqual);
+
+        let mut shadow_sampler = device.create_sampler(shadow_sampler);
+
+        let sinfo = shadow_info.to_image_info();
+        let shadow = device.create_texture(shadow_info)
+                           .ok().expect("Failed to create texture");
+        device.update_texture(&shadow,
+                              &sinfo,
+                              vec![0u8, 0, 0, 0].as_slice());
+
+        let mut shadow_frame = gfx::Frame::new(
+            shadow_info.width as u16,
+            shadow_info.height as u16
+        );
+
+        shadow_frame.depth = Some(render::target::PlaneTexture(shadow, 0, None));
+
 
         RenderManager {
             data: data,
@@ -259,7 +408,12 @@ impl RenderManager {
             meshes: HashMap::new(),
             textures: HashMap::new(),
             sampler: sampler,
-            window: window
+            window: window,
+            shadow_data: shadow_data,
+            shadow_prog: shadow_prog,
+            shadow: shadow,
+            shadow_frame: shadow_frame,
+            shadow_sampler: shadow_sampler
         }
     }
 
@@ -369,6 +523,104 @@ impl RenderManager {
         return batches;
     }
 
+
+    fn create_shadow_batches<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey) -> HashMap<u32, ShadowProgram> {
+        let mut batches: HashMap<u32, ShadowProgram> = HashMap::new();
+
+        for (_, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
+            if batches.contains_key(&draw.geometry) {
+                continue;
+            }
+
+            let geo = db.geometry(draw.geometry).expect("failed to find geometry");
+            let vb = self.meshes.find(&geo.vb).expect("Could not get vertex buffer");
+
+            let batch: ShadowProgram = self.graphics.make_batch(
+                &self.shadow_prog,
+                &vb.mesh,
+                gfx::IndexSlice32(gfx::TriangleList,
+                                  vb.index,
+                                  geo.offset as u32,
+                                  geo.count as u32),
+                &self.state
+            ).unwrap();
+
+            batches.insert(draw.geometry, batch);
+        }
+
+        return batches;
+    }
+
+
+    fn draw_shadow<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey) {
+        let batches = self.create_shadow_batches(db, scene);
+
+        let cdata = gfx::ClearData {
+            color: [0.3, 0.3, 0.3, 1.0],
+            depth: 2.0,
+            stencil: 0,
+        };
+        self.graphics.clear(cdata, gfx::Depth, &self.shadow_frame);
+
+        let proj = cgmath::ortho(-1f32, 1., -1., 1., -1., 1.);
+        self.shadow_data.proj_mat =
+            [[proj.x.x, proj.x.y, proj.x.z, proj.x.w],
+             [proj.y.x, proj.y.y, proj.y.z, proj.y.w],
+             [proj.z.x, proj.z.y, proj.z.z, proj.z.w],
+             [proj.w.x, proj.w.y, proj.w.z, proj.w.w]];
+
+        self.data.shadow_proj_mat =
+            [[proj.x.x, proj.x.y, proj.x.z, proj.x.w],
+             [proj.y.x, proj.y.y, proj.y.z, proj.y.w],
+             [proj.z.x, proj.z.y, proj.z.z, proj.z.w],
+             [proj.w.x, proj.w.y, proj.w.z, proj.w.w]];
+
+
+        let dir = self.data.light_normal;
+        let dir = Point3::new(dir[0], dir[1], dir[2]);
+
+        let view: Matrix4<f32> = cgmath::Matrix4::look_at(
+            &dir,
+            &Point3::new(0f32, 0., 0.),
+            &Vector3::new(0f32, 1., 0.)
+        );
+
+        self.shadow_data.view_mat =
+            [[view.x.x, view.x.y, view.x.z, view.x.w],
+             [view.y.x, view.y.y, view.y.z, view.y.w],
+             [view.z.x, view.z.y, view.z.z, view.z.w],
+             [view.w.x, view.w.y, view.w.z, view.w.w]];
+
+        self.data.shadow_view_mat =
+            [[view.x.x, view.x.y, view.x.z, view.x.w],
+             [view.y.x, view.y.y, view.y.z, view.y.w],
+             [view.z.x, view.z.y, view.z.z, view.z.w],
+             [view.w.x, view.w.y, view.w.z, view.w.w]];
+
+        for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
+                                               join_maps(db.drawable_iter(),
+                                                         db.location_iter())) {
+
+            let mat = db.material(draw.material).expect("Could not find material");
+            let model = db.position(*id);
+
+            self.shadow_data.model_mat =
+                [[model.x.x, model.x.y, model.x.z, model.x.w],
+                 [model.y.x, model.y.y, model.y.z, model.y.w],
+                 [model.z.x, model.z.y, model.z.z, model.z.w],
+                 [model.w.x, model.w.y, model.w.z, model.w.w]];
+
+            self.graphics.draw(
+                batches.find(&draw.geometry).expect("Missing draw"),
+                &self.shadow_data,
+                &self.shadow_frame
+            );
+        }
+
+        self.graphics.device.generate_mipmap(&self.shadow);
+
+    }
+
     fn draw<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, camera: ObjectKey) {
         let cdata = gfx::ClearData {
             color: [0.3, 0.3, 0.3, 1.0],
@@ -410,6 +662,8 @@ impl RenderManager {
                 }
             }
         }
+
+        self.draw_shadow(db, scene);
 
         for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
                                                join_maps(db.drawable_iter(),
@@ -463,6 +717,8 @@ impl RenderManager {
                     0
                 }
             };
+
+            self.data.shadow = (self.shadow, Some(self.shadow_sampler));
 
             self.graphics.draw(
                 batches.find(&draw.geometry).expect("Missing draw"),

@@ -103,7 +103,7 @@ fn main() {
         Point3::new(0f32, 0f32, 0f32)
     };
 
-    let sun = light::Directional::new(Vector3::new(0.5f32, 1., 0.5),
+    let sun = light::Directional::new(Vector3::new(0.05f32, 1., 0.05),
                                       Vector3::new(1f32, 1., 1.), 1.);
     db.new_light(scene, "sun", light::DirectionalLight(sun));
 
@@ -138,7 +138,10 @@ fn main() {
             if input_state.key_down(glfw::KeyS) {-0.01f32} else {0f32}
         );
 
-        let rot: Quaternion<f32> = Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
+        let rotx: Quaternion<f32> = Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
+        let roty: Quaternion<f32> = Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad());
+
+        let rot = rotx.mul_q(&roty);
 
         let camera = Camera::new(Decomposed{scale: 1f32,
                                             rot:   rot,
