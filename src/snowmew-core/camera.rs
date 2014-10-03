@@ -78,7 +78,7 @@ impl Camera {
         }
     }
 
-    pub fn move(&self, v: &Vector3<f32>) -> Point3<f32> {
+    pub fn move_with_vector(&self, v: &Vector3<f32>) -> Point3<f32> {
         let o = self.transform.mul_v(&Vector4::new(v.x, v.y, v.z, 1f32));
         Point3::new(o.x, o.y, o.z)
     }

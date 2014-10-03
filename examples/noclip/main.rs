@@ -146,7 +146,7 @@ fn main() {
         let camera = Camera::new(Decomposed{scale: 1f32,
                                             rot:   rot,
                                             disp:  pos.to_vec()}.to_matrix4());
-        pos = camera.move(&input_vec.mul_s(-1f32));
+        pos = camera.move_with_vector(&input_vec.mul_s(-1f32));
         let head_trans = Decomposed{scale: 1f32,
                                     rot:   rot,
                                     disp:  pos.to_vec()};
