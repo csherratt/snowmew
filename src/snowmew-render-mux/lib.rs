@@ -72,8 +72,8 @@ impl<'r, RD: RenderData+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for 
         };
 
         let rm: RenderMux<RD> = if use_gfx.is_some() && use_gfx.unwrap() {
-            let rf: Box<snowmew::RenderFactory<RD, gfx::RenderManager>> = box gfx::RenderFactory::new();
-            let render: Box<gfx::RenderManager> = box rf.init(io, window, size, cl);
+            let rf: Box<snowmew::RenderFactory<RD, gfx::RenderManager<RD>>> = box gfx::RenderFactory::new();
+            let render: Box<gfx::RenderManager<RD>> = box rf.init(io, window, size, cl);
             RenderMux {
                 render: render as Box<snowmew::Render<RD>>
             }

@@ -42,6 +42,7 @@ extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render-data" as render_data;
 
 use std::collections::hashmap::HashMap;
+use std::comm::{Receiver};
 
 use opencl::hl;
 use sync::Arc;
@@ -229,7 +230,7 @@ struct Mesh {
     index: device::BufferHandle<u32>
 }
 
-pub struct RenderManager {
+pub struct RenderManagerContext {
     prog: device::Handle<u32,device::shade::ProgramInfo>,
     data: Params,
 
@@ -249,12 +250,16 @@ pub struct RenderManager {
     window: Window,
 }
 
-impl RenderManager {
+pub struct RenderManager<R> {
+    channel: Sender<(R, ObjectKey, ObjectKey)>
+}
+
+impl RenderManagerContext {
 
     fn _new(mut device: gfx::GlDevice,
             window: Window,
             size: (i32, i32),
-            _: Option<Arc<hl::Device>>) -> RenderManager {
+            _: Option<Arc<hl::Device>>) -> RenderManagerContext {
 
         let (width, height) = size;
         let frame = gfx::Frame::new(width as u16, height as u16);
@@ -353,7 +358,7 @@ impl RenderManager {
         shadow_frame.depth = Some(render::target::PlaneTexture(shadow, 0, None));
 
 
-        RenderManager {
+        RenderManagerContext {
             data: data,
             graphics: gfx::Graphics::new(device),
             frame: frame,
@@ -649,28 +654,46 @@ impl RenderManager {
         let end = time::precise_time_s();
         println!("{0:4.3}ms", (end - start) * 1000.);
     }
-}
 
-
-impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
-    fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
+    fn update<RD: RenderData>(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
         self.load_meshes(&db);
         self.load_textures(&db);
         self.draw(&db, scene, camera);
     }
 }
 
-impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
+impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager<RD> {
+    fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
+        self.channel.send((db, scene, camera));
+    }
+}
+
+impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &snowmew::IOManager,
             window: Window,
             size: (i32, i32),
-            cl: Option<Arc<hl::Device>>) -> RenderManager {
+            cl: Option<Arc<hl::Device>>) -> RenderManager<RD> {
+
+        let (sender, recv) = channel();
 
         window.make_context_current();
-
         let device = gfx::GlDevice::new(|s| io.get_proc_address(s));
-        RenderManager::_new(device, window, size, cl)
+        glfw::make_context_current(None);
+
+        spawn(proc() {
+            let recv: Receiver<(RD, ObjectKey, ObjectKey)> = recv;
+            window.make_context_current();
+
+            let mut rc = RenderManagerContext::_new(device, window, size, cl);
+            for (db, scene, camera) in recv.iter() {
+                rc.update(db, scene, camera);
+            }
+
+        });
+
+        RenderManager { channel: sender }
+
     }
 }
 
