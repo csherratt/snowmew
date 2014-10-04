@@ -53,14 +53,14 @@ use snowmew::io::Window;
 
 use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
-use graphics::Drawable;
 
 use cow::join::{join_set_to_map, join_maps};
 use render_data::RenderData;
 
 use gfx::{Device, DeviceHelper};
 
-use cgmath::{Vector4, Vector, EuclideanVector, Matrix, Point3, Matrix4, Vector3};
+use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
+use cgmath::{FixedArray, Point3, Matrix4, Vector3};
 
 static VERTEX_SRC: gfx::ShaderSource = shaders! {
 GLSL_150: b"
@@ -276,45 +276,16 @@ impl RenderManager {
                 format: gfx::tex::RGBA8,
             };
 
-            let img_info = tinfo.to_image_info();
             let dummy_texture = device.create_texture(tinfo)
                                       .ok().expect("Failed to create texture");
-            device.update_texture(&dummy_texture,
-                                  &img_info,
-                                  vec![0u8, 0, 0, 0].as_slice());
 
             let matrix: Matrix4<f32> = Matrix4::identity();
             let data = Params {
-                proj_mat: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
-                view_mat: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
-                model_mat: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
-                shadow_proj_mat: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
-                shadow_view_mat: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
+                proj_mat: matrix.into_fixed(),
+                view_mat: matrix.into_fixed(),
+                model_mat: matrix.into_fixed(),
+                shadow_proj_mat: matrix.into_fixed(),
+                shadow_view_mat: matrix.into_fixed(),
                 shadow_bias_mat: [
                     [0.5, 0.0, 0.0, 0.0],
                     [0.0, 0.5, 0.0, 0.0],
@@ -343,25 +314,11 @@ impl RenderManager {
         };
 
         let (shadow_prog, shadow_data) = {
+            let matrix: Matrix4<f32> = Matrix4::identity();
             let data = ShadowParams {
-                proj_mat: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
-                view_mat: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
-                model_mat: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
+                proj_mat: matrix.into_fixed(),
+                view_mat: matrix.into_fixed(),
+                model_mat: matrix.into_fixed(),
             };
             (device.link_program(SHADOW_VERTEX_SRC.clone(),
                                  SHADOW_FRAGMENT_SRC.clone())
@@ -383,14 +340,10 @@ impl RenderManager {
         );
         shadow_sampler.comparison = gfx::tex::CompareRefToTexture(gfx::state::LessEqual);
 
-        let mut shadow_sampler = device.create_sampler(shadow_sampler);
+        let shadow_sampler = device.create_sampler(shadow_sampler);
 
-        let sinfo = shadow_info.to_image_info();
         let shadow = device.create_texture(shadow_info)
                            .ok().expect("Failed to create texture");
-        device.update_texture(&shadow,
-                              &sinfo,
-                              vec![0u8, 0, 0, 0].as_slice());
 
         let mut shadow_frame = gfx::Frame::new(
             shadow_info.width as u16,
@@ -491,7 +444,7 @@ impl RenderManager {
                 let img_info = tinfo.to_image_info();
                 let texture = self.graphics.device.create_texture(tinfo)
                                          .ok().expect("Failed to create texture");
-                self.graphics.device.update_texture(&texture, &img_info, text.data());
+                self.graphics.device.update_texture(&texture, &img_info, text.data()).unwrap();
                 self.textures.insert(*oid, texture);
             }
         }
@@ -564,18 +517,8 @@ impl RenderManager {
         self.graphics.clear(cdata, gfx::Depth, &self.shadow_frame);
 
         let proj = cgmath::ortho(-1f32, 1., -1., 1., -1., 1.);
-        self.shadow_data.proj_mat =
-            [[proj.x.x, proj.x.y, proj.x.z, proj.x.w],
-             [proj.y.x, proj.y.y, proj.y.z, proj.y.w],
-             [proj.z.x, proj.z.y, proj.z.z, proj.z.w],
-             [proj.w.x, proj.w.y, proj.w.z, proj.w.w]];
-
-        self.data.shadow_proj_mat =
-            [[proj.x.x, proj.x.y, proj.x.z, proj.x.w],
-             [proj.y.x, proj.y.y, proj.y.z, proj.y.w],
-             [proj.z.x, proj.z.y, proj.z.z, proj.z.w],
-             [proj.w.x, proj.w.y, proj.w.z, proj.w.w]];
-
+        self.shadow_data.proj_mat = proj.into_fixed();
+        self.data.shadow_proj_mat = proj.into_fixed();
 
         let dir = self.data.light_normal;
         let dir = Point3::new(dir[0], dir[1], dir[2]);
@@ -586,17 +529,8 @@ impl RenderManager {
             &Vector3::new(0f32, 1., 0.)
         );
 
-        self.shadow_data.view_mat =
-            [[view.x.x, view.x.y, view.x.z, view.x.w],
-             [view.y.x, view.y.y, view.y.z, view.y.w],
-             [view.z.x, view.z.y, view.z.z, view.z.w],
-             [view.w.x, view.w.y, view.w.z, view.w.w]];
-
-        self.data.shadow_view_mat =
-            [[view.x.x, view.x.y, view.x.z, view.x.w],
-             [view.y.x, view.y.y, view.y.z, view.y.w],
-             [view.z.x, view.z.y, view.z.z, view.z.w],
-             [view.w.x, view.w.y, view.w.z, view.w.w]];
+        self.shadow_data.view_mat = view.into_fixed();
+        self.data.shadow_view_mat = view.into_fixed();
 
         for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
                                                join_maps(db.drawable_iter(),
@@ -605,12 +539,7 @@ impl RenderManager {
             let mat = db.material(draw.material).expect("Could not find material");
             let model = db.position(*id);
 
-            self.shadow_data.model_mat =
-                [[model.x.x, model.x.y, model.x.z, model.x.w],
-                 [model.y.x, model.y.y, model.y.z, model.y.w],
-                 [model.z.x, model.z.y, model.z.z, model.z.w],
-                 [model.w.x, model.w.y, model.w.z, model.w.w]];
-
+            self.shadow_data.model_mat = model.into_fixed();
             self.graphics.draw(
                 batches.find(&draw.geometry).expect("Missing draw"),
                 &self.shadow_data,
@@ -635,18 +564,10 @@ impl RenderManager {
         let camera = snowmew::camera::Camera::new(camera_trans);
 
         let proj = camera.projection_matrix(16. / 9.);
-        self.data.proj_mat =
-            [[proj.x.x, proj.x.y, proj.x.z, proj.x.w],
-             [proj.y.x, proj.y.y, proj.y.z, proj.y.w],
-             [proj.z.x, proj.z.y, proj.z.z, proj.z.w],
-             [proj.w.x, proj.w.y, proj.w.z, proj.w.w]];
-
         let view = camera.view_matrix();
-        self.data.view_mat =
-            [[view.x.x, view.x.y, view.x.z, view.x.w],
-             [view.y.x, view.y.y, view.y.z, view.y.w],
-             [view.z.x, view.z.y, view.z.z, view.z.w],
-             [view.w.x, view.w.y, view.w.z, view.w.w]];
+
+        self.data.view_mat = view.into_fixed();
+        self.data.proj_mat = proj.into_fixed();
 
         let batches = self.create_geometry_batches(db, scene);
 
@@ -673,12 +594,7 @@ impl RenderManager {
             let mat = db.material(draw.material).expect("Could not find material");
             let model = db.position(*id);
 
-            self.data.model_mat =
-                [[model.x.x, model.x.y, model.x.z, model.x.w],
-                 [model.y.x, model.y.y, model.y.z, model.y.w],
-                 [model.z.x, model.z.y, model.z.z, model.z.w],
-                 [model.w.x, model.w.y, model.w.z, model.w.w]];
-
+            self.data.model_mat = model.into_fixed();
 
             self.data.ka_use_texture = match mat.map_ka() {
                 Some(tid) => {
@@ -753,7 +669,7 @@ impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFa
 
         window.make_context_current();
 
-        let mut device = gfx::GlDevice::new(|s| io.get_proc_address(s));
+        let device = gfx::GlDevice::new(|s| io.get_proc_address(s));
         RenderManager::_new(device, window, size, cl)
     }
 }
