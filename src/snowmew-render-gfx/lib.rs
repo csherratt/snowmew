@@ -686,10 +686,25 @@ impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
             window.make_context_current();
 
             let mut rc = RenderManagerContext::_new(device, window, size, cl);
-            for (db, scene, camera) in recv.iter() {
+            loop {
+                // wait for a copy of the game
+                let (mut db, mut scene, mut camera) = recv.recv();
+
+                loop {
+                    match recv.try_recv() {
+                        Ok((_db, _scene, _camera)) => {
+                            db = _db;
+                            scene = _scene;
+                            camera = _camera
+                        }
+                        // no newer copy
+                        Err(std::comm::Empty) => break,
+                        Err(std::comm::Disconnected) => return,
+                    }
+                }
                 rc.update(db, scene, camera);
             }
-
+            
         });
 
         RenderManager { channel: sender }
