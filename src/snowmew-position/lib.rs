@@ -34,7 +34,7 @@ use cgmath::{Matrix4, ToMatrix4, Matrix};
 
 use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
 use opencl::mem::CLBuffer;
-use opencl::CL::{CL_MEM_READ_ONLY};
+use opencl::cl::{CL_MEM_READ_ONLY};
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 

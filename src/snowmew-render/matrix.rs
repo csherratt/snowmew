@@ -20,7 +20,7 @@ use sync::Arc;
 
 use opencl::hl::{CommandQueue, Context, Device, Event, EventList};
 use opencl::mem::{Buffer, CLBuffer};
-use opencl::CL::CL_MEM_READ_WRITE;
+use opencl::cl::CL_MEM_READ_WRITE;
 use cgmath::Matrix4;
 use cgmath::Vector4;
 use gl;

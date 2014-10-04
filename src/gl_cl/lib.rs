@@ -23,8 +23,8 @@ extern crate libc;
 
 use std::ptr;
 
-use opencl::CL::{cl_mem, cl_mem_flags, cl_context, cl_int, cl_uint, cl_event};
-use opencl::CL::{cl_command_queue};
+use opencl::cl::{cl_mem, cl_mem_flags, cl_context, cl_int, cl_uint, cl_event};
+use opencl::cl::{cl_command_queue};
 use opencl::hl::{Context, Device, EventList, Event, CommandQueue};
 use opencl::hl::create_context_with_properties;
 use opencl::mem::{CLBuffer, Buffer};

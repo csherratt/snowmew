@@ -283,6 +283,7 @@ impl RenderManager {
                                   &img_info,
                                   vec![0u8, 0, 0, 0].as_slice());
 
+            let matrix: Matrix4<f32> = Matrix4::identity();
             let data = Params {
                 proj_mat: [
                     [1.0, 0.0, 0.0, 0.0],
