@@ -51,6 +51,7 @@ use position::Positions;
 use graphics::Graphics;
 use snowmew::common::ObjectKey;
 use snowmew::io::Window;
+use snowmew::camera::Camera;
 
 use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
@@ -61,7 +62,7 @@ use render_data::RenderData;
 use gfx::{Device, DeviceHelper};
 
 use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
-use cgmath::{FixedArray, Point3, Matrix4, Vector3};
+use cgmath::{FixedArray, Matrix4, Vector3, Point};
 
 static VERTEX_SRC: gfx::ShaderSource = shaders! {
 GLSL_150: b"
@@ -332,8 +333,8 @@ impl RenderManagerContext {
         };
 
         let shadow_info = gfx::tex::TextureInfo {
-            width: 2048,
-            height: 2048,
+            width: 4096,
+            height: 4096,
             depth: 1,
             levels: 1,
             kind: gfx::tex::Texture2D,
@@ -511,7 +512,7 @@ impl RenderManagerContext {
     }
 
 
-    fn draw_shadow<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey) {
+    fn draw_shadow<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, cam: &Camera) {
         let batches = self.create_shadow_batches(db, scene);
 
         let cdata = gfx::ClearData {
@@ -521,16 +522,23 @@ impl RenderManagerContext {
         };
         self.graphics.clear(cdata, gfx::Depth, &self.shadow_frame);
 
-        let proj = cgmath::ortho(-1f32, 1., -1., 1., -1., 1.);
+        let pos = cam.move_with_vector(&Vector3::new(0f32, 15., 0.));
+        let proj = cgmath::ortho(
+            -25.,  // + pos.x,
+             25.,  // + pos.x,
+            -25.,  // + pos.y,
+             25.,  // + pos.y,
+            -500., // + pos.z,
+             500., // + pos.z
+        );
         self.shadow_data.proj_mat = proj.into_fixed();
         self.data.shadow_proj_mat = proj.into_fixed();
 
         let dir = self.data.light_normal;
-        let dir = Point3::new(dir[0], dir[1], dir[2]);
 
         let view: Matrix4<f32> = cgmath::Matrix4::look_at(
-            &dir,
-            &Point3::new(0f32, 0., 0.),
+            &pos.add_v(&Vector3::new(dir[0], dir[1], dir[2])),
+            &pos,
             &Vector3::new(0f32, 1., 0.)
         );
 
@@ -566,7 +574,7 @@ impl RenderManagerContext {
         self.graphics.clear(cdata, gfx::Color | gfx::Depth, &self.frame);
 
         let camera_trans = db.position(camera);
-        let camera = snowmew::camera::Camera::new(camera_trans);
+        let camera = Camera::new(camera_trans);
 
         let proj = camera.projection_matrix(16. / 9.);
         let view = camera.view_matrix();
@@ -590,7 +598,7 @@ impl RenderManagerContext {
             }
         }
 
-        self.draw_shadow(db, scene);
+        self.draw_shadow(db, scene, &camera);
 
         for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
                                                join_maps(db.drawable_iter(),

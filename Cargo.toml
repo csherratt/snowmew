@@ -45,3 +45,11 @@ path = "examples/gears/main.rs"
 [[example]]
 name = "noclip"
 path = "examples/noclip/main.rs"
+
+[profile.dev]
+opt-level = 1
+debug = true
+
+[profile.test]
+opt-level = 1
+debug = true
