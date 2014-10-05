@@ -18,6 +18,7 @@
 #![comment = "A graphics collection for snowmew"]
 #![feature(phase)]
 #![feature(macro_rules)]
+#![feature(tuple_indexing)]
 
 #[phase(plugin)]
 extern crate gfx_macros;
@@ -26,11 +27,13 @@ extern crate cow;
 extern crate cgmath;
 extern crate collision;
 extern crate genmesh;
+extern crate serialize;
 extern crate "stb_image" as image;
 
 extern crate "snowmew-core" as snowmew;
 
 use std::slice;
+use serialize::{Encodable, Decodable};
 
 use cgmath::Point3;
 use collision::sphere::Sphere;
@@ -57,7 +60,7 @@ pub mod texture;
 pub mod texture_atlas;
 pub mod light;
 
-#[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show)]
+#[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, Encodable, Decodable)]
 pub struct Drawable {
     pub geometry: ObjectKey,
     pub material: ObjectKey
@@ -74,7 +77,7 @@ impl Ord for Drawable {
     }
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct GraphicsData {
     draw:               BTreeMap<ObjectKey, Drawable>,
     geometry:           BTreeMap<ObjectKey, Geometry>,

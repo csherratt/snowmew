@@ -12,13 +12,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use graphics::default::load_default;
 use render_data::RenderData;
+use serialize::{Encodable, Decodable};
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct GameData {
     common: CommonData,
     position: PositionData,

@@ -18,7 +18,7 @@ use snowmew::common::ObjectKey;
 
 use Texture;
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct Atlas {
     width: uint,
     height: uint,

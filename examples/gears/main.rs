@@ -28,6 +28,7 @@ extern crate native;
 extern crate green;
 extern crate opencl;
 extern crate sync;
+extern crate serialize;
 extern crate "snowmew-render-data" as render_data;
 
 use cgmath::*;
@@ -35,10 +36,12 @@ use cgmath::*;
 use position::Positions;
 use graphics::{Graphics};
 use graphics::light;
+use std::io::File;
 
 use render::RenderFactory;
 use loader::Obj;
 use snowmew::common::Common;
+use serialize::json;
 
 use gamedata::GameData;
 

@@ -28,6 +28,7 @@ extern crate cgmath;
 extern crate cow;
 extern crate sync;
 extern crate native;
+extern crate serialize;
 
 extern crate gl;
 extern crate green;

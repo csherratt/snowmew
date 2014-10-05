@@ -24,8 +24,10 @@ extern crate cgmath;
 extern crate opencl;
 extern crate cow;
 extern crate time;
+extern crate serialize;
 
 use std::default::Default;
+use serialize::{Encodable, Decodable};
 
 use cgmath::{Transform, Decomposed};
 use cgmath::Quaternion;
@@ -42,6 +44,7 @@ use snowmew::common::{ObjectKey, Common, Duplicate};
 
 static opencl_program: &'static str = include_str!("position.c");
 
+#[deriving(Encodable, Decodable)]
 pub struct Delta {
     delta : Decomposed<f32, Vector3<f32>, Quaternion<f32>>,
     parent: u32,
@@ -77,13 +80,13 @@ impl<'r> MatrixManager for &'r mut [Matrix4<f32>] {
     fn get(&self, idx: uint) -> Matrix4<f32> { self[idx] }
 }
 
-#[deriving(Clone, Default)]
+#[deriving(Clone, Default, Encodable, Decodable)]
 pub struct Deltas {
     gen: Vec<(u32, u32)>,
     delta: BTreeMap<u32, BTreeMap<u32, Delta>>,
 }
 
-#[deriving(Clone, Default, Eq, PartialOrd, PartialEq, Ord, Show)]
+#[deriving(Clone, Default, Eq, PartialOrd, PartialEq, Ord, Show, Encodable, Decodable)]
 pub struct Id(u32, u32);
 
 impl Deltas {
@@ -415,7 +418,7 @@ impl CalcPositionsCl {
     }
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct PositionData {
     location: BTreeMap<ObjectKey, Id>,
     position: Deltas

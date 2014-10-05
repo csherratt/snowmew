@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 use cow::btree::{BTreeMap, BTreeMapIterator, BTreeSet, BTreeSetIterator};
+use serialize::Encodable;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -22,7 +23,7 @@ pub struct FrameInfo {
 }
 
 
-#[deriving(Clone, Default)]
+#[deriving(Clone, Default, Encodable, Decodable)]
 pub struct Object {
     pub parent: ObjectKey,
     pub name: ObjectKey,
@@ -31,7 +32,7 @@ pub struct Object {
 pub type ObjectKey = u32;
 pub type StringKey = u32;
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct CommonData {
     last_sid:       StringKey,
     strings:        BTreeMap<StringKey, String>,

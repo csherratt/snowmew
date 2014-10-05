@@ -14,9 +14,10 @@
 
 use std::default::Default;
 use cgmath::Vector3;
+use serialize::{Encodable, Decodable};
 
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct Point {
     color: Vector3<f32>,
     intensity: f32
@@ -37,7 +38,7 @@ impl Point {
     pub fn intensity(&self) -> f32 {self.intensity.clone()}
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct Directional {
     normal: Vector3<f32>,
     color: Vector3<f32>,
@@ -61,7 +62,7 @@ impl Directional {
     pub fn intensity(&self) -> f32 {self.intensity.clone()}
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub enum Light {
     DirectionalLight(Directional),
     PointLight(Point)

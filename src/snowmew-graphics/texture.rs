@@ -14,7 +14,7 @@
 
 use std::default;
 
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct Texture {
     width: uint,
     height: uint,
