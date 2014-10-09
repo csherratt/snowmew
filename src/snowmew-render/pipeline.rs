@@ -163,7 +163,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
     }
 
     fn draw_target(&self) -> DrawTarget {
-        static draw_buffers: &'static [u32] = &[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
+        static DRAW_BUFFERS: &'static [u32] = &[gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1,
                                                 gl::COLOR_ATTACHMENT2, gl::COLOR_ATTACHMENT3];
         DrawTarget {
             framebuffer: self.framebuffer,
@@ -171,7 +171,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             y: 0,
             width: self.width,
             height: self.height,
-            draw_buffers: draw_buffers
+            draw_buffers: DRAW_BUFFERS
         }
     }
 
@@ -382,8 +382,8 @@ impl<PIPELINE: PipelineState> Swap<PIPELINE> {
 
 impl<PIPELINE: PipelineState> Pipeline for Swap<PIPELINE> {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, camera: &Camera, q: &mut Profiler) {
-        static draw_buffers: &'static [u32] = &[gl::BACK_LEFT];
-        let dt = DrawTarget::new(0, (0, 0), (self.width, self.height), draw_buffers);
+        static DRAW_BUFFERS: &'static [u32] = &[gl::BACK_LEFT];
+        let dt = DrawTarget::new(0, (0, 0), (self.width, self.height), DRAW_BUFFERS);
         let dm = camera.get_matrices((self.width as i32, self.height as i32));
 
         q.time("cull data".to_string());
@@ -492,7 +492,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
     }
 
     fn get_draw_target(&self, which: EyeType) -> DrawTarget {
-        static draw_buffers: &'static [u32] = &[gl::COLOR_ATTACHMENT0];
+        static DRAW_BUFFERS: &'static [u32] = &[gl::COLOR_ATTACHMENT0];
 
         DrawTarget {
             framebuffer: *self.framebuffers.eye(which),
@@ -500,7 +500,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
             y: 0,
             width: self.size.eye(which).x,
             height: self.size.eye(which).y,
-            draw_buffers: draw_buffers
+            draw_buffers: DRAW_BUFFERS
         }
     }
 

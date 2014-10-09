@@ -17,9 +17,9 @@ use std::default::Default;
 use snowmew::common::ObjectKey;
 use serialize::{Encodable, Decodable, Encoder, Decoder};
 
-struct f32v3([f32, ..3]);
+struct F32v3([f32, ..3]);
 
-impl <E, S: Encoder<E>> Encodable<S, E> for f32v3 {
+impl <E, S: Encoder<E>> Encodable<S, E> for F32v3 {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         s.emit_seq(3, |s| {
             try!(s.emit_seq_elt(0, |s| self.0[0].encode(s)));
@@ -30,20 +30,20 @@ impl <E, S: Encoder<E>> Encodable<S, E> for f32v3 {
     }
 }
 
-impl <E, D: Decoder<E>> Decodable<D, E> for f32v3 {
-    fn decode(d: &mut D) -> Result<f32v3, E> {
+impl <E, D: Decoder<E>> Decodable<D, E> for F32v3 {
+    fn decode(d: &mut D) -> Result<F32v3, E> {
         d.read_seq(|d, _| {
             let a = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
             let b = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
             let c = try!(d.read_seq_elt(2, |d| Decodable::decode(d)));
-            Ok(f32v3([a, b, c]))
+            Ok(F32v3([a, b, c]))
         })
     }
 }
 
-struct f32v2([f32, ..2]);
+struct F32v2([f32, ..2]);
 
-impl <E, S: Encoder<E>> Encodable<S, E> for f32v2 {
+impl <E, S: Encoder<E>> Encodable<S, E> for F32v2 {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         s.emit_seq(2, |s| {
             try!(s.emit_seq_elt(0, |s| self.0[0].encode(s)));
@@ -53,12 +53,12 @@ impl <E, S: Encoder<E>> Encodable<S, E> for f32v2 {
     }
 }
 
-impl <E, D: Decoder<E>> Decodable<D, E> for f32v2 {
-    fn decode(d: &mut D) -> Result<f32v2, E> {
+impl <E, D: Decoder<E>> Decodable<D, E> for F32v2 {
+    fn decode(d: &mut D) -> Result<F32v2, E> {
         d.read_seq(|d, _| {
             let a = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
             let b = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
-            Ok(f32v2([a, b]))
+            Ok(F32v2([a, b]))
         })
     }
 }
@@ -79,13 +79,13 @@ pub struct VertexGeo {
 
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeo {
     fn encode(&self, s: &mut S) -> Result<(), E> {
-        f32v3(self.position).encode(s)
+        F32v3(self.position).encode(s)
     }
 }
 
 impl <E, D: Decoder<E>> Decodable<D, E> for VertexGeo {
     fn decode(d: &mut D) -> Result<VertexGeo, E> {
-        let pos: f32v3 = try!(Decodable::decode(d));
+        let pos: F32v3 = try!(Decodable::decode(d));
         Ok(VertexGeo { position: pos.0 })
     }
 }
@@ -113,8 +113,8 @@ pub struct VertexGeoNorm {
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoNorm {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         s.emit_seq(2, |s| {
-            try!(s.emit_seq_elt(0, |s| f32v3(self.position).encode(s)));
-            try!(s.emit_seq_elt(1, |s| f32v3(self.normal).encode(s)));
+            try!(s.emit_seq_elt(0, |s| F32v3(self.position).encode(s)));
+            try!(s.emit_seq_elt(1, |s| F32v3(self.normal).encode(s)));
             Ok(())
         })
     }
@@ -123,8 +123,8 @@ impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoNorm {
 impl <E, D: Decoder<E>> Decodable<D, E> for VertexGeoNorm {
     fn decode(d: &mut D) -> Result<VertexGeoNorm, E> {
         d.read_seq(|d, _| {
-            let a: f32v3 = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
-            let b: f32v3 = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
+            let a: F32v3 = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
+            let b: F32v3 = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
             Ok(VertexGeoNorm {
                 position: a.0,
                 normal: b.0
@@ -158,8 +158,8 @@ pub struct VertexGeoTex {
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTex {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         s.emit_seq(2, |s| {
-            try!(s.emit_seq_elt(0, |s| f32v3(self.position).encode(s)));
-            try!(s.emit_seq_elt(1, |s| f32v2(self.texture).encode(s)));
+            try!(s.emit_seq_elt(0, |s| F32v3(self.position).encode(s)));
+            try!(s.emit_seq_elt(1, |s| F32v2(self.texture).encode(s)));
             Ok(())
         })
     }
@@ -168,8 +168,8 @@ impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTex {
 impl <E, D: Decoder<E>> Decodable<D, E> for VertexGeoTex {
     fn decode(d: &mut D) -> Result<VertexGeoTex, E> {
         d.read_seq(|d, _| {
-            let a: f32v3 = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
-            let b: f32v2 = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
+            let a: F32v3 = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
+            let b: F32v2 = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
             Ok(VertexGeoTex {
                 position: a.0,
                 texture: b.0
@@ -205,9 +205,9 @@ pub struct VertexGeoTexNorm {
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTexNorm {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         s.emit_seq(3, |s| {
-            try!(s.emit_seq_elt(0, |s| f32v3(self.position).encode(s)));
-            try!(s.emit_seq_elt(1, |s| f32v2(self.texture).encode(s)));
-            try!(s.emit_seq_elt(2, |s| f32v3(self.normal).encode(s)));
+            try!(s.emit_seq_elt(0, |s| F32v3(self.position).encode(s)));
+            try!(s.emit_seq_elt(1, |s| F32v2(self.texture).encode(s)));
+            try!(s.emit_seq_elt(2, |s| F32v3(self.normal).encode(s)));
             Ok(())
         })
     }
@@ -216,9 +216,9 @@ impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTexNorm {
 impl <E, D: Decoder<E>> Decodable<D, E> for VertexGeoTexNorm {
     fn decode(d: &mut D) -> Result<VertexGeoTexNorm, E> {
         d.read_seq(|d, _| {
-            let a: f32v3 = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
-            let b: f32v2 = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
-            let c: f32v3 = try!(d.read_seq_elt(2, |d| Decodable::decode(d)));
+            let a: F32v3 = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
+            let b: F32v2 = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
+            let c: F32v3 = try!(d.read_seq_elt(2, |d| Decodable::decode(d)));
             Ok(VertexGeoTexNorm {
                 position: a.0,
                 texture: b.0,
@@ -258,10 +258,10 @@ pub struct VertexGeoTexNormTan {
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTexNormTan {
     fn encode(&self, s: &mut S) -> Result<(), E> {
         s.emit_seq(4, |s| {
-            try!(s.emit_seq_elt(0, |s| f32v3(self.position).encode(s)));
-            try!(s.emit_seq_elt(1, |s| f32v2(self.texture).encode(s)));
-            try!(s.emit_seq_elt(2, |s| f32v3(self.normal).encode(s)));
-            try!(s.emit_seq_elt(3, |s| f32v3(self.tangent).encode(s)));
+            try!(s.emit_seq_elt(0, |s| F32v3(self.position).encode(s)));
+            try!(s.emit_seq_elt(1, |s| F32v2(self.texture).encode(s)));
+            try!(s.emit_seq_elt(2, |s| F32v3(self.normal).encode(s)));
+            try!(s.emit_seq_elt(3, |s| F32v3(self.tangent).encode(s)));
             Ok(())
         })
     }
@@ -270,10 +270,10 @@ impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTexNormTan {
 impl <E, D: Decoder<E>> Decodable<D, E> for VertexGeoTexNormTan {
     fn decode(d: &mut D) -> Result<VertexGeoTexNormTan, E> {
         d.read_seq(|d, _| {
-            let a: f32v3 = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
-            let b: f32v2 = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
-            let c: f32v3 = try!(d.read_seq_elt(2, |d| Decodable::decode(d)));
-            let d: f32v3 = try!(d.read_seq_elt(3, |d| Decodable::decode(d)));
+            let a: F32v3 = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
+            let b: F32v2 = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
+            let c: F32v3 = try!(d.read_seq_elt(2, |d| Decodable::decode(d)));
+            let d: F32v3 = try!(d.read_seq_elt(3, |d| Decodable::decode(d)));
             Ok(VertexGeoTexNormTan {
                 position: a.0,
                 texture: b.0,

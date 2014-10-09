@@ -33,7 +33,7 @@ extern crate "stb_image" as image;
 extern crate "snowmew-core" as snowmew;
 
 use std::slice;
-use serialize::{Encodable, Decodable};
+use serialize::Encodable;
 
 use cgmath::Point3;
 use collision::sphere::Sphere;
@@ -228,7 +228,7 @@ pub trait Graphics: Common {
     fn new_texture(&mut self, parent: ObjectKey, name: &str, texture: Texture) -> ObjectKey {
         let oid = self.new_object(Some(parent), name);
         let mut found = None;
-        for (idx, atlas) in self.get_graphics_mut().atlases.mut_iter().enumerate() {
+        for (idx, atlas) in self.get_graphics_mut().atlases.iter_mut().enumerate() {
             if atlas.check_texture(&texture) {
                 found = Some((idx, atlas.add_texture(oid, &texture)));
                 break;

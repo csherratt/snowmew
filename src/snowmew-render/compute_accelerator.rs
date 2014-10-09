@@ -25,7 +25,7 @@ use shader::compile_shader;
 
 use time::precise_time_ns;
 
-static position_shader: &'static str = "
+static POSITION_SHADER: &'static str = "
 #version 430
 
 struct transform {
@@ -110,7 +110,7 @@ pub struct PositionGlAccelerator {
 impl PositionGlAccelerator {
     pub fn new() -> PositionGlAccelerator {
         let program = gl::CreateProgram();
-        let shader = compile_shader(None, position_shader, gl::COMPUTE_SHADER);
+        let shader = compile_shader(None, POSITION_SHADER, gl::COMPUTE_SHADER);
         gl::AttachShader(program, shader);
         gl::LinkProgram(program);
 

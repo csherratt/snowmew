@@ -27,7 +27,7 @@ extern crate time;
 extern crate serialize;
 
 use std::default::Default;
-use serialize::{Encodable, Decodable};
+use serialize::Encodable;
 
 use cgmath::{Transform, Decomposed};
 use cgmath::Quaternion;
@@ -42,7 +42,7 @@ use cow::btree::{BTreeMap, BTreeMapIterator};
 
 use snowmew::common::{ObjectKey, Common, Duplicate};
 
-static opencl_program: &'static str = include_str!("position.c");
+static OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
 #[deriving(Encodable, Decodable)]
 pub struct Delta {
@@ -121,7 +121,7 @@ impl Deltas {
             0
         } else {
             // increment the starting index of each generation before ours
-            for t in self.gen.mut_slice_from((gen+1) as uint).mut_iter() {
+            for t in self.gen.slice_from_mut((gen+1) as uint).iter_mut() {
                 let (off, len) = *t;
                 *t = (off+1, len);
             }
@@ -168,7 +168,7 @@ impl Deltas {
     pub fn get<'a>(&'a self, id: Id) -> Option<&'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
         let Id(gen, id) = id;
         let mut out = None;
-        let delta = self.delta.find(&gen).map(|delta| {
+        self.delta.find(&gen).map(|delta| {
             delta.find(&id).map(|x| {
                 out = Some(&x.delta);
             })
@@ -179,7 +179,7 @@ impl Deltas {
     pub fn get_mut<'a>(&'a mut self, id: Id) -> Option<&'a mut Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
         let Id(gen, id) = id;
         let mut out = None;
-        let delta = self.delta.find_mut(&gen).map(|delta| {
+        self.delta.find_mut(&gen).map(|delta| {
             delta.find_mut(&id).map(|x| {
                 out = Some(&mut x.delta);
             })
@@ -386,7 +386,7 @@ pub struct CalcPositionsCl {
 
 impl CalcPositionsCl {
     pub fn new(ctx: &Context, device: &Device) -> CalcPositionsCl {
-        let program = ctx.create_program_from_source(opencl_program);
+        let program = ctx.create_program_from_source(OPENCL_PROGRAM);
     
         match program.build(device) {
             Ok(_) => (),

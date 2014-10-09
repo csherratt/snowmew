@@ -18,7 +18,7 @@ use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use graphics::default::load_default;
 use render_data::RenderData;
-use serialize::{Encodable, Decodable};
+use serialize::Encodable;
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct GameData {

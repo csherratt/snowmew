@@ -18,8 +18,7 @@ use Graphics;
 
 use genmesh::generators::{Plane, Cube, SphereUV};
 use genmesh::{MapToVertices, Indexer, LruIndexer};
-use genmesh::{Vertices, Triangulate, Quad, Triangle};
-use genmesh::{Polygon, PolyTri, PolyQuad};
+use genmesh::{Vertices, Triangulate, Quad, Polygon};
 use cgmath::{Vector3, EuclideanVector};
 
 use std::num::pow;
@@ -47,7 +46,7 @@ fn build_vectors<T: Iterator<Quad<VertexGeoTexNorm>>>(input: T)
     -> (Vec<VertexGeoTexNorm>, Vec<u32>) {
 
     let mut mesh_data: Vec<VertexGeoTexNorm> = Vec::new();
-    let mut index: Vec<u32> = {
+    let index: Vec<u32> = {
         let mut indexer = LruIndexer::new(16, |_, v| mesh_data.push(v));
         input.map(|mut p| {
             let a = Vector3::new(p.x.position[0],
@@ -87,7 +86,7 @@ fn build_vectors_poly<T: Iterator<Polygon<(f32, f32, f32)>>>(input: T)
     -> (Vec<VertexGeoTexNorm>, Vec<u32>) {
 
     let mut mesh_data: Vec<VertexGeoTexNorm> = Vec::new();
-    let mut index: Vec<u32> = {
+    let index: Vec<u32> = {
         let mut indexer = LruIndexer::new(16, |_, v| mesh_data.push(v));
         input
         .vertex(|(x, y, z)| {

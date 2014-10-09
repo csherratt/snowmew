@@ -14,7 +14,7 @@
 
 use std::default::Default;
 use cgmath::Vector3;
-use serialize::{Encodable, Decodable};
+use serialize::Encodable;
 
 
 #[deriving(Clone, Encodable, Decodable)]

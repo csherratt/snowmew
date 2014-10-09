@@ -22,7 +22,6 @@ use glfw::{CloseEvent, FocusEvent, FullScreen};
 use glfw::{Windowed, RenderContext};
 use glfw;
 use gl;
-use device;
 
 use std::collections::HashSet;
 use collections::TrieMap;
@@ -295,7 +294,7 @@ impl IOManager {
         };
 
         window.make_current();
-        gl::load_with(|name| self.glfw.get_proc_address(name));
+        gl::load_with(|name| self.glfw.get_proc_address_raw(name));
         self.glfw.set_swap_interval(0);
         glfw::make_context_current(None);
 
@@ -327,7 +326,7 @@ impl IOManager {
             None => None,
             Some((mut window, events)) => {
                 window.make_current();
-                gl::load_with(|name| self.glfw.get_proc_address(name));
+                gl::load_with(|name| self.glfw.get_proc_address_raw(name));
                 self.glfw.set_swap_interval(0);
                 glfw::make_context_current(None);
 
@@ -438,7 +437,7 @@ impl IOManager {
             };
 
             window.make_current();
-            gl::load_with(|name| self.glfw.get_proc_address(name));
+            gl::load_with(|name| self.glfw.get_proc_address_raw(name));
             self.glfw.set_swap_interval(1);
             glfw::make_context_current(None);
 
@@ -466,7 +465,7 @@ impl IOManager {
     }
 
     fn update(&mut self) {
-        for (_, win) in self.windows.mut_iter() {
+        for (_, win) in self.windows.iter_mut() {
             for (time, event) in glfw::flush_messages(&win.receiver) {
                 win.state.event(Some(time), event);
             }
@@ -512,7 +511,7 @@ impl IOManager {
     }
 
     pub fn get_proc_address(&self, name: &str) -> *const ::libc::c_void {
-        self.glfw.get_proc_address(name)
+        self.glfw.get_proc_address_raw(name)
     }
 }
 

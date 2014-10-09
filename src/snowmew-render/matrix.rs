@@ -45,10 +45,10 @@ struct GLTextureMatrix<'r> {
 impl<'r> MatrixManager for GLTextureMatrix<'r> {
     fn set(&mut self, idx: uint, mat: Matrix4<f32>) {
         assert!(idx < self.x.len());
-        unsafe { self.x.unsafe_set(idx, mat.x); }
-        unsafe { self.y.unsafe_set(idx, mat.y); }
-        unsafe { self.z.unsafe_set(idx, mat.z); }
-        unsafe { self.w.unsafe_set(idx, mat.w); }
+        unsafe { *self.x.as_mut_ptr().offset(idx as int) = mat.x; }
+        unsafe { *self.y.as_mut_ptr().offset(idx as int) = mat.y; }
+        unsafe { *self.z.as_mut_ptr().offset(idx as int) = mat.z; }
+        unsafe { *self.w.as_mut_ptr().offset(idx as int) = mat.w; }
     }
 
     fn get(&self, idx: uint) -> Matrix4<f32> {
@@ -71,7 +71,7 @@ struct GLSSBOMatrix<'r> {
 impl<'r> MatrixManager for GLSSBOMatrix<'r> {
     fn set(&mut self, idx: uint, mat: Matrix4<f32>) {
         assert!(idx < self.mat.len());
-        unsafe { self.mat.unsafe_set(idx, mat); }
+        unsafe { *self.mat.as_mut_ptr().offset(idx as int) = mat; }
     }
 
     fn get(&self, idx: uint) -> Matrix4<f32> {
