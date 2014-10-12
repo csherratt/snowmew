@@ -42,7 +42,7 @@ use cow::btree::{BTreeMap, BTreeMapIterator};
 
 use snowmew::common::{ObjectKey, Common, Duplicate};
 
-static OPENCL_PROGRAM: &'static str = include_str!("position.c");
+const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
 #[deriving(Encodable, Decodable)]
 pub struct Delta {

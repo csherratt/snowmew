@@ -64,7 +64,7 @@ use gfx::{Device, DeviceHelper};
 use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
 use cgmath::{FixedArray, Matrix4, Vector3, Point};
 
-static VERTEX_SRC: gfx::ShaderSource = shaders! {
+const VERTEX_SRC: gfx::ShaderSource = shaders! {
 GLSL_150: b"
     #version 150 core
     uniform mat4 shadow_proj_mat;
@@ -96,7 +96,7 @@ GLSL_150: b"
 "
 };
 
-static FRAGMENT_SRC: gfx::ShaderSource = shaders! {
+const FRAGMENT_SRC: gfx::ShaderSource = shaders! {
 GLSL_150: b"
     #version 150 core
     uniform vec4 ka_color;

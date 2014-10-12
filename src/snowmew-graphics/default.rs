@@ -23,7 +23,7 @@ use cgmath::{Vector3, EuclideanVector};
 
 use std::num::pow;
 
-static WEB_COLORS: [(&'static str, [f32, ..3]), ..16] = [
+const WEB_COLORS: [(&'static str, [f32, ..3]), ..16] = [
     ("white",   [1., 1., 1.]),
     ("silver",  [0.75, 0.75, 0.75]),
     ("gray",    [0.5, 0.5, 0.5]),

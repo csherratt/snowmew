@@ -20,12 +20,12 @@ use std::mem;
 use gl;
 use gl::types::GLuint;
 
-pub static MATRIX_PROJECTION: i32 = 0;
-pub static MATRIX_MODEL: i32 = 1;
+pub const MATRIX_PROJECTION: i32 = 0;
+pub const MATRIX_MODEL: i32 = 1;
 
-pub static ATTR_POISTION: i32 = 0;
-pub static ATTR_TEXTURE: i32 = 1;
-pub static ATTR_NORMAL: i32 = 2;
+pub const ATTR_POISTION: i32 = 0;
+pub const ATTR_TEXTURE: i32 = 1;
+pub const ATTR_NORMAL: i32 = 2;
 
 pub fn compile_shader(header: Option<&str>, src: &str, ty: gl::types::GLenum) -> GLuint {
     let shader = gl::CreateShader(ty);

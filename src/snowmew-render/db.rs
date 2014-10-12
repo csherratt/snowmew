@@ -24,14 +24,14 @@ use texture::TextureAtlas;
 
 use Config;
 
-static VERTEX_PASS: &'static str = include_str!("shaders/pass_vertex.glsl");
-static GEO_PASS_VERTEX: &'static str = include_str!("shaders/geometry_pass_vertex.glsl");
-static GEO_PASS_FRAG: &'static str = include_str!("shaders/geometry_pass_fragment.glsl");
-static DEFERED_POINT_LIGHT: &'static str = include_str!("shaders/defered_point_light_fragment.glsl");
-static CULL_SHADER: &'static str = include_str!("shaders/compute_cull.glsl");
+const VERTEX_PASS: &'static str = include_str!("shaders/pass_vertex.glsl");
+const GEO_PASS_VERTEX: &'static str = include_str!("shaders/geometry_pass_vertex.glsl");
+const GEO_PASS_FRAG: &'static str = include_str!("shaders/geometry_pass_fragment.glsl");
+const DEFERED_POINT_LIGHT: &'static str = include_str!("shaders/defered_point_light_fragment.glsl");
+const CULL_SHADER: &'static str = include_str!("shaders/compute_cull.glsl");
 
-static HEADER_410: &'static str = "#version 410\n";
-static HEADER_430: &'static str = "#version 430\n#define USE_SSBO 1\n";
+const HEADER_410: &'static str = "#version 410\n";
+const HEADER_430: &'static str = "#version 430\n#define USE_SSBO 1\n";
 
 #[deriving(Clone)]
 pub struct GlState {

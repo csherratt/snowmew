@@ -25,7 +25,7 @@ use shader::compile_shader;
 
 use time::precise_time_ns;
 
-static POSITION_SHADER: &'static str = "
+const POSITION_SHADER: &'static str = "
 #version 430
 
 struct transform {

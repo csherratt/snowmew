@@ -33,10 +33,10 @@ use ovr;
 pub type WindowId = uint;
 
 #[cfg(target_os="macos")]
-static OS_GL_MINOR_MAX: u32 = 1;
+const OS_GL_MINOR_MAX: u32 = 1;
 
 #[cfg(target_os="linux")]
-static OS_GL_MINOR_MAX: u32 = 4;
+const OS_GL_MINOR_MAX: u32 = 4;
 
 #[deriving(Clone)]
 struct InputHistory {

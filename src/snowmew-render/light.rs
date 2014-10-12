@@ -25,8 +25,8 @@ use position::Positions;
 use graphics;
 use graphics::Graphics;
 
-static POINT_LIGHT_MAX: uint = 480;
-static DIRECTIONAL_MAX: uint = 8;
+const POINT_LIGHT_MAX: uint = 480;
+const DIRECTIONAL_MAX: uint = 8;
 
 #[repr(packed)]
 struct PointLight {

@@ -34,11 +34,11 @@ type CGLContextObj = libc::intptr_t;
 type CGLShareGroupObj = libc::intptr_t;
 
 #[cfg(target_os = "macos")]
-static CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE: libc::intptr_t = 0x10000000;
+const CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE: libc::intptr_t = 0x10000000;
 
 #[cfg(target_os = "linux")]
-static CL_GL_CONTEXT_KHR: libc::intptr_t = 0x2008;
-static CL_GLX_CONTEXT_KHR: libc::intptr_t = 0x200A;
+const CL_GL_CONTEXT_KHR: libc::intptr_t = 0x2008;
+const CL_GLX_CONTEXT_KHR: libc::intptr_t = 0x200A;
 
 extern {
     #[cfg(target_os = "macos")]
