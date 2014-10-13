@@ -257,7 +257,7 @@ fn from_glfw_key(key: glfw::Key) -> Button {
     };
 }
 
-fn from_glfw_mouse_button(key: glfw::MouseButton) -> Button {
+pub fn from_glfw_mouse_button(key: glfw::MouseButton) -> Button {
     return match key {
         glfw::MouseButton1 => MouseLeft,
         glfw::MouseButton2 => MouseRight,
@@ -273,6 +273,21 @@ fn from_glfw_mouse_button(key: glfw::MouseButton) -> Button {
 pub enum Event {
     ButtonDown(Button),
     ButtonUp(Button),
-    Move(f32, f32),
-    Cadance
+    Move(f64, f64),
+    Cadance(uint, f64)
+}
+
+impl Event {
+    pub fn from_glfw(evt: glfw::WindowEvent) -> Option<Event> {
+        match evt {
+            glfw::MouseButtonEvent(button, glfw::Press, _) => {
+                Some(ButtonDown(from_glfw_mouse_button(button)))
+            }
+            glfw::MouseButtonEvent(button, glfw::Release, _) => {
+                Some(ButtonUp(from_glfw_mouse_button(button)))
+            }
+            glfw::CursorPosEvent(x, y) => Some(Move(x, y)),
+            _ => None
+        }
+    }
 }

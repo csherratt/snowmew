@@ -67,7 +67,7 @@ use pipeline::Pipeline;
 use drawlist::{Drawlist, create_drawlist};
 use query::{ProfilerDummy, TimeQueryManager, Profiler};
 
-use render_data::RenderData;
+use render_data::Renderable;
 
 mod db;
 mod shader;
@@ -85,7 +85,7 @@ mod matrix;
 mod command;
 
 enum RenderCommand {
-    Update(Box<RenderData+Send>, ObjectKey, ObjectKey),
+    Update(Box<Renderable+Send>),
     Finish
 }
 
@@ -202,11 +202,9 @@ fn render_server(command: Receiver<RenderCommand>,
 
     let mut drawlists_ready = Vec::new();
 
-    let (mut db, mut scene, mut camera) = match command.recv() {
-        Update(rd, s, c) => (rd, s, c),
-        Finish => {
-            return;
-        }
+    let mut db = match command.recv() {
+        Update(db) => db,
+        Finish => return
     };
 
     let select = std::comm::Select::new();
@@ -227,25 +225,22 @@ fn render_server(command: Receiver<RenderCommand>,
             drawlists_ready.push(dl);
         } else if id == receiver_drawlist_render_handle.id() {
             let dl = receiver_drawlist_render_handle.recv();
+            let camera = dl.camera().expect("no camera found");
             send_drawlist_setup.send((dl, camera));
         } else if id == command_handle.id() {
             let command = command_handle.recv();
             match command {
-                Update(rd, s, c) => {
-                    scene = s;
-                    camera = c;
-                    db = rd;
-                }
+                Update(rd) => db = rd,
                 Finish => {
                     break 'finished;
                 }
             }
         }
 
-        if drawlists_ready.len() > 0 && scene != 0 {
+        if drawlists_ready.len() > 0 {
             let dl = drawlists_ready.pop().unwrap();
+            let scene = db.scene().expect("no scene set");
             dl.setup_compute(&mut *db, &mut taskpool, scene);
-            scene = 0;           
         }
     }
 }
@@ -300,8 +295,8 @@ impl RenderManager {
         RenderManager::_new(window, size, None)
     }
 
-    pub fn update(&mut self, db: Box<RenderData+Send>, scene: ObjectKey, camera: ObjectKey) {
-        self.ch.send(Update(db, scene, camera));
+    pub fn update(&mut self, db: Box<Renderable+Send>) {
+        self.ch.send(Update(db));
     }
 }
 
@@ -312,13 +307,13 @@ impl Drop for RenderManager {
     }
 }
 
-impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager {
-    fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
-        self.ch.send(Update(box db, scene, camera));
+impl<RD: Renderable+Send> snowmew::Render<RD> for RenderManager {
+    fn update(&mut self, db: RD) {
+        self.ch.send(Update(box db));
     }
 }
 
-impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
+impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
     fn init(self: Box<RenderFactory>, _: &snowmew::IOManager, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
         RenderManager::_new(window, size, cl)
     }

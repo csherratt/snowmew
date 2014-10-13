@@ -19,7 +19,46 @@
 #![allow(dead_code)]
 
 
+extern crate "snowmew-core" as core;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 
-pub trait RenderData: graphics::Graphics + position::Positions {}
+#[deriving(Clone)]
+pub struct RenderData {
+    camera: Option<core::ObjectKey>,
+    scene: Option<core::ObjectKey>
+}
+
+impl RenderData {
+    pub fn new() -> RenderData {
+        RenderData {
+            camera: None,
+            scene: None
+        }
+    }
+}
+
+pub trait Renderable: graphics::Graphics + position::Positions {
+    fn get_render_data(&self) -> &RenderData;
+    fn get_render_data_mut(&mut self) -> &mut RenderData;
+
+    /// set the camera for the render
+    fn set_camera(&mut self, camera: core::ObjectKey) {
+        self.get_render_data_mut().camera = Some(camera);
+    }
+
+    /// set the scene to be rendered
+    fn set_scene(&mut self, scene: core::ObjectKey) {
+        self.get_render_data_mut().scene = Some(scene);
+    }
+
+    /// get the camera for rendering
+    fn camera(&self) -> Option<core::ObjectKey> {
+        self.get_render_data().camera
+    }
+
+    /// get the scene for rendering
+    fn scene(&self) -> Option<core::ObjectKey> {
+        self.get_render_data().scene
+    }
+}

@@ -16,7 +16,7 @@ use std::sync::TaskPool;
 use sync::Arc;
 use time::precise_time_s;
 use libc::c_void;
-use render_data::RenderData;
+use render_data::{Renderable, RenderData};
 
 use opencl::hl::{CommandQueue, Context, Device};
 use opencl::mem::Buffer;
@@ -37,7 +37,7 @@ use model::{ModelInfoTextureBuffer, ModelInfoSSBOBuffer};
 use matrix::{MatrixSSBOBuffer, MatrixTextureBuffer};
 use command::{CommandBufferIndirect, CommandBufferEmulated};
 
-pub trait Drawlist: RenderData {
+pub trait Drawlist: Renderable {
     // This is done on the OpenGL thread, this will map and setup
     // any OpenGL objects that are required for setup to start/
     fn setup_begin(&mut self);
@@ -46,7 +46,7 @@ pub trait Drawlist: RenderData {
     // data from the scene graph into the any mapped buffers. This can also
     // spawn multiple workers. One of the threads must send the drawlist
     // back to the server
-    fn setup_compute(self: Box<Self>, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey);
+    fn setup_compute(self: Box<Self>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey);
 
     // setup on the OpenGL thread, this will unmap and sync anything that
     // is needed to be done
@@ -79,8 +79,10 @@ impl Positions for DrawlistSSBOCompute {
     fn get_position<'a>(&'a self) -> &'a PositionData { &self.data.position }
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.data.position }
 }
-
-impl RenderData for DrawlistSSBOCompute {}
+impl Renderable for DrawlistSSBOCompute {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.data.render }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.data.render } 
+}
 
 impl Common for DrawlistNoSSBO {
     fn get_common<'a>(&'a self) -> &'a CommonData { &self.data.common }
@@ -97,13 +99,17 @@ impl Positions for DrawlistNoSSBO {
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.data.position }
 }
 
-impl RenderData for DrawlistNoSSBO {}
+impl Renderable for DrawlistNoSSBO {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.data.render }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.data.render } 
+}
 
 #[deriving(Clone)]
 struct DrawlistGraphicsData {
     common: CommonData,
     graphics: GraphicsData,
-    position: PositionData,    
+    position: PositionData,
+    render: RenderData
 }
 
 impl Common for DrawlistGraphicsData {
@@ -121,7 +127,10 @@ impl Positions for DrawlistGraphicsData {
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.position }
 }
 
-impl RenderData for DrawlistGraphicsData {}
+impl Renderable for DrawlistGraphicsData {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render } 
+}
 
 pub struct DrawlistNoSSBO {
     data: DrawlistGraphicsData,
@@ -145,7 +154,8 @@ impl DrawlistNoSSBO {
             data: DrawlistGraphicsData {
                 common: CommonData::new(),
                 graphics: GraphicsData::new(),
-                position: PositionData::new()
+                position: PositionData::new(),
+                render: RenderData::new()
             },
             size: cfg.max_size(),
             materials: MaterialBuffer::new(512),
@@ -168,7 +178,7 @@ impl Drawlist for DrawlistNoSSBO {
         self.command.map();
     }
 
-    fn setup_compute(self: Box<DrawlistNoSSBO>, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
+    fn setup_compute(self: Box<DrawlistNoSSBO>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
         let s = *self;
         let DrawlistNoSSBO {
             data: _,
@@ -185,7 +195,8 @@ impl Drawlist for DrawlistNoSSBO {
         let data = DrawlistGraphicsData {
             common: db.get_common().clone(),
             graphics: db.get_graphics().clone(),
-            position: db.get_position().clone()
+            position: db.get_position().clone(),
+            render: db.get_render_data().clone()
         };
 
         let start = precise_time_s();
@@ -356,7 +367,8 @@ impl DrawlistSSBOCompute {
             data: DrawlistGraphicsData {
                 common: CommonData::new(),
                 graphics: GraphicsData::new(),
-                position: PositionData::new()
+                position: PositionData::new(),
+                render: RenderData::new()
             },
             size: cfg.max_size(),
             materials: MaterialBuffer::new(512),
@@ -380,7 +392,7 @@ impl Drawlist for DrawlistSSBOCompute {
         self.command.map();
     }
 
-    fn setup_compute(self: Box<DrawlistSSBOCompute>, db: &RenderData, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
+    fn setup_compute(self: Box<DrawlistSSBOCompute>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
         let s = *self;
         let DrawlistSSBOCompute {
             data: _,
@@ -398,7 +410,8 @@ impl Drawlist for DrawlistSSBOCompute {
         let data = DrawlistGraphicsData {
             common: db.get_common().clone(),
             graphics: db.get_graphics().clone(),
-            position: db.get_position().clone()
+            position: db.get_position().clone(),
+            render: db.get_render_data().clone()
         };
 
         let start = precise_time_s();

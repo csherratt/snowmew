@@ -17,7 +17,7 @@ use graphics::{Graphics};
 use snowmew::common::{Common};
 use snowmew::common::ObjectKey;
 
-use render_data::RenderData;
+use render_data::Renderable;
 use vertex_buffer::VertexBuffer;
 use shader::Shader;
 use texture::TextureAtlas;
@@ -60,7 +60,7 @@ impl GlState {
         }
     }
 
-    fn load_textures(&mut self, db: &RenderData, _: &Config) {
+    fn load_textures(&mut self, db: &Renderable, _: &Config) {
         for (atlas_idx, atlas) in db.texture_atlas_iter().enumerate() {
             for (oid, idx) in atlas.texture_iter() {
                 let texture = db.get_texture(*oid)
@@ -70,7 +70,7 @@ impl GlState {
         }
     }
 
-    fn load_vertex(&mut self, db: &RenderData, _: &Config) {
+    fn load_vertex(&mut self, db: &Renderable, _: &Config) {
         let mut vertex = self.vertex.clone();
 
         for (oid, vbo) in db.vertex_buffer_iter() {
@@ -86,7 +86,7 @@ impl GlState {
         self.vertex = vertex; 
     }
 
-    fn load_shaders(&mut self, _: &RenderData, cfg: &Config) {
+    fn load_shaders(&mut self, _: &Renderable, cfg: &Config) {
         if self.defered_shader_point_light.is_none() {
             self.defered_shader_point_light = Some(Shader::new(VERTEX_PASS, DEFERED_POINT_LIGHT,
                 &[],
@@ -115,7 +115,7 @@ impl GlState {
         }
     }
 
-    pub fn load(&mut self, db: &RenderData, cfg: &Config) {
+    pub fn load(&mut self, db: &Renderable, cfg: &Config) {
         self.load_shaders(db, cfg);
         self.load_vertex(db, cfg);
         self.load_textures(db, cfg);

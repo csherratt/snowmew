@@ -30,7 +30,7 @@ use gl_cl::AcquireRelease;
 
 use position::{CalcPositionsCl, MatrixManager};
 use position::Positions;
-use render_data::RenderData;
+use render_data::Renderable;
 
 
 use Config;
@@ -154,7 +154,7 @@ impl MatrixSSBOBuffer {
         }
     }
 
-    pub fn build<RD: RenderData>(&mut self, db: &RD) {
+    pub fn build<RD: Renderable>(&mut self, db: &RD) {
         self.event = unsafe {
             match self.cl {
                 None => {
@@ -267,7 +267,7 @@ impl MatrixTextureBuffer {
         }
     }
 
-    pub fn build<RD: RenderData>(&mut self, db: &RD) {
+    pub fn build<RD: Renderable>(&mut self, db: &RD) {
         self.event = unsafe {
             match self.cl {
                 None => {

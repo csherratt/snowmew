@@ -21,6 +21,7 @@
 #![feature(globs)]
 #![allow(experimental)]
 #![feature(macro_rules)]
+#![feature(if_let)] 
 
 extern crate time;
 extern crate glfw;
@@ -136,26 +137,24 @@ impl DisplayConfig {
 }
 
 pub trait Render<T> {
-    fn update(&mut self, db: T, scene: ObjectKey, camera: ObjectKey);
+    fn update(&mut self, db: T);
 }
 
 pub trait RenderFactory<T, R: Render<T>> {
     fn init(self: Box<Self>, im: &IOManager, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
 }
 
-pub struct SnowmewConfig<Game, R> {
+pub struct SnowmewConfig<R> {
     pub display: DisplayConfig,
     pub use_opencl: bool,
     pub cadance_ms: i64,
-    pub render: Option<Box<R>>,
-    pub game: Game
+    pub render: Option<Box<R>>
 }
 
 impl<GameData: Clone,
      R: Render<GameData>,
-     RF: RenderFactory<GameData, R>,
-     Game: game::Game<input::Event, GameData>> SnowmewConfig<Game, RF> {
-    pub fn new(game: Game) -> SnowmewConfig<Game, R> {
+     RF: RenderFactory<GameData, R>> SnowmewConfig<RF> {
+    pub fn new() -> SnowmewConfig<RF> {
         SnowmewConfig {
             display: DisplayConfig {
                 resolution: None,
@@ -165,13 +164,11 @@ impl<GameData: Clone,
             },
             use_opencl: true,
             cadance_ms: 8,
-            render: None,
-            game: game
+            render: None
         }
     }
 
-    pub fn start(self, gd: GameData, game: |GameData, &io::InputState, &io::InputState| -> (GameData, ObjectKey, ObjectKey)) {
-        let mut gd = gd;
+    pub fn start<Game: game::Game<GameData, input::Event>>(self, mut game: Game, mut gd: GameData) {
         let mut im = io::IOManager::new(setup_glfw());
 
         // create display
@@ -187,16 +184,26 @@ impl<GameData: Clone,
 
         let mut timer = Timer::new().unwrap();
         let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms));
+        let mut candance_scale = 1. / self.cadance_ms as f64;
 
-        let mut input_last = im.get(&ih);
-        while !input_last.should_close() {
+        let mut frame = 0;
+        while !im.should_close(&ih) {
             timer_port.recv();
             im.poll();
-            let input = im.get(&ih);
-            let (new_gd, scene, camera) = game(gd, &input, &input_last);
-            render.update(new_gd.clone(), scene, camera);
-            gd = new_gd;
-            input_last = input;
+            loop {
+                if let Some(evt) = im.next_event(&ih) {
+                    gd = game.step(evt, gd);
+                } else {
+                    break;
+                }
+            }
+
+            gd = game.step(input::Cadance(frame, frame as f64 * candance_scale), gd);
+            frame += 1;
+
+            //let (new_gd, scene, camera) = game(gd, &input, &input_last);
+            //render.update(new_gd.clone(), scene, camera);
+            frame += 1;
         }
     }
 }
