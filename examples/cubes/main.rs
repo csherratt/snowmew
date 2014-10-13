@@ -32,11 +32,14 @@ use std::from_str::FromStr;
 
 use cgmath::*;
 
+use snowmew::input;
+use snowmew::game::Game;
 use snowmew::camera::Camera;
 use position::Positions;
 use graphics::Graphics;
 use graphics::light;
 
+use render_data::Renderable;
 use render::RenderFactory;
 use snowmew::common::Common;
 
@@ -51,7 +54,6 @@ fn start(argc: int, argv: *const *const u8) -> int {
 
 fn main() {
     let mut sc = snowmew::SnowmewConfig::new();
-    sc.render = Some(box RenderFactory::new());
 
     let mut gd = GameData::new();
     let scene = gd.new_scene("scene");
@@ -87,10 +89,15 @@ fn main() {
                                       Vector3::new(1f32, 1., 1.), 0.25);
     gd.new_light(scene, "sun", light::DirectionalLight(sun));
 
-    let camera_loc = gd.new_object(None, "camera");
-    gd.set_to_identity(camera_loc);
+    let camera = gd.new_object(None, "camera");
+    gd.set_to_identity(camera);
 
-    sc.start(gd, |gd, current_input, last_input| {
+    gd.set_scene(scene);
+    gd.set_camera(camera);
+
+    sc.start(box RenderFactory::new(), Cubes, gd);
+
+    /*sc.start(gd, |gd, current_input, last_input| {
         let mut gd = gd;
         match current_input.is_focused() {
             true => {
@@ -134,5 +141,28 @@ fn main() {
         gd.update_location(camera_loc, head_trans);
 
         (gd, scene, camera_loc)
-    });
+    });*/
+}
+
+struct Cubes;
+
+impl Game<GameData, input::Event> for Cubes {
+    fn step(&mut self, event: input::Event, gd: GameData) -> GameData {
+        let mut next = gd.clone();
+        let gears_dir = next.find("scene/gears").unwrap();
+
+        match event {
+            input::Cadance(_, time) => {
+                for (idx, (_, logo)) in gd.walk_dir(gears_dir).enumerate() {
+                    let t = time as f32 * 10.;
+                    let this_gear_rot = if idx % 2 == 0 { t } else { 5.625 - t };
+                    next.set_rotation(logo, Rotation3::from_euler(deg(0f32).to_rad(),
+                                                                  deg(this_gear_rot).to_rad(),
+                                                                  deg(90f32).to_rad()));
+                }
+            }
+            _ => ()
+        }
+        gd
+    }
 }

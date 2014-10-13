@@ -110,6 +110,11 @@ impl GraphicsData {
     }
 }
 
+impl<'b, C: Graphics> Graphics for &'b DerefMut<C> + 'b {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.get_graphics() }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.get_graphics_mut() }
+}
+
 pub trait Graphics: Common {
     fn get_graphics<'a>(&'a self) -> &'a GraphicsData;
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData;

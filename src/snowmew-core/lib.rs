@@ -52,6 +52,7 @@ pub mod camera;
 pub mod io;
 pub mod game;
 pub mod input;
+pub mod input_integrator;
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();

@@ -236,6 +236,11 @@ impl Common for CommonData {
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}
 }
 
+impl<'b, C: Common> Common for &'b DerefMut<C> + 'b {
+    fn get_common<'a>(&'a self) -> &'a CommonData { self.get_common() }
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { self.get_common_mut() }
+}
+
 pub struct DirIter<'a> {
     common: &'a CommonData,
     iter: BTreeMapIterator<'a, StringKey, ObjectKey>,

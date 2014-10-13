@@ -40,6 +40,11 @@ impl RenderData {
     }
 }
 
+impl<'b, C: Renderable> Renderable for &'b DerefMut<C> + 'b {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.get_render_data() }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.get_render_data_mut() }
+}
+
 pub trait Renderable: graphics::Graphics + position::Positions {
     fn get_render_data(&self) -> &RenderData;
     fn get_render_data_mut(&mut self) -> &mut RenderData;
