@@ -49,6 +49,8 @@ use std::time::Duration;
 pub mod common;
 pub mod camera;
 pub mod io;
+pub mod game;
+pub mod input;
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();
@@ -141,15 +143,19 @@ pub trait RenderFactory<T, R: Render<T>> {
     fn init(self: Box<Self>, im: &IOManager, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
 }
 
-pub struct SnowmewConfig<GD, R> {
+pub struct SnowmewConfig<Game, R> {
     pub display: DisplayConfig,
     pub use_opencl: bool,
     pub cadance_ms: i64,
-    pub render: Option<Box<R>>
+    pub render: Option<Box<R>>,
+    pub game: Game
 }
 
-impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
-    pub fn new() -> SnowmewConfig<GD, RF> {
+impl<GameData: Clone,
+     R: Render<GameData>,
+     RF: RenderFactory<GameData, R>,
+     Game: game::Game<input::Event, GameData>> SnowmewConfig<Game, RF> {
+    pub fn new(game: Game) -> SnowmewConfig<Game, R> {
         SnowmewConfig {
             display: DisplayConfig {
                 resolution: None,
@@ -159,11 +165,12 @@ impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
             },
             use_opencl: true,
             cadance_ms: 8,
-            render: None
+            render: None,
+            game: game
         }
     }
 
-    pub fn start(self, gd: GD, game: |GD, &io::InputState, &io::InputState| -> (GD, ObjectKey, ObjectKey)) {
+    pub fn start(self, gd: GameData, game: |GameData, &io::InputState, &io::InputState| -> (GameData, ObjectKey, ObjectKey)) {
         let mut gd = gd;
         let mut im = io::IOManager::new(setup_glfw());
 
