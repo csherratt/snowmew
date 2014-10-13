@@ -1,5 +1,5 @@
 
 
-pub trait Game<GameData, Edge> {
-    fn step(&mut self, edge: Edge, gd: GameData) -> GameData;
+pub trait Game<GameData, Event> {
+    fn step(&mut self, event: Event, gd: GameData) -> GameData;
 }

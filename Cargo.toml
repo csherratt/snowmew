@@ -34,17 +34,17 @@ path = "src/snowmew-loader/"
 [dependencies.snowmew-physics]
 path = "src/snowmew-physics/"
 
-[[example]]
-name = "cubes"
-path = "examples/cubes/main.rs"
+#[[example]]
+#name = "cubes"
+#path = "examples/cubes/main.rs"
 
 [[example]]
 name = "gears"
 path = "examples/gears/main.rs"
 
-[[example]]
-name = "noclip"
-path = "examples/noclip/main.rs"
+#[[example]]
+#name = "noclip"
+#path = "examples/noclip/main.rs"
 
 [profile.dev]
 opt-level = 0

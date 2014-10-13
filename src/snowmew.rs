@@ -26,10 +26,13 @@ pub use _core::common::ObjectKey as ObjectKey;
 
 pub mod render {
     pub use _render::RenderFactory as DefaultRender;
-    pub use _render_data::RenderData as RenderData;
+    pub use _render_data::{
+        RenderData,
+        Renderable
+    };
     pub use _core::{
         RenderFactory,
-        Render
+        Render,
     };
 }
 
@@ -76,6 +79,9 @@ pub mod core {
         InputHandle,
         Window,
     };
+
+    pub use _core::game::Game;
+    pub use _core::input;
 }
 
 pub mod common {

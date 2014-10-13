@@ -34,12 +34,15 @@ extern crate "snowmew-render-data" as render_data;
 use cgmath::*;
 
 use position::Positions;
-use graphics::{Graphics};
+use graphics::Graphics;
 use graphics::light;
+use render_data::Renderable;
 
-use render::RenderFactory;
+use render::{RenderFactory, RenderMux};
 use loader::Obj;
 use snowmew::common::Common;
+use snowmew::game::Game;
+use snowmew::input;
 
 use gamedata::GameData;
 
@@ -52,7 +55,6 @@ fn start(argc: int, argv: *const *const u8) -> int {
 
 fn main() {
     let mut sc = snowmew::SnowmewConfig::new();
-    sc.render = Some(box RenderFactory::new());
     sc.cadance_ms = 1;
 
     let mut gd = GameData::new();
@@ -64,9 +66,11 @@ fn main() {
     let logo = gd.find("import/objects/rust_logo").expect("geometry not found from import");
     let logo_draw = gd.get_draw(logo).expect("Could not get draw binding");
 
-    let scene_logos = vec!((gd.new_object(Some(scene), "logo0"), "core/material/flat/red"),
-                           (gd.new_object(Some(scene), "logo1"), "core/material/flat/blue"),
-                           (gd.new_object(Some(scene), "logo2"), "core/material/flat/green"));
+    let parent = gd.add_dir(Some(scene), "gears");
+
+    let scene_logos = vec!((gd.new_object(Some(parent), "logo0"), "core/material/flat/red"),
+                           (gd.new_object(Some(parent), "logo1"), "core/material/flat/blue"),
+                           (gd.new_object(Some(parent), "logo2"), "core/material/flat/green"));
 
     for (idx, &(logo, material)) in scene_logos.iter().enumerate() {
         println!("idx={}, logo={}", idx, logo);
@@ -89,20 +93,31 @@ fn main() {
                                       Vector3::new(1f32, 1., 1.), 0.25);
 
     gd.new_light(scene, "sun", light::DirectionalLight(sun));
+    gd.set_scene(scene);
+    gd.set_camera(camera_loc);
 
-    let mut gear_rot = 90f32;
+    sc.start(box RenderFactory::new(), Gears, gd);
+}
 
-    sc.start(gd, |gd, _, _| {
-        let mut gd = gd;
+struct Gears;
 
-        for (idx, &(logo, _)) in scene_logos.iter().enumerate() {
-            let this_gear_rot = if idx % 2 == 0 { gear_rot } else { 5.625 - gear_rot };
-            gd.set_rotation(logo, Rotation3::from_euler(deg(0f32).to_rad(),
-                                                        deg(this_gear_rot).to_rad(),
-                                                        deg(90f32).to_rad()));
+impl Game<GameData, input::Event> for Gears {
+    fn step(&mut self, event: input::Event, gd: GameData) -> GameData {
+        let mut next = gd.clone();
+        let gears_dir = gd.find("scene/gears").unwrap();
+
+        match event {
+            input::Cadance(_, time) => {
+                for (idx, (_, logo)) in gd.walk_dir(gears_dir).enumerate() {
+                    let t = time as f32 * 10.;
+                    let this_gear_rot = if idx % 2 == 0 { t } else { 5.625 - t };
+                    next.set_rotation(logo, Rotation3::from_euler(deg(0f32).to_rad(),
+                                                                  deg(this_gear_rot).to_rad(),
+                                                                  deg(90f32).to_rad()));
+                }
+            }
+            _ => ()
         }
-        gear_rot += 0.5;
-
-        (gd, scene, camera_loc)
-    });
+        next
+    }
 }

@@ -18,12 +18,14 @@
 #![comment = "A game engine in rust"]
 #![allow(dead_code)]
 
-
+extern crate serialize;
 extern crate "snowmew-core" as core;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 
-#[deriving(Clone)]
+use serialize::Encodable;
+
+#[deriving(Clone, Encodable, Decodable)]
 pub struct RenderData {
     camera: Option<core::ObjectKey>,
     scene: Option<core::ObjectKey>

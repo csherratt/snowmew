@@ -1,6 +1,7 @@
 
 use glfw;
 
+#[deriving(Clone, Show, Eq, PartialEq)]
 pub enum Button {
     KeyboardSpace,
     KeyboardApostrophe,
@@ -270,6 +271,7 @@ pub fn from_glfw_mouse_button(key: glfw::MouseButton) -> Button {
     };
 }
 
+#[deriving(Clone, Show, PartialEq)]
 pub enum Event {
     ButtonDown(Button),
     ButtonUp(Button),
