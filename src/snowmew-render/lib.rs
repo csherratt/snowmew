@@ -18,6 +18,7 @@
 #![comment = "A game engine in rust"]
 #![allow(dead_code)]
 #![feature(phase)]
+#![feature(if_let)]
 
 //extern crate debug;
 
@@ -202,11 +203,6 @@ fn render_server(command: Receiver<RenderCommand>,
 
     let mut drawlists_ready = Vec::new();
 
-    let mut db = match command.recv() {
-        Update(db) => db,
-        Finish => return
-    };
-
     let select = std::comm::Select::new();
     let mut receiver_drawlist_ready_handle = select.handle(&receiver_drawlist_ready);
     let mut receiver_drawlist_render_handle = select.handle(&receiver_drawlist_render);
@@ -217,6 +213,8 @@ fn render_server(command: Receiver<RenderCommand>,
         receiver_drawlist_render_handle.add();
         command_handle.add();
     }
+
+    let mut db = None;
 
     'finished: loop {
         let id = select.wait();
@@ -230,17 +228,18 @@ fn render_server(command: Receiver<RenderCommand>,
         } else if id == command_handle.id() {
             let command = command_handle.recv();
             match command {
-                Update(rd) => db = rd,
-                Finish => {
-                    break 'finished;
-                }
+                Update(rd) => db = Some(rd),
+                Finish => break 'finished
             }
         }
 
         if drawlists_ready.len() > 0 {
-            let dl = drawlists_ready.pop().unwrap();
-            let scene = db.scene().expect("no scene set");
-            dl.setup_compute(&mut *db, &mut taskpool, scene);
+            if let Some(mut db) = db {
+                let dl = drawlists_ready.pop().unwrap();
+                let scene = db.scene().expect("no scene set");
+                dl.setup_compute(&mut *db, &mut taskpool, scene);
+            }
+            db = None;
         }
     }
 }

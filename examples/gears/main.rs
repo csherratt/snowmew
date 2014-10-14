@@ -54,8 +54,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
 }
 
 fn main() {
-    let mut sc = snowmew::SnowmewConfig::new();
-    sc.cadance_ms = 1;
+    let sc = snowmew::SnowmewConfig::new();
 
     let mut gd = GameData::new();
     let loader = Obj::load(&Path::new("assets/rust_logo.obj")).expect("Failed to load OBJ");

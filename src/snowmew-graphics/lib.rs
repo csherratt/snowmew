@@ -41,6 +41,7 @@ use collision::sphere::Sphere;
 use cow::btree::{BTreeMapIterator, BTreeMap};
 use snowmew::common::{Common, ObjectKey, Duplicate};
 use snowmew::input_integrator::InputIntegratorGameData;
+use snowmew::debugger::DebuggerGameData;
 
 pub use geometry::{Geometry, VertexBuffer};
 pub use material::Material;
@@ -350,6 +351,11 @@ impl<'a> Iterator<(u32,
 }
 
 impl<T: Graphics> Graphics for InputIntegratorGameData<T> {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
+}
+
+impl <T: Graphics> Graphics for DebuggerGameData<T> {
     fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
 }

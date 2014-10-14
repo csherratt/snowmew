@@ -53,6 +53,7 @@ pub mod io;
 pub mod game;
 pub mod input;
 pub mod input_integrator;
+pub mod debugger;
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();
@@ -161,7 +162,7 @@ impl SnowmewConfig {
                 window: true,
             },
             use_opencl: true,
-            cadance_ms: 8
+            cadance_ms: 15
         }
     }
 

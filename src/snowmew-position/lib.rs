@@ -42,6 +42,7 @@ use cow::btree::{BTreeMap, BTreeMapIterator};
 
 use snowmew::common::{ObjectKey, Common, Duplicate};
 use snowmew::input_integrator::InputIntegratorGameData;
+use snowmew::debugger::DebuggerGameData;
 
 const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
@@ -571,6 +572,11 @@ impl Duplicate for PositionData {
 }
 
 impl<T: Positions> Positions for InputIntegratorGameData<T> {
+    fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
+}
+
+impl<T: Positions> Positions for DebuggerGameData<T> {
     fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
 }
