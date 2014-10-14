@@ -2,7 +2,7 @@
 use glfw;
 use game::Game;
 
-#[deriving(Clone, Show, Eq, PartialEq)]
+#[deriving(Clone, Show, Eq, PartialEq, Hash)]
 pub enum Button {
     KeyboardSpace,
     KeyboardApostrophe,
@@ -289,8 +289,17 @@ impl Event {
             glfw::MouseButtonEvent(button, glfw::Release, _) => {
                 Some(ButtonUp(from_glfw_mouse_button(button)))
             }
+            glfw::KeyEvent(button, _, glfw::Press, _) => {
+                Some(ButtonDown(from_glfw_key(button)))
+            }
+            glfw::KeyEvent(button, _, glfw::Release, _) => {
+                Some(ButtonUp(from_glfw_key(button)))
+            }
             glfw::CursorPosEvent(x, y) => Some(Move(x, y)),
-            _ => None
+            x => {
+                println!("unhandled {}", x);
+                None
+            }
         }
     }
 }

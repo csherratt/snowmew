@@ -186,7 +186,7 @@ impl SnowmewConfig {
         let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms));
         let candance_scale = self.cadance_ms as f64 / 1000.;
 
-        let mut frame = 0;
+        let mut frame = 1;
         while !im.should_close(&ih) {
             timer_port.recv();
             im.poll();
@@ -202,7 +202,6 @@ impl SnowmewConfig {
             frame += 1;
 
             render.update(gd.clone());
-            frame += 1;
         }
     }
 }

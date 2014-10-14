@@ -33,6 +33,7 @@ use std::from_str::FromStr;
 use cgmath::*;
 
 use snowmew::input;
+use snowmew::input_integrator::{input_integrator, InputIntegratorState};
 use snowmew::game::Game;
 use snowmew::camera::Camera;
 use position::Positions;
@@ -95,74 +96,48 @@ fn main() {
     gd.set_scene(scene);
     gd.set_camera(camera);
 
-    sc.start(box RenderFactory::new(), Cubes, gd);
-
-    /*sc.start(gd, |gd, current_input, last_input| {
-        let mut gd = gd;
-        match current_input.is_focused() {
-            true => {
-                match current_input.cursor_delta(last_input.time()) {
-                    Some((x, y)) => {
-                        rot_x += x / 3.;
-                        rot_y += y / 3.;
-
-                        rot_y = rot_y.max(-90.).min(90.);
-                        if rot_x > 360. {
-                            rot_x -= 360.
-                        } else if rot_x < -360. {
-                            rot_x += 360.
-                        }
-                    },
-                    None => (),
-                }
-
-            },
-            false => {}
-        }
-
-        let input_vec = Vector3::new(
-            if current_input.key_down(glfw::KeyA) {0.05f32} else {0f32} +
-            if current_input.key_down(glfw::KeyD) {-0.05f32} else {0f32}, 
-            0f32,
-            if current_input.key_down(glfw::KeyW) {0.05f32} else {0f32} +
-            if current_input.key_down(glfw::KeyS) {-0.05f32} else {0f32}
-        );
-
-        let rot: Quaternion<f32> = Rotation3::from_axis_angle(&Vector3::new(0f32, 1f32, 0f32), deg(-rot_x as f32).to_rad());
-        rot.mul_q(&Rotation3::from_axis_angle(&Vector3::new(1f32, 0f32, 0f32), deg(-rot_y as f32).to_rad()));
-        let camera = Camera::new(Decomposed{scale: 1f32,
-                                            rot:   rot,
-                                            disp:  pos.to_vec()}.to_matrix4());
-
-        pos = camera.move_with_vector(&input_vec.mul_s(-1f32));
-        let head_trans = Decomposed{scale: 1f32,
-                                    rot:   rot,
-                                    disp:  pos.to_vec()};
-        gd.update_location(camera_loc, head_trans);
-
-        (gd, scene, camera_loc)
-    });*/
+    let (game, gd) = input_integrator(Cubes, gd);
+    sc.start(box RenderFactory::new(), game, gd);
 }
 
 struct Cubes;
 
-impl Game<GameData, input::Event> for Cubes {
-    fn step(&mut self, event: input::Event, gd: GameData) -> GameData {
+impl Game<GameData, InputIntegratorState> for Cubes {
+    fn step(&mut self, state: InputIntegratorState, gd: GameData) -> GameData {
         let mut next = gd.clone();
-        let gears_dir = next.find("scene/gears").unwrap();
 
-        match event {
-            input::Cadance(_, time) => {
-                for (idx, (_, logo)) in gd.walk_dir(gears_dir).enumerate() {
-                    let t = time as f32 * 10.;
-                    let this_gear_rot = if idx % 2 == 0 { t } else { 5.625 - t };
-                    next.set_rotation(logo, Rotation3::from_euler(deg(0f32).to_rad(),
-                                                                  deg(this_gear_rot).to_rad(),
-                                                                  deg(90f32).to_rad()));
-                }
-            }
-            _ => ()
+        let camera_key = gd.camera().expect("no camera set");
+        let camera = Camera::new(next.position(camera_key));
+        let (mut rx, mut ry, mut rz) = next.get_rotation(camera_key).expect("no rot").to_euler();
+
+        let (x, y) = state.mouse_delta();
+        rx = rx.add_a(rad((-x / 120.) as f32));
+        rz = rz.add_a(rad((-y / 120.) as f32));
+
+        let max_rot: f32 = Float::frac_pi_2();
+        if rz.s > max_rot {
+            rz.s = max_rot;
+        } else if rz.s < -max_rot {
+            rz.s = -max_rot;
         }
-        gd
+
+        let input_vec = Vector3::new(
+            if state.button_down(input::KeyboardA) {0.05f32} else {0f32} +
+            if state.button_down(input::KeyboardD) {-0.05f32} else {0f32}, 
+            0f32,
+            if state.button_down(input::KeyboardW) {0.05f32} else {0f32} +
+            if state.button_down(input::KeyboardS) {-0.05f32} else {0f32}
+        ).mul_s(-1f32);
+
+
+        let camera_key = gd.camera().expect("no camera set");
+        let camera = Camera::new(next.position(camera_key));
+
+        let head_trans = Decomposed{scale: 1f32,
+                                    rot:   Rotation3::from_euler(rx, ry, rz),
+                                    disp:  camera.move_with_vector(&input_vec).to_vec()};
+        next.update_location(camera_key, head_trans);
+
+        next
     }
 }

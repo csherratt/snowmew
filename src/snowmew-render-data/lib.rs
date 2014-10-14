@@ -23,6 +23,7 @@ extern crate "snowmew-core" as core;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 
+use core::input_integrator::InputIntegratorGameData;
 use serialize::Encodable;
 
 #[deriving(Clone, Encodable, Decodable)]
@@ -38,11 +39,6 @@ impl RenderData {
             scene: None
         }
     }
-}
-
-impl<'b, C: Renderable> Renderable for &'b DerefMut<C> + 'b {
-    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.get_render_data() }
-    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.get_render_data_mut() }
 }
 
 pub trait Renderable: graphics::Graphics + position::Positions {
@@ -68,4 +64,9 @@ pub trait Renderable: graphics::Graphics + position::Positions {
     fn scene(&self) -> Option<core::ObjectKey> {
         self.get_render_data().scene
     }
+}
+
+impl<T: Renderable> Renderable for InputIntegratorGameData<T> {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.inner.get_render_data() }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
 }
