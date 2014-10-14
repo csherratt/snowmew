@@ -40,9 +40,9 @@ use render_data::Renderable;
 
 use render::RenderFactory;
 use loader::Obj;
+use snowmew::input_integrator::{input_integrator, InputIntegratorState};
 use snowmew::common::Common;
 use snowmew::game::Game;
-use snowmew::input;
 
 use gamedata::GameData;
 
@@ -96,28 +96,25 @@ fn main() {
     gd.set_scene(scene);
     gd.set_camera(camera_loc);
 
-    sc.start(box RenderFactory::new(), Gears, gd);
+    let (game, gd) = input_integrator(Gears, gd);
+    sc.start(box RenderFactory::new(), game, gd);
 }
 
 struct Gears;
 
-impl Game<GameData, input::Event> for Gears {
-    fn step(&mut self, event: input::Event, gd: GameData) -> GameData {
+impl Game<GameData, InputIntegratorState> for Gears {
+    fn step(&mut self, state: InputIntegratorState, gd: GameData) -> GameData {
         let mut next = gd.clone();
         let gears_dir = gd.find("scene/gears").unwrap();
 
-        match event {
-            input::Cadance(_, time) => {
-                for (idx, (_, logo)) in gd.walk_dir(gears_dir).enumerate() {
-                    let t = time as f32 * 10.;
-                    let this_gear_rot = if idx % 2 == 0 { t } else { 5.625 - t };
-                    next.set_rotation(logo, Rotation3::from_euler(deg(0f32).to_rad(),
-                                                                  deg(this_gear_rot).to_rad(),
-                                                                  deg(90f32).to_rad()));
-                }
-            }
-            _ => ()
+        for (idx, (_, logo)) in gd.walk_dir(gears_dir).enumerate() {
+            let t = state.time() as f32 * 10.;
+            let this_gear_rot = if idx % 2 == 0 { t } else { 5.625 - t };
+            next.set_rotation(logo, Rotation3::from_euler(deg(0f32).to_rad(),
+                                                          deg(this_gear_rot).to_rad(),
+                                                          deg(90f32).to_rad()));
         }
+
         next
     }
 }

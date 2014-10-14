@@ -51,6 +51,9 @@ impl InputIntegratorState {
             _ => (0., 0.)
         }
     }
+
+    pub fn index(&self) -> uint { self.index }
+    pub fn time(&self) -> f64 { self.time }
 }
 
 #[deriving(Clone)]
