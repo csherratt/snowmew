@@ -42,9 +42,9 @@ path = "examples/cubes/main.rs"
 name = "gears"
 path = "examples/gears/main.rs"
 
-#[[example]]
-#name = "noclip"
-#path = "examples/noclip/main.rs"
+[[example]]
+name = "noclip"
+path = "examples/noclip/main.rs"
 
 [profile.dev]
 opt-level = 0
