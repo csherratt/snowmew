@@ -43,6 +43,7 @@ use loader::Obj;
 use snowmew::input_integrator::{input_integrator, InputIntegratorState};
 use snowmew::common::Common;
 use snowmew::game::Game;
+use snowmew::debugger::debugger;
 
 use gamedata::GameData;
 
@@ -96,6 +97,7 @@ fn main() {
     gd.set_camera(camera_loc);
 
     let (game, gd) = input_integrator(Gears, gd);
+    let (game, gd) = debugger(game, gd);
     sc.start(box RenderFactory::new(), game, gd);
 }
 

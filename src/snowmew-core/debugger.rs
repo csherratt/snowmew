@@ -1,7 +1,6 @@
 
 use game::Game;
 use input;
-use input_integrator::InputIntegratorState;
 use common::{Common, CommonData};
 
 #[deriving(Clone)]
@@ -19,6 +18,9 @@ impl<Game> Debugger<Game> {
 pub struct DebuggerGameData<GameData> {
     paused: bool,
     step: bool,
+    index_delta: uint,
+    time_delta: f64,
+    last_time: f64,
     pub inner: GameData
 }
 
@@ -27,6 +29,9 @@ impl<GameData> DebuggerGameData<GameData> {
         DebuggerGameData {
             paused: false,
             step: false,
+            index_delta: 0,
+            time_delta: 0.,
+            last_time: 0.,
             inner: inner
         }
     }
@@ -43,23 +48,39 @@ pub fn debugger<Game, GameData>(game: Game, inner: GameData)
 }
 
 impl<GameData: Clone,
-     InputGame: Game<GameData, InputIntegratorState>>
-    Game<DebuggerGameData<GameData>, InputIntegratorState> for Debugger<InputGame> {
-    fn step(&mut self, state: InputIntegratorState, gd: DebuggerGameData<GameData>) 
+     InputGame: Game<GameData, input::Event>>
+    Game<DebuggerGameData<GameData>, input::Event> for Debugger<InputGame> {
+    fn step(&mut self, event: input::Event, gd: DebuggerGameData<GameData>) 
         -> DebuggerGameData<GameData> {
         let mut next = gd.clone();
 
-        if state.button_pressed(input::KeyboardF8) {
-            next.paused = !gd.paused;
-        }
+        let step = !next.paused || next.step;
 
-        if next.paused && state.button_pressed(input::KeyboardF9) {
-            next.step = true;
-        }
+        let event = match event {
+            input::ButtonDown(input::KeyboardF8) => {
+                next.paused = !gd.paused;
+                input::ButtonDown(input::KeyboardF8)
+            }
+            input::ButtonDown(input::KeyboardF9) => {
+                next.step = true;
+                input::ButtonDown(input::KeyboardF9)
+            }
+            input::Cadance(_, time) => {
+                if step {
+                    next.time_delta += time - next.last_time;
+                    next.index_delta += 1;
+                }
+                next.last_time = time;
+                input::Cadance(next.index_delta , next.time_delta)
+            }
+            e => e
+        };
 
-        if !next.paused || next.step {
-            next.inner = self.game.step(state, gd.inner);
-            next.step = false;
+        if step {
+            next.inner = self.game.step(event, gd.inner);
+            if let input::Cadance(_, _) = event {
+                next.step = false;                
+            }
         }
         next
     }

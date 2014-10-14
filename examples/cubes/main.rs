@@ -94,8 +94,8 @@ fn main() {
     gd.set_scene(scene);
     gd.set_camera(camera);
 
-    let (game, gd) = debugger(Cubes, gd);
-    let (game, gd) = input_integrator(game, gd);
+    let (game, gd) = input_integrator(Cubes, gd);
+    let (game, gd) = debugger(game, gd);
     sc.start(box RenderFactory::new(), game, gd);
 }
 
