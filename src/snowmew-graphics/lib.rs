@@ -40,6 +40,7 @@ use collision::sphere::Sphere;
 
 use cow::btree::{BTreeMapIterator, BTreeMap};
 use snowmew::common::{Common, ObjectKey, Duplicate};
+use snowmew::input_integrator::InputIntegratorGameData;
 
 pub use geometry::{Geometry, VertexBuffer};
 pub use material::Material;
@@ -109,6 +110,7 @@ impl GraphicsData {
         }
     }
 }
+
 
 pub trait Graphics: Common {
     fn get_graphics<'a>(&'a self) -> &'a GraphicsData;
@@ -278,6 +280,8 @@ pub trait Graphics: Common {
     }
 }
 
+
+
 macro_rules! dup(
     ($field:expr, $src:ident, $dst:ident) => (
         {
@@ -343,4 +347,9 @@ impl<'a> Iterator<(u32,
             }
         }
     }
+}
+
+impl<T: Graphics> Graphics for InputIntegratorGameData<T> {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
 }

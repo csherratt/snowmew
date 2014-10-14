@@ -16,19 +16,16 @@ use sync::Arc;
 #[cfg(target_os="linux")]
 use libc::c_void;
 
-use glfw::{WindowEvent, Key, MouseButton, Glfw, Context};
-use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
-use glfw::{CloseEvent, FocusEvent, FullScreen};
+use glfw::{WindowEvent, Glfw, Context, FullScreen};
 use glfw::{Windowed, RenderContext};
 use glfw;
 use gl;
 
-use std::collections::HashSet;
 use collections::TrieMap;
 
-use cgmath::Quaternion;
-
 use ovr;
+
+use input;
 
 pub type WindowId = uint;
 
@@ -38,205 +35,9 @@ const OS_GL_MINOR_MAX: u32 = 1;
 #[cfg(target_os="linux")]
 const OS_GL_MINOR_MAX: u32 = 4;
 
-#[deriving(Clone)]
-struct InputHistory {
-    older: Option<Arc<InputHistory>>,
-    time: Option<f64>,
-    event: WindowEvent
-}
-
-#[deriving(Clone)]
-pub struct InputState {
-    history: Option<Arc<InputHistory>>,
-    keyboard: HashSet<Key>,
-    mouse: HashSet<MouseButton>,
-    should_close: bool,
-    focus: bool,
-    framebuffer_size: (i32, i32),
-    screen_size: (i32, i32),
-    predicted: Quaternion<f32>,
-}
-
-struct InputHistoryIterator {
-    current: Option<Arc<InputHistory>>
-}
-
-impl Iterator<(Option<f64>, WindowEvent)> for InputHistoryIterator {
-    fn next(&mut self) -> Option<(Option<f64>, WindowEvent)> {
-        let (next, res) = match self.current {
-            Some(ref next) => {
-                let next = next.deref();
-                (next.older.clone(), Some((next.time.clone(), next.event.clone())))
-            },
-            None => (None, None)
-        };
-
-        self.current = next;
-        res
-    }
-}
-
-pub struct DeltaIterator {
-    current: Option<Arc<InputHistory>>,
-    origin: Option<Arc<InputHistory>>
-}
-
-
-impl Iterator<(Option<f64>, WindowEvent)> for DeltaIterator {
-    fn next(&mut self) -> Option<(Option<f64>, WindowEvent)> {
-        match (&self.current, &self.origin) {
-            (&None, &None) => return None,
-            (&Some(ref a), &Some(ref b)) => {
-                if a.deref() as *const InputHistory == b.deref() as *const InputHistory {
-                    return None
-                }
-            }
-            _ => ()
-        }
-
-        let (next, res) = match self.current {
-            Some(ref next) => {
-                let next = next.deref();
-                (next.older.clone(), Some((next.time.clone(), next.event.clone())))
-            },
-            None => (None, None)
-        };
-
-        self.current = next;
-        res
-    }
-}
-
-impl InputState {
-    fn new(win: &glfw::Window) -> InputState {
-        InputState {
-            history: None,
-            keyboard: HashSet::new(),
-            mouse: HashSet::new(),
-            should_close: false,
-            focus: win.is_focused(),
-            framebuffer_size: win.get_framebuffer_size(),
-            screen_size: win.get_size(),
-            predicted: Quaternion::identity()
-        }
-    }
-
-    fn event(&mut self, time: Option<f64>, event: WindowEvent) {
-        self.history = Some(Arc::new( InputHistory{
-            older: self.history.clone(),
-            time: time,
-            event: event.clone()
-        }));
-
-        match event {
-            KeyEvent(key, _, Press, _) => { self.keyboard.insert(key); },
-            KeyEvent(key, _, Release, _) => { self.keyboard.remove(&key); },
-            MouseButtonEvent(key, Press, _) => { self.mouse.insert(key); },
-            MouseButtonEvent(key, Release, _) => { self.mouse.remove(&key); },
-            CloseEvent => { self.should_close = true; },
-            FocusEvent(s) => { self.focus = s; },
-            _ => ()
-        }
-    }
-
-    fn iter(&self) -> InputHistoryIterator {
-        InputHistoryIterator {
-            current: self.history.clone()
-        }
-    }
-
-    pub fn key_down(&self, key: Key) -> bool
-    {
-        self.keyboard.contains(&key)
-    }
-
-    pub fn mouse_up(&self, button: MouseButton) -> bool
-    {
-        self.mouse.contains(&button)
-    }
-
-    pub fn time(&self) -> f64 {
-        for (t, _) in self.iter() {
-            match t {
-                Some(t) => return t,
-                None => ()
-            }
-        }
-        0.
-    }
-
-    pub fn cursor_delta(&self, epoc: f64) -> Option<(f64, f64)> {
-        let mut latest = None;
-        let mut old = (0f64, 0f64);
-        let mut iter = self.iter();
-
-        // find the latest cursor position
-        for (time, event) in iter {
-            // no change found
-            if time.is_none() || time.unwrap() <= epoc {
-                return None;
-            }
-            match event {
-                CursorPosEvent(x, y) => {
-                    latest = Some((x, y));
-                    break;
-                },
-                _ => ()
-            }
-        }
-
-        // no change found
-        if latest.is_none() {
-            return None;
-        }
-
-        let (nx, ny) = latest.unwrap();
-
-        // find the first cursor positon before
-        for (time, event) in iter {
-            if time.is_none() || time.unwrap() <= epoc {
-                match event {
-                    CursorPosEvent(x, y) => {
-                        old = (x, y);
-                        break;
-                    },
-                    _ => ()
-                }
-            }
-        }
-
-        let (x, y) = old;
-        Some((nx-x, ny-y))
-    }
-
-    pub fn should_close(&self) -> bool {
-        self.should_close
-    }
-
-    pub fn is_focused(&self) -> bool {
-        self.focus
-    }
-
-    pub fn screen_size(&self) -> (i32, i32) {
-        self.screen_size.clone()
-    }
-
-    pub fn framebuffer_size(&self) -> (i32, i32) {
-        self.framebuffer_size.clone()
-    }
-
-    pub fn iter_delta(&self, old: &InputState) -> DeltaIterator {
-        DeltaIterator {
-            current: self.history.clone(),
-            origin: old.history.clone()
-        }
-    }
-}
-
 struct WindowHandle {
     window: glfw::Window,
     receiver: Receiver<(f64, WindowEvent)>,
-    state: InputState
 }
 
 pub struct IOManager {
@@ -260,13 +61,11 @@ impl IOManager {
         let id = self.window_id;
         self.window_id += 1;
 
-        let state = InputState::new(&window);
 
         self.windows.insert(id, {
             WindowHandle {
                 window: window,
-                receiver: recv,
-                state: state
+                receiver: recv
             }
         });
 
@@ -460,26 +259,41 @@ impl IOManager {
         })
     }
 
-    pub fn get(&self, handle: &InputHandle) -> InputState {
-        self.windows.find(&handle.handle).unwrap().state.clone()
-    }
-
-    fn update(&mut self) {
-        for (_, win) in self.windows.iter_mut() {
-            for (time, event) in glfw::flush_messages(&win.receiver) {
-                win.state.event(Some(time), event);
-            }
-        }
-    }
-
     pub fn wait(&mut self) {
         self.glfw.wait_events();
-        self.update();
     }
 
     pub fn poll(&mut self) {
         self.glfw.poll_events();
-        self.update();
+    }
+
+    pub fn next_event(&mut self, handle: &InputHandle) -> Option<input::Event> {
+        let evt = self.windows.find_mut(&handle.handle)
+        .map(|rx| {
+            for (_, evt) in glfw::flush_messages(&rx.receiver) {
+                match input::Event::from_glfw(evt) {
+                    Some(x) => return Some(x),
+                    None => ()
+                }
+            }
+            None
+        });
+
+        match evt {
+            Some(e) => e,
+            _ => None
+        }
+    }
+
+    pub fn should_close(&mut self, handle: &InputHandle) -> bool {
+        let should_close = self.windows.find_mut(&handle.handle)
+        .map(|win| win.window.should_close());
+
+        if let Some(x) = should_close {
+            x
+        } else {
+            true
+        }
     }
 
     fn setup_ovr(&mut self) -> bool {

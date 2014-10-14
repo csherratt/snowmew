@@ -16,13 +16,14 @@ use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use graphics::default::load_default;
-use render_data::RenderData;
+use render_data::{Renderable, RenderData};
 
 #[deriving(Clone)]
 pub struct GameData {
     common: CommonData,
     position: PositionData,
-    graphics: GraphicsData
+    graphics: GraphicsData,
+    render: RenderData
 }
 
 impl GameData {
@@ -30,7 +31,8 @@ impl GameData {
         let mut gd = GameData {
             common: CommonData::new(),
             position: PositionData::new(),
-            graphics: GraphicsData::new()
+            graphics: GraphicsData::new(),
+            render: RenderData::new()
         };
 
         load_default(&mut gd);
@@ -54,4 +56,7 @@ impl Graphics for GameData {
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.graphics }
 }
 
-impl RenderData for GameData {}
+impl Renderable for GameData {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render }
+}

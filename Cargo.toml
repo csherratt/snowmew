@@ -47,9 +47,9 @@ name = "noclip"
 path = "examples/noclip/main.rs"
 
 [profile.dev]
-opt-level = 0
+opt-level = 2
 debug = true
 
 [profile.test]
-opt-level = 0
+opt-level = 2
 debug = true

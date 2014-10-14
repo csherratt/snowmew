@@ -33,14 +33,13 @@ use std::os;
 use opencl::hl::Device;
 use sync::Arc;
 
-use snowmew::common::ObjectKey;
 use snowmew::io::Window;
 
-use render_data::RenderData;
+use render_data::Renderable;
 
-impl<'r, RD: RenderData+Send> snowmew::Render<RD> for RenderMux<'r, RD> {
-    fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
-        self.render.update(db, scene, camera)
+impl<'r, RD: Renderable+Send> snowmew::Render<RD> for RenderMux<'r, RD> {
+    fn update(&mut self, db: RD) {
+        self.render.update(db)
     }
 }
 
@@ -48,7 +47,7 @@ pub struct RenderMux<'r, RD> {
     render: Box<snowmew::Render<RD> + 'r>
 }
 
-impl<'r, RD: RenderData+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
+impl<'r, RD: Renderable+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &snowmew::IOManager,
             window: Window,

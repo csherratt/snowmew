@@ -42,12 +42,17 @@ pub struct CommonData {
     objects:        BTreeMap<ObjectKey, Object>,
     parent_child:   BTreeMap<ObjectKey, BTreeMap<StringKey, ObjectKey>>,
 
-    scene_children: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>
+    scene_children: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
+
+    // this should probably be moved...
+    show_cursor:    bool
 }
 
 impl CommonData {
     pub fn new() -> CommonData {
         CommonData {
+            show_cursor:        true,
+
             last_sid:           1,
             strings:            BTreeMap::new(),
             string_to_key:      BTreeMap::new(),

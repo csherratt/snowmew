@@ -57,7 +57,7 @@ use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 
 use cow::join::{join_set_to_map, join_maps};
-use render_data::RenderData;
+use render_data::Renderable;
 
 use gfx::{Device, DeviceHelper};
 
@@ -252,7 +252,7 @@ pub struct RenderManagerContext {
 }
 
 pub struct RenderManager<R> {
-    channel: Sender<(R, ObjectKey, ObjectKey)>
+    channel: Sender<R>
 }
 
 impl RenderManagerContext {
@@ -377,7 +377,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn load_meshes<RD: RenderData>(&mut self, db: &RD) {
+    fn load_meshes<RD: Renderable>(&mut self, db: &RD) {
         for (oid, vb) in db.vertex_buffer_iter() {
             if self.meshes.find(oid).is_none() {
                 let mesh = match vb.vertex {
@@ -431,7 +431,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn load_textures<RD: RenderData>(&mut self, db: &RD) {
+    fn load_textures<RD: Renderable>(&mut self, db: &RD) {
         for (oid, text) in db.texture_iter() {
             if self.textures.find(oid).is_none() {
                 let tinfo = gfx::tex::TextureInfo {
@@ -456,7 +456,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn create_geometry_batches<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey) -> HashMap<u32, MyProgram> {
+    fn create_geometry_batches<RD: Renderable>(&mut self, db: &RD, scene: ObjectKey) -> HashMap<u32, MyProgram> {
         let mut batches: HashMap<u32, MyProgram> = HashMap::new();
 
         for (_, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
@@ -484,7 +484,7 @@ impl RenderManagerContext {
     }
 
 
-    fn create_shadow_batches<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey) -> HashMap<u32, ShadowProgram> {
+    fn create_shadow_batches<RD: Renderable>(&mut self, db: &RD, scene: ObjectKey) -> HashMap<u32, ShadowProgram> {
         let mut batches: HashMap<u32, ShadowProgram> = HashMap::new();
 
         for (_, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
@@ -512,7 +512,7 @@ impl RenderManagerContext {
     }
 
 
-    fn draw_shadow<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, cam: &Camera) {
+    fn draw_shadow<RD: Renderable>(&mut self, db: &RD, scene: ObjectKey, cam: &Camera) {
         let batches = self.create_shadow_batches(db, scene);
 
         let cdata = gfx::ClearData {
@@ -564,7 +564,10 @@ impl RenderManagerContext {
 
     }
 
-    fn draw<RD: RenderData>(&mut self, db: &RD, scene: ObjectKey, camera: ObjectKey) {
+    fn draw<RD: Renderable>(&mut self, db: &RD) {
+        let scene = db.scene().expect("no scene set");
+        let camera = db.camera().expect("no camera set");
+
         let cdata = gfx::ClearData {
             color: [0.3, 0.3, 0.3, 1.0],
             depth: 1.0,
@@ -663,20 +666,20 @@ impl RenderManagerContext {
         println!("{0:4.3}ms", (end - start) * 1000.);
     }
 
-    fn update<RD: RenderData>(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
+    fn update<RD: Renderable>(&mut self, db: RD) {
         self.load_meshes(&db);
         self.load_textures(&db);
-        self.draw(&db, scene, camera);
+        self.draw(&db);
     }
 }
 
-impl<RD: RenderData+Send> snowmew::Render<RD> for RenderManager<RD> {
-    fn update(&mut self, db: RD, scene: ObjectKey, camera: ObjectKey) {
-        self.channel.send((db, scene, camera));
+impl<RD: Renderable+Send> snowmew::Render<RD> for RenderManager<RD> {
+    fn update(&mut self, db: RD) {
+        self.channel.send(db);
     }
 }
 
-impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
+impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &snowmew::IOManager,
             window: Window,
@@ -690,27 +693,25 @@ impl<RD: RenderData+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
         glfw::make_context_current(None);
 
         spawn(proc() {
-            let recv: Receiver<(RD, ObjectKey, ObjectKey)> = recv;
+            let recv: Receiver<RD> = recv;
             window.make_context_current();
 
             let mut rc = RenderManagerContext::_new(device, window, size, cl);
             loop {
                 // wait for a copy of the game
-                let (mut db, mut scene, mut camera) = recv.recv();
+                let mut db = recv.recv();
 
                 loop {
                     match recv.try_recv() {
-                        Ok((_db, _scene, _camera)) => {
+                        Ok(_db) => {
                             db = _db;
-                            scene = _scene;
-                            camera = _camera
                         }
                         // no newer copy
                         Err(std::comm::Empty) => break,
                         Err(std::comm::Disconnected) => return,
                     }
                 }
-                rc.update(db, scene, camera);
+                rc.update(db);
             }
             
         });

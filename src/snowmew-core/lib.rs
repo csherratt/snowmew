@@ -21,6 +21,7 @@
 #![feature(globs)]
 #![allow(experimental)]
 #![feature(macro_rules)]
+#![feature(if_let)] 
 
 extern crate time;
 extern crate glfw;
@@ -49,6 +50,9 @@ use std::time::Duration;
 pub mod common;
 pub mod camera;
 pub mod io;
+pub mod game;
+pub mod input;
+pub mod input_integrator;
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();
@@ -134,22 +138,21 @@ impl DisplayConfig {
 }
 
 pub trait Render<T> {
-    fn update(&mut self, db: T, scene: ObjectKey, camera: ObjectKey);
+    fn update(&mut self, db: T);
 }
 
 pub trait RenderFactory<T, R: Render<T>> {
     fn init(self: Box<Self>, im: &IOManager, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
 }
 
-pub struct SnowmewConfig<GD, R> {
+pub struct SnowmewConfig {
     pub display: DisplayConfig,
     pub use_opencl: bool,
-    pub cadance_ms: i64,
-    pub render: Option<Box<R>>
+    pub cadance_ms: i64
 }
 
-impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
-    pub fn new() -> SnowmewConfig<GD, RF> {
+impl SnowmewConfig {
+    pub fn new() -> SnowmewConfig {
         SnowmewConfig {
             display: DisplayConfig {
                 resolution: None,
@@ -158,13 +161,14 @@ impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
                 window: true,
             },
             use_opencl: true,
-            cadance_ms: 8,
-            render: None
+            cadance_ms: 8
         }
     }
 
-    pub fn start(self, gd: GD, game: |GD, &io::InputState, &io::InputState| -> (GD, ObjectKey, ObjectKey)) {
-        let mut gd = gd;
+    pub fn start<GameData: Clone,
+                 Game: game::Game<GameData, input::Event>,
+                 R: Render<GameData>,
+                 RF: RenderFactory<GameData, R>>(self, render: Box<RF>, mut game: Game, mut gd: GameData) {
         let mut im = io::IOManager::new(setup_glfw());
 
         // create display
@@ -176,20 +180,28 @@ impl<GD: Clone, R: Render<GD>, RF: RenderFactory<GD, R>> SnowmewConfig<GD, RF> {
 
         let res = im.get_framebuffer_size(&display);
         let dev = if self.use_opencl { get_cl() } else { None };
-        let mut render = self.render.unwrap().init(&im, display, res, dev);
+        let mut render = render.init(&im, display, res, dev);
 
         let mut timer = Timer::new().unwrap();
         let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms));
+        let candance_scale = self.cadance_ms as f64 / 1000.;
 
-        let mut input_last = im.get(&ih);
-        while !input_last.should_close() {
+        let mut frame = 1;
+        while !im.should_close(&ih) {
             timer_port.recv();
             im.poll();
-            let input = im.get(&ih);
-            let (new_gd, scene, camera) = game(gd, &input, &input_last);
-            render.update(new_gd.clone(), scene, camera);
-            gd = new_gd;
-            input_last = input;
+            loop {
+                if let Some(evt) = im.next_event(&ih) {
+                    gd = game.step(evt, gd);
+                } else {
+                    break;
+                }
+            }
+
+            gd = game.step(input::Cadance(frame, frame as f64 * candance_scale), gd);
+            frame += 1;
+
+            render.update(gd.clone());
         }
     }
 }

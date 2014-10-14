@@ -15,7 +15,7 @@
 use std::ptr;
 use std::mem;
 use std::slice::raw::mut_buf_as_slice;
-use render_data::RenderData;
+use render_data::Renderable;
 
 use cow::join::{join_set_to_map, join_maps};
 
@@ -79,7 +79,7 @@ impl ModelInfoSSBOBuffer {
         self.ptr_model_info = ptr::null_mut();
     }
 
-    pub fn build(&mut self, db: &RenderData, scene: ObjectKey) {
+    pub fn build(&mut self, db: &Renderable, scene: ObjectKey) {
         let position = db.compute_positions();
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
@@ -155,7 +155,7 @@ impl ModelInfoTextureBuffer {
         self.ptr_model_info = ptr::null_mut();
     }
 
-    pub fn build(&mut self, db: &RenderData, scene: ObjectKey) {
+    pub fn build(&mut self, db: &Renderable, scene: ObjectKey) {
         let position = db.compute_positions();
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
