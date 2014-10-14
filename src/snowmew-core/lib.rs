@@ -168,7 +168,7 @@ impl SnowmewConfig {
     pub fn start<GameData: Clone,
                  Game: game::Game<GameData, input::Event>,
                  R: Render<GameData>,
-                 RF: RenderFactory<GameData, R>>(self, mut render: Box<RF>, mut game: Game, mut gd: GameData) {
+                 RF: RenderFactory<GameData, R>>(self, render: Box<RF>, mut game: Game, mut gd: GameData) {
         let mut im = io::IOManager::new(setup_glfw());
 
         // create display

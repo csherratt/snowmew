@@ -54,7 +54,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
 }
 
 fn main() {
-    let mut sc = snowmew::SnowmewConfig::new();
+    let sc = snowmew::SnowmewConfig::new();
 
     let args = std::os::args();
     if args.len() == 1 {
@@ -91,8 +91,7 @@ fn main() {
     let camera_loc = db.new_object(None, "camera");
     db.set_to_identity(camera_loc);
 
-    let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
-    let mut pos = if args.len() >= 6 {
+    let pos = if args.len() >= 6 {
         let x = FromStr::from_str(args[3].as_slice());
         let y = FromStr::from_str(args[4].as_slice());
         let z = FromStr::from_str(args[5].as_slice());
@@ -105,6 +104,11 @@ fn main() {
     } else {
         Point3::new(0f32, 0f32, 0f32)
     };
+
+    let head_trans = Decomposed{scale: 1f32,
+                                rot:   Quaternion::identity(),
+                                disp:  pos.to_vec()};
+    db.update_location(camera_loc, head_trans);
 
     let sun = light::Directional::new(Vector3::new(0.05f32, 1., 0.05),
                                       Vector3::new(1f32, 1., 1.), 1.);
@@ -124,7 +128,7 @@ impl Game<GameData, InputIntegratorState> for Noclip {
 
         let camera_key = gd.camera().expect("no camera set");
         let camera = Camera::new(next.position(camera_key));
-        let (mut rx, mut ry, mut rz) = next.get_rotation(camera_key).expect("no rot").to_euler();
+        let (mut rx, ry, mut rz) = next.get_rotation(camera_key).expect("no rot").to_euler();
 
         let (x, y) = state.mouse_delta();
         rx = rx.add_a(rad((-x / 120.) as f32));
@@ -144,10 +148,6 @@ impl Game<GameData, InputIntegratorState> for Noclip {
             if state.button_down(input::KeyboardW) {0.05f32} else {0f32} +
             if state.button_down(input::KeyboardS) {-0.05f32} else {0f32}
         ).mul_s(-1f32);
-
-
-        let camera_key = gd.camera().expect("no camera set");
-        let camera = Camera::new(next.position(camera_key));
 
         let head_trans = Decomposed{scale: 1f32,
                                     rot:   Rotation3::from_euler(rx, ry, rz),

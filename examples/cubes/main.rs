@@ -54,7 +54,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
 }
 
 fn main() {
-    let mut sc = snowmew::SnowmewConfig::new();
+    let sc = snowmew::SnowmewConfig::new();
 
     let mut gd = GameData::new();
     let scene = gd.new_scene("scene");
@@ -83,9 +83,6 @@ fn main() {
         }
     }
 
-    let (mut rot_x, mut rot_y) = (0_f64, 0_f64);
-    let mut pos = Point3::new(0f32, 0f32, 0f32);
-
     let sun = light::Directional::new(Vector3::new(0.5f32, 1., 0.5),
                                       Vector3::new(1f32, 1., 1.), 0.25);
     gd.new_light(scene, "sun", light::DirectionalLight(sun));
@@ -108,7 +105,7 @@ impl Game<GameData, InputIntegratorState> for Cubes {
 
         let camera_key = gd.camera().expect("no camera set");
         let camera = Camera::new(next.position(camera_key));
-        let (mut rx, mut ry, mut rz) = next.get_rotation(camera_key).expect("no rot").to_euler();
+        let (mut rx, ry, mut rz) = next.get_rotation(camera_key).expect("no rot").to_euler();
 
         let (x, y) = state.mouse_delta();
         rx = rx.add_a(rad((-x / 120.) as f32));
@@ -128,10 +125,6 @@ impl Game<GameData, InputIntegratorState> for Cubes {
             if state.button_down(input::KeyboardW) {0.05f32} else {0f32} +
             if state.button_down(input::KeyboardS) {-0.05f32} else {0f32}
         ).mul_s(-1f32);
-
-
-        let camera_key = gd.camera().expect("no camera set");
-        let camera = Camera::new(next.position(camera_key));
 
         let head_trans = Decomposed{scale: 1f32,
                                     rot:   Rotation3::from_euler(rx, ry, rz),

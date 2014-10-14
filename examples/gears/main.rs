@@ -38,7 +38,7 @@ use graphics::Graphics;
 use graphics::light;
 use render_data::Renderable;
 
-use render::{RenderFactory, RenderMux};
+use render::RenderFactory;
 use loader::Obj;
 use snowmew::common::Common;
 use snowmew::game::Game;

@@ -16,17 +16,12 @@ use sync::Arc;
 #[cfg(target_os="linux")]
 use libc::c_void;
 
-use glfw::{WindowEvent, Key, MouseButton, Glfw, Context};
-use glfw::{Press, Release, KeyEvent, MouseButtonEvent, CursorPosEvent};
-use glfw::{CloseEvent, FocusEvent, FullScreen};
+use glfw::{WindowEvent, Glfw, Context, FullScreen};
 use glfw::{Windowed, RenderContext};
 use glfw;
 use gl;
 
-use std::collections::HashSet;
 use collections::TrieMap;
-
-use cgmath::Quaternion;
 
 use ovr;
 

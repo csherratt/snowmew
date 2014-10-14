@@ -1,6 +1,5 @@
 
 use glfw;
-use game::Game;
 
 #[deriving(Clone, Show, Eq, PartialEq, Hash)]
 pub enum Button {
