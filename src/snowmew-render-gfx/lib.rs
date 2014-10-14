@@ -520,7 +520,7 @@ impl RenderManagerContext {
             depth: 2.0,
             stencil: 0,
         };
-        self.graphics.clear(cdata, gfx::Depth, &self.shadow_frame);
+        self.graphics.clear(cdata, gfx::DEPTH, &self.shadow_frame);
 
         let pos = cam.move_with_vector(&Vector3::new(0f32, 15., 0.));
         let proj = cgmath::ortho(
@@ -574,7 +574,7 @@ impl RenderManagerContext {
             stencil: 0,
         };
         let start = time::precise_time_s();
-        self.graphics.clear(cdata, gfx::Color | gfx::Depth, &self.frame);
+        self.graphics.clear(cdata, gfx::COLOR | gfx::DEPTH, &self.frame);
 
         let camera_trans = db.position(camera);
         let camera = Camera::new(camera_trans);
