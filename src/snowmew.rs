@@ -106,3 +106,11 @@ pub mod input {
     };
     pub use _core::input_integrator::input_integrator as integrator;
 }
+
+pub mod debug {
+    pub use _core::debugger::{
+        Debugger,
+        DebuggerGameData,
+        debugger
+    };
+}
