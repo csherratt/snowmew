@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew"]
+#![feature(globs)]
 
 extern crate "snowmew-core"         as _core;
 extern crate "snowmew-graphics"     as _graphics;
@@ -81,7 +82,6 @@ pub mod core {
     };
 
     pub use _core::game::Game;
-    pub use _core::input;
 }
 
 pub mod common {
@@ -95,4 +95,14 @@ pub mod common {
 
 pub mod config  {
     pub use _core::SnowmewConfig as SnowmewConfig;
+}
+
+pub mod input {
+    pub use _core::input::*;
+    pub use _core::input_integrator::{
+        InputIntegrator,
+        InputIntegratorGameData,
+        InputIntegratorState,
+    };
+    pub use _core::input_integrator::input_integrator as integrator;
 }
