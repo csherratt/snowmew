@@ -21,6 +21,7 @@ pub struct DebuggerGameData<GameData> {
     index_delta: uint,
     time_delta: f64,
     last_time: f64,
+    history: Vec<(GameData, f64, uint)>,
     pub inner: GameData
 }
 
@@ -32,6 +33,7 @@ impl<GameData> DebuggerGameData<GameData> {
             index_delta: 0,
             time_delta: 0.,
             last_time: 0.,
+            history: Vec::new(),
             inner: inner
         }
     }
@@ -57,6 +59,14 @@ impl<GameData: Clone,
         let step = !next.paused || next.step;
 
         let event = match event {
+            input::ButtonDown(input::KeyboardF7) => {
+                if let Some((last, time, index)) = next.history.pop() {
+                    next.inner = last;
+                    next.time_delta = time;
+                    next.index_delta = index;
+                }
+                input::ButtonDown(input::KeyboardF7)
+            }
             input::ButtonDown(input::KeyboardF8) => {
                 next.paused = !gd.paused;
                 input::ButtonDown(input::KeyboardF8)
@@ -77,10 +87,18 @@ impl<GameData: Clone,
         };
 
         if step {
-            next.inner = self.game.step(event, gd.inner);
-            if let input::Cadance(_, _) = event {
+            if let input::Cadance(idx, _) = event {
+                if idx % 30 == 0 || next.step {
+                    next.history.push((
+                        gd.inner.clone(),
+                        next.time_delta,
+                        next.index_delta
+                    ));
+                }
                 next.step = false;                
             }
+
+            next.inner = self.game.step(event, gd.inner);
         }
         next
     }
