@@ -58,7 +58,7 @@ fn main() {
     let sc = snowmew::SnowmewConfig::new();
 
     let mut gd = GameData::new();
-    let loader = Obj::load(&Path::new("assets/rust_logo.obj")).expect("Failed to load OBJ");
+    let loader = Obj::load(&Path::new("assets/rust_logo.obj")).ok().expect("Failed to load OBJ");
     let import = gd.new_object(None, "import");
     loader.import(import, &mut gd);
 

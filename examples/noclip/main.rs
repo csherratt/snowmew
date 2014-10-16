@@ -37,7 +37,7 @@ use snowmew::input_integrator::{input_integrator, InputIntegratorState};
 use snowmew::game::Game;
 use snowmew::camera::Camera;
 use position::Positions;
-use graphics::{Graphics};
+use graphics::Graphics;
 use graphics::light;
 
 use render_data::Renderable;
@@ -73,7 +73,7 @@ fn main() {
     };
 
     let mut db = GameData::new();
-    let loader = Obj::load(&path).expect("Failed to load OBJ");
+    let loader = Obj::load(&path).ok().expect("Failed to load OBJ");
     let import = db.new_object(None, "import");
     loader.import(import, &mut db);
     let scene = db.new_scene("scene");
