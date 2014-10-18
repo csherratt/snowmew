@@ -21,7 +21,7 @@
 #![feature(globs)]
 #![allow(experimental)]
 #![feature(macro_rules)]
-#![feature(if_let)] 
+#![feature(if_let)]
 
 extern crate time;
 extern crate glfw;
@@ -30,6 +30,7 @@ extern crate cow;
 extern crate sync;
 extern crate native;
 extern crate serialize;
+extern crate nice_glfw;
 
 extern crate gl;
 extern crate green;

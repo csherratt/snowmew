@@ -13,6 +13,9 @@ path = "lib.rs"
 [dependencies.glfw]
 git = "https://github.com/bjz/glfw-rs.git"
 
+[dependencies.nice_glfw]
+git = "https://github.com/cmr/nice_glfw.git"
+
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
 

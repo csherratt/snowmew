@@ -19,6 +19,7 @@ use libc::c_void;
 use glfw::{WindowEvent, Glfw, Context, FullScreen};
 use glfw::{Windowed, RenderContext};
 use glfw;
+use nice_glfw;
 use gl;
 
 use collections::TrieMap;
@@ -28,12 +29,6 @@ use ovr;
 use input;
 
 pub type WindowId = uint;
-
-#[cfg(target_os="macos")]
-const OS_GL_MINOR_MAX: u32 = 1;
-
-#[cfg(target_os="linux")]
-const OS_GL_MINOR_MAX: u32 = 4;
 
 struct WindowHandle {
     window: glfw::Window,
@@ -72,16 +67,15 @@ impl IOManager {
         InputHandle{ handle: id }
     }
 
-    fn create_window_context(&self, width: u32, height: u32, name: &str, mode: glfw::WindowMode) 
+    fn create_window_context(&self, width: u32, height: u32, name: &str, mode: glfw::WindowMode)
             -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
 
-        self.glfw.window_hint(glfw::ContextVersion(4, OS_GL_MINOR_MAX));
-        let window = self.glfw.create_window(width, height, name, mode);
-        if window.is_some() {
-            return window;
-        }
-
-        None
+        nice_glfw::WindowBuilder::new(&self.glfw)
+            .try_modern_context_hints()
+            .size(width, height)
+            .title(name)
+            .mode(mode)
+            .create()
     }
 
     pub fn window(&mut self, size: (u32, u32)) -> Option<Window> {
