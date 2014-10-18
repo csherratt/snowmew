@@ -333,8 +333,8 @@ impl RenderManagerContext {
         };
 
         let shadow_info = gfx::tex::TextureInfo {
-            width: 4096,
-            height: 4096,
+            width: 2048,
+            height: 2048,
             depth: 1,
             levels: 1,
             kind: gfx::tex::Texture2D,
@@ -560,7 +560,7 @@ impl RenderManagerContext {
             );
         }
 
-        self.graphics.device.generate_mipmap(&self.shadow);
+        //self.graphics.device.generate_mipmap(&self.shadow);
 
     }
 
