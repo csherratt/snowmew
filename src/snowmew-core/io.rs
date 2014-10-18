@@ -267,21 +267,21 @@ impl IOManager {
         self.glfw.poll_events();
     }
 
-    pub fn next_event(&mut self, handle: &InputHandle) -> Option<input::Event> {
+    pub fn next_event(&mut self, handle: &InputHandle) -> input::EventGroup {
         let evt = self.windows.find_mut(&handle.handle)
         .map(|rx| {
             for (_, evt) in glfw::flush_messages(&rx.receiver) {
-                match input::Event::from_glfw(evt) {
-                    Some(x) => return Some(x),
-                    None => ()
+                let evt = input::Event::from_glfw(evt);
+                if evt != input::NopEvent {
+                    return evt;
                 }
             }
-            None
+            input::NopEvent
         });
 
         match evt {
             Some(e) => e,
-            _ => None
+            _ => input::NopEvent
         }
     }
 
@@ -368,7 +368,7 @@ impl Window {
     pub fn swap_buffers(&self) {
         self.render.swap_buffers()
     }
-    
+
     pub fn make_context_current(&self) {
         self.render.make_current()
     }

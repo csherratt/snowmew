@@ -46,6 +46,7 @@ use sync::Arc;
 use opencl::hl::{Device, get_platforms, GPU, CPU};
 use std::io::timer::Timer;
 use std::time::Duration;
+use common::Common;
 
 pub mod common;
 pub mod camera;
@@ -54,6 +55,8 @@ pub mod game;
 pub mod input;
 pub mod input_integrator;
 pub mod debugger;
+pub mod config;
+
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();
@@ -63,7 +66,7 @@ fn get_cl() -> Option<Arc<Device>> {
         let devices = platform.get_devices_by_types(&[GPU]);
         if devices.len() != 0 {
             return Some(Arc::new(devices[0]));
-        } 
+        }
     }
 
     // use cpu if no gpu was found
@@ -71,7 +74,7 @@ fn get_cl() -> Option<Arc<Device>> {
         let devices = platform.get_devices_by_types(&[CPU, GPU]);
         if devices.len() != 0 {
             return Some(Arc::new(devices[0]));
-        } 
+        }
     }
 
     None
@@ -166,7 +169,7 @@ impl SnowmewConfig {
         }
     }
 
-    pub fn start<GameData: Clone,
+    pub fn start<GameData: Common+Clone,
                  Game: game::Game<GameData, input::Event>,
                  R: Render<GameData>,
                  RF: RenderFactory<GameData, R>>(self, render: Box<RF>, mut game: Game, mut gd: GameData) {
@@ -192,10 +195,20 @@ impl SnowmewConfig {
             timer_port.recv();
             im.poll();
             loop {
-                if let Some(evt) = im.next_event(&ih) {
-                    gd = game.step(evt, gd);
-                } else {
-                    break;
+                match im.next_event(&ih) {
+                    input::Game(evt) => gd = game.step(evt, gd),
+                    input::Window(input::Size(x, y)) => {
+                        gd.set_config("window/size/x", x);
+                        gd.set_config("window/size/y", y);
+                    }
+                    input::Window(input::Position(x, y)) => {
+                        gd.set_config("window/position/x", x);
+                        gd.set_config("window/position/y", y);
+                    }
+                    input::Window(input::MouseOver(mouse)) => {
+                        gd.set_config("window/mouse_over", mouse);
+                    }
+                    input::NopEvent => break
                 }
             }
 

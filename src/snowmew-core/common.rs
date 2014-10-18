@@ -14,6 +14,9 @@
 
 use cow::btree::{BTreeMap, BTreeMapIterator, BTreeSet, BTreeSetIterator};
 use serialize::Encodable;
+use config;
+
+const SPLIT_TOKEN: char = '/';
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -44,25 +47,21 @@ pub struct CommonData {
 
     scene_children: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
 
-    // this should probably be moved...
-    show_cursor:    bool
+    config:         BTreeMap<ObjectKey, config::ConfigField>
 }
 
 impl CommonData {
     pub fn new() -> CommonData {
         CommonData {
-            show_cursor:        true,
-
-            last_sid:           1,
-            strings:            BTreeMap::new(),
-            string_to_key:      BTreeMap::new(),
-
-            last_oid:           1,
-            objects:            BTreeMap::new(),
-            parent_child:       BTreeMap::new(),
-
-            scene_children:     BTreeMap::new()
-        }   
+            last_sid: 1,
+            strings: BTreeMap::new(),
+            string_to_key: BTreeMap::new(),
+            last_oid: 1,
+            objects: BTreeMap::new(),
+            parent_child: BTreeMap::new(),
+            scene_children: BTreeMap::new(),
+            config: BTreeMap::new()
+        }
     }
 
     fn ifind(&self, node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey> {
@@ -90,17 +89,16 @@ impl CommonData {
     fn name(&self, key: ObjectKey) -> String {
         match self.objects.find(&key) {
             Some(node) => {
-                format!("{:s}/{:s}", self.name(node.parent), *self.strings.find(&node.name).unwrap())
+                format!("{:s}{}{:s}", self.name(node.parent), SPLIT_TOKEN, *self.strings.find(&node.name).unwrap())
             },
             None => "base".to_string()
         }
     }
 
-
     fn new_key(&mut self) -> ObjectKey {
         let new_key = self.last_oid;
         self.last_oid += 1;
-        new_key        
+        new_key
     }
 
     fn update_parent_child(&mut self, parent: ObjectKey, child_name: StringKey, child: ObjectKey) {
@@ -143,6 +141,7 @@ impl CommonData {
         }
     }
 }
+
 
 pub trait Common {
     fn get_common<'a>(&'a self) -> &'a CommonData;
@@ -208,8 +207,11 @@ pub trait Common {
     }
 
     fn find(&self, str_key: &str) -> Option<ObjectKey> {
-        let mut node = None;
-        for s in str_key.split('/') {
+        self.get_common().find_from(None, str_key)
+    }
+
+    fn find_from(&self, mut node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey> {
+        for s in str_key.split(SPLIT_TOKEN) {
             let next = self.get_common().ifind(node, s);
             if next == None {
                 return None
@@ -217,6 +219,27 @@ pub trait Common {
             node = next;
         }
         node
+    }
+
+    fn build_path(&mut self, mut node: Option<ObjectKey>, str_key: &str) -> ObjectKey {
+        let split: Vec<&str> = str_key.split(SPLIT_TOKEN).collect();
+        for (idx, &s) in split.iter().enumerate() {
+            if idx + 1 == split.len() {
+                let mut next = self.get_common().ifind(node, s);
+                if next == None {
+                    next = Some(self.new_object(node, s));
+                }
+                node = next;
+            } else {
+                let mut next = self.get_common().ifind(node, s);
+                if next == None {
+                    next = Some(self.add_dir(node, s));
+                }
+                node = next;
+            }
+        }
+
+        node.unwrap()
     }
 
     fn walk_dir<'a>(&'a self, oid: ObjectKey) -> DirIter<'a> {
@@ -229,6 +252,35 @@ pub trait Common {
 
     fn name(&self, key: ObjectKey) -> String {
         self.get_common().name(key)
+    }
+
+    fn get_config<T: config::FromConfig>(&self, name: &str) -> Option<T> {
+        let config_dir = match self.get_common().find_from(None, "config") {
+            Some(config_dir) => config_dir,
+            None => return None
+        };
+
+        let oid = match self.get_common().find_from(Some(config_dir), name) {
+            Some(oid) => oid,
+            None => return None
+        };
+
+        let value = match self.get_common().config.find(&oid) {
+            Some(value) => value.clone(),
+            None => return None
+        };
+
+        config::FromConfig::from_config_field(value)
+    }
+
+    fn set_config<T: config::ToConfig>(&mut self, name: &str, v: T) {
+        let mut config_dir = self.find_from(None, "config");
+        if None == config_dir {
+            config_dir = Some(self.add_dir(None, "config"));
+        }
+
+        let oid = self.build_path(config_dir, name);
+        self.get_common_mut().config.insert(oid, v.to_config_field());
     }
 }
 

@@ -279,25 +279,50 @@ pub enum Event {
     Cadance(uint, f64)
 }
 
+#[deriving(Clone, Show, PartialEq)]
+pub enum WindowEvent {
+    MouseOver(bool),
+    Position(int, int),
+    Size(int, int)
+}
+
+#[deriving(Clone, Show, PartialEq)]
+pub enum EventGroup {
+    Game(Event),
+    Window(WindowEvent),
+    NopEvent
+}
+
 impl Event {
-    pub fn from_glfw(evt: glfw::WindowEvent) -> Option<Event> {
+    pub fn from_glfw(evt: glfw::WindowEvent) -> EventGroup {
         match evt {
             glfw::MouseButtonEvent(button, glfw::Press, _) => {
-                Some(ButtonDown(from_glfw_mouse_button(button)))
+                Game(ButtonDown(from_glfw_mouse_button(button)))
             }
             glfw::MouseButtonEvent(button, glfw::Release, _) => {
-                Some(ButtonUp(from_glfw_mouse_button(button)))
+                Game(ButtonUp(from_glfw_mouse_button(button)))
             }
             glfw::KeyEvent(button, _, glfw::Press, _) => {
-                Some(ButtonDown(from_glfw_key(button)))
+                Game(ButtonDown(from_glfw_key(button)))
             }
             glfw::KeyEvent(button, _, glfw::Release, _) => {
-                Some(ButtonUp(from_glfw_key(button)))
+                Game(ButtonUp(from_glfw_key(button)))
             }
-            glfw::CursorPosEvent(x, y) => Some(Move(x, y)),
+            glfw::CursorPosEvent(x, y) => {
+                Game(Move(x, y))
+            }
+            glfw::CursorEnterEvent(x) => {
+                Window(MouseOver(x))
+            }
+            glfw::PosEvent(x, y) => {
+                Window(Position(x as int, y as int))
+            }
+            glfw::FramebufferSizeEvent(x, y) => {
+                Window(Size(x as int, y as int))
+            }
             x => {
                 println!("unhandled {}", x);
-                None
+                NopEvent
             }
         }
     }
