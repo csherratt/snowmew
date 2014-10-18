@@ -17,10 +17,8 @@
 #![crate_type = "lib"]
 #![comment = "An asset loader for snowmew"]
 
-extern crate debug;
 extern crate collections;
 extern crate core;
-
 extern crate cgmath;
 extern crate genmesh;
 extern crate "stb_image" as image;
