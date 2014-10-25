@@ -154,6 +154,8 @@ pub trait Common {
     fn window_action(&mut self, evt: input::WindowEvent) {
         self.get_common_mut().io.window_action(evt);
     }
+
+    fn io_state(&self) -> &IoState { &self.get_common().io }
 }
 
 pub trait Duplicate {

@@ -61,5 +61,5 @@ impl Graphics for GameData {
 
 impl Renderable for GameData {
     fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render }
-    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render } 
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render }
 }

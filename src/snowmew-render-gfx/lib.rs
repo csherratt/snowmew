@@ -132,7 +132,7 @@ GLSL_150: b"
         } else {
             ka = ka_color;
         }
- 
+
         if (1 == ks_use_texture) {
             ks = texture(ks_texture, o_texture);
         } else {
@@ -666,7 +666,16 @@ impl RenderManagerContext {
         println!("{0:4.3}ms", (end - start) * 1000.);
     }
 
+    fn config<RD: Renderable>(&mut self, db: &RD) {
+        let (width, height) = db.io_state().size;
+        if self.frame.width as uint != width ||
+           self.frame.height as uint != height {
+            self.frame = gfx::Frame::new(width as u16, height as u16);
+        }
+    }
+
     fn update<RD: Renderable>(&mut self, db: RD) {
+        self.config(&db);
         self.load_meshes(&db);
         self.load_textures(&db);
         self.draw(&db);
@@ -713,7 +722,6 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
                 }
                 rc.update(db);
             }
-            
         });
 
         RenderManager { channel: sender }

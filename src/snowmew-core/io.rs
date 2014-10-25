@@ -392,11 +392,11 @@ impl Window {
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct IoState {
-    render_size: (uint, uint),
-    size: (uint, uint),
-    position: (int, int),
-    show_mouse: bool,
-    mouse_over: bool
+    pub render_size: (uint, uint),
+    pub size: (uint, uint),
+    pub position: (int, int),
+    pub show_mouse: bool,
+    pub mouse_over: bool
 }
 
 impl IoState {
