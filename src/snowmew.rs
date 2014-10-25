@@ -39,7 +39,6 @@ pub mod render {
 
 pub mod graphics {
     pub use _graphics::{
-        default,
         Drawable,
         Geometry,
         geometry,

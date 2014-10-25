@@ -56,8 +56,6 @@ pub mod game;
 pub mod input;
 pub mod input_integrator;
 pub mod debugger;
-pub mod config;
-
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();
@@ -198,17 +196,7 @@ impl SnowmewConfig {
             loop {
                 match im.next_event(&ih) {
                     input::Game(evt) => gd = game.step(evt, gd),
-                    input::Window(input::Size(x, y)) => {
-                        gd.set_config("window/size/x", x);
-                        gd.set_config("window/size/y", y);
-                    }
-                    input::Window(input::Position(x, y)) => {
-                        gd.set_config("window/position/x", x);
-                        gd.set_config("window/position/y", y);
-                    }
-                    input::Window(input::MouseOver(mouse)) => {
-                        gd.set_config("window/mouse_over", mouse);
-                    }
+                    input::Window(evt) => gd.get_common_mut().window_action(evt),
                     input::NopEvent => break
                 }
             }

@@ -244,8 +244,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
                    dm: &DrawMatrices,
                    dt: &DrawTarget) {
 
-        let plane = drawlist.find("core/geometry/plane")
-                .expect("plane not found");
+        let plane = drawlist.standard_graphics().shapes.plane;
         let plane = drawlist.geometry(plane)
                 .expect("Could not fetch geometry of plane");
         let shader = db.defered_shader_point_light
