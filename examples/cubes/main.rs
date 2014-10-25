@@ -58,10 +58,10 @@ fn main() {
     let sc = snowmew::SnowmewConfig::new();
 
     let mut gd = GameData::new();
-    let scene = gd.new_scene("scene");
+    let scene = gd.new_scene();
 
-    let cube = gd.find("core/geometry/cube").expect("cube not found");
-    let red = gd.find("core/material/flat/red").expect("red not found");
+    let cube = gd.standard_graphics().shapes.cube;;
+    let red = gd.standard_graphics().materials.flat.red;
 
     let args = std::os::args();
     let count = if args.len() >= 2 {
@@ -73,7 +73,7 @@ fn main() {
     for x in range(-count, count) {
         for y in range(-count, count) {
             for z in range(-count, count) {
-                let new = gd.new_object(Some(scene), format!("cube_{}_{}_{}", x, y, z).as_slice());
+                let new = gd.new_object(Some(scene));
                 let x = x as f32 * 2.5;
                 let y = y as f32 * 2.5;
                 let z = z as f32 * 2.5;
@@ -86,9 +86,9 @@ fn main() {
 
     let sun = light::Directional::new(Vector3::new(0.5f32, 1., 0.5),
                                       Vector3::new(1f32, 1., 1.), 0.25);
-    gd.new_light(scene, "sun", light::DirectionalLight(sun));
+    gd.new_light(light::DirectionalLight(sun));
 
-    let camera = gd.new_object(None, "camera");
+    let camera = gd.new_object(None);
     gd.set_to_identity(camera);
 
     gd.set_scene(scene);

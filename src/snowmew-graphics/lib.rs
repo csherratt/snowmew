@@ -28,6 +28,7 @@ extern crate cgmath;
 extern crate collision;
 extern crate genmesh;
 extern crate serialize;
+extern crate sync;
 extern crate "stb_image" as image;
 
 extern crate "snowmew-core" as snowmew;
@@ -57,7 +58,7 @@ pub use light::{
 
 pub mod geometry;
 pub mod material;
-pub mod default;
+pub mod standard;
 pub mod texture;
 pub mod texture_atlas;
 pub mod light;
@@ -91,7 +92,8 @@ pub struct GraphicsData {
     texture:            BTreeMap<ObjectKey, Texture>,
     texture_to_atlas:   BTreeMap<ObjectKey, (uint, uint)>,
     atlases:            Vec<texture_atlas::Atlas>,
-    lights:             BTreeMap<ObjectKey, light::Light>
+    lights:             BTreeMap<ObjectKey, light::Light>,
+    standard:           Option<standard::Standard>
 }
 
 impl GraphicsData {
@@ -107,7 +109,8 @@ impl GraphicsData {
             atlases: Vec::new(),
             texture_to_atlas: BTreeMap::new(),
             material_idx_last: 0,
-            sphere: BTreeMap::new()
+            sphere: BTreeMap::new(),
+            standard: None
         }
     }
 }
@@ -117,12 +120,21 @@ pub trait Graphics: Common {
     fn get_graphics<'a>(&'a self) -> &'a GraphicsData;
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData;
 
+    fn load_standard_graphics(&mut self) {
+        let standard = standard::Standard::new(self);
+        self.get_graphics_mut().standard = Some(standard);
+    }
+
+    fn standard_graphics(&self) -> &standard::Standard {
+        self.get_graphics().standard.as_ref().expect("Standard graphics not loaded")
+    }
+
     fn drawable<'a>(&'a self, key: ObjectKey) -> Option<&'a Drawable> {
         self.get_graphics().draw.find(&key)
     }
 
-    fn new_vertex_buffer(&mut self, parent: ObjectKey, name: &str, vb: VertexBuffer) -> ObjectKey {
-        let oid = self.new_object(Some(parent), name);
+    fn new_vertex_buffer(&mut self, vb: VertexBuffer) -> ObjectKey {
+        let oid = self.new_object(None);
         self.get_graphics_mut().vertex.insert(oid, vb);
         oid
     }
@@ -131,8 +143,8 @@ pub trait Graphics: Common {
         self.get_graphics().geometry.find(&oid)
     }
 
-    fn new_geometry(&mut self, parent: ObjectKey, name: &str, geo: Geometry) -> ObjectKey {
-        let oid = self.new_object(Some(parent), name);
+    fn new_geometry(&mut self, geo: Geometry) -> ObjectKey {
+        let oid = self.new_object(None);
         self.get_graphics_mut().geometry.insert(oid, geo);
         let sphere = self.geometry_to_collider(oid)
             .expect("Could not create sphere collider");
@@ -159,8 +171,8 @@ pub trait Graphics: Common {
         }
     }
 
-    fn new_material(&mut self, parent: ObjectKey, name: &str, material: Material) -> ObjectKey {
-        let obj = self.new_object(Some(parent), name);
+    fn new_material(&mut self, material: Material) -> ObjectKey {
+        let obj = self.new_object(None);
         self.get_graphics_mut().material.insert(obj, material);
         let idx = self.get_graphics().material_idx_last;
         self.get_graphics_mut().material_idx_last += 1;
@@ -228,8 +240,8 @@ pub trait Graphics: Common {
         Some(iter.map(|(_, &[x, y, z], _, _)| Point3::new(x, y, z)).collect())
     }
 
-    fn new_texture(&mut self, parent: ObjectKey, name: &str, texture: Texture) -> ObjectKey {
-        let oid = self.new_object(Some(parent), name);
+    fn new_texture(&mut self, texture: Texture) -> ObjectKey {
+        let oid = self.new_object(None);
         let mut found = None;
         for (idx, atlas) in self.get_graphics_mut().atlases.iter_mut().enumerate() {
             if atlas.check_texture(&texture) {
@@ -266,8 +278,8 @@ pub trait Graphics: Common {
         self.get_graphics().atlases.iter()
     }
 
-    fn new_light(&mut self, parent: ObjectKey, name: &str, light: Light) -> ObjectKey {
-        let oid = self.new_object(Some(parent), name);
+    fn new_light(&mut self, light: Light) -> ObjectKey {
+        let oid = self.new_object(None);
         self.get_graphics_mut().lights.insert(oid, light);
         oid
     }

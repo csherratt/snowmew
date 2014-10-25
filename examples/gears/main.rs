@@ -59,31 +59,27 @@ fn main() {
 
     let mut gd = GameData::new();
     let loader = Obj::load(&Path::new("assets/rust_logo.obj")).ok().expect("Failed to load OBJ");
-    let import = gd.new_object(None, "import");
-    loader.import(import, &mut gd);
+    let obj = loader.import(&mut gd);
 
-    let scene = gd.new_scene("scene");
-    let logo = gd.find("import/objects/rust_logo").expect("geometry not found from import");
+    let scene = gd.new_scene();
+    let &logo = obj.find(&"rust_logo".to_string()).expect("geometry not found from import");
     let logo_draw = gd.get_draw(logo).expect("Could not get draw binding");
 
-    let parent = gd.add_dir(Some(scene), "gears");
-
-    let scene_logos = vec!((gd.new_object(Some(parent), "logo0"), "core/material/flat/red"),
-                           (gd.new_object(Some(parent), "logo1"), "core/material/flat/blue"),
-                           (gd.new_object(Some(parent), "logo2"), "core/material/flat/green"));
+    let scene_logos = vec!((gd.new_object(Some(scene)), gd.standard_graphics().materials.flat.green),
+                           (gd.new_object(Some(scene)), gd.standard_graphics().materials.flat.blue),
+                           (gd.new_object(Some(scene)), gd.standard_graphics().materials.flat.red));
 
     for (idx, &(logo, material)) in scene_logos.iter().enumerate() {
-        println!("idx={}, logo={}", idx, logo);
-        let mat = gd.find(material).expect("material not found");
-        gd.set_draw(logo, logo_draw.geometry, mat);
+        gd.set_draw(logo, logo_draw.geometry, material);
         gd.set_scale(logo, 0.136);
         gd.set_displacement(logo, Vector3::new(idx as f32, 0f32, 0f32));
         gd.set_rotation(logo, Rotation3::from_euler(rad(0f32),
                                                     deg(90f32).to_rad(),
                                                     deg(90f32).to_rad()));
+        gd.gears.push(logo);
     }
 
-    let camera_loc = gd.new_object(None, "camera");
+    let camera_loc = gd.new_object(None);
 
     gd.update_location(camera_loc, Decomposed{scale: 1f32,
                                               rot:   Rotation::identity(),
@@ -92,7 +88,7 @@ fn main() {
     let sun = light::Directional::new(Vector3::new(0.5f32, 1., 0.5),
                                       Vector3::new(1f32, 1., 1.), 0.25);
 
-    gd.new_light(scene, "sun", light::DirectionalLight(sun));
+    gd.new_light(light::DirectionalLight(sun));
     gd.set_scene(scene);
     gd.set_camera(camera_loc);
 
@@ -106,9 +102,8 @@ struct Gears;
 impl Game<GameData, InputIntegratorState> for Gears {
     fn step(&mut self, state: InputIntegratorState, gd: GameData) -> GameData {
         let mut next = gd.clone();
-        let gears_dir = gd.find("scene/gears").unwrap();
 
-        for (idx, (_, logo)) in gd.walk_dir(gears_dir).enumerate() {
+        for (idx, &logo) in gd.gears.iter().enumerate() {
             let t = state.time() as f32 * 10.;
             let this_gear_rot = if idx % 2 == 0 { t } else { 5.625 - t };
             next.set_rotation(logo, Rotation3::from_euler(deg(0f32).to_rad(),

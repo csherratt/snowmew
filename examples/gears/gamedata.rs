@@ -13,10 +13,10 @@
 //   limitations under the License.
 
 
+use snowmew::ObjectKey;
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
-use graphics::default::load_default;
 use render_data::{Renderable, RenderData};
 use serialize::Encodable;
 
@@ -25,7 +25,8 @@ pub struct GameData {
     common: CommonData,
     position: PositionData,
     graphics: GraphicsData,
-    render: RenderData
+    render: RenderData,
+    pub gears: Vec<ObjectKey>
 }
 
 impl GameData {
@@ -34,11 +35,11 @@ impl GameData {
             common: CommonData::new(),
             position: PositionData::new(),
             graphics: GraphicsData::new(),
-            render: RenderData::new()
+            render: RenderData::new(),
+            gears: Vec::new()
         };
 
-        load_default(&mut gd);
-
+        gd.load_standard_graphics();
         gd
     }
 }

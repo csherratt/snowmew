@@ -12,11 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use cow::btree::{BTreeMap, BTreeMapIterator, BTreeSet, BTreeSetIterator};
+use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator};
 use serialize::Encodable;
-use config;
-
-const SPLIT_TOKEN: char = '/';
+use io::IoState;
+use input;
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -29,7 +28,6 @@ pub struct FrameInfo {
 #[deriving(Clone, Default, Encodable, Decodable)]
 pub struct Object {
     pub parent: ObjectKey,
-    pub name: ObjectKey,
 }
 
 pub type ObjectKey = u32;
@@ -37,61 +35,21 @@ pub type StringKey = u32;
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct CommonData {
-    last_sid:       StringKey,
-    strings:        BTreeMap<StringKey, String>,
-    string_to_key:  BTreeMap<String, StringKey>,
-
     last_oid:       ObjectKey,
     objects:        BTreeMap<ObjectKey, Object>,
-    parent_child:   BTreeMap<ObjectKey, BTreeMap<StringKey, ObjectKey>>,
-
+    parent_child:   BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
     scene_children: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
-
-    config:         BTreeMap<ObjectKey, config::ConfigField>
+    io: IoState
 }
 
 impl CommonData {
     pub fn new() -> CommonData {
         CommonData {
-            last_sid: 1,
-            strings: BTreeMap::new(),
-            string_to_key: BTreeMap::new(),
             last_oid: 1,
             objects: BTreeMap::new(),
             parent_child: BTreeMap::new(),
             scene_children: BTreeMap::new(),
-            config: BTreeMap::new()
-        }
-    }
-
-    fn ifind(&self, node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey> {
-        let node = match node {
-            Some(key) => key,
-            None => 0
-        };
-
-        let child = match self.parent_child.find(&node) {
-            Some(children) => children,
-            None => return None,
-        };
-
-        let str_key = match self.string_to_key.find(&str_key.to_string()) {
-            Some(key) => key,
-            None => return None
-        };
-
-        match child.find(str_key) {
-            Some(a) => Some(*a),
-            None => None
-        }
-    }
-
-    fn name(&self, key: ObjectKey) -> String {
-        match self.objects.find(&key) {
-            Some(node) => {
-                format!("{:s}{}{:s}", self.name(node.parent), SPLIT_TOKEN, *self.strings.find(&node.name).unwrap())
-            },
-            None => "base".to_string()
+            io: IoState::new()
         }
     }
 
@@ -101,15 +59,15 @@ impl CommonData {
         new_key
     }
 
-    fn update_parent_child(&mut self, parent: ObjectKey, child_name: StringKey, child: ObjectKey) {
+    fn update_parent_child(&mut self, parent: ObjectKey, child: ObjectKey) {
         let new = match self.parent_child.find_mut(&parent) {
             Some(child_list) => {
-                child_list.insert(child_name, child);
+                child_list.insert(child);
                 None
             },
             None => {
-                let mut child_list = BTreeMap::new();
-                child_list.insert(child_name, child);
+                let mut child_list = BTreeSet::new();
+                child_list.insert(child);
                 Some(child_list)
             }
         };
@@ -119,27 +77,6 @@ impl CommonData {
             None => (),
         }
     }
-
-    fn new_string(&mut self, s: &str) -> StringKey {
-        let (update, name) = match self.string_to_key.find(&s.to_string()) {
-            None => {
-                (true, 0)
-            }
-            Some(key) => {
-                (false, key.clone())
-            }
-        };
-
-        if update {
-            let name = self.last_sid;
-            self.last_sid += 1;
-            self.strings.insert(name, s.to_string());
-            self.string_to_key.insert(s.to_string(), name);
-            name
-        } else {
-            name
-        }
-    }
 }
 
 
@@ -147,17 +84,17 @@ pub trait Common {
     fn get_common<'a>(&'a self) -> &'a CommonData;
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData;
 
-    fn add_dir(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
-        self.new_object(parent, name)
+    fn add_dir(&mut self, parent: Option<ObjectKey>) -> ObjectKey {
+        self.new_object(parent)
     }
 
-    fn new_scene(&mut self, name: &str) -> ObjectKey {
-        let oid = self.new_object(None, name);
+    fn new_scene(&mut self) -> ObjectKey {
+        let oid = self.new_object(None);
         self.get_common_mut().scene_children.insert(oid, BTreeSet::new());
         oid
     }
 
-    fn new_object(&mut self, parent: Option<ObjectKey>, name: &str) -> ObjectKey {
+    fn new_object(&mut self, parent: Option<ObjectKey>) -> ObjectKey {
         let new_key = self.get_common_mut().new_key();
         let mut parent = match parent {
             Some(key) => key,
@@ -165,12 +102,11 @@ pub trait Common {
         };
 
         let object = Object {
-            name: self.get_common_mut().new_string(name),
             parent: parent
         };
 
         self.get_common_mut().objects.insert(new_key, object);
-        self.get_common_mut().update_parent_child(parent, object.name, new_key);
+        self.get_common_mut().update_parent_child(parent, new_key);
 
         let mut scene_id = None;
         while parent != 0 {
@@ -206,81 +142,17 @@ pub trait Common {
         self.get_common().objects.find(&oid)
     }
 
-    fn find(&self, str_key: &str) -> Option<ObjectKey> {
-        self.get_common().find_from(None, str_key)
-    }
-
-    fn find_from(&self, mut node: Option<ObjectKey>, str_key: &str) -> Option<ObjectKey> {
-        for s in str_key.split(SPLIT_TOKEN) {
-            let next = self.get_common().ifind(node, s);
-            if next == None {
-                return None
-            }
-            node = next;
-        }
-        node
-    }
-
-    fn build_path(&mut self, mut node: Option<ObjectKey>, str_key: &str) -> ObjectKey {
-        let split: Vec<&str> = str_key.split(SPLIT_TOKEN).collect();
-        for (idx, &s) in split.iter().enumerate() {
-            if idx + 1 == split.len() {
-                let mut next = self.get_common().ifind(node, s);
-                if next == None {
-                    next = Some(self.new_object(node, s));
-                }
-                node = next;
-            } else {
-                let mut next = self.get_common().ifind(node, s);
-                if next == None {
-                    next = Some(self.add_dir(node, s));
-                }
-                node = next;
-            }
-        }
-
-        node.unwrap()
-    }
-
     fn walk_dir<'a>(&'a self, oid: ObjectKey) -> DirIter<'a> {
         let dir = self.get_common().parent_child.find(&oid).unwrap();
-        DirIter {
-            common: self.get_common(),
-            iter: dir.iter()
-        }
+        dir.iter()
     }
 
     fn name(&self, key: ObjectKey) -> String {
         self.get_common().name(key)
     }
 
-    fn get_config<T: config::FromConfig>(&self, name: &str) -> Option<T> {
-        let config_dir = match self.get_common().find_from(None, "config") {
-            Some(config_dir) => config_dir,
-            None => return None
-        };
-
-        let oid = match self.get_common().find_from(Some(config_dir), name) {
-            Some(oid) => oid,
-            None => return None
-        };
-
-        let value = match self.get_common().config.find(&oid) {
-            Some(value) => value.clone(),
-            None => return None
-        };
-
-        config::FromConfig::from_config_field(value)
-    }
-
-    fn set_config<T: config::ToConfig>(&mut self, name: &str, v: T) {
-        let mut config_dir = self.find_from(None, "config");
-        if None == config_dir {
-            config_dir = Some(self.add_dir(None, "config"));
-        }
-
-        let oid = self.build_path(config_dir, name);
-        self.get_common_mut().config.insert(oid, v.to_config_field());
+    fn window_action(&mut self, evt: input::WindowEvent) {
+        self.get_common_mut().io.window_action(evt);
     }
 }
 
@@ -293,21 +165,4 @@ impl Common for CommonData {
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}
 }
 
-pub struct DirIter<'a> {
-    common: &'a CommonData,
-    iter: BTreeMapIterator<'a, StringKey, ObjectKey>,
-}
-
-impl<'a> Iterator<(&'a str, ObjectKey)> for DirIter<'a> {
-    fn next(&mut self) -> Option<(&'a str, ObjectKey)> {
-        match self.iter.next() {
-            Some((sid, oid)) => {
-                Some((self.common.strings
-                        .find(sid).expect("Found StringKey w/o Key").as_slice(),
-                    *oid)
-                )
-            }
-            None => None
-        }
-    }
-}
+pub type DirIter<'a> = BTreeSetIterator<'a, ObjectKey>;

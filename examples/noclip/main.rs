@@ -74,14 +74,13 @@ fn main() {
 
     let mut db = GameData::new();
     let loader = Obj::load(&path).ok().expect("Failed to load OBJ");
-    let import = db.new_object(None, "import");
-    loader.import(import, &mut db);
-    let scene = db.new_scene("scene");
-    let geo_dir = db.find("import/objects").expect("geometry not found from import");
-    for (name, id) in db.clone().walk_dir(geo_dir) {
+    let objs = loader.import(&mut db);
+
+    let scene = db.new_scene();
+    for (_, &id) in objs.iter() {
         match db.get_draw(id) {
             Some(d) => {
-                let obj = db.new_object(Some(scene), name);
+                let obj = db.new_object(Some(scene));
                 db.set_draw(obj, d.geometry, d.material);
                 db.set_scale(obj, scale);
             }
@@ -89,7 +88,7 @@ fn main() {
         }
     }
 
-    let camera_loc = db.new_object(None, "camera");
+    let camera_loc = db.new_object(None);
     db.set_to_identity(camera_loc);
 
     let pos = if args.len() >= 6 {
@@ -115,7 +114,7 @@ fn main() {
                                       Vector3::new(1f32, 1., 1.), 1.);
     db.set_scene(scene);
     db.set_camera(camera_loc);
-    db.new_light(scene, "sun", light::DirectionalLight(sun));
+    db.new_light(light::DirectionalLight(sun));
 
     let (game, gd) = input_integrator(Noclip, db);
     let (game, gd) = debugger(game, gd);

@@ -389,3 +389,38 @@ impl Window {
         self.os_spec.display
     }
 }
+
+#[deriving(Clone, Encodable, Decodable)]
+pub struct IoState {
+    render_size: (uint, uint),
+    size: (uint, uint),
+    position: (int, int),
+    show_mouse: bool,
+    mouse_over: bool
+}
+
+impl IoState {
+    pub fn new() -> IoState {
+        IoState {
+            render_size: (0, 0),
+            size: (0, 0),
+            position: (0, 0),
+            show_mouse: true,
+            mouse_over: false
+        }
+    }
+
+    pub fn window_action(&mut self, win: input::WindowEvent) {
+        match win {
+            input::Size(x, y) => {
+                self.size = (x as uint, y as uint);
+            }
+            input::Position(x, y) => {
+                self.position = (x, y);
+            }
+            input::MouseOver(mouse) => {
+                self.mouse_over = mouse;
+            }
+        }
+    }
+}

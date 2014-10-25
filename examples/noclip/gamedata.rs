@@ -15,7 +15,6 @@
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
-use graphics::default::load_default;
 use render_data::{Renderable, RenderData};
 
 #[deriving(Clone)]
@@ -35,8 +34,7 @@ impl GameData {
             render: RenderData::new()
         };
 
-        load_default(&mut gd);
-
+        gd.load_standard_graphics();
         gd
     }
 }
