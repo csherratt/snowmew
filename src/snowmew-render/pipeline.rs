@@ -215,6 +215,10 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
 
 impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
     fn resize(&mut self, width: uint, height: uint) {
+        if self.width == width as i32 && self.height == height as i32 {
+            return;
+        }
+
         let textures: &mut [GLuint] = &mut [self.uv_texture,
                                             self.normals_texture,
                                             self.material_texture,
@@ -467,7 +471,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
         size.map(|which, size| {
             gl::BindFramebuffer(gl::FRAMEBUFFER, *framebuffers.eye(which));
             gl::BindTexture(gl::TEXTURE_2D, *textures.eye(which));
-        
+
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
@@ -487,7 +491,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
             size: size,
             window: window,
             frame_index: 0
-        }        
+        }
     }
 
     fn get_draw_target(&self, which: EyeType) -> DrawTarget {

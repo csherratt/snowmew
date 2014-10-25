@@ -143,13 +143,15 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, ObjectKey)>,
         let camera_trans = dl.position(camera);
         let camera = Camera::new(camera_trans);
 
+        let (w, h) = dl.io_state().size;
+        pipeline.resize(w, h);
         pipeline.render(&mut *dl, &mut db, &camera, &mut *qm);
         // if the device is a hmd we need to stall the gpu
         // to make sure it actually flipped the buffers
 
         if config.fps() {
             let end = precise_time_s();
-            println!("total: {:4.2f}ms capture: {:4.2f}ms {:4.1}fps", 
+            println!("total: {:4.2f}ms capture: {:4.2f}ms {:4.1}fps",
                 (end - dl.start_time()) * 1000., (end - capture) * 1000.,
                 1. / (end - last_frame));
             last_frame = end;

@@ -333,8 +333,8 @@ impl RenderManagerContext {
         };
 
         let shadow_info = gfx::tex::TextureInfo {
-            width: 2048,
-            height: 2048,
+            width: 512,
+            height: 512,
             depth: 1,
             levels: 1,
             kind: gfx::tex::Texture2D,
@@ -579,7 +579,8 @@ impl RenderManagerContext {
         let camera_trans = db.position(camera);
         let camera = Camera::new(camera_trans);
 
-        let proj = camera.projection_matrix(16. / 9.);
+        let (width, height) = db.io_state().size;
+        let proj = camera.projection_matrix(width as f32 / height as f32);
         let view = camera.view_matrix();
 
         self.data.view_mat = view.into_fixed();
