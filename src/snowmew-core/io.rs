@@ -32,6 +32,7 @@ pub type WindowId = uint;
 
 struct WindowHandle {
     window: glfw::Window,
+    forced_event: Option<WindowEvent>,
     receiver: Receiver<(f64, WindowEvent)>,
 }
 
@@ -56,10 +57,12 @@ impl IOManager {
         let id = self.window_id;
         self.window_id += 1;
 
+        let (w, h) = window.get_framebuffer_size();
 
         self.windows.insert(id, {
             WindowHandle {
                 window: window,
+                forced_event: Some(glfw::FramebufferSizeEvent(w, h)),
                 receiver: recv
             }
         });
@@ -264,6 +267,11 @@ impl IOManager {
     pub fn next_event(&mut self, handle: &InputHandle) -> input::EventGroup {
         let evt = self.windows.find_mut(&handle.handle)
         .map(|rx| {
+            // this is a hack to inject the correct size into the event buffer
+            match rx.forced_event.take() {
+                Some(evt) => return input::Event::from_glfw(evt),
+                None => ()
+            };
             for (_, evt) in glfw::flush_messages(&rx.receiver) {
                 let evt = input::Event::from_glfw(evt);
                 if evt != input::NopEvent {
@@ -402,8 +410,8 @@ pub struct IoState {
 impl IoState {
     pub fn new() -> IoState {
         IoState {
-            render_size: (0, 0),
-            size: (0, 0),
+            render_size: (1, 1),
+            size: (1, 1),
             position: (0, 0),
             show_mouse: true,
             mouse_over: false
