@@ -333,8 +333,8 @@ impl RenderManagerContext {
         };
 
         let shadow_info = gfx::tex::TextureInfo {
-            width: 512,
-            height: 512,
+            width: 2048,
+            height: 2048,
             depth: 1,
             levels: 1,
             kind: gfx::tex::Texture2D,
@@ -549,7 +549,6 @@ impl RenderManagerContext {
                                                join_maps(db.drawable_iter(),
                                                          db.location_iter())) {
 
-            let mat = db.material(draw.material).expect("Could not find material");
             let model = db.position(*id);
 
             self.shadow_data.model_mat = model.into_fixed();
@@ -590,7 +589,7 @@ impl RenderManagerContext {
 
         for (key, light) in db.light_iter() {
             match light {
-                &graphics::PointLight(p) => {}
+                &graphics::PointLight(_) => {}
                 &graphics::DirectionalLight(d) => {
                     let n = d.normal();
                     let n = Vector4::new(n.x, n.y, n.z, 0.);

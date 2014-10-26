@@ -71,8 +71,8 @@ fn main() {
 
     for (idx, &(logo, material)) in scene_logos.iter().enumerate() {
         gd.set_draw(logo, logo_draw.geometry, material);
-        gd.set_scale(logo, 0.136);
-        gd.set_displacement(logo, Vector3::new(idx as f32, 0f32, 0f32));
+        gd.set_scale(logo, 1.36);
+        gd.set_displacement(logo, Vector3::new((idx as f32 - 1.) * 10., 0f32, 0f32));
         gd.set_rotation(logo, Rotation3::from_euler(rad(0f32),
                                                     deg(90f32).to_rad(),
                                                     deg(90f32).to_rad()));
@@ -83,7 +83,7 @@ fn main() {
 
     gd.update_location(camera_loc, Decomposed{scale: 1f32,
                                               rot:   Rotation::identity(),
-                                              disp:  Vector3::new(1f32, 0f32, 1.5f32)});
+                                              disp:  Vector3::new(0f32, 0f32, 15f32)});
 
     let sun = light::Directional::new(Vector3::new(0.5f32, 1., 0.5),
                                       Vector3::new(1f32, 1., 1.), 0.25);
