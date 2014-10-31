@@ -88,7 +88,8 @@ pub mod common {
         Common,
         CommonData,
         ObjectKey,
-        Duplicate
+        Duplicate,
+        Delete
     };
 }
 
