@@ -33,7 +33,7 @@ struct MaterialStd140 {
     ni: f32
 }
 
-fn get_mat(ka: Option<ObjectKey>, rd: &Graphics) -> (i32, i32) {
+fn get_mat<G: Graphics>(ka: Option<ObjectKey>, rd: &G) -> (i32, i32) {
     match ka {
         Some(ref ka) => {
             let (a, b) = *rd.get_texture_atlas_index(*ka).expect("Could not find index");
@@ -44,7 +44,7 @@ fn get_mat(ka: Option<ObjectKey>, rd: &Graphics) -> (i32, i32) {
 }
 
 impl MaterialStd140 {
-    pub fn from(mat: &Material, rd: &Graphics) -> MaterialStd140 {
+    pub fn from<G: Graphics>(mat: &Material, rd: &G) -> MaterialStd140 {
         let ka = mat.ka();
         let kd = mat.kd();
         let ks = mat.ks();
@@ -105,12 +105,12 @@ impl MaterialBuffer {
         gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
     }
 
-    pub fn build(&mut self, graphics: &Graphics) {
+    pub fn build<G: Graphics>(&mut self, graphics: &G) {
         unsafe {
             mut_buf_as_slice(self.ptr, self.size, |b| {
                 for (id, (_, mat)) in graphics.material_iter().enumerate() {
                     b[id] = MaterialStd140::from(mat, graphics);
-                } 
+                }
             });
         }
     }

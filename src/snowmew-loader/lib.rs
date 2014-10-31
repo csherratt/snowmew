@@ -80,7 +80,7 @@ impl Obj {
         })
     }
 
-    fn write_textures(&self, db: &mut Graphics) -> HashMap<String, ObjectKey> {
+    fn write_textures<G: Graphics>(&self, db: &mut G) -> HashMap<String, ObjectKey> {
         let mut map = HashMap::new();
         for m in self.materials.iter() {
             let text = [&m.map_ka, &m.map_kd, &m.map_ks, &m.map_ke];
@@ -103,7 +103,7 @@ impl Obj {
         map
     }
 
-    fn write_materials(&self, db: &mut Graphics, text: &HashMap<String, ObjectKey>)
+    fn write_materials<G: Graphics>(&self, db: &mut G, text: &HashMap<String, ObjectKey>)
             -> HashMap<String, snowmew::ObjectKey> {
 
         let mut name_to_id = HashMap::new();
@@ -131,7 +131,7 @@ impl Obj {
         name_to_id
     }
 
-    pub fn import(&self, gd: &mut Graphics) -> HashMap<String, ObjectKey> {
+    pub fn import<G: Graphics>(&self, gd: &mut G) -> HashMap<String, ObjectKey> {
         let textures = self.write_textures(gd);
         let materials = self.write_materials(gd, &textures);
 

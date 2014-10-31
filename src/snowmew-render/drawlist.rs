@@ -294,8 +294,8 @@ impl Drawlist for DrawlistNoSSBO {
 
         unsafe {
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
-            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());    
-        
+            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());
+
             let text = self.matrix.ids();
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_BUFFER, text[0]);
@@ -317,7 +317,7 @@ impl Drawlist for DrawlistNoSSBO {
             gl::BindTexture(gl::TEXTURE_BUFFER, self.model.id());
             gl::Uniform1i(shader.uniform("info_buffer"), 4);
         }
-        
+
         let cmds = self.command.commands();
         for b in self.command.batches().iter() {
             let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");

@@ -136,7 +136,7 @@ pub struct Standard {
     pub shapes: Shapes
 }
 
-fn build_sphere(db: &mut Graphics, size: uint) -> ObjectKey {
+fn build_sphere<G: Graphics>(db: &mut G, size: uint) -> ObjectKey {
     let (sphere_v, sphere_i) = build_vectors_poly(SphereUV::new(size, size));
     let sphere_len = sphere_i.len();
     let sphere_vb = VertexBuffer::new_position_texture_normal(sphere_v, sphere_i);
@@ -145,7 +145,7 @@ fn build_sphere(db: &mut Graphics, size: uint) -> ObjectKey {
 }
 
 impl Standard {
-    pub fn new(db: &mut Graphics) -> Standard {
+    pub fn new<G: Graphics>(db: &mut G) -> Standard {
         let flat = StandardColors {
             white:   db.new_material(Material::simple([1., 1., 1.])),
             silver:  db.new_material(Material::simple([0.75, 0.75, 0.75])),
