@@ -88,7 +88,7 @@ impl PhysicsManager {
             Some(bvh) => bvh,
             None => match self.static_bvh.take() {
                 Some(bvh_builder) => bvh_builder.to_builder(),
-                None => fail!("no bvh or builder")
+                None => panic!("no bvh or builder")
             }
         };
 
@@ -113,7 +113,7 @@ impl PhysicsManager {
 
         self.build_static_bvh(&pos, &old);
         match self.static_bvh {
-            None => fail!("Could not unwrap bvh"),
+            None => panic!("Could not unwrap bvh"),
             Some(ref bvh) => {
                 for (key, ((loc, &Velocity(ref vel)), &Collider(ref coll))) in 
                         join_maps(join_maps(old.location_iter(), old.get_physics().velocity.iter()),

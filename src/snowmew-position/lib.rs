@@ -148,7 +148,7 @@ impl Deltas {
                     delta: delta,
                 })
             }
-            None => fail!("there was no delta! {}", gen)
+            None => panic!("there was no delta! {}", gen)
         };
 
         Id(gen+1, id)
@@ -395,7 +395,7 @@ impl CalcPositionsCl {
             Err(build_log) => {
                 println!("Error building program:");
                 println!("{:s}", build_log);
-                fail!("");
+                panic!("");
             }
         }
 

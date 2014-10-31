@@ -78,7 +78,7 @@ fn find_trig<IDX: GlType+Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) 
             }
         }
     }
-    fail!("Did not find vertex!");
+    panic!("Did not find vertex!");
 }
 
 

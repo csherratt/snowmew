@@ -201,7 +201,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
 
         let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
         if status != gl::FRAMEBUFFER_COMPLETE {
-            fail!("Failed to setup framebuffer {}", status);
+            panic!("Failed to setup framebuffer {}", status);
         }
 
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);

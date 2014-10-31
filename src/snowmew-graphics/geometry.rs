@@ -356,7 +356,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX 
             }
         }
     }
-    fail!("Did not find vertex!");
+    panic!("Did not find vertex!");
 }
 
 pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX> {

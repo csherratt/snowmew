@@ -38,7 +38,7 @@ fn format_to_gl_storage(depth: i32) -> u32 {
         2 => gl::RG8,
         3 => gl::RGB8,
         4 => gl::RGBA8,
-        _ => fail!("depth is to large {}", depth)
+        _ => panic!("depth is to large {}", depth)
     }
 }
 
@@ -48,7 +48,7 @@ fn format_to_gl_value(depth: i32) -> u32 {
         2 => gl::RG,
         3 => gl::RGB,
         4 => gl::RGBA,
-        _ => fail!("depth is to large {}", depth)
+        _ => panic!("depth is to large {}", depth)
     }
 }
 

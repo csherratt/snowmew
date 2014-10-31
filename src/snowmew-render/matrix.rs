@@ -150,7 +150,7 @@ impl MatrixSSBOBuffer {
             (&Some((_, ref cq, ref buf)), Some(ref event)) => {
                 cq.release_gl_objects(buf.as_slice(), event).wait();
             }
-            _ => fail!("expected both an event and a queue")
+            _ => panic!("expected both an event and a queue")
         }
     }
 
@@ -263,7 +263,7 @@ impl MatrixTextureBuffer {
             (&Some((_, ref cq, ref buf)), Some(ref event)) => {
                 cq.release_gl_objects(buf.as_slice(), event).wait();
             }
-            _ => fail!("expected both an event and a queue")
+            _ => panic!("expected both an event and a queue")
         }
     }
 

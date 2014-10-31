@@ -443,7 +443,7 @@ impl RenderManagerContext {
                     format: match text.depth() {
                         4 => gfx::tex::Unsigned(gfx::tex::RGBA, 8, gfx::attrib::IntNormalized),
                         3 => gfx::tex::Unsigned(gfx::tex::RGB, 8, gfx::attrib::IntNormalized),
-                        _ => fail!("Unsupported color depth")
+                        _ => panic!("Unsupported color depth")
                     }
                 };
 
