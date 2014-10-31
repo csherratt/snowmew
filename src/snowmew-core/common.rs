@@ -162,6 +162,28 @@ pub trait Duplicate {
     fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey);
 }
 
+pub trait Delete {
+    fn delete(&mut self, oid: ObjectKey) -> bool;
+}
+
+impl Delete for CommonData {
+    fn delete(&mut self, oid: ObjectKey) -> bool {
+        let o = self.objects.find(&oid).map(|x| *x);
+        match o {
+            Some(o) => {
+                self.objects.remove(&oid)                      |
+                self.parent_child.remove(&oid)                 |
+                self.scene_children.remove(&oid)               |
+                (self.parent_child.find_mut(&o.parent)
+                    .map(|x| { x.remove(&oid) }) == Some(true)) |
+                (self.scene_children.find_mut(&o.parent)
+                    .map(|x| { x.remove(&oid) }) == Some(true))
+            }
+            None => false
+        }
+    }
+}
+
 impl Common for CommonData {
     fn get_common<'a>(&'a self) -> &'a CommonData {self}
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}

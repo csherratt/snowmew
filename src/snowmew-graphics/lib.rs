@@ -40,7 +40,7 @@ use cgmath::Point3;
 use collision::sphere::Sphere;
 
 use cow::btree::{BTreeMapIterator, BTreeMap};
-use snowmew::common::{Common, ObjectKey, Duplicate};
+use snowmew::common::{Common, ObjectKey, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
 
@@ -317,6 +317,22 @@ impl Duplicate for GraphicsData {
         dup!(self.sphere, src, dst);
     }
 }
+
+
+impl Delete for GraphicsData {
+    fn delete(&mut self, oid: ObjectKey) -> bool {
+        self.draw.remove(&oid)             |
+        self.geometry.remove(&oid)         |
+        self.vertex.remove(&oid)           |
+        self.material.remove(&oid)         |
+        self.material_index.remove(&oid)   |
+        self.texture.remove(&oid)          |
+        self.lights.remove(&oid)           |
+        self.texture_to_atlas.remove(&oid) |
+        self.sphere.remove(&oid)
+    }
+}
+
 
 pub struct VertexBufferIter<'a> {
     vb: &'a VertexBuffer,

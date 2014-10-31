@@ -40,7 +40,7 @@ use opencl::cl::{CL_MEM_READ_ONLY};
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 
-use snowmew::common::{ObjectKey, Common, Duplicate};
+use snowmew::common::{ObjectKey, Common, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
 
@@ -568,6 +568,12 @@ impl Duplicate for PositionData {
             let id = self.position.dup(loc);
             self.location.insert(dst, id);
         });
+    }
+}
+
+impl Delete for PositionData {
+    fn delete(&mut self, oid: ObjectKey) -> bool {
+        self.location.remove(&oid)
     }
 }
 
