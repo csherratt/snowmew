@@ -24,19 +24,3 @@ Now just build using cargo:
 
     cargo build
 
-
-Dependencies
-------------
-
-All required dependencies are included as submodules.
-
-| Dependency  |
-| ----------- |
-| [cgmath-rs](https://github.com/bjz/cgmath-rs) |
-| [collision-rs](https://github.com/csherratt/collision-rs) |
-| [cow-rs](https://github.com/csherratt/cow-rs) |
-| [gl-rs](https://github.com/bjz/gl-rs) |
-| [glfw-rs](https://github.com/bjz/glfw-rs) |
-| [rust-opencl](https://github.com/luqmana/rust-opencl) |
-| [rust-stb-image](https://github.com/mozilla-servo/rust-stb-image/) |
-| [vr-rs](https://github.com/csherratt/vr-rs) |
