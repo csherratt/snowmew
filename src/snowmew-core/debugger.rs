@@ -15,13 +15,21 @@ impl<Game> Debugger<Game> {
 }
 
 #[deriving(Clone)]
+struct StateSnapshot<GameData> {
+    time: f64,
+    frame: uint,
+    game: GameData
+}
+
+#[deriving(Clone)]
 pub struct DebuggerGameData<GameData> {
     paused: bool,
     step: bool,
     index_delta: uint,
+    max_len: uint,
     time_delta: f64,
     last_time: f64,
-    history: Vec<(GameData, f64, uint)>,
+    history: Vec<StateSnapshot<GameData>>,
     pub inner: GameData
 }
 
@@ -33,9 +41,32 @@ impl<GameData> DebuggerGameData<GameData> {
             index_delta: 0,
             time_delta: 0.,
             last_time: 0.,
+            max_len: 16,
             history: Vec::new(),
             inner: inner
         }
+    }
+
+    fn compact(&mut self) {
+        if self.history.len() < self.max_len {
+            return;
+        }
+
+        let mut vec = Vec::new();
+        {
+            let last = self.history.iter();
+            let mut this = self.history.iter().enumerate();
+            this.next();
+
+            for (last, (idx, this)) in last.zip(this) {
+                vec.push((last.time - this.time, idx));
+            }
+        }
+
+        vec.as_mut_slice().sort_by(|&(a, _), &(b, _)| a.partial_cmp(&b).unwrap());
+
+        let (time, remove) = vec.pop().unwrap();
+        self.history.remove(remove);
     }
 }
 
@@ -44,7 +75,7 @@ impl<T: Common> Common for DebuggerGameData<T> {
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { self.inner.get_common_mut() }
 }
 
-pub fn debugger<Game, GameData>(game: Game, inner: GameData) 
+pub fn debugger<Game, GameData>(game: Game, inner: GameData)
     -> (Debugger<Game>, DebuggerGameData<GameData>) {
     (Debugger::new(game), DebuggerGameData::new(inner))
 }
@@ -52,7 +83,7 @@ pub fn debugger<Game, GameData>(game: Game, inner: GameData)
 impl<GameData: Clone,
      InputGame: Game<GameData, input::Event>>
     Game<DebuggerGameData<GameData>, input::Event> for Debugger<InputGame> {
-    fn step(&mut self, event: input::Event, gd: DebuggerGameData<GameData>) 
+    fn step(&mut self, event: input::Event, gd: DebuggerGameData<GameData>)
         -> DebuggerGameData<GameData> {
         let mut next = gd.clone();
 
@@ -60,10 +91,10 @@ impl<GameData: Clone,
 
         let event = match event {
             input::ButtonDown(input::KeyboardF7) => {
-                if let Some((last, time, index)) = next.history.pop() {
-                    next.inner = last;
-                    next.time_delta = time;
-                    next.index_delta = index;
+                if let Some(frame) = next.history.pop() {
+                    next.inner = frame.game;
+                    next.time_delta = frame.time;
+                    next.index_delta = frame.frame;
                 }
                 input::ButtonDown(input::KeyboardF7)
             }
@@ -88,14 +119,13 @@ impl<GameData: Clone,
 
         if step {
             if let input::Cadance(idx, _) = event {
-                if idx % 30 == 0 || next.step {
-                    next.history.push((
-                        gd.inner.clone(),
-                        next.time_delta,
-                        next.index_delta
-                    ));
-                }
-                next.step = false;                
+                next.history.push(StateSnapshot {
+                    game: gd.inner.clone(),
+                    time: next.time_delta,
+                    frame: next.index_delta
+                });
+                next.compact();
+                next.step = false;
             }
 
             next.inner = self.game.step(event, gd.inner);

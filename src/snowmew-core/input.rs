@@ -276,6 +276,7 @@ pub enum Event {
     ButtonDown(Button),
     ButtonUp(Button),
     Move(f64, f64),
+    Scroll(int, int),
     Cadance(uint, f64)
 }
 
@@ -310,6 +311,9 @@ impl Event {
             }
             glfw::CursorPosEvent(x, y) => {
                 Game(Move(x, y))
+            }
+            glfw::ScrollEvent(x, y) => {
+                Game(Scroll(x as int, y as int))
             }
             glfw::CursorEnterEvent(x) => {
                 Window(MouseOver(x))

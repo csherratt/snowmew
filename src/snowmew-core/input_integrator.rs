@@ -24,7 +24,9 @@ pub struct InputIntegratorState {
     index: uint,
     time: f64,
     last_mouse: Option<(uint, f64, f64)>,
-    mouse: Option<(uint, f64, f64)>
+    mouse: Option<(uint, f64, f64)>,
+    scroll: (int, int),
+    last_scroll: (int, int)
 }
 
 impl InputIntegratorState {
@@ -65,6 +67,14 @@ impl InputIntegratorState {
         }
     }
 
+    pub fn scroll_position(&self) -> (int, int) { self.scroll }
+
+    pub fn scroll_delta(&self) -> (int, int) {
+        let (x, y) = self.scroll;
+        let (ox, oy) = self.last_scroll;
+        (x - ox, y - oy)
+    }
+
     pub fn index(&self) -> uint { self.index }
     pub fn time(&self) -> f64 { self.time }
 }
@@ -84,7 +94,9 @@ impl<GameData> InputIntegratorGameData<GameData> {
                 index: 0,
                 time: 0.,
                 last_mouse: None,
-                mouse: None
+                mouse: None,
+                scroll: (0, 0),
+                last_scroll: (0, 0)
             },
             inner: inner
         }
@@ -96,7 +108,7 @@ impl<T: Common> Common for InputIntegratorGameData<T> {
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { self.inner.get_common_mut() }
 }
 
-pub fn input_integrator<Game, GameData>(game: Game, inner: GameData) 
+pub fn input_integrator<Game, GameData>(game: Game, inner: GameData)
     -> (InputIntegrator<Game>, InputIntegratorGameData<GameData>) {
     (InputIntegrator::new(game), InputIntegratorGameData::new(inner))
 }
@@ -104,7 +116,7 @@ pub fn input_integrator<Game, GameData>(game: Game, inner: GameData)
 impl<GameData,
      InputGame: Game<GameData, InputIntegratorState>>
     Game<InputIntegratorGameData<GameData>, Event> for InputIntegrator<InputGame> {
-    fn step(&mut self, event: Event, gd: InputIntegratorGameData<GameData>) 
+    fn step(&mut self, event: Event, gd: InputIntegratorGameData<GameData>)
         -> InputIntegratorGameData<GameData> {
         let mut gd = gd;
 
@@ -115,6 +127,7 @@ impl<GameData,
                 gd.inner = self.game.step(gd.state.clone(), gd.inner);
                 gd.state.last_mouse = gd.state.mouse;
                 gd.state.buttons_released.clear();
+                gd.state.last_scroll = gd.state.scroll;
             }
             input::ButtonDown(button) => {
                 gd.state.buttons_down.insert(button, gd.state.index);
@@ -125,6 +138,10 @@ impl<GameData,
             }
             input::Move(x, y) => {
                 gd.state.mouse = Some((gd.state.index, x, y));
+            }
+            input::Scroll(dx, dy) => {
+                let (x, y) = gd.state.scroll;
+                gd.state.scroll = (x + dx, y + dy);
             }
         }
 

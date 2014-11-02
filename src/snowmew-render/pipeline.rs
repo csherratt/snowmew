@@ -310,7 +310,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
             gl::Uniform1iv(atlas_uniform,
                            text.len() as i32,
                            (&text[0] as *const i32));
-        } 
+        }
 
         let total_textures = if textures.len() == 0 { 1 } else { textures.len() };
         for idx in range_step(0, total_textures, texture_range as uint) {
