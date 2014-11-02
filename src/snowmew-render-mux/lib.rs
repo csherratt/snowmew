@@ -52,7 +52,7 @@ impl<'r, RD: Renderable+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for 
             io: &snowmew::IOManager,
             window: Window,
             size: (i32, i32),
-            cl: Option<Arc<Device>>) -> RenderMux<RD> {
+            cl: Option<Arc<Device>>) -> RenderMux<'r, RD> {
 
         let s = match os::getenv("AZDO") {
             Some(s) => s,
