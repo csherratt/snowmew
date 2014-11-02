@@ -182,13 +182,13 @@ impl Drawlist for DrawlistNoSSBO {
         let s = *self;
         let DrawlistNoSSBO {
             data: _,
-            size: size,
-            materials: materials,
-            lights: lights,
-            model: model,
-            command: command,
-            matrix: matrix,
-            instanced_is_enabled: instanced_is_enabled,
+            size,
+            materials,
+            lights,
+            model,
+            command,
+            matrix,
+            instanced_is_enabled,
             start: _
         } = s;
 
@@ -396,14 +396,14 @@ impl Drawlist for DrawlistSSBOCompute {
         let s = *self;
         let DrawlistSSBOCompute {
             data: _,
-            size: size,
-            materials: materials,
-            lights: lights,
-            model: model,
-            matrix: matrix,
-            command: command,
-            culling_is_enabled: culling_is_enabled,
-            instanced_is_enabled: instanced_is_enabled,
+            size,
+            materials,
+            lights,
+            model,
+            matrix,
+            command,
+            culling_is_enabled,
+            instanced_is_enabled,
             start: _
         } = s;
 

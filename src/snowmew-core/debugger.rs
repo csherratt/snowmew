@@ -65,7 +65,7 @@ impl<GameData> DebuggerGameData<GameData> {
 
         vec.as_mut_slice().sort_by(|&(a, _), &(b, _)| a.partial_cmp(&b).unwrap());
 
-        let (time, remove) = vec.pop().unwrap();
+        let (_, remove) = vec.pop().unwrap();
         self.history.remove(remove);
     }
 }
@@ -118,7 +118,7 @@ impl<GameData: Clone,
         };
 
         if step {
-            if let input::Cadance(idx, _) = event {
+            if let input::Cadance(_, _) = event {
                 next.history.push(StateSnapshot {
                     game: gd.inner.clone(),
                     time: next.time_delta,

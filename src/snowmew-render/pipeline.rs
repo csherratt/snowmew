@@ -33,7 +33,6 @@ use drawlist::Drawlist;
 
 use snowmew::io::Window;
 use snowmew::camera::DrawMatrices;
-use snowmew::common::Common;
 use snowmew::camera::Camera;
 
 use query::Profiler;

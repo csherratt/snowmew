@@ -129,7 +129,7 @@ impl Deltas {
             }
 
             let (off, len) = self.gen[gen as uint];
-            *self.gen.get_mut(gen as uint) = (off, len+1);
+            self.gen[gen as uint] = (off, len+1);
 
             len
         }
@@ -244,8 +244,8 @@ impl Deltas {
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
             for (off, delta) in gen.iter() {
-                *ctx.input_buffer.get_mut((off + gen_off) as uint) = delta.delta;
-                *ctx.parent_buffer.get_mut((off + gen_off) as uint) = delta.parent.clone();
+                ctx.input_buffer[(off + gen_off) as uint] = delta.delta;
+                ctx.parent_buffer[(off + gen_off) as uint] = delta.parent.clone();
             }
         }
 
@@ -293,8 +293,8 @@ impl Deltas {
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
             for (off, delta) in gen.iter() {
-                *ctx.input_buffer.get_mut((off + gen_off) as uint) = delta.delta;
-                *ctx.parent_buffer.get_mut((off + gen_off) as uint) = delta.parent.clone();
+                ctx.input_buffer[(off + gen_off) as uint] = delta.delta;
+                ctx.parent_buffer[(off + gen_off) as uint] = delta.parent.clone();
             }
         }
 

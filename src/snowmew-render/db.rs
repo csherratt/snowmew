@@ -13,8 +13,7 @@
 //   limitations under the License.
 
 use cow::btree::BTreeMap;
-use graphics::{Graphics};
-use snowmew::common::{Common};
+use graphics::Graphics;
 use snowmew::common::ObjectKey;
 
 use render_data::Renderable;
