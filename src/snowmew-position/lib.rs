@@ -198,6 +198,11 @@ impl Deltas {
         self.delta.find(&gen).unwrap().find(&id).unwrap().delta
     }
 
+    pub fn get_delta_ref(&self, id :Id) -> &Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
+        let Id(gen, id) = id;
+        &self.delta.find(&gen).unwrap().find(&id).unwrap().delta
+    }
+
     pub fn get_mat(&self, id :Id) -> Matrix4<f32> {
         match id {
             Id(0, key) => {
@@ -554,10 +559,31 @@ pub trait Positions: Common {
         self.get_position().location.iter()
     }
 
+    fn delta_iter<'a>(&'a self) -> DeltaIterator {
+        DeltaIterator {
+            iter: self.get_position().location.iter(),
+            delta: &self.get_position().position
+        }
+    }
+
     fn position_count(&self) -> uint {
         let last = self.get_position().position.gen.len();
         let (s, l) = self.get_position().position.gen[last-1];
         (s + l) as uint
+    }
+}
+
+pub struct DeltaIterator<'a> {
+    iter: BTreeMapIterator<'a, ObjectKey, Id>,
+    delta: &'a Deltas
+}
+
+impl<'a> Iterator<(&'a ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> for DeltaIterator<'a> {
+    fn next(&mut self) -> Option<(&'a ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> {
+        match self.iter.next() {
+            Some((oid, &id)) => Some((oid, self.delta.get_delta_ref(id))),
+            None => None
+        }
     }
 }
 
