@@ -41,7 +41,7 @@ extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render-data" as render_data;
 
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
 use std::comm::{Receiver};
 
 use opencl::hl;
