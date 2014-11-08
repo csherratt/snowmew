@@ -121,7 +121,7 @@ impl VertexBuffer {
         };
 
         /* todo check for errors */
-        let error = gl::GetError();
+        let error = unsafe{ gl::GetError() };
         if error != 0 {
             panic!("error {:x}", error);
         }
@@ -137,7 +137,7 @@ impl VertexBuffer {
     }
 
     pub fn bind(&self) {
-        gl::BindVertexArray(self.vertex_array);
+        unsafe { gl::BindVertexArray(self.vertex_array); }
         //gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer);
         //gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.index_buffer);
     }

@@ -114,7 +114,7 @@ impl TextureArray {
 
     pub fn texture(&self) -> u32 {
         self.texture
-    }    
+    }
 }
 
 #[deriving(Clone)]
@@ -141,7 +141,7 @@ impl TextureAtlas {
             return;
         }
 
-        if self.arrays.find(&texture_atlas).is_none() {
+        if self.arrays.get(&texture_atlas).is_none() {
             self.arrays.insert(texture_atlas,
                 TextureArray::new(
                     text.width() as i32,
@@ -152,7 +152,7 @@ impl TextureAtlas {
             );
         }
 
-        let array = self.arrays.find_mut(&texture_atlas)
+        let array = self.arrays.get_mut(&texture_atlas)
                 .expect("could not find textuer array");
 
         array.load(texture_index, text);

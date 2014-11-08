@@ -119,7 +119,7 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, ObjectKey)>,
     pipeline.resize(width as uint, height as uint);
 
     // todo move!
-    gl::Enable(gl::SCISSOR_TEST);
+    unsafe {gl::Enable(gl::SCISSOR_TEST);}
 
     for _ in range(1, config.drawlist_count()) {
         let mut dl = create_drawlist(&config, cl.clone());

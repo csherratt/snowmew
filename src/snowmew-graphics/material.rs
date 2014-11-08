@@ -92,7 +92,7 @@ impl Material {
             map_d:    None,
             map_bump: None,
             map_refl: None,
-        }      
+        }
     }
 
     pub fn simple(color: [f32, ..3]) -> Material {

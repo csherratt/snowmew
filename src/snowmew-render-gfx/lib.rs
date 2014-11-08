@@ -64,7 +64,7 @@ use gfx::{Device, DeviceHelper};
 use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
 use cgmath::{FixedArray, Matrix4, Vector3, Point};
 
-const VERTEX_SRC: gfx::ShaderSource = shaders! {
+const VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
 GLSL_150: b"
     #version 150 core
     uniform mat4 shadow_proj_mat;
@@ -96,7 +96,7 @@ GLSL_150: b"
 "
 };
 
-const FRAGMENT_SRC: gfx::ShaderSource = shaders! {
+const FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
 GLSL_150: b"
     #version 150 core
     uniform vec4 ka_color;
@@ -196,7 +196,7 @@ struct Params {
     shadow: gfx::shade::TextureParam
 }
 
-static SHADOW_VERTEX_SRC: gfx::ShaderSource = shaders! {
+static SHADOW_VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
 GLSL_150: b"
     #version 150 core
     uniform mat4 proj_mat;
@@ -211,7 +211,7 @@ GLSL_150: b"
 "
 };
 
-static SHADOW_FRAGMENT_SRC: gfx::ShaderSource = shaders! {
+static SHADOW_FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
 GLSL_150: b"
     #version 150 core
 
@@ -470,10 +470,13 @@ impl RenderManagerContext {
             let batch: MyProgram = self.graphics.make_batch(
                 &self.prog,
                 &vb.mesh,
-                gfx::IndexSlice32(gfx::TriangleList,
-                                  vb.index,
-                                  geo.offset as u32,
-                                  geo.count as u32),
+                gfx::Slice {
+                    start: geo.offset as u32,
+                    end: (geo.offset + geo.count) as u32,
+                    prim_type: gfx::TriangleList,
+                    kind: gfx::IndexSlice32(vb.index, 0)
+
+                },
                 &self.state
             ).unwrap();
 
@@ -498,10 +501,13 @@ impl RenderManagerContext {
             let batch: ShadowProgram = self.graphics.make_batch(
                 &self.shadow_prog,
                 &vb.mesh,
-                gfx::IndexSlice32(gfx::TriangleList,
-                                  vb.index,
-                                  geo.offset as u32,
-                                  geo.count as u32),
+                gfx::Slice {
+                    start: geo.offset as u32,
+                    end: (geo.offset + geo.count) as u32,
+                    prim_type: gfx::TriangleList,
+                    kind: gfx::IndexSlice32(vb.index, 0)
+
+                },
                 &self.state
             ).unwrap();
 

@@ -28,7 +28,7 @@ pub const ATTR_TEXTURE: i32 = 1;
 pub const ATTR_NORMAL: i32 = 2;
 
 pub fn compile_shader(header: Option<&str>, src: &str, ty: gl::types::GLenum) -> GLuint {
-    let shader = gl::CreateShader(ty);
+    let shader = unsafe { gl::CreateShader(ty) };
     unsafe {
         match header {
             Some(header) => {
@@ -36,12 +36,12 @@ pub fn compile_shader(header: Option<&str>, src: &str, ty: gl::types::GLenum) ->
                 src.with_c_str(|ptr| {
                     let s_ptrs = &[header_ptr, ptr];
                     gl::ShaderSource(shader, 2, &s_ptrs[0], ptr::null());
-                })});    
+                })});
             }
             None => {
                 src.with_c_str(|ptr| {
                     gl::ShaderSource(shader, 1, &ptr, ptr::null());
-                });                
+                });
             }
         }
 
@@ -72,7 +72,7 @@ pub fn compile_shader(header: Option<&str>, src: &str, ty: gl::types::GLenum) ->
     shader
 }
 
-#[deriving(Clone, Default)] 
+#[deriving(Clone, Default)]
 pub struct Shader {
     program: GLuint,
     shaders: Vec<GLuint>
@@ -80,23 +80,22 @@ pub struct Shader {
 
 impl Shader {
     fn _new(shaders: Vec<GLuint>, bind_attr: &[(u32, &str)], bind_frag: &[(u32, &str)]) -> Shader {
-        let program = gl::CreateProgram();
-        for s in shaders.iter() {
-            gl::AttachShader(program, *s);
-        }
- 
-        unsafe {
+        let program = unsafe {
+            let program = gl::CreateProgram();
+            for s in shaders.iter() {
+                 gl::AttachShader(program, *s);
+            }
+
             for &(idx, name) in bind_attr.iter() {
                 name.with_c_str(|ptr| gl::BindAttribLocation(program, idx, ptr));
             }
             for &(idx, name) in bind_frag.iter() {
                 name.with_c_str(|ptr| gl::BindFragDataLocation(program, idx, ptr));
             }
-        }
 
-        gl::LinkProgram(program);
+            gl::LinkProgram(program);
 
-        unsafe {
+
             let mut status = gl::FALSE as gl::types::GLint;
             gl::GetProgramiv(program, gl::LINK_STATUS, &mut status);
 
@@ -111,7 +110,8 @@ impl Shader {
                                       mem::transmute(buf.as_mut_slice().unsafe_mut(0)));
                 panic!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
             }
-        }
+            program
+        };
 
 
         Shader {
@@ -188,16 +188,16 @@ impl Shader {
     }
 
     pub fn uniform_block_bind(&self, idx: u32, buffer: u32) {
-        gl::UniformBlockBinding(self.program, idx, buffer);
+        unsafe { gl::UniformBlockBinding(self.program, idx, buffer); }
     }
 
     pub fn bind(&self) {
-        gl::UseProgram(self.program);
+        unsafe { gl::UseProgram(self.program); }
     }
 
     pub fn validate(&self)  {
-        gl::ValidateProgram(self.program);
         unsafe {
+            gl::ValidateProgram(self.program);
             let mut status = gl::FALSE as gl::types::GLint;
             gl::GetProgramiv(self.program, gl::VALIDATE_STATUS, &mut status);
 

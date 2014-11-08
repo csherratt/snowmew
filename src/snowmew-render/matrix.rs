@@ -96,7 +96,7 @@ impl MatrixSSBOBuffer {
 
         unsafe {
             gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
-      
+
             gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer[0]);
             gl::BufferData(gl::SHADER_STORAGE_BUFFER,
                            (mem::size_of::<Matrix4<f32>>()*cfg.max_size()) as GLsizeiptr,
@@ -124,14 +124,13 @@ impl MatrixSSBOBuffer {
 
     pub fn map(&mut self) {
         match self.cl {
-            None => {
+            None => unsafe {
                 gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_matrix);
-                self.ptr_model_matrix = gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0, 
+                self.ptr_model_matrix = gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0,
                         (mem::size_of::<Matrix4<f32>>()*self.size) as GLsizeiptr,
                         gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
                 ) as *mut Matrix4<f32>;
-                assert!(0 == gl::GetError());           
-            }
+            },
             Some((_, ref cq, ref buf)) => {
                 cq.acquire_gl_objects(buf.as_slice(), ()).wait()
             }
@@ -141,12 +140,12 @@ impl MatrixSSBOBuffer {
     pub fn unmap(&mut self) {
         let event = self.event.take();
         match (&self.cl, event) {
-            (&None, None) => {
+            (&None, None) => unsafe {
                 gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_matrix);
                 gl::UnmapBuffer(gl::SHADER_STORAGE_BUFFER);
                 assert!(0 == gl::GetError());
                 self.ptr_model_matrix = ptr::null_mut();
-            }
+            },
             (&Some((_, ref cq, ref buf)), Some(ref event)) => {
                 cq.release_gl_objects(buf.as_slice(), event).wait();
             }
@@ -164,7 +163,7 @@ impl MatrixSSBOBuffer {
                         };
                         db.write_positions(&mut mat);
                         None
-                    })               
+                    })
                 }
                 Some((ref mut ctx, ref cq, ref buf)) => {
                     let evt = db.write_positions_cl_mat4(cq.deref(), ctx, buf.as_slice());
@@ -196,7 +195,7 @@ impl MatrixTextureBuffer {
         unsafe {
             gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
             gl::GenTextures(texture.len() as i32, texture.unsafe_mut(0));
-      
+
             for (b, t) in buffer.iter().zip(texture.iter()) {
                 gl::BindBuffer(gl::TEXTURE_BUFFER, *b);
                 gl::BindTexture(gl::TEXTURE_BUFFER, *t);
@@ -233,15 +232,14 @@ impl MatrixTextureBuffer {
     pub fn map(&mut self) {
         match self.cl {
             None => {
-                for i in range(0u, 4) {
+                for i in range(0u, 4) { unsafe {
                     gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
                     self.ptr_model_matrix[i] = gl::MapBufferRange(
                         gl::TEXTURE_BUFFER, 0,
                         (mem::size_of::<Vector4<f32>>()*self.size) as GLsizeiptr,
                         gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
                     ) as *mut Vector4<f32>;
-                }
-                assert!(0 == gl::GetError());
+                }}
             }
             Some((_, ref cq, ref buf)) => {
                 cq.acquire_gl_objects(buf.as_slice(), ()).wait()
@@ -252,14 +250,14 @@ impl MatrixTextureBuffer {
     pub fn unmap(&mut self) {
         let event = self.event.take();
         match (&self.cl, event) {
-            (&None, None) => {
+            (&None, None) => unsafe {
                 for i in range(0u, 4) {
                     gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
                     gl::UnmapBuffer(gl::TEXTURE_BUFFER);
                     assert!(0 == gl::GetError());
                     self.ptr_model_matrix[i] = ptr::null_mut();
                 }
-            }
+            },
             (&Some((_, ref cq, ref buf)), Some(ref event)) => {
                 cq.release_gl_objects(buf.as_slice(), event).wait();
             }

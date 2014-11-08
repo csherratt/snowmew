@@ -102,7 +102,7 @@ impl CommandBufferIndirect {
         }
     }
 
-    pub fn map(&mut self) {
+    pub fn map(&mut self) { unsafe {
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command);
         self.ptr = gl::MapBufferRange(
             gl::DRAW_INDIRECT_BUFFER, 0,
@@ -111,14 +111,14 @@ impl CommandBufferIndirect {
             gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
         ) as *mut DrawElementsIndirectCommand;
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);
-    }
+    }}
 
-    pub fn unmap(&mut self) {
+    pub fn unmap(&mut self) { unsafe {
         self.ptr = ptr::null_mut();
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command);
         gl::UnmapBuffer(gl::DRAW_INDIRECT_BUFFER);
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);
-    }
+    }}
 
     pub fn build<GD: Graphics>(&mut self, db: &GD, scene: ObjectKey, instanced_is_enabled: bool) {
         let mut batch = Batch {
@@ -191,7 +191,6 @@ impl CommandBufferIndirect {
                 b[idx] = command;
             });
         }
-      
         self.batches.push(batch)
     }
 
@@ -221,13 +220,12 @@ impl CommandBufferIndirect {
         unsafe {
             gl::Uniform4fv(shader.uniform("plane"), 6, &planes[0].x);
             gl::Uniform1i(shader.uniform("max_id"), size as i32);
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 0, draw);
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 1, matrix);
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 2, self.command);
+            gl::DispatchCompute(x as u32, y as u32, 1);
+            gl::MemoryBarrier(gl::COMMAND_BARRIER_BIT);
         }
-
-        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 0, draw);
-        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 1, matrix);
-        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 2, self.command);
-        gl::DispatchCompute(x as u32, y as u32, 1);
-        gl::MemoryBarrier(gl::COMMAND_BARRIER_BIT);
     }
 
     pub fn batches<'a>(&'a self) -> &'a [Batch] {

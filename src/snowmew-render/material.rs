@@ -90,19 +90,23 @@ impl MaterialBuffer {
     }
 
     pub fn map(&mut self) {
-        gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
-        self.ptr = gl::MapBufferRange(gl::UNIFORM_BUFFER, 0,
-                                      (self.size * mem::size_of::<MaterialStd140>()) as i64,
-                                      gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
-                                      ) as *mut MaterialStd140;
-        gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+        unsafe {
+            gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
+            self.ptr = gl::MapBufferRange(gl::UNIFORM_BUFFER, 0,
+                                          (self.size * mem::size_of::<MaterialStd140>()) as i64,
+                                          gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+                                          ) as *mut MaterialStd140;
+            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+        }
     }
 
     pub fn unmap(&mut self) {
         self.ptr = ptr::null_mut();
-        gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
-        gl::UnmapBuffer(gl::UNIFORM_BUFFER);
-        gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+        unsafe {
+            gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
+            gl::UnmapBuffer(gl::UNIFORM_BUFFER);
+            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+        }
     }
 
     pub fn build<G: Graphics>(&mut self, graphics: &G) {

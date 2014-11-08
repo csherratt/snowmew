@@ -224,7 +224,7 @@ impl Deltas {
         mm.set(0, Matrix4::identity());
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (off, delta) in gen.iter() {
+            for (&off, delta) in gen.iter() {
                 let ploc = last_gen_off + delta.parent;
                 let nmat = mm.get(ploc as uint).mul_m(&delta.delta.to_matrix4());
                 mm.set((off + gen_off) as uint, nmat);
@@ -248,7 +248,7 @@ impl Deltas {
         }
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (off, delta) in gen.iter() {
+            for (&off, delta) in gen.iter() {
                 ctx.input_buffer[(off + gen_off) as uint] = delta.delta;
                 ctx.parent_buffer[(off + gen_off) as uint] = delta.parent.clone();
             }
@@ -264,7 +264,7 @@ impl Deltas {
         ctx.init_kernel_vec4.set_arg(3, &out[3]);
         let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_vec4, 1i, None, events.as_slice());
 
-        // run the kernel across the deltas 
+        // run the kernel across the deltas
         ctx.kernel_vec4.set_arg(0, &ctx.input);
         ctx.kernel_vec4.set_arg(1, &ctx.parent);
         ctx.kernel_vec4.set_arg(2, &out[0]);
@@ -297,7 +297,7 @@ impl Deltas {
         }
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (off, delta) in gen.iter() {
+            for (&off, delta) in gen.iter() {
                 ctx.input_buffer[(off + gen_off) as uint] = delta.delta;
                 ctx.parent_buffer[(off + gen_off) as uint] = delta.parent.clone();
             }
@@ -310,7 +310,7 @@ impl Deltas {
         ctx.init_kernel_mat.set_arg(0, &out[0]);
         let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_mat, 1i, None, events.as_slice());
 
-        // run the kernel across the deltas 
+        // run the kernel across the deltas
         ctx.kernel_mat.set_arg(0, &ctx.input);
         ctx.kernel_mat.set_arg(1, &ctx.parent);
         ctx.kernel_mat.set_arg(2, &out[0]);
@@ -327,7 +327,7 @@ impl Deltas {
 
     pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (off, delta) in gen.iter() {
+            for (&off, delta) in gen.iter() {
                 out_delta[(off + gen_off) as uint] = delta.clone();
             }
         }
@@ -394,7 +394,6 @@ pub struct CalcPositionsCl {
 impl CalcPositionsCl {
     pub fn new(ctx: &Context, device: &Device) -> CalcPositionsCl {
         let program = ctx.create_program_from_source(OPENCL_PROGRAM);
-    
         match program.build(device) {
             Ok(_) => (),
             Err(build_log) => {

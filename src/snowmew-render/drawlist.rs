@@ -286,13 +286,14 @@ impl Drawlist for DrawlistNoSSBO {
         let shader = db.geometry_no_ssbo.as_ref().unwrap();
         shader.bind();
 
-        gl::Enable(gl::DEPTH_TEST);
-        gl::Enable(gl::CULL_FACE);
-        gl::CullFace(gl::BACK);
-
-        let base_index = shader.uniform("base_index");
-
+        let mut base_index;
         unsafe {
+            gl::Enable(gl::DEPTH_TEST);
+            gl::Enable(gl::CULL_FACE);
+            gl::CullFace(gl::BACK);
+
+            base_index = shader.uniform("base_index");
+
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
             gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());
 
@@ -323,8 +324,8 @@ impl Drawlist for DrawlistNoSSBO {
             let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
             vbo.bind();
             for d in range(b.offset_int(), b.drawcount() as uint +b.offset_int()) {
-                gl::Uniform1i(base_index, cmds[d].base_instance as i32);
                 unsafe {
+                    gl::Uniform1i(base_index, cmds[d].base_instance as i32);
                     gl::DrawElementsInstanced(
                         gl::TRIANGLES,
                         cmds[d].count as i32,
@@ -506,23 +507,21 @@ impl Drawlist for DrawlistSSBOCompute {
         let shader = db.geometry_ssbo_drawid.as_ref().unwrap();
         shader.bind();
 
-        gl::Enable(gl::DEPTH_TEST);
-        gl::Enable(gl::CULL_FACE);
-        gl::CullFace(gl::BACK);
-
         unsafe {
-            gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
-            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());    
-        }
-        
-        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 4, self.model.id());
-        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 5, self.matrix.id());
+            gl::Enable(gl::DEPTH_TEST);
+            gl::Enable(gl::CULL_FACE);
+            gl::CullFace(gl::BACK);
 
-        gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command.id());
-        for b in self.command.batches().iter() {
-            let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
-            vbo.bind();
-            unsafe {
+            gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, projection.ptr());
+            gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, view.ptr());
+
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 4, self.model.id());
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 5, self.matrix.id());
+
+            gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command.id());
+            for b in self.command.batches().iter() {
+                let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
+                vbo.bind();
                 gl::MultiDrawElementsIndirect(
                     gl::TRIANGLES,
                     gl::UNSIGNED_INT,
@@ -531,6 +530,7 @@ impl Drawlist for DrawlistSSBOCompute {
                     b.stride()
                 );
             }
+
         }
     }
 

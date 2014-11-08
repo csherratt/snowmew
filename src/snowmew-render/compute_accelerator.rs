@@ -109,12 +109,15 @@ pub struct PositionGlAccelerator {
 
 impl PositionGlAccelerator {
     pub fn new() -> PositionGlAccelerator {
-        let program = gl::CreateProgram();
-        let shader = compile_shader(None, POSITION_SHADER, gl::COMPUTE_SHADER);
-        gl::AttachShader(program, shader);
-        gl::LinkProgram(program);
-
+        let mut program;
+        let mut shader;
         unsafe {
+            program = gl::CreateProgram();
+            shader = compile_shader(None, POSITION_SHADER, gl::COMPUTE_SHADER);
+
+            gl::AttachShader(program, shader);
+            gl::LinkProgram(program);
+
             let mut status = gl::FALSE as gl::types::GLint;
             gl::GetProgramiv(program, gl::LINK_STATUS, &mut status);
 
@@ -140,28 +143,30 @@ impl PositionGlAccelerator {
     pub fn calc(&self, pos_gl: &ComputedPositionGL, delta: GLuint, pos: GLuint) {
         let start = precise_time_ns();
 
-        gl::UseProgram(self.program);
+        unsafe {
+            gl::UseProgram(self.program);
 
-        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 0, delta);
-        gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 1, pos);
-    
-        gl::MemoryBarrier(gl::SHADER_STORAGE_BARRIER_BIT);
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 0, delta);
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 1, pos);
 
-        let mut last_off = 0;
-        for &(off, len) in pos_gl.gen.iter() {
-            gl::Uniform1i(0, last_off as i32);
-            gl::Uniform1i(1, off as i32);
-            gl::Uniform1i(2, len as i32);
-            if len > 1024 {
-                gl::DispatchCompute(1024, len / 1024 + 1, 1);
-            } else {
-                gl::DispatchCompute(len, 1, 1);
-            }
             gl::MemoryBarrier(gl::SHADER_STORAGE_BARRIER_BIT);
-            last_off = off;
-        }
 
-        let end = precise_time_ns();
-        println!("PositionGlAccelerator {}", end - start);
+            let mut last_off = 0;
+            for &(off, len) in pos_gl.gen.iter() {
+                gl::Uniform1i(0, last_off as i32);
+                gl::Uniform1i(1, off as i32);
+                gl::Uniform1i(2, len as i32);
+                if len > 1024 {
+                    gl::DispatchCompute(1024, len / 1024 + 1, 1);
+                } else {
+                    gl::DispatchCompute(len, 1, 1);
+                }
+                gl::MemoryBarrier(gl::SHADER_STORAGE_BARRIER_BIT);
+                last_off = off;
+            }
+
+            let end = precise_time_ns();
+            println!("PositionGlAccelerator {}", end - start);
+        }
     }
 }

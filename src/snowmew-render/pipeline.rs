@@ -62,11 +62,10 @@ impl DrawTarget {
     }
 
     pub fn bind(&self) {
-        gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
-        gl::Viewport(self.x, self.y, self.width, self.height);
-        gl::Scissor(self.x, self.y, self.width, self.height);
-
         unsafe {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
+            gl::Viewport(self.x, self.y, self.width, self.height);
+            gl::Scissor(self.x, self.y, self.width, self.height);
             gl::DrawBuffers(self.draw_buffers.len() as i32, self.draw_buffers.unsafe_get(0))
         }
     }
@@ -105,7 +104,7 @@ impl PipelineState for Forward {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, dm: &DrawMatrices, dt: &DrawTarget, q: &mut Profiler) {
         q.time("forward setup".to_string());
         dt.bind();
-        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
 
         q.time("forward render".to_string());
         drawlist.render(db, &dm.view, &dm.projection);
@@ -174,7 +173,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         }
     }
 
-    fn setup_framebuffer(&mut self, width: i32, height: i32) {
+    fn setup_framebuffer(&mut self, width: i32, height: i32) { unsafe {
         let (w, h) = (width as i32, height as i32);
         let set_texture = |texture, gl_type| {
             gl::BindTexture(gl::TEXTURE_2D, texture);
@@ -208,7 +207,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
 
         self.width = w;
         self.height = h;
-    }
+    }}
 
 }
 
@@ -258,23 +257,23 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         vbo.bind();
         shader.bind();
 
-        gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
-        gl::Uniform1i(shader.uniform("uv"), 0);
-        gl::ActiveTexture(gl::TEXTURE1);
-        gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
-        gl::Uniform1i(shader.uniform("normal"), 1);
-        gl::ActiveTexture(gl::TEXTURE2);
-        gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
-        gl::Uniform1i(shader.uniform("pixel_drawn_by"), 2);
-        gl::ActiveTexture(gl::TEXTURE3);
-        gl::BindTexture(gl::TEXTURE_2D, self.depth_buffer);
-        gl::Uniform1i(shader.uniform("depth"), 3);
-        gl::ActiveTexture(gl::TEXTURE4);
-        gl::BindTexture(gl::TEXTURE_2D, self.dxdy_texture);
-        gl::Uniform1i(shader.uniform("dxdt"), 4);
-
         unsafe {
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, self.uv_texture);
+            gl::Uniform1i(shader.uniform("uv"), 0);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, self.normals_texture);
+            gl::Uniform1i(shader.uniform("normal"), 1);
+            gl::ActiveTexture(gl::TEXTURE2);
+            gl::BindTexture(gl::TEXTURE_2D, self.material_texture);
+            gl::Uniform1i(shader.uniform("pixel_drawn_by"), 2);
+            gl::ActiveTexture(gl::TEXTURE3);
+            gl::BindTexture(gl::TEXTURE_2D, self.depth_buffer);
+            gl::Uniform1i(shader.uniform("depth"), 3);
+            gl::ActiveTexture(gl::TEXTURE4);
+            gl::BindTexture(gl::TEXTURE_2D, self.dxdy_texture);
+            gl::Uniform1i(shader.uniform("dxdt"), 4);
+
             gl::UniformMatrix4fv(shader.uniform("mat_proj"), 1, gl::FALSE, dm.projection.ptr());
             gl::UniformMatrix4fv(shader.uniform("mat_view"), 1, gl::FALSE, dm.view.ptr());
             gl::UniformMatrix4fv(shader.uniform("mat_inv_proj"), 1, gl::FALSE,
@@ -294,11 +293,13 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         let lights = shader.uniform_block_index("Lights");
         let materials = shader.uniform_block_index("Materials");
 
-        gl::BindBufferBase(gl::UNIFORM_BUFFER, lights, drawlist.lights_buffer());
-        shader.uniform_block_bind(lights, lights);
+        unsafe {
+            gl::BindBufferBase(gl::UNIFORM_BUFFER, lights, drawlist.lights_buffer());
+            shader.uniform_block_bind(lights, lights);
 
-        gl::BindBufferBase(gl::UNIFORM_BUFFER, materials, drawlist.material_buffer());
-        shader.uniform_block_bind(materials, materials);
+            gl::BindBufferBase(gl::UNIFORM_BUFFER, materials, drawlist.material_buffer());
+            shader.uniform_block_bind(materials, materials);
+        }
 
         let texture_base = gl::TEXTURE7 - gl::TEXTURE0;
         let texture_range = gl::TEXTURE15 - gl::TEXTURE0 - texture_base;
@@ -340,27 +341,29 @@ impl<PIPELINE: PipelineState> PipelineState for Defered<PIPELINE> {
         let dt = self.draw_target();
         self.input.render(drawlist, db, dm, &dt, q);
 
-        gl::Disable(gl::DEPTH_TEST);
-        gl::Enable(gl::BLEND);
-        gl::BlendEquation(gl::FUNC_ADD);
-        gl::BlendFunc(gl::ONE, gl::ONE);
+        unsafe {
+            gl::Disable(gl::DEPTH_TEST);
+            gl::Enable(gl::BLEND);
+            gl::BlendEquation(gl::FUNC_ADD);
+            gl::BlendFunc(gl::ONE, gl::ONE);
 
-        q.time("defered: setup".to_string());
-        ddt.bind();
-        gl::ClearColor(0., 0., 0., 1.);
-        gl::Clear(gl::COLOR_BUFFER_BIT);
+            q.time("defered: setup".to_string());
+            ddt.bind();
+            gl::ClearColor(0., 0., 0., 1.);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
 
-        q.time("defered: lighting".to_string());
-        self.point_light(drawlist, db, dm, &dt);
+            q.time("defered: lighting".to_string());
+            self.point_light(drawlist, db, dm, &dt);
 
-        q.time("defered: cleanup".to_string());
-        for i in range(0i, 16) {
-            gl::ActiveTexture(gl::TEXTURE0 + i as u32);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
-            gl::BindTexture(gl::TEXTURE_2D_ARRAY, 0);
+            q.time("defered: cleanup".to_string());
+            for i in range(0i, 16) {
+                gl::ActiveTexture(gl::TEXTURE0 + i as u32);
+                gl::BindTexture(gl::TEXTURE_2D, 0);
+                gl::BindTexture(gl::TEXTURE_2D_ARRAY, 0);
+            }
+
+            gl::Disable(gl::BLEND);
         }
-
-        gl::Disable(gl::BLEND);
     }
 }
 
@@ -468,18 +471,20 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
         }
 
         size.map(|which, size| {
-            gl::BindFramebuffer(gl::FRAMEBUFFER, *framebuffers.eye(which));
-            gl::BindTexture(gl::TEXTURE_2D, *textures.eye(which));
+            unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, *framebuffers.eye(which));
+                gl::BindTexture(gl::TEXTURE_2D, *textures.eye(which));
 
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-            gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA8, size.x, size.y);
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+                gl::TexStorage2D(gl::TEXTURE_2D, 1, gl::RGBA8, size.x, size.y);
 
-            gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, *textures.eye(which), 0);
+                gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, *textures.eye(which), 0);
+            }
         });
-        gl::GetError();
+        unsafe { gl::GetError(); }
 
         Hmd {
             input: input,
@@ -535,7 +540,6 @@ impl<PIPELINE: PipelineState> Pipeline for Hmd<PIPELINE> {
         }
         q.time("ovr: end_frame".to_string());
         self.window.get_hmd().end_frame();
-        gl::GetError();
     }
 }
 

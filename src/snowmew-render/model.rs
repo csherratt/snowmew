@@ -48,15 +48,11 @@ impl ModelInfoSSBOBuffer {
 
         unsafe {
             gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
-        }
-
-        gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer[0]);
-        unsafe {
+            gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer[0]);
             gl::BufferData(gl::SHADER_STORAGE_BUFFER,
                            (mem::size_of::<ModelInfoSSBO>()*cfg.max_size()) as GLsizeiptr,
                            ptr::null(), gl::DYNAMIC_DRAW);
         }
-        assert!(0 == gl::GetError());
 
         ModelInfoSSBOBuffer {
             ptr_model_info: ptr::null_mut(),
@@ -66,17 +62,21 @@ impl ModelInfoSSBOBuffer {
     }
 
     pub fn map(&mut self) {
-        gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_info);
-        self.ptr_model_info = gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0, 
-                (mem::size_of::<ModelInfoSSBO>()*self.size) as GLsizeiptr,
-                gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
-        ) as *mut ModelInfoSSBO;
+        unsafe {
+            gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_info);
+            self.ptr_model_info = gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0,
+                    (mem::size_of::<ModelInfoSSBO>()*self.size) as GLsizeiptr,
+                    gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+            ) as *mut ModelInfoSSBO;
+        }
     }
 
     pub fn unmap(&mut self) {
-        gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_info);
-        gl::UnmapBuffer(gl::SHADER_STORAGE_BUFFER);
-        self.ptr_model_info = ptr::null_mut();
+        unsafe {
+            gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_info);
+            gl::UnmapBuffer(gl::SHADER_STORAGE_BUFFER);
+            self.ptr_model_info = ptr::null_mut();
+        }
     }
 
     pub fn build(&mut self, db: &Renderable, scene: ObjectKey) {
@@ -121,17 +121,14 @@ impl ModelInfoTextureBuffer {
         unsafe {
             gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
             gl::GenTextures(texture.len() as i32, texture.unsafe_mut(0));
-        }
 
-        gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[0]);
-        gl::BindTexture(gl::TEXTURE_BUFFER, texture[0]);
-        gl::TexBuffer(gl::TEXTURE_BUFFER, gl::RGB32UI, buffer[0]);
-        unsafe {
+            gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[0]);
+            gl::BindTexture(gl::TEXTURE_BUFFER, texture[0]);
+            gl::TexBuffer(gl::TEXTURE_BUFFER, gl::RGB32UI, buffer[0]);
             gl::BufferData(gl::TEXTURE_BUFFER,
                            (mem::size_of::<ModelInfoTexture>()*cfg.max_size()) as GLsizeiptr,
                            ptr::null(), gl::DYNAMIC_DRAW);
         }
-        assert!(0 == gl::GetError());
 
         ModelInfoTextureBuffer {
             ptr_model_info: ptr::null_mut(),
@@ -142,17 +139,21 @@ impl ModelInfoTextureBuffer {
     }
 
     pub fn map(&mut self) {
-        gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
-        self.ptr_model_info = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0, 
-                (mem::size_of::<ModelInfoTexture>()*self.size) as GLsizeiptr,
-                gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
-        ) as *mut ModelInfoTexture;
+        unsafe {
+            gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
+            self.ptr_model_info = gl::MapBufferRange(gl::TEXTURE_BUFFER, 0,
+                    (mem::size_of::<ModelInfoTexture>()*self.size) as GLsizeiptr,
+                    gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+            ) as *mut ModelInfoTexture;
+        }
     }
 
     pub fn unmap(&mut self) {
-        gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
-        gl::UnmapBuffer(gl::TEXTURE_BUFFER);
-        self.ptr_model_info = ptr::null_mut();
+        unsafe {
+            gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_info);
+            gl::UnmapBuffer(gl::TEXTURE_BUFFER);
+            self.ptr_model_info = ptr::null_mut();
+        }
     }
 
     pub fn build(&mut self, db: &Renderable, scene: ObjectKey) {

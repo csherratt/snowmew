@@ -74,20 +74,24 @@ impl LightsBuffer {
     }
 
     pub fn map(&mut self) {
-        gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
-        self.ptr = gl::MapBufferRange(
-            gl::UNIFORM_BUFFER, 0,
-            mem::size_of::<LightsStd140>() as i64,
-            gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
-        ) as *mut LightsStd140;
-        gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+        unsafe {
+            gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
+            self.ptr = gl::MapBufferRange(
+                gl::UNIFORM_BUFFER, 0,
+                mem::size_of::<LightsStd140>() as i64,
+                gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
+            ) as *mut LightsStd140;
+            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+        }
     }
 
     pub fn unmap(&mut self) {
         self.ptr = ptr::null_mut();
-        gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
-        gl::UnmapBuffer(gl::UNIFORM_BUFFER);
-        gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+        unsafe {
+            gl::BindBuffer(gl::UNIFORM_BUFFER, self.buffer);
+            gl::UnmapBuffer(gl::UNIFORM_BUFFER);
+            gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
+        }
     }
 
     pub fn build<G: Graphics + Positions>(&mut self, graphics: &G) {

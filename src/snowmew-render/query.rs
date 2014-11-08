@@ -41,7 +41,7 @@ impl Query {
     }
 
     pub fn start_time(self) -> TimeElapsedQuery {
-        gl::BeginQuery(gl::TIME_ELAPSED, self.id);
+        unsafe {gl::BeginQuery(gl::TIME_ELAPSED, self.id);}
 
         TimeElapsedQuery {
             quary: self
@@ -49,7 +49,7 @@ impl Query {
     }
 
     pub fn time_stamp(self) -> TimeStampQuery {
-        gl::QueryCounter(self.id, gl::TIMESTAMP);
+        unsafe {gl::QueryCounter(self.id, gl::TIMESTAMP);}
 
         TimeStampQuery {
             quary: self
@@ -59,7 +59,7 @@ impl Query {
 
 impl TimeElapsedQuery {
     pub fn end(&self) {
-        gl::EndQuery(gl::TIME_ELAPSED);
+        unsafe { gl::EndQuery(gl::TIME_ELAPSED); }
     }
 
     pub fn time_sync_ns(&self) -> u64 {
