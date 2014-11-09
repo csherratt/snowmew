@@ -1,4 +1,8 @@
 
+use std::collections::VecMap;
+use std::collections::vec_map::Entries;
+use std::sync::Arc;
+
 use ObjectKey;
 use cow::btree::{BTreeMap, BTreeMapIterator};
 use cow::btree::{BTreeSet, BTreeSetIterator};
@@ -97,6 +101,60 @@ impl<'a> Iterator<ObjectKey> for StaticSetIterator<'a> {
         match self.iter.next() {
             None => None,
             Some(&key) => Some(key)
+        }
+    }
+}
+
+#[deriving(Default)]
+pub struct Dynamic<T: Send+Sync+Clone>(Arc<VecMap<T>>);
+
+impl<T: Send+Clone+Sync+Default> Clone for Dynamic<T> {
+    fn clone(&self) -> Dynamic<T> {
+        Dynamic(match self { &Dynamic(ref t) => t.clone() })
+    }
+}
+
+impl<T: Send+Sync+Clone> Dynamic<T> {
+    pub fn new() -> Dynamic<T> {
+        Dynamic(Arc::new(VecMap::new()))
+    }
+
+    pub fn get(&self, key: ObjectKey) -> Option<&T> {
+        match self { &Dynamic(ref t) => t.get(&(key as uint)) }
+    }
+
+    pub fn get_mut(&mut self, key: ObjectKey) -> Option<&mut T> {
+        match self { &Dynamic(ref mut t) => t.make_unique().get_mut(&(key as uint)) }
+    }
+
+    pub fn insert(&mut self, key: ObjectKey, value: T) -> bool {
+        match self { &Dynamic(ref mut t) => t.make_unique().insert(key as uint, value) }.is_some()
+    }
+
+    pub fn remove(&mut self, key: ObjectKey) -> bool {
+        match self { &Dynamic(ref mut t) => t.make_unique().remove(&(key as uint)) }.is_some()
+    }
+
+    pub fn iter(&self) -> DynamicIterator<T> {
+        DynamicIterator {
+            iter: match self { &Dynamic(ref t) => t.iter() }
+        }
+    }
+
+    pub fn len(&self) -> uint {
+        match self { &Dynamic(ref t) => t.len() }
+    }
+}
+
+pub struct DynamicIterator<'a, T:'a> {
+    iter: Entries<'a, T>
+}
+
+impl<'a, T: Send+Sync> Iterator<(ObjectKey, &'a T)> for DynamicIterator<'a, T> {
+    fn next(&mut self) -> Option<(ObjectKey, &'a T)> {
+        match self.iter.next() {
+            None => None,
+            Some((key, value)) => Some((key as ObjectKey, value))
         }
     }
 }
