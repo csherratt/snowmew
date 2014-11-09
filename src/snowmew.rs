@@ -23,6 +23,7 @@ extern crate "snowmew-position"     as _position;
 extern crate "snowmew-render-mux"   as _render;
 extern crate "snowmew-render-data"  as _render_data;
 
+pub use _core::table;
 pub use _core::common::ObjectKey as ObjectKey;
 
 pub mod render {
