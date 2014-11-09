@@ -105,7 +105,7 @@ impl<'a> Iterator<ObjectKey> for StaticSetIterator<'a> {
     }
 }
 
-#[deriving(Default)]
+#[deriving(Default, Encodable, Decodable)]
 pub struct Dynamic<T: Send+Sync+Clone>(Arc<VecMap<T>>);
 
 impl<T: Send+Clone+Sync+Default> Clone for Dynamic<T> {

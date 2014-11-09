@@ -38,12 +38,10 @@ use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
 use opencl::mem::CLBuffer;
 use opencl::cl::{CL_MEM_READ_ONLY};
 
-use cow::btree::BTreeMap;
-
 use snowmew::common::{ObjectKey, Common, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
-use snowmew::table::{Static, StaticIterator};
+use snowmew::table::{Dynamic, DynamicIterator};
 
 const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
@@ -86,7 +84,7 @@ impl<'r> MatrixManager for &'r mut [Matrix4<f32>] {
 #[deriving(Clone, Default, Encodable, Decodable)]
 pub struct Deltas {
     gen: Vec<(u32, u32)>,
-    delta: BTreeMap<u32, BTreeMap<u32, Delta>>,
+    delta: Dynamic<Dynamic<Delta>>,
 }
 
 #[deriving(Clone, Default, Eq, PartialOrd, PartialEq, Ord, Show, Encodable, Decodable)]
@@ -94,9 +92,9 @@ pub struct Id(u32, u32);
 
 impl Deltas {
     pub fn new() -> Deltas {
-        let mut b = BTreeMap::new();
-        b.insert(0u32, BTreeMap::new());
-        b.find_mut(&0).unwrap().insert(0u32, Default::default());
+        let mut b = Dynamic::new();
+        b.insert(0u32, Dynamic::new());
+        b.get_mut(0).unwrap().insert(0u32, Default::default());
 
         Deltas {
             gen: vec!((0, 1)),
@@ -119,7 +117,7 @@ impl Deltas {
             let (s, len) = self.gen[(gen-1) as uint];
             self.gen.push((s+len, 1));
 
-            self.delta.insert(gen, BTreeMap::new());
+            self.delta.insert(gen, Dynamic::new());
 
             0
         } else {
@@ -142,7 +140,7 @@ impl Deltas {
         assert!((gen as uint) < self.gen.len());
 
         let id = self.add_location(gen+1);
-        match self.delta.find_mut(&(gen+1)) {
+        match self.delta.get_mut(gen+1) {
             Some(d) => {
                 d.insert(id, Delta {
                     parent: pid,
@@ -159,9 +157,9 @@ impl Deltas {
         let Id(gen, oid) = id;
 
         let id = self.add_location(gen);
-        self.delta.find_mut(&gen)
+        self.delta.get_mut(gen)
                   .map(|d| {
-                      let old = d.find(&oid).map(|x| *x).expect("old value not found");
+                      let old = d.get(oid).map(|x| *x).expect("old value not found");
                       d.insert(id, old)
                   });
 
@@ -171,8 +169,8 @@ impl Deltas {
     pub fn get<'a>(&'a self, id: Id) -> Option<&'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
         let Id(gen, id) = id;
         let mut out = None;
-        self.delta.find(&gen).map(|delta| {
-            delta.find(&id).map(|x| {
+        self.delta.get(gen).map(|delta| {
+            delta.get(id).map(|x| {
                 out = Some(&x.delta);
             })
         });
@@ -182,8 +180,8 @@ impl Deltas {
     pub fn get_mut<'a>(&'a mut self, id: Id) -> Option<&'a mut Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
         let Id(gen, id) = id;
         let mut out = None;
-        self.delta.find_mut(&gen).map(|delta| {
-            delta.find_mut(&id).map(|x| {
+        self.delta.get_mut(gen).map(|delta| {
+            delta.get_mut(id).map(|x| {
                 out = Some(&mut x.delta);
             })
         });
@@ -196,21 +194,21 @@ impl Deltas {
 
     pub fn get_delta(&self, id :Id) -> Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
         let Id(gen, id) = id;
-        self.delta.find(&gen).unwrap().find(&id).unwrap().delta
+        self.delta.get(gen).unwrap().get(id).unwrap().delta
     }
 
     pub fn get_delta_ref(&self, id :Id) -> &Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
         let Id(gen, id) = id;
-        &self.delta.find(&gen).unwrap().find(&id).unwrap().delta
+        &self.delta.get(gen).unwrap().get(id).unwrap().delta
     }
 
     pub fn get_mat(&self, id :Id) -> Matrix4<f32> {
         match id {
             Id(0, key) => {
-                self.delta.find(&0).unwrap().find(&key).unwrap().delta.to_matrix4()
+                self.delta.get(0).unwrap().get(key).unwrap().delta.to_matrix4()
             },
             Id(gen, key) => {
-                let cell = self.delta.find(&gen).unwrap().find(&key).unwrap();
+                let cell = self.delta.get(gen).unwrap().get(key).unwrap();
                 let mat = cell.delta.to_matrix4();
                 let parent = Id(gen-1, cell.parent);
 
@@ -225,7 +223,7 @@ impl Deltas {
         mm.set(0, Matrix4::identity());
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (&off, delta) in gen.iter() {
+            for (off, delta) in gen.iter() {
                 let ploc = last_gen_off + delta.parent;
                 let nmat = mm.get(ploc as uint).mul_m(&delta.delta.to_matrix4());
                 mm.set((off + gen_off) as uint, nmat);
@@ -249,7 +247,7 @@ impl Deltas {
         }
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (&off, delta) in gen.iter() {
+            for (off, delta) in gen.iter() {
                 ctx.input_buffer[(off + gen_off) as uint] = delta.delta;
                 ctx.parent_buffer[(off + gen_off) as uint] = delta.parent.clone();
             }
@@ -298,7 +296,7 @@ impl Deltas {
         }
 
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (&off, delta) in gen.iter() {
+            for (off, delta) in gen.iter() {
                 ctx.input_buffer[(off + gen_off) as uint] = delta.delta;
                 ctx.parent_buffer[(off + gen_off) as uint] = delta.parent.clone();
             }
@@ -328,7 +326,7 @@ impl Deltas {
 
     pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
         for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (&off, delta) in gen.iter() {
+            for (off, delta) in gen.iter() {
                 out_delta[(off + gen_off) as uint] = delta.clone();
             }
         }
@@ -427,14 +425,14 @@ impl CalcPositionsCl {
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct PositionData {
-    location: Static<Id>,
+    location: Dynamic<Id>,
     position: Deltas
 }
 
 impl PositionData {
     pub fn new() -> PositionData {
         PositionData {
-            location: Static::new(),
+            location: Dynamic::new(),
             position: Deltas::new()
         }
     }
@@ -555,7 +553,7 @@ pub trait Positions: Common {
         self.get_position().position.compute_positions()
     }
 
-    fn location_iter<'a>(&'a self) -> StaticIterator<'a, Id> {
+    fn location_iter<'a>(&'a self) -> DynamicIterator<'a, Id> {
         self.get_position().location.iter()
     }
 
@@ -574,7 +572,7 @@ pub trait Positions: Common {
 }
 
 pub struct DeltaIterator<'a> {
-    iter: StaticIterator<'a, Id>,
+    iter: DynamicIterator<'a, Id>,
     delta: &'a Deltas
 }
 
