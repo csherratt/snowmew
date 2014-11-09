@@ -111,10 +111,10 @@ impl LightsBuffer {
                     if point_light_count == POINT_LIGHT_MAX {
                         println!("Dropping point light, overflow dropping light");
                     } else {
-                        ptr.point_lights[point_light_count] = 
+                        ptr.point_lights[point_light_count] =
                             PointLight {
                                 color: color(p.color(), p.intensity()),
-                                position: graphics.position(*key).mul_v(&base)
+                                position: graphics.position(key).mul_v(&base)
                             };
                         point_light_count += 1;
                     }
@@ -125,7 +125,7 @@ impl LightsBuffer {
                     } else {
                         let n = d.normal();
                         let n = Vector4::new(n.x, n.y, n.z, 0.);
-                        let n = graphics.position(*key).mul_v(&n).normalize();
+                        let n = graphics.position(key).mul_v(&n).normalize();
                         ptr.direction_lights[direction_light_count] =
                             DirectionLight {
                                 color: color(d.color(), d.intensity()),

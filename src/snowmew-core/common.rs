@@ -12,10 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use cow::btree::{BTreeMap, BTreeSet, BTreeSetIterator};
 use serialize::Encodable;
 use io::IoState;
 use input;
+use table::{Static, StaticSet, StaticSetIterator};
 
 #[deriving(Clone, Default)]
 pub struct FrameInfo {
@@ -36,9 +36,9 @@ pub type StringKey = u32;
 #[deriving(Clone, Encodable, Decodable)]
 pub struct CommonData {
     last_oid:       ObjectKey,
-    objects:        BTreeMap<ObjectKey, Object>,
-    parent_child:   BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
-    scene_children: BTreeMap<ObjectKey, BTreeSet<ObjectKey>>,
+    objects:        Static<Object>,
+    parent_child:   Static<StaticSet>,
+    scene_children: Static<StaticSet>,
     io: IoState
 }
 
@@ -46,9 +46,9 @@ impl CommonData {
     pub fn new() -> CommonData {
         CommonData {
             last_oid: 1,
-            objects: BTreeMap::new(),
-            parent_child: BTreeMap::new(),
-            scene_children: BTreeMap::new(),
+            objects: Static::new(),
+            parent_child: Static::new(),
+            scene_children: Static::new(),
             io: IoState::new()
         }
     }
@@ -60,13 +60,13 @@ impl CommonData {
     }
 
     fn update_parent_child(&mut self, parent: ObjectKey, child: ObjectKey) {
-        let new = match self.parent_child.find_mut(&parent) {
+        let new = match self.parent_child.get_mut(parent) {
             Some(child_list) => {
                 child_list.insert(child);
                 None
             },
             None => {
-                let mut child_list = BTreeSet::new();
+                let mut child_list = StaticSet::new();
                 child_list.insert(child);
                 Some(child_list)
             }
@@ -90,7 +90,7 @@ pub trait Common {
 
     fn new_scene(&mut self) -> ObjectKey {
         let oid = self.new_object(None);
-        self.get_common_mut().scene_children.insert(oid, BTreeSet::new());
+        self.get_common_mut().scene_children.insert(oid, StaticSet::new());
         oid
     }
 
@@ -110,9 +110,9 @@ pub trait Common {
 
         let mut scene_id = None;
         while parent != 0 {
-            match self.get_common().scene_children.find(&parent) {
+            match self.get_common().scene_children.get(parent) {
                 None => {
-                    parent = self.get_common().objects.find(&parent).unwrap().parent;
+                    parent = self.get_common().objects.get(parent).unwrap().parent;
                 }
                 Some(_) => {
                     scene_id = Some(parent);
@@ -123,7 +123,7 @@ pub trait Common {
 
         match scene_id {
             Some(id) => {
-                let sc = self.get_common_mut().scene_children.find_mut(&id).unwrap();
+                let sc = self.get_common_mut().scene_children.get_mut(id).unwrap();
                 sc.insert(new_key);
             }
             None => ()
@@ -132,18 +132,18 @@ pub trait Common {
         new_key
     }
 
-    fn scene_iter<'a>(&'a self, oid: ObjectKey) -> BTreeSetIterator<'a, u32> {
-        let sc = self.get_common().scene_children.find(&oid)
-            .expect("Failed to find scene");
+    fn scene_iter<'a>(&'a self, oid: ObjectKey) -> StaticSetIterator<'a> {
+        let sc = self.get_common().scene_children.get(oid)
+            .expect("Failed to get scene");
         sc.iter()
     }
 
     fn object<'a>(&'a self, oid: ObjectKey) -> Option<&'a Object> {
-        self.get_common().objects.find(&oid)
+        self.get_common().objects.get(oid)
     }
 
     fn walk_dir<'a>(&'a self, oid: ObjectKey) -> DirIter<'a> {
-        let dir = self.get_common().parent_child.find(&oid).unwrap();
+        let dir = self.get_common().parent_child.get(oid).unwrap();
         dir.iter()
     }
 
@@ -168,16 +168,16 @@ pub trait Delete {
 
 impl Delete for CommonData {
     fn delete(&mut self, oid: ObjectKey) -> bool {
-        let o = self.objects.find(&oid).map(|x| *x);
+        let o = self.objects.get(oid).map(|x| *x);
         match o {
             Some(o) => {
-                self.objects.remove(&oid)                      |
-                self.parent_child.remove(&oid)                 |
-                self.scene_children.remove(&oid)               |
-                (self.parent_child.find_mut(&o.parent)
-                    .map(|x| { x.remove(&oid) }) == Some(true)) |
-                (self.scene_children.find_mut(&o.parent)
-                    .map(|x| { x.remove(&oid) }) == Some(true))
+                self.objects.remove(oid)                      |
+                self.parent_child.remove(oid)                 |
+                self.scene_children.remove(oid)               |
+                (self.parent_child.get_mut(o.parent)
+                    .map(|x| { x.remove(oid) }) == Some(true)) |
+                (self.scene_children.get_mut(o.parent)
+                    .map(|x| { x.remove(oid) }) == Some(true))
             }
             None => false
         }
@@ -189,4 +189,4 @@ impl Common for CommonData {
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}
 }
 
-pub type DirIter<'a> = BTreeSetIterator<'a, ObjectKey>;
+pub type DirIter<'a> = StaticSetIterator<'a>;

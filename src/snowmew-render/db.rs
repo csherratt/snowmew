@@ -62,9 +62,9 @@ impl GlState {
     fn load_textures(&mut self, db: &Renderable, _: &Config) {
         for (atlas_idx, atlas) in db.texture_atlas_iter().enumerate() {
             for (oid, idx) in atlas.texture_iter() {
-                let texture = db.get_texture(*oid)
+                let texture = db.get_texture(oid)
                         .expect("Can't find texture");
-                self.texture.load(atlas_idx, *idx, atlas.max_layers(), texture);   
+                self.texture.load(atlas_idx, *idx, atlas.max_layers(), texture);
             }
         }
     }
@@ -73,11 +73,11 @@ impl GlState {
         let mut vertex = self.vertex.clone();
 
         for (oid, vbo) in db.vertex_buffer_iter() {
-            match vertex.find(oid) {
+            match vertex.find(&oid) {
                 Some(_) => (),
                 None => {
                     let vb = VertexBuffer::new(&vbo.vertex, vbo.index.as_slice());
-                    vertex.insert(*oid, vb);
+                    vertex.insert(oid, vb);
                 }
             }
         }

@@ -70,7 +70,7 @@ pub struct PhysicsManager {
 }
 
 impl PhysicsManager {
-    pub fn new() -> PhysicsManager { 
+    pub fn new() -> PhysicsManager {
         PhysicsManager {
             static_builder: Some(BvhBuilder::new()),
             static_bvh: None,
@@ -94,7 +94,7 @@ impl PhysicsManager {
 
         for (key, (loc, &Collider(ref coll))) in join_maps(data.location_iter(), data.get_physics().static_colliders.iter()) {
             let aabb = recalc_aabb(coll, &self.matrix[pos.get_loc(*loc)]);
-            bvh.add(aabb, *key);
+            bvh.add(aabb, key);
         }
 
         self.static_bvh = Some(bvh.build());
@@ -126,15 +126,15 @@ impl PhysicsManager {
                         break;
                     }
                     if !collided {
-                        let t = data.location(*key).expect("unxpeced missing location");
+                        let t = data.location(key).expect("unxpeced missing location");
                         let disp = t.disp.add_v(&vel);
                         let scale = t.scale;
                         let rot = t.rot;
-                        data.update_location(*key, Decomposed{scale: scale,
-                                                              rot:   rot,
-                                                              disp:  disp});
+                        data.update_location(key, Decomposed{scale: scale,
+                                                             rot:   rot,
+                                                             disp:  disp});
                     }
-                }                
+                }
             }
         }
 

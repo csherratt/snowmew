@@ -12,9 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use cow::btree::{BTreeMap, BTreeMapIterator};
-
 use snowmew::common::ObjectKey;
+use snowmew::table::{Static, StaticIterator};
 
 use Texture;
 
@@ -24,7 +23,7 @@ pub struct Atlas {
     height: uint,
     depth: uint,
     max_layers: uint,
-    layers: BTreeMap<ObjectKey, uint>,
+    layers: Static<uint>,
     free_layers: Vec<uint>
 }
 
@@ -42,7 +41,7 @@ impl Atlas {
             height: height,
             depth: depth,
             max_layers: layers,
-            layers: BTreeMap::new(),
+            layers: Static::new(),
             free_layers: free_layers
         }
     }
@@ -62,7 +61,7 @@ impl Atlas {
         layer
     }
 
-    pub fn texture_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, uint> {
+    pub fn texture_iter<'a>(&'a self) -> StaticIterator<'a, uint> {
         self.layers.iter()
     }
 

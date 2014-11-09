@@ -38,11 +38,12 @@ use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
 use opencl::mem::CLBuffer;
 use opencl::cl::{CL_MEM_READ_ONLY};
 
-use cow::btree::{BTreeMap, BTreeMapIterator};
+use cow::btree::BTreeMap;
 
 use snowmew::common::{ObjectKey, Common, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
+use snowmew::table::{Static, StaticIterator};
 
 const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
@@ -426,14 +427,14 @@ impl CalcPositionsCl {
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct PositionData {
-    location: BTreeMap<ObjectKey, Id>,
+    location: Static<Id>,
     position: Deltas
 }
 
 impl PositionData {
     pub fn new() -> PositionData {
         PositionData {
-            location: BTreeMap::new(),
+            location: Static::new(),
             position: Deltas::new()
         }
     }
@@ -447,7 +448,7 @@ pub trait Positions: Common {
         if key == 0 {
             Deltas::root()
         } else {
-            match self.get_position().location.find(&key) {
+            match self.get_position().location.get(key) {
                 Some(id) =>  return *id,
                 None => ()
             }
@@ -516,7 +517,7 @@ pub trait Positions: Common {
     }
 
     fn location(&self, key: ObjectKey) -> Option<Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
-        match self.get_position().location.find(&key) {
+        match self.get_position().location.get(key) {
             Some(id) => Some(self.get_position().position.get_delta(*id)),
             None => None
         }
@@ -554,7 +555,7 @@ pub trait Positions: Common {
         self.get_position().position.compute_positions()
     }
 
-    fn location_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Id> {
+    fn location_iter<'a>(&'a self) -> StaticIterator<'a, Id> {
         self.get_position().location.iter()
     }
 
@@ -573,12 +574,12 @@ pub trait Positions: Common {
 }
 
 pub struct DeltaIterator<'a> {
-    iter: BTreeMapIterator<'a, ObjectKey, Id>,
+    iter: StaticIterator<'a, Id>,
     delta: &'a Deltas
 }
 
-impl<'a> Iterator<(&'a ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> for DeltaIterator<'a> {
-    fn next(&mut self) -> Option<(&'a ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> {
+impl<'a> Iterator<(ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> for DeltaIterator<'a> {
+    fn next(&mut self) -> Option<(ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> {
         match self.iter.next() {
             Some((oid, &id)) => Some((oid, self.delta.get_delta_ref(id))),
             None => None
@@ -588,7 +589,7 @@ impl<'a> Iterator<(&'a ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f
 
 impl Duplicate for PositionData {
     fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey) {
-        let loc = self.location.find(&src).map(|&x| x);
+        let loc = self.location.get(src).map(|&x| x);
         loc.map(|loc| {
             let id = self.position.dup(loc);
             self.location.insert(dst, id);
@@ -598,7 +599,7 @@ impl Duplicate for PositionData {
 
 impl Delete for PositionData {
     fn delete(&mut self, oid: ObjectKey) -> bool {
-        self.location.remove(&oid)
+        self.location.remove(oid)
     }
 }
 

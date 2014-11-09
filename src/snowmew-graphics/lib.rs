@@ -23,7 +23,6 @@
 #[phase(plugin)]
 extern crate gfx_macros;
 extern crate gfx;
-extern crate cow;
 extern crate cgmath;
 extern crate collision;
 extern crate genmesh;
@@ -39,10 +38,10 @@ use serialize::Encodable;
 use cgmath::Point3;
 use collision::sphere::Sphere;
 
-use cow::btree::{BTreeMapIterator, BTreeMap};
 use snowmew::common::{Common, ObjectKey, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
+use snowmew::table::{Static, StaticIterator};
 
 pub use geometry::{Geometry, VertexBuffer};
 pub use material::Material;
@@ -82,34 +81,34 @@ impl Ord for Drawable {
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct GraphicsData {
-    draw:               BTreeMap<ObjectKey, Drawable>,
-    geometry:           BTreeMap<ObjectKey, Geometry>,
-    sphere:             BTreeMap<ObjectKey, Sphere<f32>>,
-    vertex:             BTreeMap<ObjectKey, VertexBuffer>,
-    material:           BTreeMap<ObjectKey, Material>,
-    material_index:     BTreeMap<ObjectKey, i32>,
+    draw:               Static<Drawable>,
+    geometry:           Static<Geometry>,
+    sphere:             Static<Sphere<f32>>,
+    vertex:             Static<VertexBuffer>,
+    material:           Static<Material>,
+    material_index:     Static<i32>,
     material_idx_last:  i32,
-    texture:            BTreeMap<ObjectKey, Texture>,
-    texture_to_atlas:   BTreeMap<ObjectKey, (uint, uint)>,
+    texture:            Static<Texture>,
+    texture_to_atlas:   Static<(uint, uint)>,
     atlases:            Vec<texture_atlas::Atlas>,
-    lights:             BTreeMap<ObjectKey, light::Light>,
+    lights:             Static<light::Light>,
     standard:           Option<standard::Standard>
 }
 
 impl GraphicsData {
     pub fn new() -> GraphicsData {
         GraphicsData {
-            draw: BTreeMap::new(),
-            geometry: BTreeMap::new(),
-            vertex: BTreeMap::new(),
-            material: BTreeMap::new(),
-            material_index: BTreeMap::new(),
-            texture: BTreeMap::new(),
-            lights: BTreeMap::new(),
+            draw: Static::new(),
+            geometry: Static::new(),
+            vertex: Static::new(),
+            material: Static::new(),
+            material_index: Static::new(),
+            texture: Static::new(),
+            lights: Static::new(),
             atlases: Vec::new(),
-            texture_to_atlas: BTreeMap::new(),
+            texture_to_atlas: Static::new(),
             material_idx_last: 0,
-            sphere: BTreeMap::new(),
+            sphere: Static::new(),
             standard: None
         }
     }
@@ -130,7 +129,7 @@ pub trait Graphics: Common {
     }
 
     fn drawable<'a>(&'a self, key: ObjectKey) -> Option<&'a Drawable> {
-        self.get_graphics().draw.find(&key)
+        self.get_graphics().draw.get(key)
     }
 
     fn new_vertex_buffer(&mut self, vb: VertexBuffer) -> ObjectKey {
@@ -140,7 +139,7 @@ pub trait Graphics: Common {
     }
 
     fn geometry<'a>(&'a self, oid: ObjectKey) -> Option<&'a Geometry> {
-        self.get_graphics().geometry.find(&oid)
+        self.get_graphics().geometry.get(oid)
     }
 
     fn new_geometry(&mut self, geo: Geometry) -> ObjectKey {
@@ -154,18 +153,18 @@ pub trait Graphics: Common {
     }
 
     fn sphere(&self, geo: ObjectKey) -> Sphere<f32> {
-        match self.get_graphics().sphere.find(&geo) {
+        match self.get_graphics().sphere.get(geo) {
             Some(s) => { s.clone() }
             None => Sphere::new(Point3::new(0f32, 0., 0.,), 0f32)
         }
     }
 
     fn material<'a>(&'a self, oid: ObjectKey) -> Option<&'a Material> {
-        self.get_graphics().material.find(&oid)
+        self.get_graphics().material.get(oid)
     }
 
     fn material_index(&self, oid: ObjectKey) -> Option<i32> {
-        match self.get_graphics().material_index.find(&oid) {
+        match self.get_graphics().material_index.get(oid) {
             Some(idx) => Some(*idx),
             None => None
         }
@@ -180,7 +179,7 @@ pub trait Graphics: Common {
         obj
     }
 
-    fn material_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Material> {
+    fn material_iter<'a>(&'a self) -> StaticIterator<'a, Material> {
         self.get_graphics().material.iter()
     }
 
@@ -194,7 +193,7 @@ pub trait Graphics: Common {
     }
 
     fn get_draw(&self, oid: ObjectKey) -> Option<Drawable> {
-        match self.get_graphics().draw.find(&oid) {
+        match self.get_graphics().draw.get(oid) {
             Some(d) => Some(d.clone()),
             None => None
         }
@@ -204,21 +203,21 @@ pub trait Graphics: Common {
         self.get_graphics().draw.len()
     }
 
-    fn drawable_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Drawable> {
+    fn drawable_iter<'a>(&'a self) -> StaticIterator<'a, Drawable> {
         self.get_graphics().draw.iter()
     }
 
-    fn vertex_buffer_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, VertexBuffer> {
+    fn vertex_buffer_iter<'a>(&'a self) -> StaticIterator<'a, VertexBuffer> {
         self.get_graphics().vertex.iter()
     }
 
     fn geometry_vertex_iter<'a>(&'a self, oid: ObjectKey) -> Option<VertexBufferIter<'a>> {
-        let geo = match self.get_graphics().geometry.find(&oid) {
+        let geo = match self.get_graphics().geometry.get(oid) {
             None => return None,
             Some(geo) => geo
         };
 
-        let vb = match self.get_graphics().vertex.find(&geo.vb) {
+        let vb = match self.get_graphics().vertex.get(geo.vb) {
             None => return None,
             Some(vb) => vb
         };
@@ -263,14 +262,14 @@ pub trait Graphics: Common {
     }
 
     fn get_texture<'a>(&'a self, oid: ObjectKey) -> Option<&'a Texture> {
-        self.get_graphics().texture.find(&oid)
+        self.get_graphics().texture.get(oid)
     }
 
     fn get_texture_atlas_index<'a>(&'a self, oid: ObjectKey) -> Option<&'a (uint, uint)> {
-        self.get_graphics().texture_to_atlas.find(&oid)
+        self.get_graphics().texture_to_atlas.get(oid)
     }
 
-    fn texture_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Texture> {
+    fn texture_iter<'a>(&'a self) -> StaticIterator<'a, Texture> {
         self.get_graphics().texture.iter()
     }
 
@@ -285,10 +284,10 @@ pub trait Graphics: Common {
     }
 
     fn get_light<'a>(&'a self, oid: ObjectKey) -> Option<&'a Light> {
-        self.get_graphics().lights.find(&oid)
+        self.get_graphics().lights.get(oid)
     }
 
-    fn light_iter<'a>(&'a self) -> BTreeMapIterator<'a, ObjectKey, Light> {
+    fn light_iter<'a>(&'a self) -> StaticIterator<'a, Light> {
         self.get_graphics().lights.iter()
     }
 }
@@ -298,7 +297,7 @@ pub trait Graphics: Common {
 macro_rules! dup(
     ($field:expr, $src:ident, $dst:ident) => (
         {
-            let x = $field.find(&$src).map(|x| x.clone());
+            let x = $field.get($src).map(|x| x.clone());
             x.map(|x| $field.insert($dst, x));
         }
     )
@@ -321,15 +320,15 @@ impl Duplicate for GraphicsData {
 
 impl Delete for GraphicsData {
     fn delete(&mut self, oid: ObjectKey) -> bool {
-        self.draw.remove(&oid)             |
-        self.geometry.remove(&oid)         |
-        self.vertex.remove(&oid)           |
-        self.material.remove(&oid)         |
-        self.material_index.remove(&oid)   |
-        self.texture.remove(&oid)          |
-        self.lights.remove(&oid)           |
-        self.texture_to_atlas.remove(&oid) |
-        self.sphere.remove(&oid)
+        self.draw.remove(oid)             |
+        self.geometry.remove(oid)         |
+        self.vertex.remove(oid)           |
+        self.material.remove(oid)         |
+        self.material_index.remove(oid)   |
+        self.texture.remove(oid)          |
+        self.lights.remove(oid)           |
+        self.texture_to_atlas.remove(oid) |
+        self.sphere.remove(oid)
     }
 }
 

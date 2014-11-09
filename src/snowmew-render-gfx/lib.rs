@@ -379,7 +379,7 @@ impl RenderManagerContext {
 
     fn load_meshes<RD: Renderable>(&mut self, db: &RD) {
         for (oid, vb) in db.vertex_buffer_iter() {
-            if self.meshes.find(oid).is_none() {
+            if self.meshes.find(&oid).is_none() {
                 let mesh = match vb.vertex {
                     Geo(ref d) => {
                         println!("Geo");
@@ -423,7 +423,7 @@ impl RenderManagerContext {
 
                 let index = self.graphics.device.create_buffer_static(vb.as_slice());
 
-                self.meshes.insert(*oid, Mesh {
+                self.meshes.insert(oid, Mesh {
                     index: index,
                     mesh: mesh
                 });
@@ -433,7 +433,7 @@ impl RenderManagerContext {
 
     fn load_textures<RD: Renderable>(&mut self, db: &RD) {
         for (oid, text) in db.texture_iter() {
-            if self.textures.find(oid).is_none() {
+            if self.textures.find(&oid).is_none() {
                 let tinfo = gfx::tex::TextureInfo {
                     width: text.width() as u16,
                     height: text.height() as u16,
@@ -451,7 +451,7 @@ impl RenderManagerContext {
                 let texture = self.graphics.device.create_texture(tinfo)
                                          .ok().expect("Failed to create texture");
                 self.graphics.device.update_texture(&texture, &img_info, text.data()).unwrap();
-                self.textures.insert(*oid, texture);
+                self.textures.insert(oid, texture);
             }
         }
     }
@@ -555,7 +555,7 @@ impl RenderManagerContext {
                                                join_maps(db.drawable_iter(),
                                                          db.location_iter())) {
 
-            let model = db.position(*id);
+            let model = db.position(id);
 
             self.shadow_data.model_mat = model.into_fixed();
             self.graphics.draw(
@@ -599,7 +599,7 @@ impl RenderManagerContext {
                 &graphics::DirectionalLight(d) => {
                     let n = d.normal();
                     let n = Vector4::new(n.x, n.y, n.z, 0.);
-                    let n = db.position(*key).mul_v(&n).normalize();
+                    let n = db.position(key).mul_v(&n).normalize();
                     let color = d.color().mul_s(d.intensity());
                     self.data.light_color = [color.x, color.y, color.z, 1.];
                     self.data.light_normal = [n.x, n.y, n.z, n.w];
@@ -614,7 +614,7 @@ impl RenderManagerContext {
                                                          db.location_iter())) {
 
             let mat = db.material(draw.material).expect("Could not find material");
-            let model = db.position(*id);
+            let model = db.position(id);
 
             self.data.model_mat = model.into_fixed();
 

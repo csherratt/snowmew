@@ -56,6 +56,7 @@ pub mod game;
 pub mod input;
 pub mod input_integrator;
 pub mod debugger;
+pub mod table;
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();

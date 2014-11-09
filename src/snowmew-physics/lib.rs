@@ -25,14 +25,14 @@ extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 
 use snowmew::common::{ObjectKey, Common};
+use snowmew::table::{Static, StaticIterator};
+
 use position::Positions;
 
 use collision::aabb::{Aabb3};
 
 use cgmath::Point3;
 use cgmath::{Vector3};
-
-use cow::btree::BTreeMap;
 
 pub mod manager;
 
@@ -57,18 +57,18 @@ impl std::default::Default for Velocity {
 
 #[deriving(Clone)]
 pub struct PhysicsData {
-    static_colliders: BTreeMap<ObjectKey, Collider>,
-    colliders: BTreeMap<ObjectKey, Collider>,
-    velocity: BTreeMap<ObjectKey, Velocity>,
+    static_colliders: Static<Collider>,
+    colliders: Static<Collider>,
+    velocity: Static<Velocity>,
     static_version: uint
 }
 
 impl PhysicsData {
     pub fn new() -> PhysicsData {
         PhysicsData {
-            static_colliders: BTreeMap::new(),
-            colliders: BTreeMap::new(),
-            velocity: BTreeMap::new(),
+            static_colliders: Static::new(),
+            colliders: Static::new(),
+            velocity: Static::new(),
             static_version: 0
         }
     }
@@ -80,22 +80,22 @@ pub trait Physics: Common + Positions {
 
     fn add_static_collider(&mut self, key: ObjectKey, collider: Aabb3<f32>) {
         self.get_physics_mut().static_version += 1;
-        self.get_physics_mut().static_colliders.insert(key, Collider(collider));   
+        self.get_physics_mut().static_colliders.insert(key, Collider(collider));
     }
 
     fn get_static_collider<'a>(&'a self, key: ObjectKey) -> Option<&'a Aabb3<f32>> {
-        match self.get_physics().static_colliders.find(&key) {
+        match self.get_physics().static_colliders.get(key) {
             Some(&Collider(ref c)) => Some(c),
             None => None
         }
     }
 
     fn add_collider(&mut self, key: ObjectKey, collider: Aabb3<f32>) {
-        self.get_physics_mut().colliders.insert(key, Collider(collider));   
+        self.get_physics_mut().colliders.insert(key, Collider(collider));
     }
 
     fn get_collider<'a>(&'a self, key: ObjectKey) -> Option<&'a Aabb3<f32>> {
-        match self.get_physics().colliders.find(&key) {
+        match self.get_physics().colliders.get(key) {
             Some(&Collider(ref c)) => Some(c),
             None => None
         }
@@ -106,7 +106,7 @@ pub trait Physics: Common + Positions {
     }
 
     fn get_velocity(&self, key: ObjectKey) -> Option<Vector3<f32>> {
-        match self.get_physics().velocity.find(&key) {
+        match self.get_physics().velocity.get(key) {
             Some(&Velocity(ref dat)) => Some(dat.clone()),
             None => None
         }
