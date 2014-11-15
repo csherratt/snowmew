@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 
-use snowmew::ObjectKey;
+use snowmew::Entity;
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
@@ -26,7 +26,7 @@ pub struct GameData {
     position: PositionData,
     graphics: GraphicsData,
     render: RenderData,
-    pub gears: Vec<ObjectKey>
+    pub gears: Vec<Entity>
 }
 
 impl GameData {

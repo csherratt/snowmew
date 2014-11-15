@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use snowmew::common::ObjectKey;
+use snowmew::common::Entity;
 use snowmew::table::{Static, StaticIterator};
 
 use Texture;
@@ -53,7 +53,7 @@ impl Atlas {
         (!self.free_layers.is_empty())
     }
 
-    pub fn add_texture(&mut self, id: ObjectKey, text: &Texture) -> uint {
+    pub fn add_texture(&mut self, id: Entity, text: &Texture) -> uint {
         assert!(self.check_texture(text));
 
         let layer = self.free_layers.pop().expect("Failed to get free layer");

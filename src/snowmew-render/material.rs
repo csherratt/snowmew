@@ -18,7 +18,7 @@ use std::slice::raw::mut_buf_as_slice;
 
 use gl;
 
-use snowmew::ObjectKey;
+use snowmew::Entity;
 use graphics::{Material, Graphics};
 
 #[repr(packed)]
@@ -33,7 +33,7 @@ struct MaterialStd140 {
     ni: f32
 }
 
-fn get_mat<G: Graphics>(ka: Option<ObjectKey>, rd: &G) -> (i32, i32) {
+fn get_mat<G: Graphics>(ka: Option<Entity>, rd: &G) -> (i32, i32) {
     match ka {
         Some(ref ka) => {
             let (a, b) = *rd.get_texture_atlas_index(*ka).expect("Could not find index");

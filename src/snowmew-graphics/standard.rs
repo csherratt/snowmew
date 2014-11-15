@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use snowmew::ObjectKey;
+use snowmew::Entity;
 use geometry::{VertexBuffer, Geometry, VertexGeoTexNorm};
 use material::Material;
 use Graphics;
@@ -88,22 +88,22 @@ fn build_vectors_poly<T: Iterator<Polygon<(f32, f32, f32)>>>(input: T)
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct StandardColors {
-    pub white: ObjectKey,
-    pub silver: ObjectKey,
-    pub gray: ObjectKey,
-    pub black: ObjectKey,
-    pub red: ObjectKey,
-    pub maroon: ObjectKey,
-    pub yellow: ObjectKey,
-    pub olive: ObjectKey,
-    pub line: ObjectKey,
-    pub green: ObjectKey,
-    pub aqua: ObjectKey,
-    pub teal: ObjectKey,
-    pub blue: ObjectKey,
-    pub navy: ObjectKey,
-    pub fuchsia: ObjectKey,
-    pub purple: ObjectKey,
+    pub white: Entity,
+    pub silver: Entity,
+    pub gray: Entity,
+    pub black: Entity,
+    pub red: Entity,
+    pub maroon: Entity,
+    pub yellow: Entity,
+    pub olive: Entity,
+    pub line: Entity,
+    pub green: Entity,
+    pub aqua: Entity,
+    pub teal: Entity,
+    pub blue: Entity,
+    pub navy: Entity,
+    pub fuchsia: Entity,
+    pub purple: Entity,
 }
 
 #[deriving(Clone, Encodable, Decodable)]
@@ -113,20 +113,20 @@ pub struct Materials {
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct Spheres {
-    pub uv_2: ObjectKey,
-    pub uv_4: ObjectKey,
-    pub uv_8: ObjectKey,
-    pub uv_16: ObjectKey,
-    pub uv_32: ObjectKey,
-    pub uv_64: ObjectKey,
-    pub uv_128: ObjectKey,
-    pub uv_256: ObjectKey,
+    pub uv_2: Entity,
+    pub uv_4: Entity,
+    pub uv_8: Entity,
+    pub uv_16: Entity,
+    pub uv_32: Entity,
+    pub uv_64: Entity,
+    pub uv_128: Entity,
+    pub uv_256: Entity,
 }
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct Shapes {
-    pub cube: ObjectKey,
-    pub plane: ObjectKey,
+    pub cube: Entity,
+    pub plane: Entity,
     pub sphere: Spheres
 }
 
@@ -136,7 +136,7 @@ pub struct Standard {
     pub shapes: Shapes
 }
 
-fn build_sphere<G: Graphics>(db: &mut G, size: uint) -> ObjectKey {
+fn build_sphere<G: Graphics>(db: &mut G, size: uint) -> Entity {
     let (sphere_v, sphere_i) = build_vectors_poly(SphereUV::new(size, size));
     let sphere_len = sphere_i.len();
     let sphere_vb = VertexBuffer::new_position_texture_normal(sphere_v, sphere_i);

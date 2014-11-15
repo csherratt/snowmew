@@ -49,7 +49,7 @@ use sync::Arc;
 
 use position::Positions;
 use graphics::Graphics;
-use snowmew::common::ObjectKey;
+use snowmew::common::Entity;
 use snowmew::io::Window;
 use snowmew::camera::Camera;
 
@@ -245,8 +245,8 @@ pub struct RenderManagerContext {
                             device::gl_device::GlCommandBuffer>,
     frame: render::target::Frame,
     state: render::state::DrawState,
-    meshes: HashMap<ObjectKey, Mesh>,
-    textures: HashMap<ObjectKey, device::TextureHandle>,
+    meshes: HashMap<Entity, Mesh>,
+    textures: HashMap<Entity, device::TextureHandle>,
     sampler: device::SamplerHandle,
     window: Window,
 }
@@ -456,7 +456,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn create_geometry_batches<RD: Renderable>(&mut self, db: &RD, scene: ObjectKey) -> HashMap<u32, MyProgram> {
+    fn create_geometry_batches<RD: Renderable>(&mut self, db: &RD, scene: Entity) -> HashMap<u32, MyProgram> {
         let mut batches: HashMap<u32, MyProgram> = HashMap::new();
 
         for (_, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
@@ -487,7 +487,7 @@ impl RenderManagerContext {
     }
 
 
-    fn create_shadow_batches<RD: Renderable>(&mut self, db: &RD, scene: ObjectKey) -> HashMap<u32, ShadowProgram> {
+    fn create_shadow_batches<RD: Renderable>(&mut self, db: &RD, scene: Entity) -> HashMap<u32, ShadowProgram> {
         let mut batches: HashMap<u32, ShadowProgram> = HashMap::new();
 
         for (_, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
@@ -518,7 +518,7 @@ impl RenderManagerContext {
     }
 
 
-    fn draw_shadow<RD: Renderable>(&mut self, db: &RD, scene: ObjectKey, cam: &Camera) {
+    fn draw_shadow<RD: Renderable>(&mut self, db: &RD, scene: Entity, cam: &Camera) {
         let batches = self.create_shadow_batches(db, scene);
 
         let cdata = gfx::ClearData {

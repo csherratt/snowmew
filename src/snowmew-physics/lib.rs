@@ -24,7 +24,7 @@ extern crate collision;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 
-use snowmew::common::{ObjectKey, Common};
+use snowmew::common::{Entity, Common};
 use snowmew::table::{Static, StaticIterator};
 
 use position::Positions;
@@ -78,34 +78,34 @@ pub trait Physics: Common + Positions {
     fn get_physics<'a>(&'a self) -> &'a PhysicsData;
     fn get_physics_mut<'a>(&'a mut self) -> &'a mut PhysicsData;
 
-    fn add_static_collider(&mut self, key: ObjectKey, collider: Aabb3<f32>) {
+    fn add_static_collider(&mut self, key: Entity, collider: Aabb3<f32>) {
         self.get_physics_mut().static_version += 1;
         self.get_physics_mut().static_colliders.insert(key, Collider(collider));
     }
 
-    fn get_static_collider<'a>(&'a self, key: ObjectKey) -> Option<&'a Aabb3<f32>> {
+    fn get_static_collider<'a>(&'a self, key: Entity) -> Option<&'a Aabb3<f32>> {
         match self.get_physics().static_colliders.get(key) {
             Some(&Collider(ref c)) => Some(c),
             None => None
         }
     }
 
-    fn add_collider(&mut self, key: ObjectKey, collider: Aabb3<f32>) {
+    fn add_collider(&mut self, key: Entity, collider: Aabb3<f32>) {
         self.get_physics_mut().colliders.insert(key, Collider(collider));
     }
 
-    fn get_collider<'a>(&'a self, key: ObjectKey) -> Option<&'a Aabb3<f32>> {
+    fn get_collider<'a>(&'a self, key: Entity) -> Option<&'a Aabb3<f32>> {
         match self.get_physics().colliders.get(key) {
             Some(&Collider(ref c)) => Some(c),
             None => None
         }
     }
 
-    fn set_velocity(&mut self, key: ObjectKey, v: Vector3<f32>) {
+    fn set_velocity(&mut self, key: Entity, v: Vector3<f32>) {
         self.get_physics_mut().velocity.insert(key, Velocity(v));
     }
 
-    fn get_velocity(&self, key: ObjectKey) -> Option<Vector3<f32>> {
+    fn get_velocity(&self, key: Entity) -> Option<Vector3<f32>> {
         match self.get_physics().velocity.get(key) {
             Some(&Velocity(ref dat)) => Some(dat.clone()),
             None => None

@@ -31,7 +31,7 @@ use cgmath::{Vector, EuclideanVector};
 
 use config::Config;
 use graphics::Graphics;
-use snowmew::common::ObjectKey;
+use snowmew::common::Entity;
 
 
 use db::GlState;
@@ -54,13 +54,13 @@ pub struct CommandBufferIndirect {
 
 #[deriving(Clone)]
 pub struct Batch {
-    vbo: ObjectKey,
+    vbo: Entity,
     offset: uint,
     count: uint
 }
 
 impl Batch {
-    pub fn vbo(&self) -> ObjectKey {self.vbo}
+    pub fn vbo(&self) -> Entity {self.vbo}
 
     pub fn offset(&self) -> *const c_void {
         assert!(mem::size_of::<DrawElementsIndirectCommand>() == 20);
@@ -120,7 +120,7 @@ impl CommandBufferIndirect {
         gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);
     }}
 
-    pub fn build<GD: Graphics>(&mut self, db: &GD, scene: ObjectKey, instanced_is_enabled: bool) {
+    pub fn build<GD: Graphics>(&mut self, db: &GD, scene: Entity, instanced_is_enabled: bool) {
         let mut batch = Batch {
             vbo: 0,
             offset: 0,
@@ -253,7 +253,7 @@ impl CommandBufferEmulated {
     pub fn map(&mut self) {}
     pub fn unmap(&mut self) {}
 
-    pub fn build<GD: Graphics>(&mut self, db: &GD, scene: ObjectKey, _: bool) {
+    pub fn build<GD: Graphics>(&mut self, db: &GD, scene: Entity, _: bool) {
         let mut batch = Batch {
             vbo: 0,
             offset: 0,

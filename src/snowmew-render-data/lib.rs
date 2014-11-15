@@ -29,8 +29,8 @@ use serialize::Encodable;
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct RenderData {
-    camera: Option<snowmew::ObjectKey>,
-    scene: Option<snowmew::ObjectKey>
+    camera: Option<snowmew::Entity>,
+    scene: Option<snowmew::Entity>
 }
 
 impl RenderData {
@@ -47,22 +47,22 @@ pub trait Renderable: graphics::Graphics + position::Positions {
     fn get_render_data_mut(&mut self) -> &mut RenderData;
 
     /// set the camera for the render
-    fn set_camera(&mut self, camera: snowmew::ObjectKey) {
+    fn set_camera(&mut self, camera: snowmew::Entity) {
         self.get_render_data_mut().camera = Some(camera);
     }
 
     /// set the scene to be rendered
-    fn set_scene(&mut self, scene: snowmew::ObjectKey) {
+    fn set_scene(&mut self, scene: snowmew::Entity) {
         self.get_render_data_mut().scene = Some(scene);
     }
 
     /// get the camera for rendering
-    fn camera(&self) -> Option<snowmew::ObjectKey> {
+    fn camera(&self) -> Option<snowmew::Entity> {
         self.get_render_data().camera
     }
 
     /// get the scene for rendering
-    fn scene(&self) -> Option<snowmew::ObjectKey> {
+    fn scene(&self) -> Option<snowmew::Entity> {
         self.get_render_data().scene
     }
 }

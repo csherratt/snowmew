@@ -57,7 +57,7 @@ use time::precise_time_s;
 use opencl::hl::{CommandQueue, Context, Device};
 use sync::Arc;
 
-use snowmew::common::ObjectKey;
+use snowmew::common::Entity;
 use snowmew::camera::Camera;
 use snowmew::io::Window;
 use position::Positions;
@@ -90,7 +90,7 @@ enum RenderCommand {
     Finish
 }
 
-fn render_thread(input: Receiver<(Box<Drawlist+Send>, ObjectKey)>,
+fn render_thread(input: Receiver<(Box<Drawlist+Send>, Entity)>,
                  output: Sender<Box<Drawlist+Send>>,
                  window: Window,
                  size: (i32, i32),

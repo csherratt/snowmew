@@ -40,7 +40,7 @@ extern crate opencl;
 extern crate device;
 extern crate ovr;
 
-pub use common::{ObjectKey};
+pub use common::{Entity};
 pub use io::IOManager;
 
 use sync::Arc;
@@ -49,14 +49,24 @@ use std::io::timer::Timer;
 use std::time::Duration;
 use common::Common;
 
+/// contains the common data for the Entity manager
 pub mod common;
-pub mod camera;
-pub mod io;
-pub mod game;
-pub mod input;
-pub mod input_integrator;
-pub mod debugger;
+/// contains a few different formats that can be used
+/// to represent a table in snowmew
 pub mod table;
+/// contains utility functions for managing a camera
+pub mod camera;
+/// used for the io manager
+pub mod io;
+/// contains the `Game` trait
+pub mod game;
+/// contains the input data that is applied to the `Game`
+pub mod input;
+/// used to convert actions into state that can be tracked
+pub mod input_integrator;
+/// used to create an interactive debugger for your game
+pub mod debugger;
+
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();
@@ -93,19 +103,17 @@ fn setup_glfw() -> glfw::Glfw {
     glfw
 }
 
-pub fn start_manual_input(f: proc(&mut io::IOManager)) {
-    let glfw = setup_glfw();
-
-    let f = f;
-    let mut im = io::IOManager::new(glfw);
-    f(&mut im);
-    println!("done");
-}
-
+/// Used to configure how a window should be created for the game
 pub struct DisplayConfig {
+    /// The resolution in pixels (width, height)
+    /// if not set the engine will do a best guess
     pub resolution: Option<(u32, u32)>,
+    /// The position of the window, if not set the window
+    /// will be placed at the best guess for the engine
     pub position: Option<(i32, i32)>,
+    /// Enable HMD for Oculus Rift support, Only supported by the AZDO backend
     pub hmd: bool,
+    /// Should the window be created as a window instead of fullscreen.
     pub window: bool,
 }
 
@@ -141,21 +149,30 @@ impl DisplayConfig {
     }
 }
 
+/// Render is a trait that describes the describes how a render is implemented
+/// in the engine. `update` is called once per cadence pulse.
 pub trait Render<T> {
     fn update(&mut self, db: T);
 }
 
+/// RenderFactor is used to create a `Render` object. This is used to pass a configured
+/// Window to the Render.
 pub trait RenderFactory<T, R: Render<T>> {
     fn init(self: Box<Self>, im: &IOManager, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
 }
 
+/// Used to configure the engine prior to the game stating.
 pub struct SnowmewConfig {
+    /// The display configuration
     pub display: DisplayConfig,
+    /// Configure if the engine should use OpenCL
     pub use_opencl: bool,
+    /// Configure the cadence, the minimum peroid for a frame update
     pub cadance_ms: i64
 }
 
 impl SnowmewConfig {
+    /// Create a new configuration with sane defaults
     pub fn new() -> SnowmewConfig {
         SnowmewConfig {
             display: DisplayConfig {
@@ -169,6 +186,7 @@ impl SnowmewConfig {
         }
     }
 
+    /// Start the game engine running based on the confirmation.
     pub fn start<GameData: Common+Clone,
                  Game: game::Game<GameData, input::Event>,
                  R: Render<GameData>,
