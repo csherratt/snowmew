@@ -13,53 +13,56 @@
 //   limitations under the License.
 
 use serialize::Encodable;
+use std::sync::Arc;
 use io::IoState;
 use input;
 use table::{Static, StaticSet, StaticSetIterator};
 
-#[deriving(Clone, Default)]
-pub struct FrameInfo {
-    count: uint,  /* unique frame identifier */
-    time: f64,    /* current time in seconds */
-    delta: f64,   /* time from last frame */
-}
-
-
+/// A common set of data owned by an `Entity`
 #[deriving(Clone, Default, Encodable, Decodable)]
 pub struct Object {
-    pub parent: ObjectKey,
+    /// Who is the parent of this object
+    pub parent: Entity,
 }
 
-pub type ObjectKey = u32;
-pub type StringKey = u32;
+/// A key to connect Entities across Systems
+pub type Entity = u32;
 
+/// CommonData is a container that contains all the information needed
+/// to implement the Common root of `snowmews`'s entity systems
 #[deriving(Clone, Encodable, Decodable)]
 pub struct CommonData {
-    last_oid:       ObjectKey,
+    last_oid:       Entity,
     objects:        Static<Object>,
     parent_child:   Static<StaticSet>,
     scene_children: Static<StaticSet>,
+    freelist: Arc<Vec<Entity>>,
     io: IoState
 }
 
 impl CommonData {
+    /// Create CommonData for use with the `Common` trait
     pub fn new() -> CommonData {
         CommonData {
             last_oid: 1,
             objects: Static::new(),
             parent_child: Static::new(),
             scene_children: Static::new(),
+            freelist: Arc::new(Vec::new()),
             io: IoState::new()
         }
     }
 
-    fn new_key(&mut self) -> ObjectKey {
+    fn new_key(&mut self) -> Entity {
+        if !self.freelist.is_empty() {
+            return self.freelist.make_unique().pop().expect("missing entry...");
+        }
         let new_key = self.last_oid;
         self.last_oid += 1;
         new_key
     }
 
-    fn update_parent_child(&mut self, parent: ObjectKey, child: ObjectKey) {
+    fn update_parent_child(&mut self, parent: Entity, child: Entity) {
         let new = match self.parent_child.get_mut(parent) {
             Some(child_list) => {
                 child_list.insert(child);
@@ -79,22 +82,25 @@ impl CommonData {
     }
 }
 
-
+/// Common is a trait that your `GameData` needs to implement as the
+/// root system for the entity manager.
 pub trait Common {
+    /// get a non-mutable pointer to the `CommonData` of `GameData`
     fn get_common<'a>(&'a self) -> &'a CommonData;
+    /// get a mutable pointer to the `CommonData` from the `GameData`
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData;
 
-    fn add_dir(&mut self, parent: Option<ObjectKey>) -> ObjectKey {
-        self.new_object(parent)
-    }
-
-    fn new_scene(&mut self) -> ObjectKey {
+    /// Create a new scene.
+    fn new_scene(&mut self) -> Entity {
         let oid = self.new_object(None);
         self.get_common_mut().scene_children.insert(oid, StaticSet::new());
         oid
     }
 
-    fn new_object(&mut self, parent: Option<ObjectKey>) -> ObjectKey {
+    /// Create a new object, if a parent is supplied the object
+    /// is owned by the parent. This can be used to create parent-child
+    /// bonding between objects
+    fn new_object(&mut self, parent: Option<Entity>) -> Entity {
         let new_key = self.get_common_mut().new_key();
         let mut parent = match parent {
             Some(key) => key,
@@ -132,45 +138,44 @@ pub trait Common {
         new_key
     }
 
-    fn scene_iter<'a>(&'a self, oid: ObjectKey) -> StaticSetIterator<'a> {
+    /// Create an Iterator that iterators over the scene supplied.
+    fn scene_iter<'a>(&'a self, oid: Entity) -> StaticSetIterator<'a> {
         let sc = self.get_common().scene_children.get(oid)
             .expect("Failed to get scene");
         sc.iter()
     }
 
-    fn object<'a>(&'a self, oid: ObjectKey) -> Option<&'a Object> {
+    /// Get the object metadata for Entity
+    fn object<'a>(&'a self, oid: Entity) -> Option<&'a Object> {
         self.get_common().objects.get(oid)
     }
 
-    fn walk_dir<'a>(&'a self, oid: ObjectKey) -> DirIter<'a> {
-        let dir = self.get_common().parent_child.get(oid).unwrap();
-        dir.iter()
-    }
-
-    fn name(&self, key: ObjectKey) -> String {
-        self.get_common().name(key)
-    }
-
+    /// Apply an `WindowEvent` to the system, this will update
+    /// the io metadata (io_state)
     fn window_action(&mut self, evt: input::WindowEvent) {
         self.get_common_mut().io.window_action(evt);
     }
 
+    /// Read the io metadata
     fn io_state(&self) -> &IoState { &self.get_common().io }
 }
 
+/// Duplicate all components owned by `src` into `dst`
 pub trait Duplicate {
-    fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey);
+    fn duplicate(&mut self, src: Entity, dst: Entity);
 }
 
+/// Delete all components owned by the `Entity`
 pub trait Delete {
-    fn delete(&mut self, oid: ObjectKey) -> bool;
+    fn delete(&mut self, oid: Entity) -> bool;
 }
 
 impl Delete for CommonData {
-    fn delete(&mut self, oid: ObjectKey) -> bool {
+    fn delete(&mut self, oid: Entity) -> bool {
         let o = self.objects.get(oid).map(|x| *x);
         match o {
             Some(o) => {
+                self.freelist.make_unique().push(oid);
                 self.objects.remove(oid)                      |
                 self.parent_child.remove(oid)                 |
                 self.scene_children.remove(oid)               |
@@ -188,5 +193,3 @@ impl Common for CommonData {
     fn get_common<'a>(&'a self) -> &'a CommonData {self}
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}
 }
-
-pub type DirIter<'a> = StaticSetIterator<'a>;

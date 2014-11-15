@@ -38,7 +38,7 @@ use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
 use opencl::mem::CLBuffer;
 use opencl::cl::{CL_MEM_READ_ONLY};
 
-use snowmew::common::{ObjectKey, Common, Duplicate, Delete};
+use snowmew::common::{Entity, Common, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
 use snowmew::table::{Dynamic, DynamicIterator};
@@ -442,7 +442,7 @@ pub trait Positions: Common {
     fn get_position<'a>(&'a self) -> &'a PositionData;
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData;
 
-    fn position_id(&mut self, key: ObjectKey) -> Id {
+    fn position_id(&mut self, key: Entity) -> Id {
         if key == 0 {
             Deltas::root()
         } else {
@@ -459,69 +459,69 @@ pub trait Positions: Common {
         }
     }
 
-    fn update_location(&mut self, key: ObjectKey, location: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
+    fn update_location(&mut self, key: Entity, location: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
         let id = self.position_id(key);
         self.get_position_mut().position.update(id, location);
     }
 
-    fn set_to_identity(&mut self, key: ObjectKey) {
+    fn set_to_identity(&mut self, key: Entity) {
         let id = self.position_id(key);
         self.get_position_mut().position.update(id, Transform::identity());
     }
 
-    fn set_scale(&mut self, key: ObjectKey, scale: f32) {
+    fn set_scale(&mut self, key: Entity, scale: f32) {
         let id = self.position_id(key);
         self.get_position_mut().position.get_mut(id).map(|d| {d.scale = scale;});
     }
 
-    fn set_displacement(&mut self, key: ObjectKey, disp: Vector3<f32>) {
+    fn set_displacement(&mut self, key: Entity, disp: Vector3<f32>) {
         let id = self.position_id(key);
         self.get_position_mut().position.get_mut(id).map(|d| {d.disp = disp;});
     }
 
-    fn set_rotation(&mut self, key: ObjectKey, rot: Quaternion<f32>) {
+    fn set_rotation(&mut self, key: Entity, rot: Quaternion<f32>) {
         let id = self.position_id(key);
         self.get_position_mut().position.get_mut(id).map(|d| {d.rot = rot;});
     }
 
-    fn get_scale(&mut self, key: ObjectKey) -> Option<&f32> {
+    fn get_scale(&mut self, key: Entity) -> Option<&f32> {
         let id = self.position_id(key);
         self.get_position_mut().position.get(id).map(|x| &x.scale)
     }
 
-    fn get_displacement(&mut self, key: ObjectKey) -> Option<&Vector3<f32>> {
+    fn get_displacement(&mut self, key: Entity) -> Option<&Vector3<f32>> {
         let id = self.position_id(key);
         self.get_position_mut().position.get(id).map(|x| &x.disp)
     }
 
-    fn get_rotation(&mut self, key: ObjectKey) -> Option<&Quaternion<f32>> {
+    fn get_rotation(&mut self, key: Entity) -> Option<&Quaternion<f32>> {
         let id = self.position_id(key);
         self.get_position_mut().position.get(id).map(|x| &x.rot)
     }
 
-    fn get_mut_scale(&mut self, key: ObjectKey) -> Option<&mut f32> {
+    fn get_mut_scale(&mut self, key: Entity) -> Option<&mut f32> {
         let id = self.position_id(key);
         self.get_position_mut().position.get_mut(id).map(|x| &mut x.scale)
     }
 
-    fn get_mut_displacement(&mut self, key: ObjectKey) -> Option<&mut Vector3<f32>> {
+    fn get_mut_displacement(&mut self, key: Entity) -> Option<&mut Vector3<f32>> {
         let id = self.position_id(key);
         self.get_position_mut().position.get_mut(id).map(|x| &mut x.disp)
     }
 
-    fn get_mut_rotation(&mut self, key: ObjectKey) -> Option<&mut Quaternion<f32>> {
+    fn get_mut_rotation(&mut self, key: Entity) -> Option<&mut Quaternion<f32>> {
         let id = self.position_id(key);
         self.get_position_mut().position.get_mut(id).map(|x| &mut x.rot)
     }
 
-    fn location(&self, key: ObjectKey) -> Option<Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
+    fn location(&self, key: Entity) -> Option<Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
         match self.get_position().location.get(key) {
             Some(id) => Some(self.get_position().position.get_delta(*id)),
             None => None
         }
     }
 
-    fn position(&self, oid: ObjectKey) -> Matrix4<f32> {
+    fn position(&self, oid: Entity) -> Matrix4<f32> {
         let obj = self.object(oid);
         let p_mat = match obj {
             Some(obj) => self.position(obj.parent),
@@ -576,8 +576,8 @@ pub struct DeltaIterator<'a> {
     delta: &'a Deltas
 }
 
-impl<'a> Iterator<(ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> for DeltaIterator<'a> {
-    fn next(&mut self) -> Option<(ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> {
+impl<'a> Iterator<(Entity, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> for DeltaIterator<'a> {
+    fn next(&mut self) -> Option<(Entity, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> {
         match self.iter.next() {
             Some((oid, &id)) => Some((oid, self.delta.get_delta_ref(id))),
             None => None
@@ -586,7 +586,7 @@ impl<'a> Iterator<(ObjectKey, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>
 }
 
 impl Duplicate for PositionData {
-    fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey) {
+    fn duplicate(&mut self, src: Entity, dst: Entity) {
         let loc = self.location.get(src).map(|&x| x);
         loc.map(|loc| {
             let id = self.position.dup(loc);
@@ -596,7 +596,7 @@ impl Duplicate for PositionData {
 }
 
 impl Delete for PositionData {
-    fn delete(&mut self, oid: ObjectKey) -> bool {
+    fn delete(&mut self, oid: Entity) -> bool {
         self.location.remove(oid)
     }
 }

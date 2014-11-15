@@ -38,7 +38,7 @@ use serialize::Encodable;
 use cgmath::Point3;
 use collision::sphere::Sphere;
 
-use snowmew::common::{Common, ObjectKey, Duplicate, Delete};
+use snowmew::common::{Common, Entity, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
 use snowmew::table::{Static, StaticIterator};
@@ -64,8 +64,8 @@ pub mod light;
 
 #[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, Encodable, Decodable)]
 pub struct Drawable {
-    pub geometry: ObjectKey,
-    pub material: ObjectKey
+    pub geometry: Entity,
+    pub material: Entity
 }
 
 impl Ord for Drawable {
@@ -128,21 +128,21 @@ pub trait Graphics: Common {
         self.get_graphics().standard.as_ref().expect("Standard graphics not loaded")
     }
 
-    fn drawable<'a>(&'a self, key: ObjectKey) -> Option<&'a Drawable> {
+    fn drawable<'a>(&'a self, key: Entity) -> Option<&'a Drawable> {
         self.get_graphics().draw.get(key)
     }
 
-    fn new_vertex_buffer(&mut self, vb: VertexBuffer) -> ObjectKey {
+    fn new_vertex_buffer(&mut self, vb: VertexBuffer) -> Entity {
         let oid = self.new_object(None);
         self.get_graphics_mut().vertex.insert(oid, vb);
         oid
     }
 
-    fn geometry<'a>(&'a self, oid: ObjectKey) -> Option<&'a Geometry> {
+    fn geometry<'a>(&'a self, oid: Entity) -> Option<&'a Geometry> {
         self.get_graphics().geometry.get(oid)
     }
 
-    fn new_geometry(&mut self, geo: Geometry) -> ObjectKey {
+    fn new_geometry(&mut self, geo: Geometry) -> Entity {
         let oid = self.new_object(None);
         self.get_graphics_mut().geometry.insert(oid, geo);
         let sphere = self.geometry_to_collider(oid)
@@ -152,25 +152,25 @@ pub trait Graphics: Common {
         oid
     }
 
-    fn sphere(&self, geo: ObjectKey) -> Sphere<f32> {
+    fn sphere(&self, geo: Entity) -> Sphere<f32> {
         match self.get_graphics().sphere.get(geo) {
             Some(s) => { s.clone() }
             None => Sphere::new(Point3::new(0f32, 0., 0.,), 0f32)
         }
     }
 
-    fn material<'a>(&'a self, oid: ObjectKey) -> Option<&'a Material> {
+    fn material<'a>(&'a self, oid: Entity) -> Option<&'a Material> {
         self.get_graphics().material.get(oid)
     }
 
-    fn material_index(&self, oid: ObjectKey) -> Option<i32> {
+    fn material_index(&self, oid: Entity) -> Option<i32> {
         match self.get_graphics().material_index.get(oid) {
             Some(idx) => Some(*idx),
             None => None
         }
     }
 
-    fn new_material(&mut self, material: Material) -> ObjectKey {
+    fn new_material(&mut self, material: Material) -> Entity {
         let obj = self.new_object(None);
         self.get_graphics_mut().material.insert(obj, material);
         let idx = self.get_graphics().material_idx_last;
@@ -183,7 +183,7 @@ pub trait Graphics: Common {
         self.get_graphics().material.iter()
     }
 
-    fn set_draw(&mut self, oid: ObjectKey, geo: ObjectKey, material: ObjectKey) {
+    fn set_draw(&mut self, oid: Entity, geo: Entity, material: Entity) {
         let draw = Drawable {
             geometry: geo,
             material: material
@@ -192,7 +192,7 @@ pub trait Graphics: Common {
         self.get_graphics_mut().draw.insert(oid, draw.clone());
     }
 
-    fn get_draw(&self, oid: ObjectKey) -> Option<Drawable> {
+    fn get_draw(&self, oid: Entity) -> Option<Drawable> {
         match self.get_graphics().draw.get(oid) {
             Some(d) => Some(d.clone()),
             None => None
@@ -211,7 +211,7 @@ pub trait Graphics: Common {
         self.get_graphics().vertex.iter()
     }
 
-    fn geometry_vertex_iter<'a>(&'a self, oid: ObjectKey) -> Option<VertexBufferIter<'a>> {
+    fn geometry_vertex_iter<'a>(&'a self, oid: Entity) -> Option<VertexBufferIter<'a>> {
         let geo = match self.get_graphics().geometry.get(oid) {
             None => return None,
             Some(geo) => geo
@@ -230,7 +230,7 @@ pub trait Graphics: Common {
         )
     }
 
-    fn geometry_to_collider<B: FromIterator<Point3<f32>>>(&self, oid: ObjectKey) -> Option<B> {
+    fn geometry_to_collider<B: FromIterator<Point3<f32>>>(&self, oid: Entity) -> Option<B> {
         let iter = match self.geometry_vertex_iter(oid) {
             None => return None,
             Some(iter) => iter
@@ -239,7 +239,7 @@ pub trait Graphics: Common {
         Some(iter.map(|(_, &[x, y, z], _, _)| Point3::new(x, y, z)).collect())
     }
 
-    fn new_texture(&mut self, texture: Texture) -> ObjectKey {
+    fn new_texture(&mut self, texture: Texture) -> Entity {
         let oid = self.new_object(None);
         let mut found = None;
         for (idx, atlas) in self.get_graphics_mut().atlases.iter_mut().enumerate() {
@@ -261,11 +261,11 @@ pub trait Graphics: Common {
         oid
     }
 
-    fn get_texture<'a>(&'a self, oid: ObjectKey) -> Option<&'a Texture> {
+    fn get_texture<'a>(&'a self, oid: Entity) -> Option<&'a Texture> {
         self.get_graphics().texture.get(oid)
     }
 
-    fn get_texture_atlas_index<'a>(&'a self, oid: ObjectKey) -> Option<&'a (uint, uint)> {
+    fn get_texture_atlas_index<'a>(&'a self, oid: Entity) -> Option<&'a (uint, uint)> {
         self.get_graphics().texture_to_atlas.get(oid)
     }
 
@@ -277,13 +277,13 @@ pub trait Graphics: Common {
         self.get_graphics().atlases.iter()
     }
 
-    fn new_light(&mut self, light: Light) -> ObjectKey {
+    fn new_light(&mut self, light: Light) -> Entity {
         let oid = self.new_object(None);
         self.get_graphics_mut().lights.insert(oid, light);
         oid
     }
 
-    fn get_light<'a>(&'a self, oid: ObjectKey) -> Option<&'a Light> {
+    fn get_light<'a>(&'a self, oid: Entity) -> Option<&'a Light> {
         self.get_graphics().lights.get(oid)
     }
 
@@ -304,7 +304,7 @@ macro_rules! dup(
 )
 
 impl Duplicate for GraphicsData {
-    fn duplicate(&mut self, src: ObjectKey, dst: ObjectKey) {
+    fn duplicate(&mut self, src: Entity, dst: Entity) {
         dup!(self.draw, src, dst);
         dup!(self.geometry, src, dst);
         dup!(self.vertex, src, dst);
@@ -319,7 +319,7 @@ impl Duplicate for GraphicsData {
 
 
 impl Delete for GraphicsData {
-    fn delete(&mut self, oid: ObjectKey) -> bool {
+    fn delete(&mut self, oid: Entity) -> bool {
         self.draw.remove(oid)             |
         self.geometry.remove(oid)         |
         self.vertex.remove(oid)           |

@@ -14,7 +14,7 @@
 
 use cow::btree::BTreeMap;
 use graphics::Graphics;
-use snowmew::common::ObjectKey;
+use snowmew::common::Entity;
 
 use render_data::Renderable;
 use vertex_buffer::VertexBuffer;
@@ -34,7 +34,7 @@ const HEADER_430: &'static str = "#version 430\n#define USE_SSBO 1\n";
 
 #[deriving(Clone)]
 pub struct GlState {
-    pub vertex: BTreeMap<ObjectKey, VertexBuffer>,
+    pub vertex: BTreeMap<Entity, VertexBuffer>,
     pub geometry_no_ssbo: Option<Shader>,
     pub geometry_ssbo_drawid: Option<Shader>,
     pub flat_bindless_shader: Option<Shader>,

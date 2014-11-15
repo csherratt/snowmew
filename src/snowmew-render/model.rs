@@ -26,7 +26,7 @@ use collision::sphere::Sphere;
 
 use Config;
 
-use snowmew::ObjectKey;
+use snowmew::Entity;
 
 struct ModelInfoSSBO {
     id: u32,
@@ -79,7 +79,7 @@ impl ModelInfoSSBOBuffer {
         }
     }
 
-    pub fn build(&mut self, db: &Renderable, scene: ObjectKey) {
+    pub fn build(&mut self, db: &Renderable, scene: Entity) {
         let position = db.compute_positions();
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
@@ -156,7 +156,7 @@ impl ModelInfoTextureBuffer {
         }
     }
 
-    pub fn build(&mut self, db: &Renderable, scene: ObjectKey) {
+    pub fn build(&mut self, db: &Renderable, scene: Entity) {
         let position = db.compute_positions();
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {

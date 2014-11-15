@@ -14,7 +14,7 @@
 
 
 use std::default::Default;
-use snowmew::common::ObjectKey;
+use snowmew::common::Entity;
 use serialize::{Encodable, Decodable, Encoder, Decoder};
 
 struct F32v3([f32, ..3]);
@@ -320,7 +320,7 @@ pub struct VertexBuffer {
 
 #[deriving(Clone, Default, Encodable, Decodable)]
 pub struct Geometry {
-    pub vb: ObjectKey,
+    pub vb: Entity,
     pub count: uint, // number of index elements
     pub offset: uint, // offset into the index buffer
     pub prim: Primative
@@ -377,7 +377,7 @@ pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX> {
 }
 
 impl Geometry {
-    pub fn triangles(vb: ObjectKey, offset: uint, count: uint) -> Geometry {
+    pub fn triangles(vb: Entity, offset: uint, count: uint) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -386,7 +386,7 @@ impl Geometry {
         }
     }
 
-    pub fn triangles_adjacency(vb: ObjectKey, offset: uint, count: uint) -> Geometry {
+    pub fn triangles_adjacency(vb: Entity, offset: uint, count: uint) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -395,7 +395,7 @@ impl Geometry {
         }
     }
 
-    pub fn lines(vb: ObjectKey, offset: uint, count: uint) -> Geometry {
+    pub fn lines(vb: Entity, offset: uint, count: uint) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -404,7 +404,7 @@ impl Geometry {
         }
     }
 
-    pub fn points(vb: ObjectKey, offset: uint, count: uint) -> Geometry {
+    pub fn points(vb: Entity, offset: uint, count: uint) -> Geometry {
         Geometry {
             vb: vb,
             count: count,

@@ -30,7 +30,7 @@ use std::io::{BufferedReader, File, IoResult};
 use std::collections::HashMap;
 
 use snowmew::common::Common;
-use snowmew::ObjectKey;
+use snowmew::Entity;
 use graphics::{Graphics};
 use graphics::geometry::VertexGeoTexNorm;
 
@@ -80,7 +80,7 @@ impl Obj {
         })
     }
 
-    fn write_textures<G: Graphics>(&self, db: &mut G) -> HashMap<String, ObjectKey> {
+    fn write_textures<G: Graphics>(&self, db: &mut G) -> HashMap<String, Entity> {
         let mut map = HashMap::new();
         for m in self.materials.iter() {
             let text = [&m.map_ka, &m.map_kd, &m.map_ks, &m.map_ke];
@@ -103,8 +103,8 @@ impl Obj {
         map
     }
 
-    fn write_materials<G: Graphics>(&self, db: &mut G, text: &HashMap<String, ObjectKey>)
-            -> HashMap<String, snowmew::ObjectKey> {
+    fn write_materials<G: Graphics>(&self, db: &mut G, text: &HashMap<String, Entity>)
+            -> HashMap<String, snowmew::Entity> {
 
         let mut name_to_id = HashMap::new();
 
@@ -131,7 +131,7 @@ impl Obj {
         name_to_id
     }
 
-    pub fn import<G: Graphics>(&self, gd: &mut G) -> HashMap<String, ObjectKey> {
+    pub fn import<G: Graphics>(&self, gd: &mut G) -> HashMap<String, Entity> {
         let textures = self.write_textures(gd);
         let materials = self.write_materials(gd, &textures);
 

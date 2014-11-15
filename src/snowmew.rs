@@ -24,7 +24,7 @@ extern crate "snowmew-render-mux"   as _render;
 extern crate "snowmew-render-data"  as _render_data;
 
 pub use _core::table;
-pub use _core::common::ObjectKey as ObjectKey;
+pub use _core::common::Entity as Entity;
 
 pub mod render {
     pub use _render::RenderFactory as DefaultRender;
@@ -88,7 +88,7 @@ pub mod common {
     pub use _core::common::{
         Common,
         CommonData,
-        ObjectKey,
+        Entity,
         Duplicate,
         Delete
     };

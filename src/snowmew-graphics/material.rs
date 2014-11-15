@@ -15,7 +15,7 @@
 use std::default::Default;
 use serialize::{Encodable, Decodable, Encoder, Decoder};
 
-use snowmew::ObjectKey;
+use snowmew::Entity;
 
 #[deriving(Encodable, Decodable)]
 pub struct Material {
@@ -30,14 +30,14 @@ pub struct Material {
     d: f32,
     illum: int,
 
-    map_ka:   Option<ObjectKey>,
-    map_kd:   Option<ObjectKey>,
-    map_ks:   Option<ObjectKey>,
-    map_ke:   Option<ObjectKey>,
-    map_ns:   Option<ObjectKey>,
-    map_d:    Option<ObjectKey>,
-    map_bump: Option<ObjectKey>,
-    map_refl: Option<ObjectKey>,
+    map_ka:   Option<Entity>,
+    map_kd:   Option<Entity>,
+    map_ks:   Option<Entity>,
+    map_ke:   Option<Entity>,
+    map_ns:   Option<Entity>,
+    map_d:    Option<Entity>,
+    map_bump: Option<Entity>,
+    map_refl: Option<Entity>,
 }
 
 impl Clone for Material {
@@ -118,29 +118,29 @@ impl Material {
     pub fn tf(&self) -> [f32, ..3] {self.tf.0}
     pub fn set_tf(&mut self, c: [f32, ..3]) {self.tf = F32v3(c);}
 
-    pub fn map_ka(&self) -> Option<ObjectKey> {self.map_ka}
-    pub fn set_map_ka(&mut self, oid: ObjectKey) {self.map_ka = Some(oid);}
+    pub fn map_ka(&self) -> Option<Entity> {self.map_ka}
+    pub fn set_map_ka(&mut self, oid: Entity) {self.map_ka = Some(oid);}
 
-    pub fn map_kd(&self) -> Option<ObjectKey> {self.map_kd}
-    pub fn set_map_kd(&mut self, oid: ObjectKey) {self.map_kd = Some(oid);}
+    pub fn map_kd(&self) -> Option<Entity> {self.map_kd}
+    pub fn set_map_kd(&mut self, oid: Entity) {self.map_kd = Some(oid);}
 
-    pub fn map_ks(&self) -> Option<ObjectKey> {self.map_ks}
-    pub fn set_map_ks(&mut self, oid: ObjectKey) {self.map_ks = Some(oid);}
+    pub fn map_ks(&self) -> Option<Entity> {self.map_ks}
+    pub fn set_map_ks(&mut self, oid: Entity) {self.map_ks = Some(oid);}
 
-    pub fn map_ke(&self) -> Option<ObjectKey> {self.map_ke}
-    pub fn set_map_ke(&mut self, oid: ObjectKey) {self.map_ke = Some(oid);}
+    pub fn map_ke(&self) -> Option<Entity> {self.map_ke}
+    pub fn set_map_ke(&mut self, oid: Entity) {self.map_ke = Some(oid);}
 
-    pub fn map_ns(&self) -> Option<ObjectKey> {self.map_ns}
-    pub fn set_map_ns(&mut self, oid: ObjectKey) {self.map_ns = Some(oid);}
+    pub fn map_ns(&self) -> Option<Entity> {self.map_ns}
+    pub fn set_map_ns(&mut self, oid: Entity) {self.map_ns = Some(oid);}
 
-    pub fn map_d(&self) -> Option<ObjectKey> {self.map_d}
-    pub fn set_map_d(&mut self, oid: ObjectKey) {self.map_d = Some(oid);}
+    pub fn map_d(&self) -> Option<Entity> {self.map_d}
+    pub fn set_map_d(&mut self, oid: Entity) {self.map_d = Some(oid);}
 
-    pub fn map_bump(&self) -> Option<ObjectKey> {self.map_bump}
-    pub fn set_map_bump(&mut self, oid: ObjectKey) {self.map_bump = Some(oid);}
+    pub fn map_bump(&self) -> Option<Entity> {self.map_bump}
+    pub fn set_map_bump(&mut self, oid: Entity) {self.map_bump = Some(oid);}
 
-    pub fn map_refl(&self) -> Option<ObjectKey> {self.map_refl}
-    pub fn set_map_refl(&mut self, oid: ObjectKey) {self.map_refl = Some(oid);}
+    pub fn map_refl(&self) -> Option<Entity> {self.map_refl}
+    pub fn set_map_refl(&mut self, oid: Entity) {self.map_refl = Some(oid);}
 
     pub fn ns(&self) -> f32 {self.ns}
     pub fn set_ns(&mut self, v: f32) {self.ns = v}

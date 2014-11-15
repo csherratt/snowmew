@@ -27,7 +27,7 @@ use gl;
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use snowmew::common::{Common, CommonData};
-use snowmew::ObjectKey;
+use snowmew::Entity;
 
 use db::GlState;
 use Config;
@@ -46,7 +46,7 @@ pub trait Drawlist: Renderable {
     // data from the scene graph into the any mapped buffers. This can also
     // spawn multiple workers. One of the threads must send the drawlist
     // back to the server
-    fn setup_compute(self: Box<Self>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey);
+    fn setup_compute(self: Box<Self>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: Entity);
 
     // setup on the OpenGL thread, this will unmap and sync anything that
     // is needed to be done
@@ -178,7 +178,7 @@ impl Drawlist for DrawlistNoSSBO {
         self.command.map();
     }
 
-    fn setup_compute(self: Box<DrawlistNoSSBO>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
+    fn setup_compute(self: Box<DrawlistNoSSBO>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: Entity) {
         let s = *self;
         let DrawlistNoSSBO {
             data: _,
@@ -393,7 +393,7 @@ impl Drawlist for DrawlistSSBOCompute {
         self.command.map();
     }
 
-    fn setup_compute(self: Box<DrawlistSSBOCompute>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: ObjectKey) {
+    fn setup_compute(self: Box<DrawlistSSBOCompute>, db: &Renderable, tp: &mut TaskPool<Sender<Box<Drawlist+Send>>>, scene: Entity) {
         let s = *self;
         let DrawlistSSBOCompute {
             data: _,

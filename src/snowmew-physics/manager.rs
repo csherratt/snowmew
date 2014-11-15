@@ -21,7 +21,7 @@ use cgmath::Decomposed;
 
 use cow::join::join_maps;
 
-use snowmew::common::{ObjectKey, CommonData, Common};
+use snowmew::common::{Entity, CommonData, Common};
 use collision::bvh::{BvhBuilder, Bvh};
 use collision::aabb::{Aabb3};
 use collision::Merge;
@@ -63,8 +63,8 @@ impl Physics for PhysicsTemp {
 }
 
 pub struct PhysicsManager {
-    static_builder: Option<BvhBuilder<ObjectKey, Aabb3<f32>, Point3<f32>>>,
-    static_bvh: Option<Bvh<ObjectKey, Aabb3<f32>>>,
+    static_builder: Option<BvhBuilder<Entity, Aabb3<f32>, Point3<f32>>>,
+    static_bvh: Option<Bvh<Entity, Aabb3<f32>>>,
     matrix: Vec<Matrix4<f32>>,
     version: uint
 }
