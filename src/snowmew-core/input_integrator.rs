@@ -156,7 +156,7 @@ impl<GameData,
             input::Cadance(index, time) => {
                 gd.state.index = index;
                 gd.state.time = time;
-                /// move the internal game
+                // move the internal game
                 gd.inner = self.game.step(gd.state.clone(), gd.inner);
                 gd.state.last_mouse = gd.state.mouse;
                 gd.state.buttons_released.clear();

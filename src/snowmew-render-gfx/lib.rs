@@ -21,7 +21,6 @@
 //extern crate debug;
 
 extern crate sync;
-extern crate time;
 extern crate libc;
 
 extern crate opencl;
@@ -578,7 +577,6 @@ impl RenderManagerContext {
             depth: 1.0,
             stencil: 0,
         };
-        let start = time::precise_time_s();
         self.graphics.clear(cdata, gfx::COLOR | gfx::DEPTH, &self.frame);
 
         let camera_trans = db.position(camera);
@@ -668,8 +666,6 @@ impl RenderManagerContext {
 
         self.graphics.end_frame();
         self.window.swap_buffers();
-        let end = time::precise_time_s();
-        println!("{0:4.3}ms", (end - start) * 1000.);
     }
 
     fn config<RD: Renderable>(&mut self, db: &RD) {
