@@ -28,6 +28,7 @@ extern crate native;
 extern crate "snowmew-render-data" as render_data;
 
 use std::from_str::FromStr;
+use std::num::Float;
 
 use cgmath::*;
 
