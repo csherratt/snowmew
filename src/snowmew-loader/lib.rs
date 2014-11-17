@@ -88,7 +88,7 @@ impl Obj {
                 match *t {
                     &None => (),
                     &Some(ref t) => {
-                        let insert = map.find(t).is_none();
+                        let insert = map.get(t).is_none();
                         if insert {
                             let mut path = self.path.clone();
                             drop(path.pop());
@@ -109,7 +109,7 @@ impl Obj {
         let mut name_to_id = HashMap::new();
 
         let lookup = |name| {
-            *text.find(name).expect("texture not found")
+            *text.get(name).expect("texture not found")
         };
 
         for m in self.materials.iter() {
@@ -192,7 +192,7 @@ impl Obj {
             );
 
             let mat_name = g.material.clone().expect("no material");
-            let mat = materials.find(&mat_name).expect("unresolved mat");
+            let mat = materials.get(&mat_name).expect("unresolved mat");
             let o = gd.new_object(None);
             gd.set_draw(o, geo, *mat);
             (obj.name.clone(), o)

@@ -16,6 +16,18 @@ git = "https://github.com/csherratt/collision-rs.git"
 [dependencies.cow]
 git = "https://github.com/csherratt/cow-rs.git"
 
+[dependencies.gl]
+git = "https://github.com/bjz/gl-rs.git"
+
+[dependencies.stb_image]
+git = "https://github.com/servo/rust-stb-image.git"
+
+[dependencies.gfx]
+git = "https://github.com/gfx-rs/gfx-rs"
+
+[dependencies.time]
+git = "http://github.com/rust-lang/time"
+
 [dependencies.snowmew-core]
 path = "../snowmew-core/"
 
@@ -28,11 +40,3 @@ path = "../snowmew-graphics/"
 [dependencies.snowmew-render-data]
 path = "../snowmew-render-data/"
 
-[dependencies.gl]
-git = "https://github.com/bjz/gl-rs.git"
-
-[dependencies.stb_image]
-git = "https://github.com/servo/rust-stb-image.git"
-
-[dependencies.gfx]
-git = "https://github.com/gfx-rs/gfx-rs"

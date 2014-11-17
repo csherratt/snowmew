@@ -73,7 +73,7 @@ impl GlState {
         let mut vertex = self.vertex.clone();
 
         for (oid, vbo) in db.vertex_buffer_iter() {
-            match vertex.find(&oid) {
+            match vertex.get(&oid) {
                 Some(_) => (),
                 None => {
                     let vb = VertexBuffer::new(&vbo.vertex, vbo.index.as_slice());

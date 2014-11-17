@@ -50,12 +50,12 @@ pub struct InputIntegratorState {
 impl InputIntegratorState {
     /// check to see if a button is currently down
     pub fn button_down(&self, button: Button) -> bool {
-        self.buttons_down.find(&button).is_some()
+        self.buttons_down.get(&button).is_some()
     }
 
     /// check to see if the button was just pressed this frame
     pub fn button_pressed(&self, button: Button) -> bool {
-        if let Some(&x) = self.buttons_down.find(&button) {
+        if let Some(&x) = self.buttons_down.get(&button) {
             self.index - x == 1
         } else {
             false

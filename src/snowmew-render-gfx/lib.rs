@@ -378,7 +378,7 @@ impl RenderManagerContext {
 
     fn load_meshes<RD: Renderable>(&mut self, db: &RD) {
         for (oid, vb) in db.vertex_buffer_iter() {
-            if self.meshes.find(&oid).is_none() {
+            if self.meshes.get(&oid).is_none() {
                 let mesh = match vb.vertex {
                     Geo(ref d) => {
                         println!("Geo");
@@ -432,7 +432,7 @@ impl RenderManagerContext {
 
     fn load_textures<RD: Renderable>(&mut self, db: &RD) {
         for (oid, text) in db.texture_iter() {
-            if self.textures.find(&oid).is_none() {
+            if self.textures.get(&oid).is_none() {
                 let tinfo = gfx::tex::TextureInfo {
                     width: text.width() as u16,
                     height: text.height() as u16,
@@ -464,7 +464,7 @@ impl RenderManagerContext {
             }
 
             let geo = db.geometry(draw.geometry).expect("failed to find geometry");
-            let vb = self.meshes.find(&geo.vb).expect("Could not get vertex buffer");
+            let vb = self.meshes.get(&geo.vb).expect("Could not get vertex buffer");
 
             let batch: MyProgram = self.graphics.make_batch(
                 &self.prog,
@@ -495,7 +495,7 @@ impl RenderManagerContext {
             }
 
             let geo = db.geometry(draw.geometry).expect("failed to find geometry");
-            let vb = self.meshes.find(&geo.vb).expect("Could not get vertex buffer");
+            let vb = self.meshes.get(&geo.vb).expect("Could not get vertex buffer");
 
             let batch: ShadowProgram = self.graphics.make_batch(
                 &self.shadow_prog,
@@ -558,7 +558,7 @@ impl RenderManagerContext {
 
             self.shadow_data.model_mat = model.into_fixed();
             self.graphics.draw(
-                batches.find(&draw.geometry).expect("Missing draw"),
+                batches.get(&draw.geometry).expect("Missing draw"),
                 &self.shadow_data,
                 &self.shadow_frame
             );
@@ -618,7 +618,7 @@ impl RenderManagerContext {
 
             self.data.ka_use_texture = match mat.map_ka() {
                 Some(tid) => {
-                    let &texture = self.textures.find(&tid).expect("Texture not loaded");
+                    let &texture = self.textures.get(&tid).expect("Texture not loaded");
                     self.data.ka_texture = (texture, Some(self.sampler));
                     1
                 }
@@ -631,7 +631,7 @@ impl RenderManagerContext {
 
             self.data.kd_use_texture = match mat.map_kd() {
                 Some(tid) => {
-                    let &texture = self.textures.find(&tid).expect("Texture not loaded");
+                    let &texture = self.textures.get(&tid).expect("Texture not loaded");
                     self.data.kd_texture = (texture, Some(self.sampler));
                     1
                 }
@@ -644,7 +644,7 @@ impl RenderManagerContext {
 
             self.data.ks_use_texture = match mat.map_ks() {
                 Some(tid) => {
-                    let &texture = self.textures.find(&tid).expect("Texture not loaded");
+                    let &texture = self.textures.get(&tid).expect("Texture not loaded");
                     self.data.ks_texture = (texture, Some(self.sampler));
                     1
                 }
@@ -658,7 +658,7 @@ impl RenderManagerContext {
             self.data.shadow = (self.shadow, Some(self.shadow_sampler));
 
             self.graphics.draw(
-                batches.find(&draw.geometry).expect("Missing draw"),
+                batches.get(&draw.geometry).expect("Missing draw"),
                 &self.data,
                 &self.frame
             );

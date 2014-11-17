@@ -23,7 +23,7 @@ mod db {
 
         let key = db.new_object(None, ~"main");
 
-        assert!(db.find("main").unwrap() == key); 
+        assert!(db.get("main").unwrap() == key); 
     }
 
     #[test]
@@ -39,7 +39,7 @@ mod db {
         }
 
         for &(idx, key) in keys.iter() {
-            assert!(db.find(format!("main/obj_{}", idx)).unwrap() == key);
+            assert!(db.get(format!("main/obj_{}", idx)).unwrap() == key);
         }
     }
 }

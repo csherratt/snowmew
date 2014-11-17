@@ -251,7 +251,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
                 .expect("Could not fetch geometry of plane");
         let shader = db.defered_shader_point_light
                 .as_ref().expect("Could not load defered_shader");
-        let vbo = db.vertex.find(&plane.vb)
+        let vbo = db.vertex.get(&plane.vb)
                 .expect("No vbo found");
 
         vbo.bind();

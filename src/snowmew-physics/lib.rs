@@ -25,7 +25,7 @@ extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 
 use snowmew::common::{Entity, Common};
-use snowmew::table::{Static, StaticIterator};
+use snowmew::table::Static;
 
 use position::Positions;
 

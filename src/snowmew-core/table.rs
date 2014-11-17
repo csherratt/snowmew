@@ -30,11 +30,11 @@ impl<T: Send+Clone+Sync+Default> Static<T> {
     }
 
     pub fn get(&self, key: Entity) -> Option<&T> {
-        match self { &Static(ref t) => t.find(&key) }
+        match self { &Static(ref t) => t.get(&key) }
     }
 
     pub fn get_mut(&mut self, key: Entity) -> Option<&mut T> {
-        match self { &Static(ref mut t) => t.find_mut(&key) }
+        match self { &Static(ref mut t) => t.get_mut(&key) }
     }
 
     pub fn remove(&mut self, key: Entity) -> bool {

@@ -26,6 +26,6 @@ mod core {
 
         let id = db.new_object(None, "main");
 
-        assert!(db.find("main").unwrap() == id);
+        assert!(db.get("main").unwrap() == id);
     }
 }

@@ -265,7 +265,7 @@ impl IOManager {
     }
 
     pub fn next_event(&mut self, handle: &InputHandle) -> input::EventGroup {
-        let evt = self.windows.find_mut(&handle.handle)
+        let evt = self.windows.get_mut(&handle.handle)
         .map(|rx| {
             // this is a hack to inject the correct size into the event buffer
             match rx.forced_event.take() {
@@ -288,7 +288,7 @@ impl IOManager {
     }
 
     pub fn should_close(&mut self, handle: &InputHandle) -> bool {
-        let should_close = self.windows.find_mut(&handle.handle)
+        let should_close = self.windows.get_mut(&handle.handle)
         .map(|win| win.window.should_close());
 
         if let Some(x) = should_close {
@@ -313,14 +313,14 @@ impl IOManager {
 
     pub fn set_window_position(&mut self, window: &Window, pos: (i32, i32)) {
         let (w, h) = pos;
-        match self.windows.find_mut(&window.handle.handle) {
+        match self.windows.get_mut(&window.handle.handle) {
             Some(win) => win.window.set_pos(w, h),
             None => ()
         }
     }
 
     pub fn get_framebuffer_size(&mut self, window: &Window) -> (i32, i32) {
-        match self.windows.find_mut(&window.handle.handle) {
+        match self.windows.get_mut(&window.handle.handle) {
             Some(win) => win.window.get_framebuffer_size(),
             None => (0, 0)
         }

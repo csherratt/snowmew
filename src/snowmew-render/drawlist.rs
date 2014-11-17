@@ -321,7 +321,7 @@ impl Drawlist for DrawlistNoSSBO {
 
         let cmds = self.command.commands();
         for b in self.command.batches().iter() {
-            let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
+            let vbo = db.vertex.get(&b.vbo()).expect("failed to find vertex buffer");
             vbo.bind();
             for d in range(b.offset_int(), b.drawcount() as uint +b.offset_int()) {
                 unsafe {
@@ -520,7 +520,7 @@ impl Drawlist for DrawlistSSBOCompute {
 
             gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.command.id());
             for b in self.command.batches().iter() {
-                let vbo = db.vertex.find(&b.vbo()).expect("failed to find vertex buffer");
+                let vbo = db.vertex.get(&b.vbo()).expect("failed to find vertex buffer");
                 vbo.bind();
                 gl::MultiDrawElementsIndirect(
                     gl::TRIANGLES,

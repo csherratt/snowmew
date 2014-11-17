@@ -123,7 +123,7 @@ impl Game<GameData, InputIntegratorState> for Cubes {
 
         let input_vec = Vector3::new(
             if state.button_down(input::KeyboardA) {0.05f32} else {0f32} +
-            if state.button_down(input::KeyboardD) {-0.05f32} else {0f32}, 
+            if state.button_down(input::KeyboardD) {-0.05f32} else {0f32},
             0f32,
             if state.button_down(input::KeyboardW) {0.05f32} else {0f32} +
             if state.button_down(input::KeyboardS) {-0.05f32} else {0f32}
