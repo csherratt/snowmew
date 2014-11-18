@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 use std::os;
-use std::from_str::FromStr;
+use std::str::FromStr;
 
 #[deriving(PartialEq)]
 enum ConfigOption {

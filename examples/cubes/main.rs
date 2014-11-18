@@ -28,7 +28,7 @@ extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render-data" as render_data;
 
-use std::from_str::FromStr;
+use std::str::FromStr;
 use std::num::Float;
 
 use cgmath::*;
