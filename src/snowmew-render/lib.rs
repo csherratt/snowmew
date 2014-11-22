@@ -23,10 +23,10 @@
 //extern crate debug;
 
 extern crate collections;
-extern crate native;
 extern crate time;
 extern crate libc;
 extern crate sync;
+extern crate rustrt;
 
 extern crate glfw;
 extern crate cgmath;
@@ -47,7 +47,6 @@ extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render-data" as render_data;
 
 use std::task;
-use std::rt;
 use std::comm::{Receiver, Sender};
 use std::mem;
 use std::sync::TaskPool;
@@ -259,12 +258,12 @@ fn setup_opencl(window: &Window, dev: Option<Arc<Device>>) -> Option<(Arc<Contex
         None => None
     };
     glfw::make_context_current(None);
-    cl 
+    cl
 }
 
 pub struct RenderManager {
     ch: Sender<RenderCommand>,
-    render_done: Future<rt::task::Result>
+    render_done: Future<rustrt::task::Result>
 }
 
 impl RenderManager {

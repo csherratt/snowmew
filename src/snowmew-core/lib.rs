@@ -28,12 +28,9 @@ extern crate glfw;
 extern crate cgmath;
 extern crate cow;
 extern crate sync;
-extern crate native;
 extern crate serialize;
 extern crate nice_glfw;
-
 extern crate gl;
-extern crate green;
 extern crate collections;
 extern crate libc;
 extern crate opencl;

@@ -6,6 +6,12 @@ authors = [
     "Colin Sherratt <colin.sherratt@gmail.com>",
 ]
 
+license = "Apache-2.0"
+description = "A game engine"
+homepage = "https://github.com/csherratt/snowmew"
+repository = "https://github.com/csherratt/snowmew"
+
+
 [lib]
 name = "snowmew"
 path = "src/snowmew.rs"
