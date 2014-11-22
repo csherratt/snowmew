@@ -107,7 +107,7 @@ impl LightsBuffer {
 
         for (key, light) in graphics.light_iter() {
             match light {
-                &graphics::PointLight(p) => {
+                &graphics::Light::Point(p) => {
                     if point_light_count == POINT_LIGHT_MAX {
                         println!("Dropping point light, overflow dropping light");
                     } else {
@@ -119,7 +119,7 @@ impl LightsBuffer {
                         point_light_count += 1;
                     }
                 }
-                &graphics::DirectionalLight(d) => {
+                &graphics::Light::Directional(d) => {
                     if direction_light_count == DIRECTIONAL_MAX {
                         println!("Dropping directional light, overflow dropping light");
                     } else {

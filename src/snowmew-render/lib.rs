@@ -151,7 +151,7 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, Entity)>,
 
         if config.fps() {
             let end = precise_time_s();
-            println!("total: {:4.2f}ms capture: {:4.2f}ms {:4.1}fps",
+            println!("total: {:4.2}ms capture: {:4.2}ms {:4.1}fps",
                 (end - dl.start_time()) * 1000., (end - capture) * 1000.,
                 1. / (end - last_frame));
             last_frame = end;
@@ -227,8 +227,8 @@ fn render_server(command: Receiver<RenderCommand>,
         } else if id == command_handle.id() {
             let command = command_handle.recv();
             match command {
-                Update(rd) => db = Some(rd),
-                Finish => break 'finished
+                RenderCommand::Update(rd) => db = Some(rd),
+                RenderCommand::Finish => break 'finished
             }
         }
 
@@ -294,20 +294,20 @@ impl RenderManager {
     }
 
     pub fn update(&mut self, db: Box<Renderable+Send>) {
-        self.ch.send(Update(db));
+        self.ch.send(RenderCommand::Update(db));
     }
 }
 
 impl Drop for RenderManager {
     fn drop(&mut self) {
-        self.ch.send(Finish);
+        self.ch.send(RenderCommand::Finish);
         self.render_done.get_ref();
     }
 }
 
 impl<RD: Renderable+Send> snowmew::Render<RD> for RenderManager {
     fn update(&mut self, db: RD) {
-        self.ch.send(Update(box db));
+        self.ch.send(RenderCommand::Update(box db));
     }
 }
 

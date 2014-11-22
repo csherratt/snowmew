@@ -103,35 +103,35 @@ impl<GameData: Clone,
         let step = !next.paused || next.step;
 
         let event = match event {
-            input::ButtonDown(input::KeyboardF7) => {
+            input::Event::ButtonDown(input::Button::KeyboardF7) => {
                 if let Some(frame) = next.history.pop() {
                     next.inner = frame.game;
                     next.time_delta = frame.time;
                     next.index_delta = frame.frame;
                 }
-                input::ButtonDown(input::KeyboardF7)
+                input::Event::ButtonDown(input::Button::KeyboardF7)
             }
-            input::ButtonDown(input::KeyboardF8) => {
+            input::Event::ButtonDown(input::Button::KeyboardF8) => {
                 next.paused = !gd.paused;
-                input::ButtonDown(input::KeyboardF8)
+                input::Event::ButtonDown(input::Button::KeyboardF8)
             }
-            input::ButtonDown(input::KeyboardF9) => {
+            input::Event::ButtonDown(input::Button::KeyboardF9) => {
                 next.step = true;
-                input::ButtonDown(input::KeyboardF9)
+                input::Event::ButtonDown(input::Button::KeyboardF9)
             }
-            input::Cadance(_, time) => {
+            input::Event::Cadance(_, time) => {
                 if step {
                     next.time_delta += time - next.last_time;
                     next.index_delta += 1;
                 }
                 next.last_time = time;
-                input::Cadance(next.index_delta , next.time_delta)
+                input::Event::Cadance(next.index_delta , next.time_delta)
             }
             e => e
         };
 
         if step {
-            if let input::Cadance(_, _) = event {
+            if let input::Event::Cadance(_, _) = event {
                 next.history.push(StateSnapshot {
                     game: gd.inner.clone(),
                     time: next.time_delta,

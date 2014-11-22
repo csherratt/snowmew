@@ -148,139 +148,139 @@ pub enum Button {
 
 fn from_glfw_key(key: glfw::Key) -> Button {
     return match key {
-        glfw::KeySpace => KeyboardSpace,
-        glfw::KeyApostrophe => KeyboardApostrophe,
-        glfw::KeyComma => KeyboardComma,
-        glfw::KeyMinus => KeyboardMinus,
-        glfw::KeyPeriod => KeyboardPeriod,
-        glfw::KeySlash => KeyboardSlash,
-        glfw::Key0 => Keyboard0,
-        glfw::Key1 => Keyboard1,
-        glfw::Key2 => Keyboard2,
-        glfw::Key3 => Keyboard3,
-        glfw::Key4 => Keyboard4,
-        glfw::Key5 => Keyboard5,
-        glfw::Key6 => Keyboard6,
-        glfw::Key7 => Keyboard7,
-        glfw::Key8 => Keyboard8,
-        glfw::Key9 => Keyboard9,
-        glfw::KeySemicolon => KeyboardSemicolon,
-        glfw::KeyEqual => KeyboardEqual,
-        glfw::KeyA => KeyboardA,
-        glfw::KeyB => KeyboardB,
-        glfw::KeyC => KeyboardC,
-        glfw::KeyD => KeyboardD,
-        glfw::KeyE => KeyboardE,
-        glfw::KeyF => KeyboardF,
-        glfw::KeyG => KeyboardG,
-        glfw::KeyH => KeyboardH,
-        glfw::KeyI => KeyboardI,
-        glfw::KeyJ => KeyboardJ,
-        glfw::KeyK => KeyboardK,
-        glfw::KeyL => KeyboardL,
-        glfw::KeyM => KeyboardM,
-        glfw::KeyN => KeyboardN,
-        glfw::KeyO => KeyboardO,
-        glfw::KeyP => KeyboardP,
-        glfw::KeyQ => KeyboardQ,
-        glfw::KeyR => KeyboardR,
-        glfw::KeyS => KeyboardS,
-        glfw::KeyT => KeyboardT,
-        glfw::KeyU => KeyboardU,
-        glfw::KeyV => KeyboardV,
-        glfw::KeyW => KeyboardW,
-        glfw::KeyX => KeyboardX,
-        glfw::KeyY => KeyboardY,
-        glfw::KeyZ => KeyboardZ,
-        glfw::KeyLeftBracket => KeyboardLeftBracket,
-        glfw::KeyBackslash => KeyboardBackslash,
-        glfw::KeyRightBracket => KeyboardRightBracket,
-        glfw::KeyGraveAccent => KeyboardGraveAccent,
-        glfw::KeyWorld1 => KeyboardWorld1,
-        glfw::KeyWorld2 => KeyboardWorld2,
-        glfw::KeyEscape => KeyboardEscape,
-        glfw::KeyEnter => KeyboardEnter,
-        glfw::KeyTab => KeyboardTab,
-        glfw::KeyBackspace => KeyboardBackspace,
-        glfw::KeyInsert => KeyboardInsert,
-        glfw::KeyDelete => KeyboardDelete,
-        glfw::KeyRight => KeyboardRight,
-        glfw::KeyLeft => KeyboardLeft,
-        glfw::KeyDown => KeyboardDown,
-        glfw::KeyUp => KeyboardUp,
-        glfw::KeyPageUp => KeyboardPageUp,
-        glfw::KeyPageDown => KeyboardPageDown,
-        glfw::KeyHome => KeyboardHome,
-        glfw::KeyEnd => KeyboardEnd,
-        glfw::KeyCapsLock => KeyboardCapsLock,
-        glfw::KeyScrollLock => KeyboardScrollLock,
-        glfw::KeyNumLock => KeyboardNumLock,
-        glfw::KeyPrintScreen => KeyboardPrintScreen,
-        glfw::KeyPause => KeyboardPause,
-        glfw::KeyF1 => KeyboardF1,
-        glfw::KeyF2 => KeyboardF2,
-        glfw::KeyF3 => KeyboardF3,
-        glfw::KeyF4 => KeyboardF4,
-        glfw::KeyF5 => KeyboardF5,
-        glfw::KeyF6 => KeyboardF6,
-        glfw::KeyF7 => KeyboardF7,
-        glfw::KeyF8 => KeyboardF8,
-        glfw::KeyF9 => KeyboardF9,
-        glfw::KeyF10 => KeyboardF10,
-        glfw::KeyF11 => KeyboardF11,
-        glfw::KeyF12 => KeyboardF12,
-        glfw::KeyF13 => KeyboardF13,
-        glfw::KeyF14 => KeyboardF14,
-        glfw::KeyF15 => KeyboardF15,
-        glfw::KeyF16 => KeyboardF16,
-        glfw::KeyF17 => KeyboardF17,
-        glfw::KeyF18 => KeyboardF18,
-        glfw::KeyF19 => KeyboardF19,
-        glfw::KeyF20 => KeyboardF20,
-        glfw::KeyF21 => KeyboardF21,
-        glfw::KeyF22 => KeyboardF22,
-        glfw::KeyF23 => KeyboardF23,
-        glfw::KeyF24 => KeyboardF24,
-        glfw::KeyF25 => KeyboardF25,
-        glfw::KeyKp0 => KeyboardKp0,
-        glfw::KeyKp1 => KeyboardKp1,
-        glfw::KeyKp2 => KeyboardKp2,
-        glfw::KeyKp3 => KeyboardKp3,
-        glfw::KeyKp4 => KeyboardKp4,
-        glfw::KeyKp5 => KeyboardKp5,
-        glfw::KeyKp6 => KeyboardKp6,
-        glfw::KeyKp7 => KeyboardKp7,
-        glfw::KeyKp8 => KeyboardKp8,
-        glfw::KeyKp9 => KeyboardKp9,
-        glfw::KeyKpDecimal => KeyboardKpDecimal,
-        glfw::KeyKpDivide => KeyboardKpDivide,
-        glfw::KeyKpMultiply => KeyboardKpMultiply,
-        glfw::KeyKpSubtract => KeyboardKpSubtract,
-        glfw::KeyKpAdd => KeyboardKpAdd,
-        glfw::KeyKpEnter => KeyboardKpEnter,
-        glfw::KeyKpEqual => KeyboardKpEqual,
-        glfw::KeyLeftShift => KeyboardLeftShift,
-        glfw::KeyLeftControl => KeyboardLeftControl,
-        glfw::KeyLeftAlt => KeyboardLeftAlt,
-        glfw::KeyLeftSuper => KeyboardLeftSuper,
-        glfw::KeyRightShift => KeyboardRightShift,
-        glfw::KeyRightControl => KeyboardRightControl,
-        glfw::KeyRightAlt => KeyboardRightAlt,
-        glfw::KeyRightSuper => KeyboardRightSuper,
-        glfw::KeyMenu => KeyboardMenu,
+        glfw::Key::Space => Button::KeyboardSpace,
+        glfw::Key::Apostrophe => Button::KeyboardApostrophe,
+        glfw::Key::Comma => Button::KeyboardComma,
+        glfw::Key::Minus => Button::KeyboardMinus,
+        glfw::Key::Period => Button::KeyboardPeriod,
+        glfw::Key::Slash => Button::KeyboardSlash,
+        glfw::Key::Num0 => Button::Keyboard0,
+        glfw::Key::Num1 => Button::Keyboard1,
+        glfw::Key::Num2 => Button::Keyboard2,
+        glfw::Key::Num3 => Button::Keyboard3,
+        glfw::Key::Num4 => Button::Keyboard4,
+        glfw::Key::Num5 => Button::Keyboard5,
+        glfw::Key::Num6 => Button::Keyboard6,
+        glfw::Key::Num7 => Button::Keyboard7,
+        glfw::Key::Num8 => Button::Keyboard8,
+        glfw::Key::Num9 => Button::Keyboard9,
+        glfw::Key::Semicolon => Button::KeyboardSemicolon,
+        glfw::Key::Equal => Button::KeyboardEqual,
+        glfw::Key::A => Button::KeyboardA,
+        glfw::Key::B => Button::KeyboardB,
+        glfw::Key::C => Button::KeyboardC,
+        glfw::Key::D => Button::KeyboardD,
+        glfw::Key::E => Button::KeyboardE,
+        glfw::Key::F => Button::KeyboardF,
+        glfw::Key::G => Button::KeyboardG,
+        glfw::Key::H => Button::KeyboardH,
+        glfw::Key::I => Button::KeyboardI,
+        glfw::Key::J => Button::KeyboardJ,
+        glfw::Key::K => Button::KeyboardK,
+        glfw::Key::L => Button::KeyboardL,
+        glfw::Key::M => Button::KeyboardM,
+        glfw::Key::N => Button::KeyboardN,
+        glfw::Key::O => Button::KeyboardO,
+        glfw::Key::P => Button::KeyboardP,
+        glfw::Key::Q => Button::KeyboardQ,
+        glfw::Key::R => Button::KeyboardR,
+        glfw::Key::S => Button::KeyboardS,
+        glfw::Key::T => Button::KeyboardT,
+        glfw::Key::U => Button::KeyboardU,
+        glfw::Key::V => Button::KeyboardV,
+        glfw::Key::W => Button::KeyboardW,
+        glfw::Key::X => Button::KeyboardX,
+        glfw::Key::Y => Button::KeyboardY,
+        glfw::Key::Z => Button::KeyboardZ,
+        glfw::Key::LeftBracket => Button::KeyboardLeftBracket,
+        glfw::Key::Backslash => Button::KeyboardBackslash,
+        glfw::Key::RightBracket => Button::KeyboardRightBracket,
+        glfw::Key::GraveAccent => Button::KeyboardGraveAccent,
+        glfw::Key::World1 => Button::KeyboardWorld1,
+        glfw::Key::World2 => Button::KeyboardWorld2,
+        glfw::Key::Escape => Button::KeyboardEscape,
+        glfw::Key::Enter => Button::KeyboardEnter,
+        glfw::Key::Tab => Button::KeyboardTab,
+        glfw::Key::Backspace => Button::KeyboardBackspace,
+        glfw::Key::Insert => Button::KeyboardInsert,
+        glfw::Key::Delete => Button::KeyboardDelete,
+        glfw::Key::Right => Button::KeyboardRight,
+        glfw::Key::Left => Button::KeyboardLeft,
+        glfw::Key::Down => Button::KeyboardDown,
+        glfw::Key::Up => Button::KeyboardUp,
+        glfw::Key::PageUp => Button::KeyboardPageUp,
+        glfw::Key::PageDown => Button::KeyboardPageDown,
+        glfw::Key::Home => Button::KeyboardHome,
+        glfw::Key::End => Button::KeyboardEnd,
+        glfw::Key::CapsLock => Button::KeyboardCapsLock,
+        glfw::Key::ScrollLock => Button::KeyboardScrollLock,
+        glfw::Key::NumLock => Button::KeyboardNumLock,
+        glfw::Key::PrintScreen => Button::KeyboardPrintScreen,
+        glfw::Key::Pause => Button::KeyboardPause,
+        glfw::Key::F1 => Button::KeyboardF1,
+        glfw::Key::F2 => Button::KeyboardF2,
+        glfw::Key::F3 => Button::KeyboardF3,
+        glfw::Key::F4 => Button::KeyboardF4,
+        glfw::Key::F5 => Button::KeyboardF5,
+        glfw::Key::F6 => Button::KeyboardF6,
+        glfw::Key::F7 => Button::KeyboardF7,
+        glfw::Key::F8 => Button::KeyboardF8,
+        glfw::Key::F9 => Button::KeyboardF9,
+        glfw::Key::F10 => Button::KeyboardF10,
+        glfw::Key::F11 => Button::KeyboardF11,
+        glfw::Key::F12 => Button::KeyboardF12,
+        glfw::Key::F13 => Button::KeyboardF13,
+        glfw::Key::F14 => Button::KeyboardF14,
+        glfw::Key::F15 => Button::KeyboardF15,
+        glfw::Key::F16 => Button::KeyboardF16,
+        glfw::Key::F17 => Button::KeyboardF17,
+        glfw::Key::F18 => Button::KeyboardF18,
+        glfw::Key::F19 => Button::KeyboardF19,
+        glfw::Key::F20 => Button::KeyboardF20,
+        glfw::Key::F21 => Button::KeyboardF21,
+        glfw::Key::F22 => Button::KeyboardF22,
+        glfw::Key::F23 => Button::KeyboardF23,
+        glfw::Key::F24 => Button::KeyboardF24,
+        glfw::Key::F25 => Button::KeyboardF25,
+        glfw::Key::Kp0 => Button::KeyboardKp0,
+        glfw::Key::Kp1 => Button::KeyboardKp1,
+        glfw::Key::Kp2 => Button::KeyboardKp2,
+        glfw::Key::Kp3 => Button::KeyboardKp3,
+        glfw::Key::Kp4 => Button::KeyboardKp4,
+        glfw::Key::Kp5 => Button::KeyboardKp5,
+        glfw::Key::Kp6 => Button::KeyboardKp6,
+        glfw::Key::Kp7 => Button::KeyboardKp7,
+        glfw::Key::Kp8 => Button::KeyboardKp8,
+        glfw::Key::Kp9 => Button::KeyboardKp9,
+        glfw::Key::KpDecimal => Button::KeyboardKpDecimal,
+        glfw::Key::KpDivide => Button::KeyboardKpDivide,
+        glfw::Key::KpMultiply => Button::KeyboardKpMultiply,
+        glfw::Key::KpSubtract => Button::KeyboardKpSubtract,
+        glfw::Key::KpAdd => Button::KeyboardKpAdd,
+        glfw::Key::KpEnter => Button::KeyboardKpEnter,
+        glfw::Key::KpEqual => Button::KeyboardKpEqual,
+        glfw::Key::LeftShift => Button::KeyboardLeftShift,
+        glfw::Key::LeftControl => Button::KeyboardLeftControl,
+        glfw::Key::LeftAlt => Button::KeyboardLeftAlt,
+        glfw::Key::LeftSuper => Button::KeyboardLeftSuper,
+        glfw::Key::RightShift => Button::KeyboardRightShift,
+        glfw::Key::RightControl => Button::KeyboardRightControl,
+        glfw::Key::RightAlt => Button::KeyboardRightAlt,
+        glfw::Key::RightSuper => Button::KeyboardRightSuper,
+        glfw::Key::Menu => Button::KeyboardMenu,
     };
 }
 
 pub fn from_glfw_mouse_button(key: glfw::MouseButton) -> Button {
     return match key {
-        glfw::MouseButton1 => MouseLeft,
-        glfw::MouseButton2 => MouseRight,
-        glfw::MouseButton3 => MouseCenter,
-        glfw::MouseButton4 => MouseExt0,
-        glfw::MouseButton5 => MouseExt1,
-        glfw::MouseButton6 => MouseExt2,
-        glfw::MouseButton7 => MouseExt3,
-        glfw::MouseButton8 => MouseExt4,
+        glfw::MouseButton::Button1 => Button::MouseLeft,
+        glfw::MouseButton::Button2 => Button::MouseRight,
+        glfw::MouseButton::Button3 => Button::MouseCenter,
+        glfw::MouseButton::Button4 => Button::MouseExt0,
+        glfw::MouseButton::Button5 => Button::MouseExt1,
+        glfw::MouseButton::Button6 => Button::MouseExt2,
+        glfw::MouseButton::Button7 => Button::MouseExt3,
+        glfw::MouseButton::Button8 => Button::MouseExt4,
     };
 }
 
@@ -304,42 +304,42 @@ pub enum WindowEvent {
 pub enum EventGroup {
     Game(Event),
     Window(WindowEvent),
-    NopEvent
+    Nop
 }
 
 impl Event {
     pub fn from_glfw(evt: glfw::WindowEvent) -> EventGroup {
         match evt {
             glfw::MouseButtonEvent(button, glfw::Press, _) => {
-                Game(ButtonDown(from_glfw_mouse_button(button)))
+                EventGroup::Game(Event::ButtonDown(from_glfw_mouse_button(button)))
             }
             glfw::MouseButtonEvent(button, glfw::Release, _) => {
-                Game(ButtonUp(from_glfw_mouse_button(button)))
+                EventGroup::Game(Event::ButtonUp(from_glfw_mouse_button(button)))
             }
             glfw::KeyEvent(button, _, glfw::Press, _) => {
-                Game(ButtonDown(from_glfw_key(button)))
+                EventGroup::Game(Event::ButtonDown(from_glfw_key(button)))
             }
             glfw::KeyEvent(button, _, glfw::Release, _) => {
-                Game(ButtonUp(from_glfw_key(button)))
+                EventGroup::Game(Event::ButtonUp(from_glfw_key(button)))
             }
             glfw::CursorPosEvent(x, y) => {
-                Game(Move(x, y))
+                EventGroup::Game(Event::Move(x, y))
             }
             glfw::ScrollEvent(x, y) => {
-                Game(Scroll(x as int, y as int))
+                EventGroup::Game(Event::Scroll(x as int, y as int))
             }
             glfw::CursorEnterEvent(x) => {
-                Window(MouseOver(x))
+                EventGroup::Window(WindowEvent::MouseOver(x))
             }
             glfw::PosEvent(x, y) => {
-                Window(Position(x as int, y as int))
+                EventGroup::Window(WindowEvent::Position(x as int, y as int))
             }
             glfw::FramebufferSizeEvent(x, y) => {
-                Window(Size(x as int, y as int))
+                EventGroup::Window(WindowEvent::Size(x as int, y as int))
             }
             x => {
                 println!("unhandled {}", x);
-                NopEvent
+                EventGroup::Nop
             }
         }
     }

@@ -115,7 +115,7 @@ fn main() {
                                       Vector3::new(1f32, 1., 1.), 1.);
     db.set_scene(scene);
     db.set_camera(camera_loc);
-    db.new_light(light::DirectionalLight(sun));
+    db.new_light(light::Light::Directional(sun));
 
     let (game, gd) = input_integrator(Noclip, db);
     let (game, gd) = debugger(game, gd);

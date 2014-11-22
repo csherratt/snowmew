@@ -93,7 +93,6 @@ fn get_cl() -> Option<Arc<Device>> {
 fn setup_glfw() -> glfw::Glfw {
     let glfw = glfw::init(glfw::LOG_ERRORS).ok().unwrap();
 
-    glfw.window_hint(glfw::OpenglProfile(glfw::OpenGlCoreProfile));
     glfw.window_hint(glfw::OpenglForwardCompat(true));
     glfw.window_hint(glfw::Visible(false));
     glfw.window_hint(glfw::DepthBits(24));
@@ -214,13 +213,13 @@ impl SnowmewConfig {
             im.poll();
             loop {
                 match im.next_event(&ih) {
-                    input::Game(evt) => gd = game.step(evt, gd),
-                    input::Window(evt) => gd.get_common_mut().window_action(evt),
-                    input::NopEvent => break
+                    input::EventGroup::Game(evt) => gd = game.step(evt, gd),
+                    input::EventGroup::Window(evt) => gd.get_common_mut().window_action(evt),
+                    input::EventGroup::Nop => break
                 }
             }
 
-            gd = game.step(input::Cadance(frame, frame as f64 * candance_scale), gd);
+            gd = game.step(input::Event::Cadance(frame, frame as f64 * candance_scale), gd);
             frame += 1;
 
             render.update(gd.clone());

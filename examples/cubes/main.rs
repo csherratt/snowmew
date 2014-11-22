@@ -87,7 +87,7 @@ fn main() {
 
     let sun = light::Directional::new(Vector3::new(0.75f32, 1., 0.7),
                                       Vector3::new(1f32, 1., 1.), 0.25);
-    gd.new_light(light::DirectionalLight(sun));
+    gd.new_light(light::Light::Directional(sun));
 
     let camera = gd.new_object(None);
     gd.set_to_identity(camera);

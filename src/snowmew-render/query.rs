@@ -132,7 +132,7 @@ impl TimeQueryManager {
                 self.log.push((q, start, name))
             }
             None => ()
-        };        
+        };
     }
 }
 
@@ -160,7 +160,7 @@ impl Profiler for TimeQueryManager {
                 in self.log.slice(0, len-1).iter().zip(self.log.slice(1, len).iter()) {
             let cpu_time = end - start;
             let gpu_time = query.time_sync_s();
-            println!("{:30s} | {:6.2f}ms | {:6.2f}ms", *name, cpu_time * 1000., gpu_time * 1000.);
+            println!("{:30} | {:6.2}ms | {:6.2}ms", *name, cpu_time * 1000., gpu_time * 1000.);
         }
     }
 }

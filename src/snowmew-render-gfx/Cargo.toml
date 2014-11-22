@@ -20,13 +20,16 @@ git = "https://github.com/csherratt/cow-rs.git"
 git = "https://github.com/bjz/gl-rs.git"
 
 [dependencies.stb_image]
-git = "https://github.com/servo/rust-stb-image.git"
+git = "https://github.com/csherratt/rust-stb-image.git"
 
 [dependencies.gfx]
 git = "https://github.com/gfx-rs/gfx-rs"
 
 [dependencies.time]
 git = "http://github.com/rust-lang/time"
+
+[dependencies]
+genmesh = "*"
 
 [dependencies.snowmew-core]
 path = "../snowmew-core/"

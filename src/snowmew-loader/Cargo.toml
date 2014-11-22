@@ -10,14 +10,12 @@ authors = [
 name = "snowmew-loader"
 path = "lib.rs"
 
-[dependencies.obj-rs]
-git = "https://github.com/csherratt/obj-rs.git"
-
-[dependencies.genmesh]
-git = "https://github.com/csherratt/genmesh.git"
+[dependencies]
+obj = "~0.0.1"
+genmesh = "*"
 
 [dependencies.stb_image]
-git = "https://github.com/servo/rust-stb-image.git"
+git = "https://github.com/csherratt/rust-stb-image.git"
 
 [dependencies.snowmew-core]
 path = "../snowmew-core/"

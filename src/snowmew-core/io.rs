@@ -274,16 +274,16 @@ impl IOManager {
             };
             for (_, evt) in glfw::flush_messages(&rx.receiver) {
                 let evt = input::Event::from_glfw(evt);
-                if evt != input::NopEvent {
+                if evt != input::EventGroup::Nop {
                     return evt;
                 }
             }
-            input::NopEvent
+            input::EventGroup::Nop
         });
 
         match evt {
             Some(e) => e,
-            _ => input::NopEvent
+            _ => input::EventGroup::Nop
         }
     }
 
@@ -420,13 +420,13 @@ impl IoState {
 
     pub fn window_action(&mut self, win: input::WindowEvent) {
         match win {
-            input::Size(x, y) => {
+            input::WindowEvent::Size(x, y) => {
                 self.size = (x as uint, y as uint);
             }
-            input::Position(x, y) => {
+            input::WindowEvent::Position(x, y) => {
                 self.position = (x, y);
             }
-            input::MouseOver(mouse) => {
+            input::WindowEvent::MouseOver(mouse) => {
                 self.mouse_over = mouse;
             }
         }

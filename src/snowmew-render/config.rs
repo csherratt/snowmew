@@ -25,7 +25,7 @@ enum ConfigOption {
 impl ConfigOption {
     fn enabled(&self) -> bool {
         match *self {
-            Enabled => true,
+            ConfigOption::Enabled => true,
             _ => false
         }
     }
@@ -66,8 +66,8 @@ fn get_setting_option(name: &str, default: ConfigOption) -> ConfigOption {
     };
 
     match is_set {
-        Some(true) => Enabled,
-        Some(false) => Disabled,
+        Some(true) => ConfigOption::Enabled,
+        Some(false) => ConfigOption::Disabled,
         None => default
     }
 }
@@ -81,7 +81,7 @@ fn check_gl_version(gl_version: (uint, uint), min: (uint, uint), if_supported: C
     } else if gl_major == m_major && gl_minor >= m_minor {
         if_supported
     } else {
-        Unsupported
+        ConfigOption::Unsupported
     }
 }
 
@@ -105,20 +105,20 @@ impl Config
             max_size: get_setting_from_str("MAX_OBJECTS", 64u*1024),
             drawlist_count: get_setting_from_str("DRAWLIST_COUNT", 3u),
             thread_pool_size: get_setting_from_str("THREAD_POOL_SIZE", 4u),
-            opencl: get_setting_option("OPENCL", Enabled),
-            profile: get_setting_option("PROFILE", Disabled),
-            fps: get_setting_option("FPS", Enabled),
-            compute: check_gl_version(gl_version, (4, 3), 
-                get_setting_option("COMPUTE", Enabled)
+            opencl: get_setting_option("OPENCL", ConfigOption::Enabled),
+            profile: get_setting_option("PROFILE", ConfigOption::Disabled),
+            fps: get_setting_option("FPS", ConfigOption::Enabled),
+            compute: check_gl_version(gl_version, (4, 3),
+                get_setting_option("COMPUTE", ConfigOption::Enabled)
             ),
-            ssbo: check_gl_version(gl_version, (4, 3), 
-                get_setting_option("SSBO", Enabled)
+            ssbo: check_gl_version(gl_version, (4, 3),
+                get_setting_option("SSBO", ConfigOption::Enabled)
             ),
-            instanced: get_setting_option("INSTANCED", Enabled),
-            culling: get_setting_option("CULLING", Enabled),
-            chromatic: get_setting_option("HMD_CHROMATRIC", Enabled),
-            vignette: get_setting_option("HMD_VIGNETTE", Enabled),
-            timewarp: get_setting_option("HMD_TIMEWARP", Enabled),
+            instanced: get_setting_option("INSTANCED", ConfigOption::Enabled),
+            culling: get_setting_option("CULLING", ConfigOption::Enabled),
+            chromatic: get_setting_option("HMD_CHROMATRIC", ConfigOption::Enabled),
+            vignette: get_setting_option("HMD_VIGNETTE", ConfigOption::Enabled),
+            timewarp: get_setting_option("HMD_TIMEWARP", ConfigOption::Enabled),
         }
     }
 

@@ -307,7 +307,7 @@ pub enum Vertex {
 
 impl Default for Vertex {
     fn default() -> Vertex {
-        return Geo(Vec::new())
+        return Vertex::Geo(Vec::new())
     }
 }
 
@@ -327,7 +327,7 @@ pub struct Geometry {
 }
 
 impl Default for Primative {
-    fn default() -> Primative {Point}
+    fn default() -> Primative {Primative::Point}
 }
 
 fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX {
@@ -382,7 +382,7 @@ impl Geometry {
             vb: vb,
             count: count,
             offset: offset,
-            prim: Triangle
+            prim: Primative::Triangle
         }
     }
 
@@ -391,7 +391,7 @@ impl Geometry {
             vb: vb,
             count: count,
             offset: offset,
-            prim: TriangleAdjacency
+            prim: Primative::TriangleAdjacency
         }
     }
 
@@ -400,7 +400,7 @@ impl Geometry {
             vb: vb,
             count: count,
             offset: offset,
-            prim: Line
+            prim: Primative::Line
         }
     }
 
@@ -409,7 +409,7 @@ impl Geometry {
             vb: vb,
             count: count,
             offset: offset,
-            prim: Point
+            prim: Primative::Point
         }
     }
 }
@@ -417,35 +417,35 @@ impl Geometry {
 impl VertexBuffer {
     pub fn new_position(vert: Vec<VertexGeo>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
-            vertex: Geo(vert),
+            vertex: Vertex::Geo(vert),
             index: idx
         }
     }
 
     pub fn new_position_texture(vert: Vec<VertexGeoTex>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
-            vertex: GeoTex(vert),
+            vertex: Vertex::GeoTex(vert),
             index: idx
         }
     }
 
     pub fn new_position_normal(vert: Vec<VertexGeoNorm>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
-            vertex: GeoNorm(vert),
+            vertex: Vertex::GeoNorm(vert),
             index: idx
         }
     }
 
     pub fn new_position_texture_normal(vert: Vec<VertexGeoTexNorm>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
-            vertex: GeoTexNorm(vert),
+            vertex: Vertex::GeoTexNorm(vert),
             index: idx
         }
     }
 
     pub fn new_position_texture_normal_tangent(vert: Vec<VertexGeoTexNormTan>, idx: Vec<u32>) -> VertexBuffer {
         VertexBuffer {
-            vertex: GeoTexNormTan(vert),
+            vertex: Vertex::GeoTexNormTan(vert),
             index: idx
         }
     }

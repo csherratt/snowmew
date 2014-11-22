@@ -27,7 +27,6 @@ pub struct Point {
 impl Point {
     pub fn new(color: Vector3<f32>,
                intensity: f32) -> Point {
-        
         Point {
             color: color,
             intensity: intensity,
@@ -49,7 +48,6 @@ impl Directional {
     pub fn new(normal: Vector3<f32>,
                color: Vector3<f32>,
                intensity: f32) -> Directional {
-        
         Directional {
             normal: normal,
             color: color,
@@ -64,13 +62,13 @@ impl Directional {
 
 #[deriving(Clone, Encodable, Decodable)]
 pub enum Light {
-    DirectionalLight(Directional),
-    PointLight(Point)
+    Directional(Directional),
+    Point(Point)
 }
 
 impl Default for Light {
     fn default() -> Light {
-        PointLight(Point {
+        Light::Point(Point {
             color: Vector3::new(0f32, 0., 0.),
             intensity: 0.
         })

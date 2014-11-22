@@ -153,7 +153,7 @@ impl<GameData,
         let mut gd = gd;
 
         match event {
-            input::Cadance(index, time) => {
+            input::Event::Cadance(index, time) => {
                 gd.state.index = index;
                 gd.state.time = time;
                 // move the internal game
@@ -162,17 +162,17 @@ impl<GameData,
                 gd.state.buttons_released.clear();
                 gd.state.last_scroll = gd.state.scroll;
             }
-            input::ButtonDown(button) => {
+            input::Event::ButtonDown(button) => {
                 gd.state.buttons_down.insert(button, gd.state.index);
             }
-            input::ButtonUp(button) => {
+            input::Event::ButtonUp(button) => {
                 gd.state.buttons_down.remove(&button);
                 gd.state.buttons_released.insert(button);
             }
-            input::Move(x, y) => {
+            input::Event::Move(x, y) => {
                 gd.state.mouse = Some((gd.state.index, x, y));
             }
-            input::Scroll(dx, dy) => {
+            input::Event::Scroll(dx, dy) => {
                 let (x, y) = gd.state.scroll;
                 gd.state.scroll = (x + dx, y + dy);
             }

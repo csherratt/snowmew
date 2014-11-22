@@ -355,7 +355,7 @@ impl RenderManagerContext {
             shadow_info.height as u16
         );
 
-        shadow_frame.depth = Some(render::target::PlaneTexture(shadow, 0, None));
+        shadow_frame.depth = Some(render::target::Plane::Texture(shadow, 0, None));
 
 
         RenderManagerContext {
@@ -440,8 +440,8 @@ impl RenderManagerContext {
                     levels: 1,
                     kind: gfx::tex::Texture2D,
                     format: match text.depth() {
-                        4 => gfx::tex::Unsigned(gfx::tex::RGBA, 8, gfx::attrib::IntNormalized),
-                        3 => gfx::tex::Unsigned(gfx::tex::RGB, 8, gfx::attrib::IntNormalized),
+                        4 => gfx::tex::Unsigned(gfx::tex::RGBA, 8, gfx::attrib::IntSubType::Normalized),
+                        3 => gfx::tex::Unsigned(gfx::tex::RGB, 8, gfx::attrib::IntSubType::Normalized),
                         _ => panic!("Unsupported color depth")
                     }
                 };
@@ -593,8 +593,8 @@ impl RenderManagerContext {
 
         for (key, light) in db.light_iter() {
             match light {
-                &graphics::PointLight(_) => {}
-                &graphics::DirectionalLight(d) => {
+                &graphics::Light::Point(_) => {}
+                &graphics::Light::Directional(d) => {
                     let n = d.normal();
                     let n = Vector4::new(n.x, n.y, n.z, 0.);
                     let n = db.position(key).mul_v(&n).normalize();

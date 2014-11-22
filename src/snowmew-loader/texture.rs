@@ -17,13 +17,13 @@ use graphics::Texture;
 
 pub fn load_texture(path: &Path) -> Texture {
     let mut res = match load(path) {
-        Error(s) => panic!("failed to load image: {:s} {:s}", s, path.as_str().unwrap()),
+        Error(s) => panic!("failed to load image: {} {}", s, path.as_str().unwrap()),
         ImageU8(d) => {
-            println!("loaded texture {:s} {} {}", path.as_str().unwrap(), d.data.len(), d.depth);
+            println!("loaded texture {} {} {}", path.as_str().unwrap(), d.data.len(), d.depth);
             Texture::new(d.width, d.height, d.depth, d.data)
         }
         ImageF32(d) => {
-            println!("loaded texture {:s} {} {}", path.as_str().unwrap(), d.data.len(), d.depth);
+            println!("loaded texture {} {} {}", path.as_str().unwrap(), d.data.len(), d.depth);
             Texture::new(d.width, d.height, d.depth, d.data.iter().map(|v| *v as u8).collect())
         }
     };

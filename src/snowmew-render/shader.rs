@@ -62,7 +62,7 @@ pub fn compile_shader(header: Option<&str>, src: &str, ty: gl::types::GLenum) ->
                                  ptr::null_mut(),
                                  mem::transmute(buf.as_mut_slice().unsafe_mut(0)));
             if status == gl::FALSE as i32 {
-                panic!("glsl error: {:s} {:s}", src, str::raw::from_utf8(buf.as_slice()));
+                panic!("glsl error: {} {}", src, str::raw::from_utf8(buf.as_slice()));
             } else {
                 println!("shader log {:}", str::raw::from_utf8(buf.as_slice()));
             }
@@ -108,7 +108,7 @@ impl Shader {
                                       len,
                                       ptr::null_mut(),
                                       mem::transmute(buf.as_mut_slice().unsafe_mut(0)));
-                panic!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
+                panic!("glsl error: {}", str::raw::from_utf8(buf.as_slice()));
             }
             program
         };
@@ -211,7 +211,7 @@ impl Shader {
                                           len,
                                           ptr::null_mut(),
                                           mem::transmute(buf.as_mut_slice().unsafe_mut(0)));
-                    panic!("glsl error: {:s}", str::raw::from_utf8(buf.as_slice()));
+                    panic!("glsl error: {}", str::raw::from_utf8(buf.as_slice()));
                 }
             }
         }

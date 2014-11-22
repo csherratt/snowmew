@@ -397,7 +397,7 @@ impl CalcPositionsCl {
             Ok(_) => (),
             Err(build_log) => {
                 println!("Error building program:");
-                println!("{:s}", build_log);
+                println!("{}", build_log);
                 panic!("");
             }
         }

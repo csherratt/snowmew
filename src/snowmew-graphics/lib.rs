@@ -49,8 +49,6 @@ pub use texture::Texture;
 pub use light::Light;
 
 pub use light::{
-    DirectionalLight,
-    PointLight,
     Directional,
     Point
 };
@@ -353,23 +351,23 @@ impl<'a> Iterator<(u32,
         };
 
         match self.vb.vertex {
-            geometry::Geo(ref v) => {
+            geometry::Vertex::Geo(ref v) => {
                 let v = &v[*idx as uint];
                 Some((*idx, &v.position, None, None))
             }
-            geometry::GeoTex(ref v) => {
+            geometry::Vertex::GeoTex(ref v) => {
                 let v = &v[*idx as uint];
                 Some((*idx, &v.position, Some(&v.texture), None))
             }
-            geometry::GeoNorm(ref v) => {
+            geometry::Vertex::GeoNorm(ref v) => {
                 let v = &v[*idx as uint];
                 Some((*idx, &v.position, None, Some(&v.normal)))
             }
-            geometry::GeoTexNorm(ref v) => {
+            geometry::Vertex::GeoTexNorm(ref v) => {
                 let v = &v[*idx as uint];
                 Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
             }
-            geometry::GeoTexNormTan(ref v) => {
+            geometry::Vertex::GeoTexNormTan(ref v) => {
                 let v = &v[*idx as uint];
                 Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
             }

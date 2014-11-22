@@ -18,7 +18,7 @@ use libc;
 use gl;
 use gl::types::{GLuint, GLint};
 use ovr::{PerEye, EyeRenderDescriptor, HmdDescription, DistortionCapabilities};
-use ovr::{RenderGLConfig, EyeType, SensorCapabilities, EyeLeft, EyeRight};
+use ovr::{RenderGLConfig, Eye, SensorCapabilities};
 use ovr::Texture;
 use ovr::ll::Sizei;
 
@@ -498,7 +498,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
         }
     }
 
-    fn get_draw_target(&self, which: EyeType) -> DrawTarget {
+    fn get_draw_target(&self, which: Eye) -> DrawTarget {
         static DRAW_BUFFERS: &'static [u32] = &[gl::COLOR_ATTACHMENT0];
 
         DrawTarget {
@@ -511,7 +511,7 @@ impl<PIPELINE: PipelineState> Hmd<PIPELINE> {
         }
     }
 
-    fn get_texture(&self, which: EyeType) -> Texture {
+    fn get_texture(&self, which: Eye) -> Texture {
         let size = self.size.eye(which);
         let texture = self.textures.eye(which);
         Texture::new(size.x as int,
@@ -527,7 +527,7 @@ impl<PIPELINE: PipelineState> Pipeline for Hmd<PIPELINE> {
     fn render(&mut self, drawlist: &mut Drawlist, db: &GlState, camera: &Camera, q: &mut Profiler) {
         let _ = self.window.get_hmd().begin_frame(self.frame_index);
         self.frame_index += 1;
-        for &eye in [EyeLeft, EyeRight].iter() {
+        for &eye in [Eye::Left, Eye::Right].iter() {
             let pose = self.window.get_hmd().begin_eye_render(eye);
             let dm = camera.ovr(&self.desc.eye_fovs.eye(eye).default_eye_fov, 
                                 self.eye_desc.eye(eye),
