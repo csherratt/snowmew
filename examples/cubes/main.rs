@@ -17,7 +17,6 @@
 #![feature(globs)]
 
 extern crate cgmath;
-extern crate native;
 extern crate opencl;
 extern crate sync;
 extern crate glfw;
@@ -52,7 +51,7 @@ mod gamedata;
 
 #[start]
 fn start(argc: int, argv: *const *const u8) -> int {
-    native::start(argc, argv, main)
+    std::rt::start(argc, argv, main)
 }
 
 fn main() {

@@ -24,7 +24,6 @@ extern crate "snowmew-loader" as loader;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate cgmath;
-extern crate native;
 extern crate "snowmew-render-data" as render_data;
 
 use std::str::FromStr;
@@ -52,7 +51,7 @@ mod gamedata;
 
 #[start]
 fn start(argc: int, argv: *const *const u8) -> int {
-    native::start(argc, argv, main)
+    std::rt::start(argc, argv, main)
 }
 
 fn main() {
