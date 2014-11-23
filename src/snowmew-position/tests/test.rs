@@ -25,10 +25,7 @@ extern crate "snowmew-position" as position;
 use position::Deltas;
 use position::CalcPositionsCl;
 
-use cgmath::matrix::{Matrix4, Matrix};
-use cgmath::transform::Decomposed;
-use cgmath::quaternion::Quaternion;
-use cgmath::vector::{Vector3, Vector4};
+use cgmath::{Matrix4, Matrix, Decomposed, Quaternion, Vector3, Vector4};
 
 use opencl::hl::EventList;
 
@@ -167,10 +164,10 @@ fn calc_positions_opencl() {
 
     let mut pos_old = Deltas::new();
     let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4] 
-                = [context.create_buffer(16, opencl::CL::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::CL::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::CL::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::CL::CL_MEM_READ_WRITE)];
+                = [context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE)];
 
     let id0 = pos_old.insert(Deltas::root(), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
     let id1 = pos_old.insert(id0, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
@@ -204,10 +201,10 @@ fn calc_positions_opencl_tree() {
 
     let mut pos = Deltas::new();
     let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4] 
-            = [context.create_buffer(16, opencl::CL::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::CL::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::CL::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::CL::CL_MEM_READ_WRITE)];
+            = [context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
+                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE)];
 
     let id0 = pos.insert(Deltas::root(), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
     let id1 = pos.insert(Deltas::root(), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
