@@ -75,7 +75,7 @@ mod vertex_buffer;
 mod drawlist;
 mod pipeline;
 mod query;
-mod compute_accelerator;
+//mod compute_accelerator;
 mod config;
 mod texture;
 mod material;

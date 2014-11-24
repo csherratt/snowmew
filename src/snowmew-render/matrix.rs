@@ -28,7 +28,7 @@ use gl::types::{GLuint, GLsizeiptr};
 use gl_cl;
 use gl_cl::AcquireRelease;
 
-use position::{CalcPositionsCl, MatrixManager};
+use position::{MatrixManager};
 use position::Positions;
 use render_data::Renderable;
 
@@ -43,6 +43,8 @@ struct GLTextureMatrix<'r> {
 }
 
 impl<'r> MatrixManager for GLTextureMatrix<'r> {
+    fn size(&mut self, size: uint) {assert!(self.x.len() > size)}
+
     fn set(&mut self, idx: uint, mat: Matrix4<f32>) {
         assert!(idx < self.x.len());
         unsafe { *self.x.as_mut_ptr().offset(idx as int) = mat.x; }
@@ -69,6 +71,8 @@ struct GLSSBOMatrix<'r> {
 }
 
 impl<'r> MatrixManager for GLSSBOMatrix<'r> {
+    fn size(&mut self, size: uint) {assert!(self.mat.len() > size)}
+
     fn set(&mut self, idx: uint, mat: Matrix4<f32>) {
         assert!(idx < self.mat.len());
         unsafe { *self.mat.as_mut_ptr().offset(idx as int) = mat; }
@@ -86,7 +90,7 @@ pub struct MatrixSSBOBuffer {
     size: uint,
 
     event: Option<Event>,
-    cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Matrix4<f32>>, ..1])>,
+//    cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Matrix4<f32>>, ..1])>,
 }
 
 impl MatrixSSBOBuffer {
@@ -103,7 +107,7 @@ impl MatrixSSBOBuffer {
                            ptr::null(), gl::DYNAMIC_DRAW);
         }
 
-        let clpos = match cl {
+        /*let clpos = match cl {
             Some((ctx, cq, dev)) => {
                 let calc = CalcPositionsCl::new(ctx.deref(), dev.deref());
                 let buffers = gl_cl::create_from_gl_buffer(ctx.deref(), buffer[0], CL_MEM_READ_WRITE);
@@ -111,66 +115,72 @@ impl MatrixSSBOBuffer {
                 Some((calc, cq, [buffers]))
             },
             None => None
-        };
+        };*/
 
         MatrixSSBOBuffer {
             model_matrix: buffer[0],
             ptr_model_matrix: ptr::null_mut(),
             size: cfg.max_size(),
-            cl: clpos,
+            //cl: clpos,
             event: None,
         }
     }
 
     pub fn map(&mut self) {
-        match self.cl {
-            None => unsafe {
+        //match self.cl {
+        //    None => unsafe {
+        unsafe {
                 gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_matrix);
                 self.ptr_model_matrix = gl::MapBufferRange(gl::SHADER_STORAGE_BUFFER, 0,
                         (mem::size_of::<Matrix4<f32>>()*self.size) as GLsizeiptr,
                         gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
                 ) as *mut Matrix4<f32>;
-            },
-            Some((_, ref cq, ref buf)) => {
-                cq.acquire_gl_objects(buf.as_slice(), ()).wait()
-            }
         }
+        //    },
+        //    Some((_, ref cq, ref buf)) => {
+        //        cq.acquire_gl_objects(buf.as_slice(), ()).wait()
+        //    }
+        //}
     }
 
     pub fn unmap(&mut self) {
-        let event = self.event.take();
-        match (&self.cl, event) {
-            (&None, None) => unsafe {
+        //let event = self.event.take();
+        //match (&self.cl, event) {
+        //    (&None, None) => unsafe {
+        unsafe {
                 gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, self.model_matrix);
                 gl::UnmapBuffer(gl::SHADER_STORAGE_BUFFER);
                 assert!(0 == gl::GetError());
                 self.ptr_model_matrix = ptr::null_mut();
-            },
-            (&Some((_, ref cq, ref buf)), Some(ref event)) => {
-                cq.release_gl_objects(buf.as_slice(), event).wait();
-            }
-            _ => panic!("expected both an event and a queue")
         }
+        //    },
+        //    (&Some((_, ref cq, ref buf)), Some(ref event)) => {
+        //        cq.release_gl_objects(buf.as_slice(), event).wait();
+        //    }
+        //    _ => panic!("expected both an event and a queue")
+        //}
     }
 
     pub fn build<RD: Renderable>(&mut self, db: &RD) {
-        self.event = unsafe {
-            match self.cl {
-                None => {
+        //self.event = unsafe {
+        //    match self.cl {
+        //        None => {
+        unsafe {
                     mut_buf_as_slice(self.ptr_model_matrix, self.size, |mat| {
                         let mut mat = GLSSBOMatrix {
                             mat: mat
                         };
                         db.write_positions(&mut mat);
-                        None
+//                        None
                     })
-                }
-                Some((ref mut ctx, ref cq, ref buf)) => {
-                    let evt = db.write_positions_cl_mat4(cq.deref(), ctx, buf.as_slice());
-                    Some(evt)
-                }
-            }
-        };
+        }
+        //        }
+        //        Some((ref mut ctx, ref cq, ref buf)) => {
+        //            let evt = db.write_positions_cl_mat4(cq.deref(), ctx, buf.as_slice());
+        //            Some(evt)
+        //        }
+        //    }
+        //};
     }
 
     pub fn id(&self) -> GLuint { self.model_matrix }
@@ -183,7 +193,7 @@ pub struct MatrixTextureBuffer {
     size: uint,
 
     event: Option<Event>,
-    cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>,
+    //cl: Option<(CalcPositionsCl, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>,
 }
 
 impl MatrixTextureBuffer {
@@ -206,7 +216,7 @@ impl MatrixTextureBuffer {
             }
         }
 
-        let clpos = match cl {
+        /*let clpos = match cl {
             Some((ctx, cq, dev)) => {
                 let calc = CalcPositionsCl::new(ctx.deref(), dev.deref());
                 let buffers = [gl_cl::create_from_gl_buffer(ctx.deref(), buffer[0], CL_MEM_READ_WRITE),
@@ -217,21 +227,21 @@ impl MatrixTextureBuffer {
                 Some((calc, cq, buffers))
             },
             None => None
-        };
+        };*/
 
         MatrixTextureBuffer {
             model_matrix: [buffer[0], buffer[1], buffer[2], buffer[3]],
             texture_model_matrix: [texture[0], texture[1], texture[2], texture[3]],
             ptr_model_matrix: [ptr::null_mut(), ptr::null_mut(), ptr::null_mut(), ptr::null_mut()],
             size: cfg.max_size(),
-            cl: clpos,
+            //cl: clpos,
             event: None,
         }
     }
 
     pub fn map(&mut self) {
-        match self.cl {
-            None => {
+//        match self.cl {
+//            None => {
                 for i in range(0u, 4) { unsafe {
                     gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
                     self.ptr_model_matrix[i] = gl::MapBufferRange(
@@ -240,35 +250,36 @@ impl MatrixTextureBuffer {
                         gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT
                     ) as *mut Vector4<f32>;
                 }}
-            }
-            Some((_, ref cq, ref buf)) => {
-                cq.acquire_gl_objects(buf.as_slice(), ()).wait()
-            }
-        }
+//            }
+//            Some((_, ref cq, ref buf)) => {
+//                cq.acquire_gl_objects(buf.as_slice(), ()).wait()
+//            }
+//        }
     }
 
     pub fn unmap(&mut self) {
-        let event = self.event.take();
-        match (&self.cl, event) {
-            (&None, None) => unsafe {
-                for i in range(0u, 4) {
+//        let event = self.event.take();
+//        match (&self.cl, event) {
+//            (&None, None) => unsafe {
+                for i in range(0u, 4) { unsafe {
                     gl::BindBuffer(gl::TEXTURE_BUFFER, self.model_matrix[i]);
                     gl::UnmapBuffer(gl::TEXTURE_BUFFER);
                     assert!(0 == gl::GetError());
                     self.ptr_model_matrix[i] = ptr::null_mut();
-                }
-            },
-            (&Some((_, ref cq, ref buf)), Some(ref event)) => {
-                cq.release_gl_objects(buf.as_slice(), event).wait();
-            }
-            _ => panic!("expected both an event and a queue")
-        }
+                }}
+//            },
+//            (&Some((_, ref cq, ref buf)), Some(ref event)) => {
+//                cq.release_gl_objects(buf.as_slice(), event).wait();
+//            }
+//            _ => panic!("expected both an event and a queue")
+//        }
     }
 
     pub fn build<RD: Renderable>(&mut self, db: &RD) {
-        self.event = unsafe {
-            match self.cl {
-                None => {
+//        self.event = unsafe {
+//            match self.cl {
+//                None => {
+        unsafe {
                     mut_buf_as_slice(self.ptr_model_matrix[0], self.size, |x| {
                     mut_buf_as_slice(self.ptr_model_matrix[1], self.size, |y| {
                     mut_buf_as_slice(self.ptr_model_matrix[2], self.size, |z| {
@@ -277,15 +288,16 @@ impl MatrixTextureBuffer {
                             x: x, y: y, z: z, w: w
                         };
                         db.write_positions(&mut mat);
-                        None
+                        //None
                     })})})})
-                }
-                Some((ref mut ctx, ref cq, ref buf)) => {
-                    let evt = db.write_positions_cl_vec4x4(cq.deref(), ctx, buf);
-                    Some(evt)
-                }
-            }
-        };
+        }
+//                }
+//                Some((ref mut ctx, ref cq, ref buf)) => {
+//                    let evt = db.write_positions_cl_vec4x4(cq.deref(), ctx, buf);
+//                    Some(evt)
+//                }
+//            }
+//        };
     }
 
     pub fn ids<'a>(&'a self) -> &'a [GLuint] { self.texture_model_matrix.as_slice() }

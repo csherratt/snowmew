@@ -108,7 +108,7 @@ fn main() {
     let head_trans = Decomposed{scale: 1f32,
                                 rot:   Quaternion::identity(),
                                 disp:  pos.to_vec()};
-    db.update_location(camera_loc, head_trans);
+    db.set_delta(camera_loc, None, head_trans);
 
     let sun = light::Directional::new(Vector3::new(0.05f32, 1., 0.05),
                                       Vector3::new(1f32, 1., 1.), 1.);
@@ -153,7 +153,7 @@ impl Game<GameData, InputIntegratorState> for Noclip {
         let head_trans = Decomposed{scale: 1f32,
                                     rot:   Rotation3::from_euler(rx, ry, rz),
                                     disp:  camera.move_with_vector(&input_vec).to_vec()};
-        next.update_location(camera_key, head_trans);
+        next.set_delta(camera_key, None, head_trans);
 
         next
     }

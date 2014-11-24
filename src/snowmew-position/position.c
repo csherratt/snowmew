@@ -32,8 +32,8 @@ struct mat4 {
     float4 x, y, z, w;
 };
 
-struct transform
-{
+struct transform {
+    int parent;
     float scale;
     q4 rot;
     f3 pos;

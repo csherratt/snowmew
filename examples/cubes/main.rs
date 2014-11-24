@@ -131,7 +131,8 @@ impl Game<GameData, InputIntegratorState> for Cubes {
         let head_trans = Decomposed{scale: 1f32,
                                     rot:   Rotation3::from_euler(rx, ry, rz),
                                     disp:  camera.move_with_vector(&input_vec).to_vec()};
-        next.update_location(camera_key, head_trans);
+
+        next.set_delta(camera_key, None, head_trans);
 
         next
     }

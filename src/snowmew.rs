@@ -18,7 +18,7 @@
 extern crate "snowmew-core"         as _core;
 extern crate "snowmew-graphics"     as _graphics;
 extern crate "snowmew-loader"       as _loader;
-extern crate "snowmew-physics"      as _physics;
+//extern crate "snowmew-physics"      as _physics;
 extern crate "snowmew-position"     as _position;
 extern crate "snowmew-render-mux"   as _render;
 extern crate "snowmew-render-data"  as _render_data;
@@ -60,10 +60,6 @@ pub mod graphics {
 pub mod position {
     pub use _position::{
         MatrixManager,
-        Deltas,
-        ComputedPositionGL,
-        ComputedPosition,
-        CalcPositionsCl,
         PositionData,
         Positions
     };

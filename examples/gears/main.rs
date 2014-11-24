@@ -79,7 +79,7 @@ fn main() {
 
     let camera_loc = gd.new_object(None);
 
-    gd.update_location(camera_loc, Decomposed{scale: 1f32,
+    gd.set_delta(camera_loc, None, Decomposed{scale: 1f32,
                                               rot:   Rotation::identity(),
                                               disp:  Vector3::new(0f32, 0f32, 15f32)});
 

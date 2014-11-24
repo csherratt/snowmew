@@ -80,14 +80,14 @@ impl ModelInfoSSBOBuffer {
     }
 
     pub fn build(&mut self, db: &Renderable, scene: Entity) {
-        let position = db.compute_positions();
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
                 for (idx, (id, (draw, pos))) in join_set_to_map(db.scene_iter(scene),
-                                                join_maps(db.drawable_iter(), db.location_iter())).enumerate() {
+                                                join_maps(db.drawable_iter(),
+                                                          db.position_iter())).enumerate() {
                     info[idx] = ModelInfoSSBO {
                         id: id.clone(),
-                        matrix: position.get_loc(*pos) as u32,
+                        matrix: id as u32,
                         material: db.material_index(draw.material).unwrap() as u32,
                         sphere: db.sphere(draw.geometry),
                         _padd: 0
@@ -157,14 +157,14 @@ impl ModelInfoTextureBuffer {
     }
 
     pub fn build(&mut self, db: &Renderable, scene: Entity) {
-        let position = db.compute_positions();
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
-                for (idx, (id, (draw, pos))) in join_set_to_map(db.scene_iter(scene),
-                                                join_maps(db.drawable_iter(), db.location_iter())).enumerate() {
+                for (idx, (id, (draw, _))) in join_set_to_map(db.scene_iter(scene),
+                                                join_maps(db.drawable_iter(),
+                                                          db.position_iter())).enumerate() {
                     info[idx] = ModelInfoTexture {
                         id: id.clone(),
-                        matrix: position.get_loc(*pos) as u32,
+                        matrix: id,
                         material: db.material_index(draw.material).unwrap() as u32
                     };
                 }

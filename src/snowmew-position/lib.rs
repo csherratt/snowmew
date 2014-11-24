@@ -45,501 +45,190 @@ use snowmew::table::{Dynamic, DynamicIterator};
 
 const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
-#[deriving(Encodable, Decodable)]
-pub struct Delta {
-    delta : Decomposed<f32, Vector3<f32>, Quaternion<f32>>,
-    parent: u32,
+pub trait MatrixManager {
+    fn size(&mut self, size: uint);
+    fn set(&mut self, idx: uint, mat: Matrix4<f32>);
+    fn get(&self, idx: uint) -> Matrix4<f32>;
 }
 
-impl Default for Delta {
-    fn default() -> Delta {
-        Delta {
-            parent: 0,
-            delta: Transform::identity()
+impl<'r> MatrixManager for &'r mut Vec<Matrix4<f32>> {
+    fn size(&mut self, size: uint) {
+        if self.len() < size {
+            let amount = self.len() - size;
+            self.grow(amount, Matrix4::identity())
         }
     }
+    fn set(&mut self, idx: uint, m: Matrix4<f32>) { self[idx] = m; }
+    fn get(&self, idx: uint) -> Matrix4<f32> { self[idx] }
+}
+
+
+#[deriving(Encodable, Decodable)]
+pub struct Delta {
+    pub parent: Option<Entity>,
+    pub delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>
 }
 
 impl Clone for Delta {
     fn clone(&self) -> Delta {
         Delta {
-            parent: self.parent.clone(),
-            delta: Decomposed{scale: self.delta.scale.clone(),
-                              rot:   self.delta.rot.clone(),
-                              disp:  self.delta.disp.clone()}
+            parent: self.parent,
+            delta: self.delta
         }
     }
 }
 
-pub trait MatrixManager {
-    fn set(&mut self, idx: uint, mat: Matrix4<f32>);
-    fn get(&self, idx: uint) -> Matrix4<f32>;
-}
-
-impl<'r> MatrixManager for &'r mut [Matrix4<f32>] {
-    fn set(&mut self, idx: uint, m: Matrix4<f32>) { self[idx] = m; }
-    fn get(&self, idx: uint) -> Matrix4<f32> { self[idx] }
-}
-
-#[deriving(Clone, Default, Encodable, Decodable)]
-pub struct Deltas {
-    gen: Vec<(u32, u32)>,
-    delta: Dynamic<Dynamic<Delta>>,
-}
-
-#[deriving(Clone, Default, Eq, PartialOrd, PartialEq, Ord, Show, Encodable, Decodable)]
-pub struct Id(u32, u32);
-
-impl Deltas {
-    pub fn new() -> Deltas {
-        let mut b = Dynamic::new();
-        b.insert(0u32, Dynamic::new());
-        b.get_mut(0).unwrap().insert(0u32, Default::default());
-
-        Deltas {
-            gen: vec!((0, 1)),
-            delta: b,
-        }
-    }
-
-    pub fn root() -> Id { Id(0, 0) }
-
-    pub fn get_loc(&self, id: Id) -> uint {
-        let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen as uint];
-
-        (gen_offset + offset) as uint
-    }
-
-    fn add_location(&mut self, gen: u32) -> u32 {
-        // create a new generation if this is the first in it
-        if gen as uint == self.gen.len() {
-            let (s, len) = self.gen[(gen-1) as uint];
-            self.gen.push((s+len, 1));
-
-            self.delta.insert(gen, Dynamic::new());
-
-            0
-        } else {
-            // increment the starting index of each generation before ours
-            for t in self.gen.slice_from_mut((gen+1) as uint).iter_mut() {
-                let (off, len) = *t;
-                *t = (off+1, len);
-            }
-
-            let (off, len) = self.gen[gen as uint];
-            self.gen[gen as uint] = (off, len+1);
-
-            len
-        }
-    }
-
-    pub fn insert(&mut self, parent: Id, delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) -> Id {
-        let Id(gen, pid) = parent;
-
-        assert!((gen as uint) < self.gen.len());
-
-        let id = self.add_location(gen+1);
-        match self.delta.get_mut(gen+1) {
-            Some(d) => {
-                d.insert(id, Delta {
-                    parent: pid,
-                    delta: delta,
-                })
-            }
-            None => panic!("there was no delta! {}", gen)
-        };
-
-        Id(gen+1, id)
-    }
-
-    pub fn dup(&mut self, id: Id) -> Id {
-        let Id(gen, oid) = id;
-
-        let id = self.add_location(gen);
-        self.delta.get_mut(gen)
-                  .map(|d| {
-                      let old = d.get(oid).map(|x| *x).expect("old value not found");
-                      d.insert(id, old)
-                  });
-
-        Id(gen, id)
-    }
-
-    pub fn get<'a>(&'a self, id: Id) -> Option<&'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
-        let Id(gen, id) = id;
-        let mut out = None;
-        self.delta.get(gen).map(|delta| {
-            delta.get(id).map(|x| {
-                out = Some(&x.delta);
-            })
-        });
-        out
-    }
-
-    pub fn get_mut<'a>(&'a mut self, id: Id) -> Option<&'a mut Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
-        let Id(gen, id) = id;
-        let mut out = None;
-        self.delta.get_mut(gen).map(|delta| {
-            delta.get_mut(id).map(|x| {
-                out = Some(&mut x.delta);
-            })
-        });
-        out
-    }
-
-    pub fn update(&mut self, id: Id, delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
-        self.get_mut(id).map(|d| {*d = delta;});
-    }
-
-    pub fn get_delta(&self, id :Id) -> Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
-        let Id(gen, id) = id;
-        self.delta.get(gen).unwrap().get(id).unwrap().delta
-    }
-
-    pub fn get_delta_ref(&self, id :Id) -> &Decomposed<f32, Vector3<f32>, Quaternion<f32>> {
-        let Id(gen, id) = id;
-        &self.delta.get(gen).unwrap().get(id).unwrap().delta
-    }
-
-    pub fn get_mat(&self, id :Id) -> Matrix4<f32> {
-        match id {
-            Id(0, key) => {
-                self.delta.get(0).unwrap().get(key).unwrap().delta.to_matrix4()
-            },
-            Id(gen, key) => {
-                let cell = self.delta.get(gen).unwrap().get(key).unwrap();
-                let mat = cell.delta.to_matrix4();
-                let parent = Id(gen-1, cell.parent);
-
-                self.get_mat(parent).mul_m(&mat)
-            }
-        }
-    }
-
-    #[inline(never)]
-    pub fn write_positions<MM: MatrixManager>(&self, mm: &mut MM) {
-        let mut last_gen_off = 0;
-        mm.set(0, Matrix4::identity());
-
-        for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (off, delta) in gen.iter() {
-                let ploc = last_gen_off + delta.parent;
-                let nmat = mm.get(ploc as uint).mul_m(&delta.delta.to_matrix4());
-                mm.set((off + gen_off) as uint, nmat);
-            }
-            last_gen_off = gen_off;
-        }
-    }
-
-    pub fn write_positions_cl_vec4x4(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
-                           out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
-
-        let last = self.gen.len();
-        let (s, l) = self.gen[last-1];
-        let size = s + l;
-
-        unsafe {
-            ctx.parent_buffer.reserve(size as uint);
-            ctx.parent_buffer.set_len(size as uint);
-            ctx.input_buffer.reserve(size as uint);
-            ctx.input_buffer.set_len(size as uint);
-        }
-
-        for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (off, delta) in gen.iter() {
-                ctx.input_buffer[(off + gen_off) as uint] = delta.delta;
-                ctx.parent_buffer[(off + gen_off) as uint] = delta.parent.clone();
-            }
-        }
-
-        let events = &[cq.write_async(&ctx.input, &ctx.input_buffer.as_slice(), ()),
-                       cq.write_async(&ctx.parent, &ctx.parent_buffer.as_slice(), ())];
-
-        // write init value
-        ctx.init_kernel_vec4.set_arg(0, &out[0]);
-        ctx.init_kernel_vec4.set_arg(1, &out[1]);
-        ctx.init_kernel_vec4.set_arg(2, &out[2]);
-        ctx.init_kernel_vec4.set_arg(3, &out[3]);
-        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_vec4, 1i, None, events.as_slice());
-
-        // run the kernel across the deltas
-        ctx.kernel_vec4.set_arg(0, &ctx.input);
-        ctx.kernel_vec4.set_arg(1, &ctx.parent);
-        ctx.kernel_vec4.set_arg(2, &out[0]);
-        ctx.kernel_vec4.set_arg(3, &out[1]);
-        ctx.kernel_vec4.set_arg(4, &out[2]);
-        ctx.kernel_vec4.set_arg(5, &out[3]);
-        for idx in range(1, self.gen.len()) {
-            let (off, _) = self.gen[idx-1];
-            ctx.kernel_vec4.set_arg(6, &off);
-            let (off2, len) = self.gen[idx];
-            ctx.kernel_vec4.set_arg(7, &off2);
-            event = cq.enqueue_async_kernel(&ctx.kernel_vec4, len as uint, None, event);
-        }
-
-        event
-    }
-
-    pub fn write_positions_cl_mat4(&self, cq: &CommandQueue, ctx: &mut CalcPositionsCl,
-                           out: &[CLBuffer<Matrix4<f32>>]) -> Event {
-
-        let last = self.gen.len();
-        let (s, l) = self.gen[last-1];
-        let size = s + l;
-
-        unsafe {
-            ctx.parent_buffer.reserve(size as uint);
-            ctx.parent_buffer.set_len(size as uint);
-            ctx.input_buffer.reserve(size as uint);
-            ctx.input_buffer.set_len(size as uint);
-        }
-
-        for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (off, delta) in gen.iter() {
-                ctx.input_buffer[(off + gen_off) as uint] = delta.delta;
-                ctx.parent_buffer[(off + gen_off) as uint] = delta.parent.clone();
-            }
-        }
-
-        let events = &[cq.write_async(&ctx.input, &ctx.input_buffer.as_slice(), ()),
-                       cq.write_async(&ctx.parent, &ctx.parent_buffer.as_slice(), ())];
-
-        // write init value
-        ctx.init_kernel_mat.set_arg(0, &out[0]);
-        let mut event = cq.enqueue_async_kernel(&ctx.init_kernel_mat, 1i, None, events.as_slice());
-
-        // run the kernel across the deltas
-        ctx.kernel_mat.set_arg(0, &ctx.input);
-        ctx.kernel_mat.set_arg(1, &ctx.parent);
-        ctx.kernel_mat.set_arg(2, &out[0]);
-        for idx in range(1, self.gen.len()) {
-            let (off, _) = self.gen[idx-1];
-            ctx.kernel_mat.set_arg(3, &off);
-            let (off2, len) = self.gen[idx];
-            ctx.kernel_mat.set_arg(4, &off2);
-            event = cq.enqueue_async_kernel(&ctx.kernel_mat, len as uint, None, event);
-        }
-
-        event
-    }
-
-    pub fn to_positions_gl(&self, out_delta: &mut [Delta]) -> ComputedPositionGL {
-        for (&(gen_off, _), (_, gen)) in self.gen.iter().zip(self.delta.iter()) {
-            for (off, delta) in gen.iter() {
-                out_delta[(off + gen_off) as uint] = delta.clone();
-            }
-        }
-
-        ComputedPositionGL {
-            gen: self.gen.clone()
-        }
-    }
-
-    pub fn compute_positions(&self) -> ComputedPosition {
-        ComputedPosition {
-            gen: self.gen.clone()
-        }
-    }
-}
-
-pub struct ComputedPositionGL {
-    pub gen: Vec<(u32, u32)>
-}
-
-impl ComputedPositionGL {
-    pub fn get_loc(&self, id: Id) -> uint {
-        let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen as uint];
-
-        (gen_offset + offset) as uint
-    }
-}
-
-pub struct ComputedPosition {
-    gen: Vec<(u32, u32)>
-}
-
-impl Clone for ComputedPosition {
-    fn clone(&self) -> ComputedPosition {
-        ComputedPosition {
-            gen: self.gen.clone(),
-        }
-    }
-}
-
-impl ComputedPosition {
-    pub fn root() -> Id { Id(0, 0) }
-
-    pub fn get_loc(&self, id: Id) -> uint {
-        let Id(gen, offset) = id;
-        let (gen_offset, _) = self.gen[gen as uint];
-
-        (gen_offset + offset) as uint
-    }
-}
-
-pub struct CalcPositionsCl {
-    kernel_vec4: Kernel,
-    init_kernel_vec4: Kernel,
-    kernel_mat: Kernel,
-    init_kernel_mat: Kernel,
-    input_buffer: Vec<Decomposed<f32, Vector3<f32>, Quaternion<f32>>>,
-    input: CLBuffer<Decomposed<f32, Vector3<f32>, Quaternion<f32>>>,
-    parent_buffer: Vec<u32>,
-    parent: CLBuffer<u32>,
-}
-
-impl CalcPositionsCl {
-    pub fn new(ctx: &Context, device: &Device) -> CalcPositionsCl {
-        let program = ctx.create_program_from_source(OPENCL_PROGRAM);
-        match program.build(device) {
-            Ok(_) => (),
-            Err(build_log) => {
-                println!("Error building program:");
-                println!("{}", build_log);
-                panic!("");
-            }
-        }
-
-
-        let kernel_mat = program.create_kernel("calc_gen_mat");
-        let init_kernel_mat = program.create_kernel("set_idenity_mat");
-        let kernel_vec4 = program.create_kernel("calc_gen_vec4");
-        let init_kernel_vec4 = program.create_kernel("set_idenity_vec4");
-        let delta_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
-        let parent = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
-
-        CalcPositionsCl {
-            kernel_vec4: kernel_vec4,
-            init_kernel_vec4: init_kernel_vec4,
-            kernel_mat: kernel_mat,
-            init_kernel_mat: init_kernel_mat,
-            input: delta_mem,
-            input_buffer: Vec::new(),
-            parent: parent,
-            parent_buffer: Vec::new()
+impl Default for Delta {
+    fn default() -> Delta {
+        Delta {
+            parent: None,
+            delta: Transform::identity()
         }
     }
 }
 
 #[deriving(Clone, Encodable, Decodable)]
 pub struct PositionData {
-    location: Dynamic<Id>,
-    position: Deltas
+    delta: Dynamic<Delta>,
 }
 
 impl PositionData {
     pub fn new() -> PositionData {
         PositionData {
-            location: Dynamic::new(),
-            position: Deltas::new()
+            delta: Dynamic::new()
         }
     }
 }
 
-pub trait Positions: Common {
+pub trait Positions {
     fn get_position<'a>(&'a self) -> &'a PositionData;
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData;
 
-    fn position_id(&mut self, key: Entity) -> Id {
-        if key == 0 {
-            Deltas::root()
-        } else {
-            match self.get_position().location.get(key) {
-                Some(id) =>  return *id,
-                None => ()
+    fn set_delta(&mut self,
+                 key: Entity,
+                 parent: Option<Entity>,
+                 transform: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
+        self.get_position_mut().delta.insert(key,
+            Delta {
+                parent: parent,
+                delta: transform
             }
-
-            let poid = self.object(key).unwrap().parent;
-            let pid = self.position_id(poid);
-            let id = self.get_position_mut().position.insert(pid, Transform::identity());
-            self.get_position_mut().location.insert(key, id);
-            id
-        }
-    }
-
-    fn update_location(&mut self, key: Entity, location: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
-        let id = self.position_id(key);
-        self.get_position_mut().position.update(id, location);
+        );
     }
 
     fn set_to_identity(&mut self, key: Entity) {
-        let id = self.position_id(key);
-        self.get_position_mut().position.update(id, Transform::identity());
+        self.set_delta(key, None, Transform::identity())
     }
 
-    fn set_scale(&mut self, key: Entity, scale: f32) {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).map(|d| {d.scale = scale;});
-    }
-
-    fn set_displacement(&mut self, key: Entity, disp: Vector3<f32>) {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).map(|d| {d.disp = disp;});
-    }
-
-    fn set_rotation(&mut self, key: Entity, rot: Quaternion<f32>) {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).map(|d| {d.rot = rot;});
-    }
-
-    fn get_scale(&mut self, key: Entity) -> Option<&f32> {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get(id).map(|x| &x.scale)
-    }
-
-    fn get_displacement(&mut self, key: Entity) -> Option<&Vector3<f32>> {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get(id).map(|x| &x.disp)
-    }
-
-    fn get_rotation(&mut self, key: Entity) -> Option<&Quaternion<f32>> {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get(id).map(|x| &x.rot)
-    }
-
-    fn get_mut_scale(&mut self, key: Entity) -> Option<&mut f32> {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).map(|x| &mut x.scale)
-    }
-
-    fn get_mut_displacement(&mut self, key: Entity) -> Option<&mut Vector3<f32>> {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).map(|x| &mut x.disp)
-    }
-
-    fn get_mut_rotation(&mut self, key: Entity) -> Option<&mut Quaternion<f32>> {
-        let id = self.position_id(key);
-        self.get_position_mut().position.get_mut(id).map(|x| &mut x.rot)
-    }
-
-    fn location(&self, key: Entity) -> Option<Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
-        match self.get_position().location.get(key) {
-            Some(id) => Some(self.get_position().position.get_delta(*id)),
-            None => None
+    fn init_position(&mut self, key: Entity) {
+        if self.get_position().delta.get(key).is_none() {
+            self.set_to_identity(key);
         }
     }
 
-    fn position(&self, oid: Entity) -> Matrix4<f32> {
-        let obj = self.object(oid);
-        let p_mat = match obj {
-            Some(obj) => self.position(obj.parent),
-            None => Matrix4::identity()
-        };
+    fn set_scale(&mut self, key: Entity, scale: f32) {
+        self.init_position(key);
+        self.get_position_mut()
+            .delta.get_mut(key)
+            .map(|d| d.delta.scale = scale);
+    }
 
-        let loc = match self.location(oid) {
-            Some(t) => {t.to_matrix4()},
-            None => Matrix4::identity()
-        };
-        p_mat.mul_m(&loc)
+    fn set_displacement(&mut self, key: Entity, disp: Vector3<f32>) {
+        self.init_position(key);
+        self.get_position_mut()
+            .delta.get_mut(key)
+            .map(|d| d.delta.disp = disp);
+    }
+
+    fn set_rotation(&mut self, key: Entity, rot: Quaternion<f32>) {
+        self.init_position(key);
+        self.get_position_mut()
+            .delta.get_mut(key)
+            .map(|d| d.delta.rot = rot);
+    }
+
+    fn get_scale(&mut self, key: Entity) -> Option<&f32> {
+        self.get_position()
+            .delta.get(key)
+            .map(|d| &d.delta.scale)
+    }
+
+    fn get_displacement(&mut self, key: Entity) -> Option<&Vector3<f32>> {
+        self.get_position()
+            .delta.get(key)
+            .map(|d| &d.delta.disp)
+    }
+
+    fn get_rotation(&mut self, key: Entity) -> Option<&Quaternion<f32>> {
+        self.get_position()
+            .delta.get(key)
+            .map(|d| &d.delta.rot)
+    }
+
+    fn get_mut_scale(&mut self, key: Entity) -> Option<&mut f32> {
+        self.get_position_mut()
+            .delta.get_mut(key)
+            .map(|d| &mut d.delta.scale)
+    }
+
+    fn get_mut_displacement(&mut self, key: Entity) -> Option<&mut Vector3<f32>> {
+        self.get_position_mut()
+            .delta.get_mut(key)
+            .map(|d| &mut d.delta.disp)
+    }
+
+    fn get_mut_rotation(&mut self, key: Entity) -> Option<&mut Quaternion<f32>> {
+        self.get_position_mut()
+            .delta.get_mut(key)
+            .map(|d| &mut d.delta.rot)
+    }
+
+    fn get_transform(&self, key: Entity) -> Option<Decomposed<f32, Vector3<f32>, Quaternion<f32>>> {
+        self.get_position()
+            .delta.get(key)
+            .map(|d| d.delta)
+    }
+
+    fn get_parent(&self, key: Entity) -> Option<&Option<Entity>> {
+        self.get_position()
+            .delta.get(key)
+            .map(|d| &d.parent)
+    }
+
+    fn position(&self, key: Entity) -> Matrix4<f32> {
+        self.get_position()
+            .delta.get(key)
+            .map(|d| {
+                let matrix = d.delta.to_matrix4();
+                match d.parent {
+                    Some(p) => {
+                        let parent = self.position(p);
+                        parent.mul_m(&matrix)
+                    }
+                    None => {
+                        matrix
+                    }
+                }
+            })
+            .unwrap_or_else(|| Matrix4::identity())
     }
 
     fn write_positions<MM: MatrixManager>(&self, mm: &mut MM) {
-        self.get_position().position.write_positions(mm)
+        mm.size(self.get_position().delta.highest_entity() as uint);
+        for (key, _) in self.get_position().delta.iter() {
+            mm.set(key as uint, self.position(key));
+        }
     }
 
-    fn write_positions_cl_vec4x4(&self, cq: &CommandQueue,
+    fn position_iter(&self) -> PositionIter {
+        let pos = self.get_position();
+        PositionIter {
+            pos: pos,
+            iter: pos.delta.iter()
+        }
+    }
+
+    /*fn write_positions_cl_vec4x4(&self, cq: &CommandQueue,
                         ctx: &mut CalcPositionsCl, out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
         self.get_position().position.write_positions_cl_vec4x4(cq, ctx, out)
     }
@@ -547,58 +236,36 @@ pub trait Positions: Common {
     fn write_positions_cl_mat4(&self, cq: &CommandQueue,
                         ctx: &mut CalcPositionsCl, out: &[CLBuffer<Matrix4<f32>>]) -> Event {
         self.get_position().position.write_positions_cl_mat4(cq, ctx, out)
-    }
-
-    fn compute_positions(&self) -> ComputedPosition {
-        self.get_position().position.compute_positions()
-    }
-
-    fn location_iter<'a>(&'a self) -> DynamicIterator<'a, Id> {
-        self.get_position().location.iter()
-    }
-
-    fn delta_iter<'a>(&'a self) -> DeltaIterator {
-        DeltaIterator {
-            iter: self.get_position().location.iter(),
-            delta: &self.get_position().position
-        }
-    }
-
-    fn position_count(&self) -> uint {
-        let last = self.get_position().position.gen.len();
-        let (s, l) = self.get_position().position.gen[last-1];
-        (s + l) as uint
-    }
+    }*/
 }
 
-pub struct DeltaIterator<'a> {
-    iter: DynamicIterator<'a, Id>,
-    delta: &'a Deltas
+pub struct PositionIter<'a> {
+    pos: &'a PositionData,
+    iter: DynamicIterator<'a, Delta>
 }
 
-impl<'a> Iterator<(Entity, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> for DeltaIterator<'a> {
-    fn next(&mut self) -> Option<(Entity, &'a Decomposed<f32, Vector3<f32>, Quaternion<f32>>)> {
-        match self.iter.next() {
-            Some((oid, &id)) => Some((oid, self.delta.get_delta_ref(id))),
-            None => None
-        }
+impl<'a> Iterator<(Entity, Matrix4<f32>)> for PositionIter<'a> {
+    fn next(&mut self) -> Option<(Entity, Matrix4<f32>)> {
+        self.iter.next().map(|(id, _)| (id, self.pos.position(id)) )
     }
 }
 
 impl Duplicate for PositionData {
     fn duplicate(&mut self, src: Entity, dst: Entity) {
-        let loc = self.location.get(src).map(|&x| x);
-        loc.map(|loc| {
-            let id = self.position.dup(loc);
-            self.location.insert(dst, id);
-        });
+        let delta = self.delta.get(src).map(|&x| x);
+        delta.map(|delta| self.delta.insert(dst, delta));
     }
 }
 
 impl Delete for PositionData {
-    fn delete(&mut self, oid: Entity) -> bool {
-        self.location.remove(oid)
+    fn delete(&mut self, key: Entity) -> bool {
+        self.delta.remove(key)
     }
+}
+
+impl Positions for PositionData {
+    fn get_position<'a>(&'a self) -> &'a PositionData { self }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self }
 }
 
 impl<T: Positions> Positions for InputIntegratorGameData<T> {

@@ -144,6 +144,17 @@ impl<T: Send+Sync+Clone> Dynamic<T> {
     pub fn len(&self) -> uint {
         match self { &Dynamic(ref t) => t.len() }
     }
+
+    pub fn highest_entity(&self) -> Entity {
+        match self {
+            &Dynamic(ref t) => {
+                t.iter()
+                 .next_back()
+                 .map(|(k, _)| k as u32)
+                 .unwrap_or(0u32)
+            }
+        }
+    }
 }
 
 pub struct DynamicIterator<'a, T:'a> {

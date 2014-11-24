@@ -550,11 +550,9 @@ impl RenderManagerContext {
         self.shadow_data.view_mat = view.into_fixed();
         self.data.shadow_view_mat = view.into_fixed();
 
-        for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
-                                               join_maps(db.drawable_iter(),
-                                                         db.location_iter())) {
-
-            let model = db.position(id);
+        for (_, (draw, model)) in join_set_to_map(db.scene_iter(scene),
+                                        join_maps(db.drawable_iter(),
+                                                  db.position_iter())) {
 
             self.shadow_data.model_mat = model.into_fixed();
             self.graphics.draw(
@@ -607,15 +605,12 @@ impl RenderManagerContext {
 
         self.draw_shadow(db, scene, &camera);
 
-        for (id, (draw, _)) in join_set_to_map(db.scene_iter(scene),
+        for (_, (draw, model)) in join_set_to_map(db.scene_iter(scene),
                                                join_maps(db.drawable_iter(),
-                                                         db.location_iter())) {
+                                                         db.position_iter())) {
 
             let mat = db.material(draw.material).expect("Could not find material");
-            let model = db.position(id);
-
             self.data.model_mat = model.into_fixed();
-
             self.data.ka_use_texture = match mat.map_ka() {
                 Some(tid) => {
                     let &texture = self.textures.get(&tid).expect("Texture not loaded");
