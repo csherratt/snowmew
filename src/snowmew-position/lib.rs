@@ -220,6 +220,10 @@ pub trait Positions {
         }
     }
 
+    fn delta_iter(&self) -> DynamicIterator<Delta> {
+        self.get_position().delta.iter()
+    }
+
     fn position_iter(&self) -> PositionIter {
         let pos = self.get_position();
         PositionIter {
