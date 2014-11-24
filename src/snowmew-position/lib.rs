@@ -51,7 +51,7 @@ pub trait MatrixManager {
     fn get(&self, idx: uint) -> Matrix4<f32>;
 }
 
-impl<'r> MatrixManager for &'r mut Vec<Matrix4<f32>> {
+impl<'r> MatrixManager for Vec<Matrix4<f32>> {
     fn size(&mut self, size: uint) {
         if self.len() < size {
             let amount = self.len() - size;
