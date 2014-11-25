@@ -82,9 +82,9 @@ impl ModelInfoSSBOBuffer {
     pub fn build(&mut self, db: &Renderable, scene: Entity) {
         unsafe {
             mut_buf_as_slice(self.ptr_model_info, self.size, |info| {
-                for (idx, (id, (draw, pos))) in join_set_to_map(db.scene_iter(scene),
-                                                join_maps(db.drawable_iter(),
-                                                          db.position_iter())).enumerate() {
+                for (idx, (id, (draw, _))) in join_set_to_map(db.scene_iter(scene),
+                                              join_maps(db.drawable_iter(),
+                                                        db.position_iter())).enumerate() {
                     info[idx] = ModelInfoSSBO {
                         id: id.clone(),
                         matrix: id as u32,

@@ -23,6 +23,7 @@ extern crate cow;
 extern crate "snowmew-position" as position;
 
 use position::{PositionData, Positions};
+use position::cl::Accelerator;
 
 use cgmath::{Matrix4, Matrix, Decomposed, Quaternion, Vector3, Vector4};
 
@@ -129,7 +130,6 @@ fn write_positions_tree() {
     assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
 }
 
-/*
 fn fetch_matrixs(queue: &opencl::hl::CommandQueue,
                  buffers: &[opencl::mem::CLBuffer<Vector4<f32>>, ..4]) -> Vec<Matrix4<f32>> {
 
@@ -144,80 +144,136 @@ fn fetch_matrixs(queue: &opencl::hl::CommandQueue,
     vec3.iter()))).map(|(a, (b, (c, d)))| {
         Matrix4::from_cols(*a, *b, *c, *d)
     }).collect()
-
 }
 
 #[test]
-fn calc_positions_opencl() {
+fn calc_positions_opencl_vec4x4() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
-    let mut ctx = CalcPositionsCl::new(&context, &device);
+    let mut ctx = Accelerator::new(&context, &device);
 
-    let mut pos_old = Deltas::new();
     let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4] 
                 = [context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                    context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                    context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                    context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE)];
 
-    let id0 = pos_old.insert(Deltas::root(), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
-    let id1 = pos_old.insert(id0, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
-    let id2 = pos_old.insert(id1, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
-    let id3 = pos_old.insert(id2, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
-    let id4 = pos_old.insert(id3, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    let mut pos = PositionData::new();
+    pos.set_delta(0, None, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(1, Some(0), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(2, Some(1), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(3, Some(2), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(4, Some(3), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
 
-    pos_old.write_positions_cl_vec4x4(&queue, &mut ctx, &buffers).wait();
-    let pos = pos_old.compute_positions();
+    ctx.compute_vec4x4(&pos, &queue, &buffers).wait();
     let vec = fetch_matrixs(&queue, &buffers);
 
-    let mat0 = vec[pos.get_loc(id0)];
-    let mat1 = vec[pos.get_loc(id1)];
-    let mat2 = vec[pos.get_loc(id2)];
-    let mat3 = vec[pos.get_loc(id3)];
-    let mat4 = vec[pos.get_loc(id4)];
+    let mat0 = vec[0];
+    let mat1 = vec[1];
+    let mat2 = vec[2];
+    let mat3 = vec[3];
+    let mat4 = vec[4];
 
     let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
-
-    assert!(mat0.mul_v(&vec) == Vector4::new(1f32, 1f32, 1f32, 1f32));
-    assert!(mat1.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
-    assert!(mat2.mul_v(&vec) == Vector4::new(3f32, 3f32, 3f32, 1f32));
-    assert!(mat3.mul_v(&vec) == Vector4::new(4f32, 4f32, 4f32, 1f32));
-    assert!(mat4.mul_v(&vec) == Vector4::new(5f32, 5f32, 5f32, 1f32));
+    assert_eq!(mat0.mul_v(&vec), Vector4::new(1f32, 1f32, 1f32, 1f32));
+    assert_eq!(mat1.mul_v(&vec), Vector4::new(2f32, 2f32, 2f32, 1f32));
+    assert_eq!(mat2.mul_v(&vec), Vector4::new(3f32, 3f32, 3f32, 1f32));
+    assert_eq!(mat3.mul_v(&vec), Vector4::new(4f32, 4f32, 4f32, 1f32));
+    assert_eq!(mat4.mul_v(&vec), Vector4::new(5f32, 5f32, 5f32, 1f32));
 }
 
 #[test]
-fn calc_positions_opencl_tree() {
+fn calc_positions_opencl_vec4x4_tree() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
-    let mut ctx = CalcPositionsCl::new(&context, &device);
+    let mut ctx = Accelerator::new(&context, &device);
 
-    let mut pos = Deltas::new();
     let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4] 
             = [context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
-                   context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE)];
+               context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
+               context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
+               context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE)];
 
-    let id0 = pos.insert(Deltas::root(), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
-    let id1 = pos.insert(Deltas::root(), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
+    let mut pos = PositionData::new();
+    pos.set_delta(0, None, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(1, None, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
+    pos.set_delta(2, Some(0), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(3, Some(0), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
+    pos.set_delta(4, Some(1), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(5, Some(1), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
 
-    let id0_0 = pos.insert(id0, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
-    let id0_1 = pos.insert(id0, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
-    let id1_0 = pos.insert(id1, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
-    let id1_1 = pos.insert(id1, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
-
-    pos.write_positions_cl_vec4x4(&queue, &mut ctx, &buffers).wait();
-    let pos = pos.compute_positions();
+    ctx.compute_vec4x4(&pos, &queue, &buffers).wait();
     let vec = fetch_matrixs(&queue, &buffers);
 
-    let mat0 = vec[pos.get_loc(id0_0)];
-    let mat1 = vec[pos.get_loc(id0_1)];
-    let mat2 = vec[pos.get_loc(id1_0)];
-    let mat3 = vec[pos.get_loc(id1_1)];
+    let mat0 = vec[2];
+    let mat1 = vec[3];
+    let mat2 = vec[4];
+    let mat3 = vec[5];
 
     let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
-
     assert!(mat0.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
     assert!(mat1.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
     assert!(mat2.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
     assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
 }
-*/
+
+#[test]
+fn calc_positions_opencl_mat() {
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let mut ctx = Accelerator::new(&context, &device);
+
+    let buffers: opencl::mem::CLBuffer<Matrix4<f32>> 
+                = context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE);
+
+    let mut pos = PositionData::new();
+    pos.set_delta(0, None, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(1, Some(0), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(2, Some(1), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(3, Some(2), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(4, Some(3), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+
+    let evt = ctx.compute_mat(&pos, &queue, &buffers).wait();
+    let vec = queue.get(&buffers, evt);
+
+    let mat0 = vec[0];
+    let mat1 = vec[1];
+    let mat2 = vec[2];
+    let mat3 = vec[3];
+    let mat4 = vec[4];
+
+    let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
+    assert_eq!(mat0.mul_v(&vec), Vector4::new(1f32, 1f32, 1f32, 1f32));
+    assert_eq!(mat1.mul_v(&vec), Vector4::new(2f32, 2f32, 2f32, 1f32));
+    assert_eq!(mat2.mul_v(&vec), Vector4::new(3f32, 3f32, 3f32, 1f32));
+    assert_eq!(mat3.mul_v(&vec), Vector4::new(4f32, 4f32, 4f32, 1f32));
+    assert_eq!(mat4.mul_v(&vec), Vector4::new(5f32, 5f32, 5f32, 1f32));
+}
+
+#[test]
+fn calc_positions_opencl_mat_tree() {
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let mut ctx = Accelerator::new(&context, &device);
+
+    let buffers: opencl::mem::CLBuffer<Matrix4<f32>> 
+                = context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE);
+
+    let mut pos = PositionData::new();
+    pos.set_delta(0, None, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(1, None, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
+    pos.set_delta(2, Some(0), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(3, Some(0), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
+    pos.set_delta(4, Some(1), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(5, Some(1), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
+
+    let evt = ctx.compute_mat(&pos, &queue, &buffers).wait();
+    let vec = queue.get(&buffers, evt);
+
+    let mat0 = vec[2];
+    let mat1 = vec[3];
+    let mat2 = vec[4];
+    let mat3 = vec[5];
+
+    let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
+    assert!(mat0.mul_v(&vec) == Vector4::new(2f32, 2f32, 2f32, 1f32));
+    assert!(mat1.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
+    assert!(mat2.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
+    assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
+}

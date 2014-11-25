@@ -29,21 +29,12 @@ extern crate serialize;
 use std::default::Default;
 use serialize::Encodable;
 
-use cgmath::{Transform, Decomposed};
-use cgmath::Quaternion;
-use cgmath::{Vector3, Vector4};
-use cgmath::{Matrix4, ToMatrix4, Matrix};
+use cgmath::{Transform, Decomposed, Vector3, Matrix4, ToMatrix4, Matrix, Quaternion};
 
-use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
-use opencl::mem::CLBuffer;
-use opencl::cl::{CL_MEM_READ_ONLY};
-
-use snowmew::common::{Entity, Common, Duplicate, Delete};
+use snowmew::common::{Entity, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
 use snowmew::table::{Dynamic, DynamicIterator};
-
-const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
 pub trait MatrixManager {
     fn size(&mut self, size: uint);
@@ -232,15 +223,9 @@ pub trait Positions {
         }
     }
 
-    /*fn write_positions_cl_vec4x4(&self, cq: &CommandQueue,
-                        ctx: &mut CalcPositionsCl, out: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
-        self.get_position().position.write_positions_cl_vec4x4(cq, ctx, out)
+    fn position_max(&self) -> uint {
+        self.get_position().delta.highest_entity() as uint + 1
     }
-
-    fn write_positions_cl_mat4(&self, cq: &CommandQueue,
-                        ctx: &mut CalcPositionsCl, out: &[CLBuffer<Matrix4<f32>>]) -> Event {
-        self.get_position().position.write_positions_cl_mat4(cq, ctx, out)
-    }*/
 }
 
 pub struct PositionIter<'a> {
@@ -281,3 +266,105 @@ impl<T: Positions> Positions for DebuggerGameData<T> {
     fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
 }
+
+pub mod cl {
+    use cgmath::{Transform, Decomposed, Vector3, Vector4, Matrix4, Quaternion};
+
+    use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
+    use opencl::mem::CLBuffer;
+    use opencl::cl::{CL_MEM_READ_ONLY};
+
+    use super::Positions;
+
+    const OPENCL_PROGRAM: &'static str = include_str!("position.c");
+
+    pub struct Delta {
+        parent: u32,
+        delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>
+    }
+
+    impl Clone for Delta {
+        fn clone(&self) -> Delta {
+            Delta {
+                parent: self.parent,
+                delta: self.delta
+            }
+        }
+    }
+
+    pub struct Accelerator {
+        kernel_vec4: Kernel,
+        kernel_mat: Kernel,
+        input: CLBuffer<Delta>,
+        input_buf: Vec<Delta>
+    }
+
+    impl Accelerator {
+        pub fn new(ctx: &Context, device: &Device) -> Accelerator {
+            let program = ctx.create_program_from_source(OPENCL_PROGRAM);
+            match program.build(device) {
+                Ok(_) => (),
+                Err(build_log) => {
+                    println!("Error building program:");
+                    println!("{}", build_log);
+                    panic!("");
+                }
+            }
+
+            let kernel_mat = program.create_kernel("calc_mat");
+            let kernel_vec4 = program.create_kernel("calc_vec4");
+            let delta_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
+            let delta_buf = Vec::from_elem(1024*1024, Delta {
+                parent: !0,
+                delta: Transform::identity()
+            });
+
+            Accelerator {
+                kernel_vec4: kernel_vec4,
+                kernel_mat: kernel_mat,
+                input: delta_mem,
+                input_buf: delta_buf
+            }
+        }
+
+        fn write<P: Positions>(&mut self, pos: &P) -> uint {
+            let mut top = 0;
+            for (idx, &p) in pos.delta_iter() {
+                top = idx;
+                self.input_buf[idx as uint] = Delta {
+                    parent: p.parent.unwrap_or(!0),
+                    delta: p.delta
+                };
+            }
+            top as uint
+        }
+
+        pub fn compute_mat<P: Positions>(&mut self,
+                                      pos: &P,
+                                      queue: &CommandQueue,
+                                      buf: &CLBuffer<Matrix4<f32>>) -> Event {
+            self.write(pos);
+            let event = queue.write_async(&self.input, &self.input_buf.as_slice(), ());
+            self.kernel_mat.set_arg(0, &self.input);
+            self.kernel_mat.set_arg(1, buf);
+            self.kernel_mat.set_arg(2, &(pos.position_max() as u32));
+            queue.enqueue_async_kernel(&self.kernel_mat, pos.position_max(), None, event)
+        }
+
+        pub fn compute_vec4x4<P: Positions>(&mut self,
+                                        pos: &P,
+                                        queue: &CommandQueue,
+                                        buf: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
+            self.write(pos);
+            let event = queue.write_async(&self.input, &self.input_buf.as_slice(), ());
+            self.kernel_vec4.set_arg(0, &self.input);
+            self.kernel_vec4.set_arg(1, &buf[0]);
+            self.kernel_vec4.set_arg(2, &buf[1]);
+            self.kernel_vec4.set_arg(3, &buf[2]);
+            self.kernel_vec4.set_arg(4, &buf[3]);
+            self.kernel_vec4.set_arg(5, &(pos.position_max() as u32));
+            queue.enqueue_async_kernel(&self.kernel_vec4, pos.position_max(), None, event)
+        }
+    }
+}
+

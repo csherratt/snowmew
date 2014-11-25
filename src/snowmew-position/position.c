@@ -137,42 +137,43 @@ set_mat4(global float4* x, global float4* y, global float4* z, global float4* w,
 }
 
 kernel void
-calc_gen_vec4(global Transform3D *t,
-         global uint *parent,
-         global float4* x, global float4* y, global float4* z, global float4* w,
-         int offset_last, int offset_this) {
-    int id = get_global_id(0);
-    global Transform3D *trans = &t[offset_this + id];
-    Matrix4 mat = transform_to_matrix4(trans);
-    Matrix4 parent_mat = get_mat4(x, y, z, w, offset_last+parent[offset_this+id]);
-    Matrix4 result = mult_m(parent_mat, mat);
-    set_mat4(x, y, z, w, offset_this + id, result);
+calc_vec4(global Transform3D *t,
+          global float4* x,
+          global float4* y,
+          global float4* z,
+          global float4* w,
+          int limit) {
+
+    int idx = get_global_id(0);
+    if (idx >= limit) return;
+
+    int next = t[idx].parent;
+    Matrix4 m = transform_to_matrix4(&t[idx]);
+    while (next != ~0) {
+        m = mult_m(transform_to_matrix4(&t[next]), m);
+        next = t[next].parent;
+    }
+    set_mat4(x, y, z, w, idx, m);
 }
 
 kernel void
-set_idenity_vec4(global float4* x, global float4* y, global float4* z, global float4* w) {
-    x[0].x = (float)1; x[0].y = (float)0; x[0].z = (float)0; x[0].w = (float)0;
-    y[0].x = (float)0; y[0].y = (float)1; y[0].z = (float)0; y[0].w = (float)0;
-    z[0].x = (float)0; z[0].y = (float)0; z[0].z = (float)1; z[0].w = (float)0;
-    w[0].x = (float)0; w[0].y = (float)0; w[0].z = (float)0; w[0].w = (float)1;
-}
-
-kernel void
-calc_gen_mat(global Transform3D *t,
-         global uint *parent,
+calc_mat(global Transform3D *t,
          global struct mat4* mat,
-         int offset_last, int offset_this) {
-    int id = get_global_id(0);
-    global Transform3D *trans = &t[offset_this + id];
-    Matrix4 mat_delta = transform_to_matrix4(trans);
-    Matrix4 parent_mat = mat[parent[offset_this+id]];
-    mat[offset_this+id] = mult_m(parent_mat, mat_delta);
-}
+         int limit) {
+    int idx = get_global_id(0);
+    if (idx >= limit) return;
 
-kernel void
-set_idenity_mat(global struct mat4* mat) {
-    mat[0].x.x = (float)1; mat[0].x.y = (float)0; mat[0].x.z = (float)0; mat[0].x.w = (float)0;
-    mat[0].y.x = (float)0; mat[0].y.y = (float)1; mat[0].y.z = (float)0; mat[0].y.w = (float)0;
-    mat[0].z.x = (float)0; mat[0].z.y = (float)0; mat[0].z.z = (float)1; mat[0].z.w = (float)0;
-    mat[0].w.x = (float)0; mat[0].w.y = (float)0; mat[0].w.z = (float)0; mat[0].w.w = (float)1;
+    int out = idx;
+    Matrix4 m = {
+        {1., 0., 0., 0.},
+        {0., 1., 0., 0.},
+        {0., 0., 1., 0.},
+        {0., 0., 0., 1.},
+    };
+    int max_depth = 100;
+    while (idx != ~0 && max_depth--) {
+        m = mult_m(transform_to_matrix4(&t[idx]), m);
+        idx = t[idx].parent;
+    }
+    mat[out] = m;
 }
