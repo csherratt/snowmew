@@ -279,14 +279,12 @@ pub mod cl {
     const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
     pub struct Delta {
-        parent: u32,
         delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>
     }
 
     impl Clone for Delta {
         fn clone(&self) -> Delta {
             Delta {
-                parent: self.parent,
                 delta: self.delta
             }
         }
@@ -296,7 +294,9 @@ pub mod cl {
         kernel_vec4: Kernel,
         kernel_mat: Kernel,
         input: CLBuffer<Delta>,
-        input_buf: Vec<Delta>
+        input_buf: Vec<Delta>,
+        parent: CLBuffer<u32>,
+        parent_buf: Vec<u32>
     }
 
     impl Accelerator {
@@ -315,15 +315,18 @@ pub mod cl {
             let kernel_vec4 = program.create_kernel("calc_vec4");
             let delta_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
             let delta_buf = Vec::from_elem(1024*1024, Delta {
-                parent: !0,
                 delta: Transform::identity()
             });
+            let parent_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
+            let parent_buf = Vec::from_elem(1024*1024, 0u32);
 
             Accelerator {
                 kernel_vec4: kernel_vec4,
                 kernel_mat: kernel_mat,
                 input: delta_mem,
-                input_buf: delta_buf
+                input_buf: delta_buf,
+                parent: parent_mem,
+                parent_buf: parent_buf
             }
         }
 
@@ -331,8 +334,8 @@ pub mod cl {
             let mut top = 0;
             for (idx, &p) in pos.delta_iter() {
                 top = idx;
+                self.parent_buf[idx as uint] =  p.parent.unwrap_or(!0);
                 self.input_buf[idx as uint] = Delta {
-                    parent: p.parent.unwrap_or(!0),
                     delta: p.delta
                 };
             }
@@ -344,11 +347,13 @@ pub mod cl {
                                       queue: &CommandQueue,
                                       buf: &CLBuffer<Matrix4<f32>>) -> Event {
             self.write(pos);
-            let event = queue.write_async(&self.input, &self.input_buf.as_slice(), ());
+            let event = [queue.write_async(&self.input, &self.input_buf.as_slice(), ()),
+                         queue.write_async(&self.parent, &self.parent_buf.as_slice(), ())];
             self.kernel_mat.set_arg(0, &self.input);
-            self.kernel_mat.set_arg(1, buf);
-            self.kernel_mat.set_arg(2, &(pos.position_max() as u32));
-            queue.enqueue_async_kernel(&self.kernel_mat, pos.position_max(), None, event)
+            self.kernel_mat.set_arg(1, &self.parent);
+            self.kernel_mat.set_arg(2, buf);
+            self.kernel_mat.set_arg(3, &(pos.position_max() as u32));
+            queue.enqueue_async_kernel(&self.kernel_mat, pos.position_max(), None, event.as_slice())
         }
 
         pub fn compute_vec4x4<P: Positions>(&mut self,
@@ -356,14 +361,16 @@ pub mod cl {
                                         queue: &CommandQueue,
                                         buf: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
             self.write(pos);
-            let event = queue.write_async(&self.input, &self.input_buf.as_slice(), ());
+            let event = [queue.write_async(&self.input, &self.input_buf.as_slice(), ()),
+                         queue.write_async(&self.parent, &self.parent_buf.as_slice(), ())];
             self.kernel_vec4.set_arg(0, &self.input);
-            self.kernel_vec4.set_arg(1, &buf[0]);
-            self.kernel_vec4.set_arg(2, &buf[1]);
-            self.kernel_vec4.set_arg(3, &buf[2]);
-            self.kernel_vec4.set_arg(4, &buf[3]);
-            self.kernel_vec4.set_arg(5, &(pos.position_max() as u32));
-            queue.enqueue_async_kernel(&self.kernel_vec4, pos.position_max(), None, event)
+            self.kernel_vec4.set_arg(1, &self.parent);
+            self.kernel_vec4.set_arg(2, &buf[0]);
+            self.kernel_vec4.set_arg(3, &buf[1]);
+            self.kernel_vec4.set_arg(4, &buf[2]);
+            self.kernel_vec4.set_arg(5, &buf[3]);
+            self.kernel_vec4.set_arg(6, &(pos.position_max() as u32));
+            queue.enqueue_async_kernel(&self.kernel_vec4, pos.position_max(), None, event.as_slice())
         }
     }
 }

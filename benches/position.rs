@@ -11,7 +11,7 @@ use position::cl::Accelerator;
 
 use cgmath::{Matrix4, Matrix, Decomposed, Quaternion, Vector3, Vector4};
 
-use opencl::hl::EventList;
+use opencl::hl::{EventList, Context};
 
 fn create_positon_data() -> PositionData {
     let mut pos = PositionData::new();
@@ -25,13 +25,25 @@ fn create_positon_data() -> PositionData {
     pos
 }
 
+fn create_buffers_vec4(ctx: &Context) -> [opencl::mem::CLBuffer<Vector4<f32>>, ..4] {
+    [
+        ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY),
+        ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY),
+        ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY),
+        ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY)
+    ]
+}
+
+fn create_buffers_mat(ctx: &Context) -> opencl::mem::CLBuffer<Matrix4<f32>> {
+    ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY)
+}
+
 #[bench]
 fn calc_positions_opencl_mat_gpu(bench: &mut Bencher) {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
-    let buffers: opencl::mem::CLBuffer<Matrix4<f32>>
-                = context.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY);
+    let buffers = create_buffers_mat(&context);
 
     let pos = create_positon_data();
 
@@ -45,13 +57,37 @@ fn calc_positions_opencl_mat_cpu(bench: &mut Bencher) {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::CPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
-    let buffers: opencl::mem::CLBuffer<Matrix4<f32>>
-                = context.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY);
-
+    let buffers = create_buffers_mat(&context);
     let pos = create_positon_data();
 
     bench.iter(|| {
         ctx.compute_mat(&pos, &queue, &buffers).wait();
+    });
+}
+
+#[bench]
+fn calc_positions_opencl_vec4_gpu(bench: &mut Bencher) {
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let mut ctx = Accelerator::new(&context, &device);
+
+    let buffers = create_buffers_vec4(&context);
+    let pos = create_positon_data();
+
+    bench.iter(|| {
+        ctx.compute_vec4x4(&pos, &queue, &buffers).wait();
+    });
+}
+
+#[bench]
+fn calc_positions_opencl_vec4_cpu(bench: &mut Bencher) {
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::CPUPrefered).unwrap();
+    let mut ctx = Accelerator::new(&context, &device);
+
+    let buffers = create_buffers_vec4(&context);
+    let pos = create_positon_data();
+
+    bench.iter(|| {
+        ctx.compute_vec4x4(&pos, &queue, &buffers).wait();
     });
 }
 

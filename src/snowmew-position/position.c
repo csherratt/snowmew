@@ -33,7 +33,6 @@ struct mat4 {
 };
 
 struct transform {
-    int parent;
     float scale;
     q4 rot;
     f3 pos;
@@ -138,6 +137,7 @@ set_mat4(global float4* x, global float4* y, global float4* z, global float4* w,
 
 kernel void
 calc_vec4(global Transform3D *t,
+          global int *parent,
           global float4* x,
           global float4* y,
           global float4* z,
@@ -147,27 +147,28 @@ calc_vec4(global Transform3D *t,
     int idx = get_global_id(0);
     if (idx >= limit) return;
 
-    int next = t[idx].parent;
+    int next = parent[idx];
     Matrix4 m = transform_to_matrix4(&t[idx]);
     while (next != ~0) {
         m = mult_m(transform_to_matrix4(&t[next]), m);
-        next = t[next].parent;
+        next = parent[next];
     }
     set_mat4(x, y, z, w, idx, m);
 }
 
 kernel void
 calc_mat(global Transform3D *t,
+          global int *parent,
          global struct mat4* mat,
          int limit) {
     int idx = get_global_id(0);
     if (idx >= limit) return;
 
-    int next = t[idx].parent;
+    int next = parent[idx];
     Matrix4 m = transform_to_matrix4(&t[idx]);
     while (next != ~0) {
         m = mult_m(transform_to_matrix4(&t[next]), m);
-        next = t[next].parent;
+        next = parent[next];
     }
     mat[idx] = m;
 }
