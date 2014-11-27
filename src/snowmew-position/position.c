@@ -163,17 +163,11 @@ calc_mat(global Transform3D *t,
     int idx = get_global_id(0);
     if (idx >= limit) return;
 
-    int out = idx;
-    Matrix4 m = {
-        {1., 0., 0., 0.},
-        {0., 1., 0., 0.},
-        {0., 0., 1., 0.},
-        {0., 0., 0., 1.},
-    };
-    int max_depth = 100;
-    while (idx != ~0 && max_depth--) {
-        m = mult_m(transform_to_matrix4(&t[idx]), m);
-        idx = t[idx].parent;
+    int next = t[idx].parent;
+    Matrix4 m = transform_to_matrix4(&t[idx]);
+    while (next != ~0) {
+        m = mult_m(transform_to_matrix4(&t[next]), m);
+        next = t[next].parent;
     }
-    mat[out] = m;
+    mat[idx] = m;
 }
