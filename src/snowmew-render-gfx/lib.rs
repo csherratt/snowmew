@@ -20,9 +20,7 @@
 
 //extern crate debug;
 
-extern crate sync;
 extern crate libc;
-
 extern crate opencl;
 extern crate cow;
 extern crate glfw;
@@ -44,7 +42,7 @@ use std::collections::HashMap;
 use std::comm::{Receiver};
 
 use opencl::hl;
-use sync::Arc;
+use std::sync::Arc;
 
 use position::Positions;
 use graphics::Graphics;

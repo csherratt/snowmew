@@ -18,8 +18,6 @@
 #![comment = "A game engine in rust"]
 #![allow(dead_code)]
 
-extern crate sync;
-
 extern crate opencl;
 extern crate "snowmew-render-gfx" as gfx;
 extern crate "snowmew-core" as snowmew;
@@ -31,7 +29,7 @@ extern crate "snowmew-render-data" as render_data;
 use std::os;
 
 use opencl::hl::Device;
-use sync::Arc;
+use std::sync::Arc;
 
 use snowmew::io::Window;
 

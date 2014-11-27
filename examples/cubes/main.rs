@@ -18,7 +18,6 @@
 
 extern crate cgmath;
 extern crate opencl;
-extern crate sync;
 extern crate glfw;
 
 extern crate "snowmew-core" as snowmew;

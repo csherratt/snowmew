@@ -12,8 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use std::sync::TaskPool;
-use sync::Arc;
+use std::sync::{TaskPool, Arc};
 use time::precise_time_s;
 use libc::c_void;
 use render_data::{Renderable, RenderData};

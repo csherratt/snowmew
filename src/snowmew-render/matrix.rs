@@ -15,7 +15,7 @@
 use std::mem;
 use std::ptr;
 use std::slice::raw::mut_buf_as_slice;
-use sync::Arc;
+use std::sync::Arc;
 
 use opencl::hl::{CommandQueue, Context, Device, Event, EventList};
 use opencl::mem::{Buffer, CLBuffer};

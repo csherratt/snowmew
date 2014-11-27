@@ -25,7 +25,6 @@ extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate cgmath;
 extern crate opencl;
-extern crate sync;
 extern crate serialize;
 extern crate "snowmew-render-data" as render_data;
 

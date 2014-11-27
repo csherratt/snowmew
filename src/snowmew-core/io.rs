@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use sync::Arc;
+use std::sync::Arc;
 #[cfg(target_os="linux")]
 use libc::c_void;
 

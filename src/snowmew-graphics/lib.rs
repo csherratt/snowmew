@@ -27,7 +27,6 @@ extern crate cgmath;
 extern crate collision;
 extern crate genmesh;
 extern crate serialize;
-extern crate sync;
 extern crate "stb_image" as image;
 
 extern crate "snowmew-core" as snowmew;

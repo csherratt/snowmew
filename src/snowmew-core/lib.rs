@@ -27,7 +27,6 @@ extern crate time;
 extern crate glfw;
 extern crate cgmath;
 extern crate cow;
-extern crate sync;
 extern crate serialize;
 extern crate nice_glfw;
 extern crate gl;
@@ -40,7 +39,7 @@ extern crate ovr;
 pub use common::{Entity};
 pub use io::IOManager;
 
-use sync::Arc;
+use std::sync::Arc;
 use opencl::hl::{Device, get_platforms, GPU, CPU};
 use std::io::timer::Timer;
 use std::time::Duration;

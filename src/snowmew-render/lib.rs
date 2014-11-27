@@ -25,7 +25,6 @@
 extern crate collections;
 extern crate time;
 extern crate libc;
-extern crate sync;
 extern crate rustrt;
 
 extern crate glfw;
@@ -49,12 +48,10 @@ extern crate "snowmew-render-data" as render_data;
 use std::task;
 use std::comm::{Receiver, Sender};
 use std::mem;
-use std::sync::TaskPool;
-use std::sync::Future;
+use std::sync::{TaskPool, Future, Arc};
 use time::precise_time_s;
 
 use opencl::hl::{CommandQueue, Context, Device};
-use sync::Arc;
 
 use snowmew::common::Entity;
 use snowmew::camera::Camera;
