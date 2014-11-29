@@ -177,7 +177,7 @@ fn render_server(command: Receiver<RenderCommand>,
     };
 
     let mut taskbuilder = task::TaskBuilder::new();
-    taskbuilder = taskbuilder.named("render-thread".into_maybe_owned());
+    taskbuilder = taskbuilder.named("render-thread");
 
     let (send_drawlist_setup, receiver_drawlist_setup) = channel();
     let (send_drawlist_ready, receiver_drawlist_ready) = channel();
@@ -266,7 +266,7 @@ pub struct RenderManager {
 impl RenderManager {
     fn _new(window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
         let mut taskbuilder = task::TaskBuilder::new();
-        taskbuilder = taskbuilder.named("render-server".into_maybe_owned());
+        taskbuilder = taskbuilder.named("render-server");
 
         let (sender, receiver) = channel();
         let render_main_result = taskbuilder.try_future(proc() {
