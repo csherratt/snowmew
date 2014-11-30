@@ -20,12 +20,7 @@ struct f3 {
     float x, y, z;
 };
 
-struct f4 {
-    float x, y, z, w;
-};
-
 typedef struct q4 q4;
-typedef struct f4 f4;
 typedef struct f3 f3;
 
 struct mat4 {
@@ -157,10 +152,11 @@ calc_vec4(global Transform3D *t,
 }
 
 kernel void
-calc_mat(global Transform3D *t,
-          global int *parent,
+calc_mat(const global Transform3D *t,
+         const global int *parent,
          global struct mat4* mat,
          int limit) {
+
     int idx = get_global_id(0);
     if (idx >= limit) return;
 

@@ -9,13 +9,15 @@ use test::{Bencher, black_box};
 use position::{PositionData, Positions};
 use position::cl::Accelerator;
 
-use cgmath::{Matrix4, Matrix, Decomposed, Quaternion, Vector3, Vector4};
+use cgmath::{Matrix4, Decomposed, Quaternion, Vector3, Vector4};
 
 use opencl::hl::{EventList, Context};
 
+const SIZE: uint = 1024*256;
+
 fn create_positon_data() -> PositionData {
     let mut pos = PositionData::new();
-    for i in range(0u32, 65536) {
+    for i in range(0u32, SIZE as u32) {
         if i % 16 == 0 {
             pos.set_delta(i, None, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
         } else {
@@ -27,15 +29,15 @@ fn create_positon_data() -> PositionData {
 
 fn create_buffers_vec4(ctx: &Context) -> [opencl::mem::CLBuffer<Vector4<f32>>, ..4] {
     [
-        ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY),
-        ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY),
-        ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY),
-        ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY)
+        ctx.create_buffer(SIZE, opencl::cl::CL_MEM_WRITE_ONLY),
+        ctx.create_buffer(SIZE, opencl::cl::CL_MEM_WRITE_ONLY),
+        ctx.create_buffer(SIZE, opencl::cl::CL_MEM_WRITE_ONLY),
+        ctx.create_buffer(SIZE, opencl::cl::CL_MEM_WRITE_ONLY)
     ]
 }
 
 fn create_buffers_mat(ctx: &Context) -> opencl::mem::CLBuffer<Matrix4<f32>> {
-    ctx.create_buffer(65536, opencl::cl::CL_MEM_WRITE_ONLY)
+    ctx.create_buffer(SIZE, opencl::cl::CL_MEM_WRITE_ONLY)
 }
 
 #[bench]
