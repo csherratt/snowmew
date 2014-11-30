@@ -25,11 +25,9 @@ git = "https://github.com/csherratt/rust-stb-image.git"
 [dependencies.gfx]
 git = "https://github.com/gfx-rs/gfx-rs"
 
-[dependencies.time]
-git = "http://github.com/rust-lang/time"
-
 [dependencies]
 genmesh = "*"
+time = "*"
 
 [dependencies.snowmew-core]
 path = "../snowmew-core/"

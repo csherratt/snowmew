@@ -35,6 +35,7 @@ extern crate libc;
 extern crate opencl;
 extern crate device;
 extern crate ovr;
+extern crate collect;
 
 pub use common::{Entity};
 pub use io::IOManager;

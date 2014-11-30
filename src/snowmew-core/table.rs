@@ -2,12 +2,16 @@
 use std::collections::VecMap;
 use std::collections::vec_map::Entries;
 use std::sync::Arc;
-
-use Entity;
-use cow::btree::{BTreeMap, BTreeMapIterator};
-use cow::btree::{BTreeSet, BTreeSetIterator};
 use std::default::Default;
 use serialize::Encodable;
+
+use cow::btree::{BTreeMap, BTreeMapIterator};
+use cow::btree::{BTreeSet, BTreeSetIterator};
+use collect::inner_join::{InnerJoinMap, InnerJoinSet};
+use collect::outer_join::OuterJoinMap;
+
+
+use Entity;
 
 
 /// a Static table should be used for infrequently updated data
@@ -169,3 +173,10 @@ impl<'a, T: Send+Sync> Iterator<(Entity, &'a T)> for DynamicIterator<'a, T> {
         }
     }
 }
+
+impl<'a, T: Send+Sync> InnerJoinMap<Entity, &'a T> for StaticIterator<'a, T> {}
+impl<'a> InnerJoinSet<Entity> for StaticSetIterator<'a> {}
+impl<'a, T: Send+Sync> InnerJoinMap<Entity, &'a T> for DynamicIterator<'a, T> {}
+
+impl<'a, T: Send+Sync> OuterJoinMap<Entity, &'a T> for StaticIterator<'a, T> {}
+impl<'a, T: Send+Sync> OuterJoinMap<Entity, &'a T> for DynamicIterator<'a, T> {}

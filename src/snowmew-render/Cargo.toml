@@ -28,8 +28,8 @@ git = "https://github.com/csherratt/rust-opencl.git"
 [dependencies.ovr]
 git = "https://github.com/csherratt/vr-rs.git"
 
-[dependencies.time]
-git = "http://github.com/rust-lang/time"
+[dependencies]
+time = "*"
 
 [dependencies.gl_cl]
 path = "../gl_cl"

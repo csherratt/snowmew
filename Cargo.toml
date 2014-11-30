@@ -37,8 +37,8 @@ path = "src/snowmew-render-mux/"
 [dependencies.snowmew-loader]
 path = "src/snowmew-loader/"
 
-[dependencies.time]
-git = "http://github.com/rust-lang/time"
+[dependencies]
+time = "*"
 
 [[example]]
 name = "cubes"

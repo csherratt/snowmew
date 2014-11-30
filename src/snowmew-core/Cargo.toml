@@ -34,5 +34,9 @@ git = "https://github.com/csherratt/vr-rs.git"
 [dependencies.gfx]
 git = "https://github.com/gfx-rs/gfx-rs"
 
-[dependencies.time]
-git = "http://github.com/rust-lang/time"
+[dependencies]
+time = "*"
+
+[dependencies.collect]
+git = "https://github.com/csherratt/collect-rs.git"
+branch = "outer-join"
