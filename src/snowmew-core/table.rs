@@ -7,8 +7,7 @@ use serialize::Encodable;
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 use cow::btree::{BTreeSet, BTreeSetIterator};
-use collect::inner_join::{InnerJoinMap, InnerJoinSet};
-use collect::outer_join::OuterJoinMap;
+use collect::join::{OrderedMapIterator, OrderedSetIterator};
 
 
 use Entity;
@@ -174,9 +173,7 @@ impl<'a, T: Send+Sync> Iterator<(Entity, &'a T)> for DynamicIterator<'a, T> {
     }
 }
 
-impl<'a, T: Send+Sync> InnerJoinMap<Entity, &'a T> for StaticIterator<'a, T> {}
-impl<'a> InnerJoinSet<Entity> for StaticSetIterator<'a> {}
-impl<'a, T: Send+Sync> InnerJoinMap<Entity, &'a T> for DynamicIterator<'a, T> {}
+impl<'a, T: Send+Sync> OrderedMapIterator<Entity, &'a T> for StaticIterator<'a, T> {}
+impl<'a> OrderedSetIterator<Entity> for StaticSetIterator<'a> {}
+impl<'a, T: Send+Sync> OrderedMapIterator<Entity, &'a T> for DynamicIterator<'a, T> {}
 
-impl<'a, T: Send+Sync> OuterJoinMap<Entity, &'a T> for StaticIterator<'a, T> {}
-impl<'a, T: Send+Sync> OuterJoinMap<Entity, &'a T> for DynamicIterator<'a, T> {}
