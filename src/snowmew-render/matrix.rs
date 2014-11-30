@@ -14,7 +14,7 @@
 
 use std::mem;
 use std::ptr;
-use std::slice::raw::mut_buf_as_slice;
+use std::slice;
 use std::sync::Arc;
 
 use opencl::hl::{CommandQueue, Context, Device, Event, EventList};
@@ -160,13 +160,12 @@ impl MatrixSSBOBuffer {
         self.event = unsafe {
             match self.cl {
                 None => {
-                    mut_buf_as_slice(self.ptr_model_matrix, self.size, |mat| {
-                        let mut mat = GLSSBOMatrix {
-                            mat: mat
-                        };
-                        db.write_positions(&mut mat);
-                        None
-                    })
+                    let mat = slice::from_raw_mut_buf(&self.ptr_model_matrix, self.size);
+                    let mut mat = GLSSBOMatrix {
+                        mat: mat
+                    };
+                    db.write_positions(&mut mat);
+                    None
                 }
                 Some((ref mut ctx, ref cq, ref buf)) => {
                     let evt = ctx.compute_mat(db, cq.deref(), &buf[0]);
@@ -272,16 +271,14 @@ impl MatrixTextureBuffer {
         self.event = unsafe {
             match self.cl {
                 None => {
-                    mut_buf_as_slice(self.ptr_model_matrix[0], self.size, |x| {
-                    mut_buf_as_slice(self.ptr_model_matrix[1], self.size, |y| {
-                    mut_buf_as_slice(self.ptr_model_matrix[2], self.size, |z| {
-                    mut_buf_as_slice(self.ptr_model_matrix[3], self.size, |w| {
-                        let mut mat = GLTextureMatrix {
-                            x: x, y: y, z: z, w: w
-                        };
-                        db.write_positions(&mut mat);
-                        None
-                    })})})})
+                    let mut mat = GLTextureMatrix {
+                        x: slice::from_raw_mut_buf(&self.ptr_model_matrix[0], self.size),
+                        y: slice::from_raw_mut_buf(&self.ptr_model_matrix[1], self.size),
+                        z: slice::from_raw_mut_buf(&self.ptr_model_matrix[2], self.size),
+                        w: slice::from_raw_mut_buf(&self.ptr_model_matrix[3], self.size)
+                    };
+                    db.write_positions(&mut mat);
+                    None
                 }
                 Some((ref mut ctx, ref cq, ref buf)) => {
                     let evt = ctx.compute_vec4x4(db, cq.deref(), buf);

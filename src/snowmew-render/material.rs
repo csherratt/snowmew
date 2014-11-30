@@ -14,7 +14,7 @@
 
 use std::mem;
 use std::ptr;
-use std::slice::raw::mut_buf_as_slice;
+use std::slice;
 
 use gl;
 
@@ -111,11 +111,10 @@ impl MaterialBuffer {
 
     pub fn build<G: Graphics>(&mut self, graphics: &G) {
         unsafe {
-            mut_buf_as_slice(self.ptr, self.size, |b| {
-                for (id, (_, mat)) in graphics.material_iter().enumerate() {
-                    b[id] = MaterialStd140::from(mat, graphics);
-                }
-            });
+            let b = slice::from_raw_mut_buf(&self.ptr, self.size);
+            for (id, (_, mat)) in graphics.material_iter().enumerate() {
+                b[id] = MaterialStd140::from(mat, graphics);
+            }
         }
     }
 

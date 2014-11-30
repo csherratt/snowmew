@@ -15,7 +15,7 @@
 
 use std::ptr;
 use std::mem;
-use std::slice::raw::mut_buf_as_slice;
+use std::slice;
 
 use cow::join::{join_set_to_map};
 
@@ -139,57 +139,56 @@ impl CommandBufferIndirect {
 
         unsafe {
             self.batches.truncate(0);
-            mut_buf_as_slice(self.ptr, self.size, |b| {
-                for (count, (_, draw)) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()).enumerate() {
-                    if idx == -1 {
-                        let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
-                        last_geo = Some(draw.geometry);
-                        command = DrawElementsIndirectCommand {
-                            count: draw_geo.count as GLuint,
-                            instrance_count: 1,
-                            first_index: draw_geo.offset as GLuint,
-                            base_vertex: 0,
-                            base_instance: count as GLuint
-                        };
+            let b = slice::from_raw_mut_buf(&self.ptr, self.size);
+            for (count, (_, draw)) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()).enumerate() {
+                if idx == -1 {
+                    let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
+                    last_geo = Some(draw.geometry);
+                    command = DrawElementsIndirectCommand {
+                        count: draw_geo.count as GLuint,
+                        instrance_count: 1,
+                        first_index: draw_geo.offset as GLuint,
+                        base_vertex: 0,
+                        base_instance: count as GLuint
+                    };
 
+                    batch.vbo = draw_geo.vb;
+                    batch.count = 1;
+
+                    idx = 0;
+                } else if last_geo == Some(draw.geometry) && instanced_is_enabled {
+                    command.instrance_count += 1;
+                } else {
+                    let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
+                    last_geo = Some(draw.geometry);
+
+                    b[idx] = command;
+                    idx += 1;
+
+                    command = DrawElementsIndirectCommand {
+                        count: draw_geo.count as GLuint,
+                        instrance_count: 1,
+                        first_index: draw_geo.offset as GLuint,
+                        base_vertex: 0,
+                        base_instance: count as GLuint
+                    };
+
+                    if batch.vbo == 0 {
                         batch.vbo = draw_geo.vb;
+                        batch.offset = idx;
                         batch.count = 1;
-
-                        idx = 0;
-                    } else if last_geo == Some(draw.geometry) && instanced_is_enabled {
-                        command.instrance_count += 1;
+                    } else if batch.vbo == draw_geo.vb {
+                        batch.count += 1;
                     } else {
-                        let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
-                        last_geo = Some(draw.geometry);
-
-                        b[idx] = command;
-                        idx += 1; 
-
-                        command = DrawElementsIndirectCommand {
-                            count: draw_geo.count as GLuint,
-                            instrance_count: 1,
-                            first_index: draw_geo.offset as GLuint,
-                            base_vertex: 0,
-                            base_instance: count as GLuint
-                        };
-
-                        if batch.vbo == 0 {
-                            batch.vbo = draw_geo.vb;
-                            batch.offset = idx;
-                            batch.count = 1;
-                        } else if batch.vbo == draw_geo.vb {
-                            batch.count += 1;
-                        } else {
-                            self.batches.push(batch.clone());
-                            batch.vbo = draw_geo.vb;
-                            batch.offset = idx;
-                            batch.count = 1;
-                        }
-
+                        self.batches.push(batch.clone());
+                        batch.vbo = draw_geo.vb;
+                        batch.offset = idx;
+                        batch.count = 1;
                     }
+
                 }
-                b[idx] = command;
-            });
+            }
+            b[idx] = command;
         }
         self.batches.push(batch)
     }
