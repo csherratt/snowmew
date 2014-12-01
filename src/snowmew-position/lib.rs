@@ -332,9 +332,12 @@ pub mod cl {
 
         fn write<P: Positions>(&mut self, pos: &P) -> uint {
             let mut top = 0;
+            for i in range(0, pos.position_max()) {
+                self.parent_buf[i] = !0;
+            }
             for (idx, &p) in pos.delta_iter() {
                 top = idx;
-                self.parent_buf[idx as uint] =  p.parent.unwrap_or(!0);
+                self.parent_buf[idx as uint] = p.parent.unwrap_or(!0);
                 self.input_buf[idx as uint] = Delta {
                     delta: p.delta
                 };

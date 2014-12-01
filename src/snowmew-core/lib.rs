@@ -154,7 +154,11 @@ pub trait Render<T> {
 /// RenderFactor is used to create a `Render` object. This is used to pass a configured
 /// Window to the Render.
 pub trait RenderFactory<T, R: Render<T>> {
-    fn init(self: Box<Self>, im: &IOManager, window: io::Window, size: (i32, i32), cl: Option<Arc<Device>>) -> R;
+    fn init(self: Box<Self>,
+            im: &IOManager,
+            window: io::Window,
+            size: (i32, i32),
+            cl: Option<Arc<Device>>) -> R;
 }
 
 /// Used to configure the engine prior to the game stating.
@@ -186,7 +190,11 @@ impl SnowmewConfig {
     pub fn start<GameData: Common+Clone,
                  Game: game::Game<GameData, input::Event>,
                  R: Render<GameData>,
-                 RF: RenderFactory<GameData, R>>(self, render: Box<RF>, mut game: Game, mut gd: GameData) {
+                 RF: RenderFactory<GameData, R>>
+                 (self,
+                  render: Box<RF>,
+                  mut game: Game,
+                  mut gd: GameData) {
         let mut im = io::IOManager::new(setup_glfw());
 
         // create display

@@ -151,7 +151,7 @@ fn calc_positions_opencl_vec4x4() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
-    let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4] 
+    let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4]
                 = [context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                    context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                    context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
@@ -186,7 +186,7 @@ fn calc_positions_opencl_vec4x4_tree() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
-    let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4] 
+    let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4]
             = [context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
@@ -220,7 +220,7 @@ fn calc_positions_opencl_mat() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
-    let buffers: opencl::mem::CLBuffer<Matrix4<f32>> 
+    let buffers: opencl::mem::CLBuffer<Matrix4<f32>>
                 = context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE);
 
     let mut pos = PositionData::new();
@@ -252,7 +252,7 @@ fn calc_positions_opencl_mat_tree() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
-    let buffers: opencl::mem::CLBuffer<Matrix4<f32>> 
+    let buffers: opencl::mem::CLBuffer<Matrix4<f32>>
                 = context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE);
 
     let mut pos = PositionData::new();
@@ -276,4 +276,37 @@ fn calc_positions_opencl_mat_tree() {
     assert!(mat1.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
     assert!(mat2.mul_v(&vec) == Vector4::new(0f32, 0f32, 0f32, 1f32));
     assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
+}
+
+
+#[test]
+fn calc_positions_opencl_gap() {
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let mut ctx = Accelerator::new(&context, &device);
+
+    let buffers: opencl::mem::CLBuffer<Matrix4<f32>>
+                = context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE);
+
+    let mut pos = PositionData::new();
+    pos.set_delta(0, None, Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(11, Some(0), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(12, Some(11), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(13, Some(12), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+    pos.set_delta(14, Some(13), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
+
+    let evt = ctx.compute_mat(&pos, &queue, &buffers).wait();
+    let vec = queue.get(&buffers, evt);
+
+    let mat0 = vec[0];
+    let mat1 = vec[11];
+    let mat2 = vec[12];
+    let mat3 = vec[13];
+    let mat4 = vec[14];
+
+    let vec = Vector4::new(0f32, 0f32, 0f32, 1f32);
+    assert_eq!(mat0.mul_v(&vec), Vector4::new(1f32, 1f32, 1f32, 1f32));
+    assert_eq!(mat1.mul_v(&vec), Vector4::new(2f32, 2f32, 2f32, 1f32));
+    assert_eq!(mat2.mul_v(&vec), Vector4::new(3f32, 3f32, 3f32, 1f32));
+    assert_eq!(mat3.mul_v(&vec), Vector4::new(4f32, 4f32, 4f32, 1f32));
+    assert_eq!(mat4.mul_v(&vec), Vector4::new(5f32, 5f32, 5f32, 1f32));
 }
