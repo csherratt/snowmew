@@ -43,8 +43,8 @@ pub struct InputIntegratorState {
     time: f64,
     last_mouse: Option<(uint, f64, f64)>,
     mouse: Option<(uint, f64, f64)>,
-    scroll: (int, int),
-    last_scroll: (int, int)
+    scroll: (f64, f64),
+    last_scroll: (f64, f64)
 }
 
 impl InputIntegratorState {
@@ -91,10 +91,10 @@ impl InputIntegratorState {
     }
 
     /// get the scroll wheels absolute position (total number of turns)
-    pub fn scroll_position(&self) -> (int, int) { self.scroll }
+    pub fn scroll_position(&self) -> (f64, f64) { self.scroll }
 
     /// get the change in the scroll wheels position since last frame.
-    pub fn scroll_delta(&self) -> (int, int) {
+    pub fn scroll_delta(&self) -> (f64, f64) {
         let (x, y) = self.scroll;
         let (ox, oy) = self.last_scroll;
         (x - ox, y - oy)
@@ -126,8 +126,8 @@ impl<GameData> InputIntegratorGameData<GameData> {
                 time: 0.,
                 last_mouse: None,
                 mouse: None,
-                scroll: (0, 0),
-                last_scroll: (0, 0)
+                scroll: (0., 0.),
+                last_scroll: (0., 0.)
             },
             inner: inner
         }
