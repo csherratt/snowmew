@@ -91,7 +91,7 @@ impl IOManager {
 
         window.make_current();
         gl::load_with(|name| self.glfw.get_proc_address_raw(name));
-        self.glfw.set_swap_interval(0);
+        self.glfw.set_swap_interval(1);
         glfw::make_context_current(None);
 
         window.set_all_polling(true);
@@ -123,7 +123,7 @@ impl IOManager {
             Some((mut window, events)) => {
                 window.make_current();
                 gl::load_with(|name| self.glfw.get_proc_address_raw(name));
-                self.glfw.set_swap_interval(0);
+                self.glfw.set_swap_interval(1);
                 glfw::make_context_current(None);
 
                 window.set_all_polling(true);
