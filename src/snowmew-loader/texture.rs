@@ -12,7 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use image::image::{load, Error, ImageU8, ImageF32};
+use image::image::load;
+use image::image::LoadResult::{Error, ImageU8, ImageF32};
 use graphics::Texture;
 
 pub fn load_texture(path: &Path) -> Texture {

@@ -16,8 +16,8 @@ use std::sync::Arc;
 #[cfg(target_os="linux")]
 use libc::c_void;
 
-use glfw::{WindowEvent, Glfw, Context, FullScreen};
-use glfw::{Windowed, RenderContext};
+use glfw::{WindowEvent, Glfw, Context, RenderContext};
+use glfw::WindowMode::{Windowed, FullScreen};
 use glfw;
 use nice_glfw;
 use gl;
@@ -62,7 +62,7 @@ impl IOManager {
         self.windows.insert(id, {
             WindowHandle {
                 window: window,
-                forced_event: Some(glfw::FramebufferSizeEvent(w, h)),
+                forced_event: Some(glfw::WindowEvent::FramebufferSize(w, h)),
                 receiver: recv
             }
         });
@@ -114,7 +114,7 @@ impl IOManager {
             self.glfw.with_primary_monitor(|display| {
                 let display = display.unwrap();
                 let (width, height) = size;
-                self.create_window_context(width, height, "Snowmew Fullscreen", FullScreen(display))
+                self.create_window_context(width, height, "Snowmew FullScreen", FullScreen(display))
             })
         };
 
@@ -167,7 +167,7 @@ impl IOManager {
                 if x == hmd.window_position.x && 
                    y == hmd.window_position.y {
                     let (width, height) = (hmd.resolution.x, hmd.resolution.y);
-                    let win_opt = self.create_window_context(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
+                    let win_opt = self.create_window_context(width as u32, height as u32, "Snowmew FullScreen", FullScreen(m));
                     let (window, events) = match win_opt {
                         Some((window, events)) => (window, events),
                         None => return None
@@ -203,7 +203,7 @@ impl IOManager {
                 }
 
                 let (width, height) = (hmd.resolution.x, hmd.resolution.y);
-                let win_opt = self.create_window_context(width as u32, height as u32, "Snowmew Fullscreen", FullScreen(m));
+                let win_opt = self.create_window_context(width as u32, height as u32, "Snowmew FullScreen", FullScreen(m));
                 let (window, events) = match win_opt {
                     Some((window, events)) => (window, events),
                     None => return None

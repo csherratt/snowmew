@@ -310,31 +310,31 @@ pub enum EventGroup {
 impl Event {
     pub fn from_glfw(evt: glfw::WindowEvent) -> EventGroup {
         match evt {
-            glfw::MouseButtonEvent(button, glfw::Press, _) => {
+            glfw::WindowEvent::MouseButton(button, glfw::Action::Press, _) => {
                 EventGroup::Game(Event::ButtonDown(from_glfw_mouse_button(button)))
             }
-            glfw::MouseButtonEvent(button, glfw::Release, _) => {
+            glfw::WindowEvent::MouseButton(button, glfw::Action::Release, _) => {
                 EventGroup::Game(Event::ButtonUp(from_glfw_mouse_button(button)))
             }
-            glfw::KeyEvent(button, _, glfw::Press, _) => {
+            glfw::WindowEvent::Key(button, _, glfw::Action::Press, _) => {
                 EventGroup::Game(Event::ButtonDown(from_glfw_key(button)))
             }
-            glfw::KeyEvent(button, _, glfw::Release, _) => {
+            glfw::WindowEvent::Key(button, _, glfw::Action::Release, _) => {
                 EventGroup::Game(Event::ButtonUp(from_glfw_key(button)))
             }
-            glfw::CursorPosEvent(x, y) => {
+            glfw::WindowEvent::CursorPos(x, y) => {
                 EventGroup::Game(Event::Move(x, y))
             }
-            glfw::ScrollEvent(x, y) => {
+            glfw::WindowEvent::Scroll(x, y) => {
                 EventGroup::Game(Event::Scroll(x as int, y as int))
             }
-            glfw::CursorEnterEvent(x) => {
+            glfw::WindowEvent::CursorEnter(x) => {
                 EventGroup::Window(WindowEvent::MouseOver(x))
             }
-            glfw::PosEvent(x, y) => {
+            glfw::WindowEvent::Pos(x, y) => {
                 EventGroup::Window(WindowEvent::Position(x as int, y as int))
             }
-            glfw::FramebufferSizeEvent(x, y) => {
+            glfw::WindowEvent::FramebufferSize(x, y) => {
                 EventGroup::Window(WindowEvent::Size(x as int, y as int))
             }
             x => {

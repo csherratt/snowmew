@@ -50,8 +50,9 @@ use snowmew::common::Entity;
 use snowmew::io::Window;
 use snowmew::camera::Camera;
 
-use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
+use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
+
 
 use cow::join::{join_set_to_map, join_maps};
 use render_data::Renderable;
@@ -261,11 +262,11 @@ impl RenderManagerContext {
 
         let (width, height) = size;
         let frame = gfx::Frame::new(width as u16, height as u16);
-        let state = gfx::DrawState::new().depth(gfx::state::LessEqual, true);
+        let state = gfx::DrawState::new().depth(gfx::state::Comparison::LessEqual, true);
 
         let sampler = device.create_sampler(
             gfx::tex::SamplerInfo::new(
-                    gfx::tex::Anisotropic(16), gfx::tex::Tile
+                gfx::tex::FilterMethod::Anisotropic(16), gfx::tex::WrapMode::Tile
             )
         );
 
@@ -275,7 +276,7 @@ impl RenderManagerContext {
                 height: 1,
                 depth: 1,
                 levels: 1,
-                kind: gfx::tex::Texture2D,
+                kind: gfx::tex::TextureKind::Texture2D,
                 format: gfx::tex::RGBA8,
             };
 
@@ -334,14 +335,14 @@ impl RenderManagerContext {
             height: 2048,
             depth: 1,
             levels: 1,
-            kind: gfx::tex::Texture2D,
-            format: gfx::tex::DEPTH24STENCIL8,
+            kind: gfx::tex::TextureKind::Texture2D,
+            format: gfx::tex::Format::DEPTH24STENCIL8,
         };
 
         let mut shadow_sampler = gfx::tex::SamplerInfo::new(
-            gfx::tex::Anisotropic(16), gfx::tex::Tile
+            gfx::tex::FilterMethod::Anisotropic(16), gfx::tex::WrapMode::Tile
         );
-        shadow_sampler.comparison = gfx::tex::CompareRefToTexture(gfx::state::LessEqual);
+        shadow_sampler.comparison = gfx::tex::ComparisonMode::CompareRefToTexture(gfx::state::Comparison::LessEqual);
 
         let shadow_sampler = device.create_sampler(shadow_sampler);
 
@@ -436,10 +437,10 @@ impl RenderManagerContext {
                     height: text.height() as u16,
                     depth: 1 as u16,
                     levels: 1,
-                    kind: gfx::tex::Texture2D,
+                    kind: gfx::tex::TextureKind::Texture2D,
                     format: match text.depth() {
-                        4 => gfx::tex::Unsigned(gfx::tex::RGBA, 8, gfx::attrib::IntSubType::Normalized),
-                        3 => gfx::tex::Unsigned(gfx::tex::RGB, 8, gfx::attrib::IntSubType::Normalized),
+                        4 => gfx::tex::Format::Unsigned(gfx::tex::Components::RGBA, 8, gfx::attrib::IntSubType::Normalized),
+                        3 => gfx::tex::Format::Unsigned(gfx::tex::Components::RGB, 8, gfx::attrib::IntSubType::Normalized),
                         _ => panic!("Unsupported color depth")
                     }
                 };
@@ -470,7 +471,7 @@ impl RenderManagerContext {
                 gfx::Slice {
                     start: geo.offset as u32,
                     end: (geo.offset + geo.count) as u32,
-                    prim_type: gfx::TriangleList,
+                    prim_type: gfx::PrimitiveType::TriangleList,
                     kind: gfx::IndexSlice32(vb.index, 0)
 
                 },
@@ -501,7 +502,7 @@ impl RenderManagerContext {
                 gfx::Slice {
                     start: geo.offset as u32,
                     end: (geo.offset + geo.count) as u32,
-                    prim_type: gfx::TriangleList,
+                    prim_type: gfx::PrimitiveType::TriangleList,
                     kind: gfx::IndexSlice32(vb.index, 0)
 
                 },

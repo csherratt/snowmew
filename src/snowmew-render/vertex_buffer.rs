@@ -21,7 +21,7 @@ use std::ptr;
 use libc::c_void;
 
 use graphics::geometry::{Vertex, VertexGeo, VertexGeoTex, VertexGeoNorm, VertexGeoTexNorm, VertexGeoTexNormTan};
-use graphics::geometry::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
+use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 
 #[deriving(Clone, Default)]
 pub struct VertexBuffer {

@@ -148,7 +148,7 @@ fn fetch_matrixs(queue: &opencl::hl::CommandQueue,
 
 #[test]
 fn calc_positions_opencl_vec4x4() {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4]
@@ -183,7 +183,7 @@ fn calc_positions_opencl_vec4x4() {
 
 #[test]
 fn calc_positions_opencl_vec4x4_tree() {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4]
@@ -217,7 +217,7 @@ fn calc_positions_opencl_vec4x4_tree() {
 
 #[test]
 fn calc_positions_opencl_mat() {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers: opencl::mem::CLBuffer<Matrix4<f32>>
@@ -249,7 +249,7 @@ fn calc_positions_opencl_mat() {
 
 #[test]
 fn calc_positions_opencl_mat_tree() {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers: opencl::mem::CLBuffer<Matrix4<f32>>
@@ -281,7 +281,7 @@ fn calc_positions_opencl_mat_tree() {
 
 #[test]
 fn calc_positions_opencl_gap() {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers: opencl::mem::CLBuffer<Matrix4<f32>>

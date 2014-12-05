@@ -41,7 +41,8 @@ pub use common::{Entity};
 pub use io::IOManager;
 
 use std::sync::Arc;
-use opencl::hl::{Device, get_platforms, GPU, CPU};
+use opencl::hl::{Device, get_platforms};
+use opencl::hl::DeviceType::{GPU, CPU};
 use std::io::timer::Timer;
 use std::time::Duration;
 use common::Common;
@@ -90,11 +91,11 @@ fn get_cl() -> Option<Arc<Device>> {
 fn setup_glfw() -> glfw::Glfw {
     let glfw = glfw::init(glfw::LOG_ERRORS).ok().unwrap();
 
-    glfw.window_hint(glfw::OpenglForwardCompat(true));
-    glfw.window_hint(glfw::Visible(false));
-    glfw.window_hint(glfw::DepthBits(24));
-    glfw.window_hint(glfw::StencilBits(8));
-    glfw.window_hint(glfw::Decorated(false));
+    glfw.window_hint(glfw::WindowHint::OpenglForwardCompat(true));
+    glfw.window_hint(glfw::WindowHint::Visible(false));
+    glfw.window_hint(glfw::WindowHint::DepthBits(24));
+    glfw.window_hint(glfw::WindowHint::StencilBits(8));
+    glfw.window_hint(glfw::WindowHint::Decorated(false));
 
     glfw
 }
