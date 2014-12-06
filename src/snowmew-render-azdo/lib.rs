@@ -43,7 +43,7 @@ extern crate gl_cl;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
-extern crate "snowmew-render-data" as render_data;
+extern crate "snowmew-render" as render_data;
 
 use std::task;
 use std::comm::{Receiver, Sender};

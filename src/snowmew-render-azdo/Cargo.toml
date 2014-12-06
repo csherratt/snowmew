@@ -43,5 +43,5 @@ path = "../snowmew-position"
 [dependencies.snowmew-graphics]
 path = "../snowmew-graphics"
 
-[dependencies.snowmew-render-data]
-path = "../snowmew-render-data"
+[dependencies.snowmew-render]
+path = "../snowmew-render"

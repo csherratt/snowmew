@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-#![crate_name = "snowmew-render-data"]
+#![crate_name = "snowmew-render"]
 #![license = "ASL2"]
 #![crate_type = "lib"]
 #![comment = "A game engine in rust"]
