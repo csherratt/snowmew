@@ -1,4 +1,4 @@
-    //   Copyright 2014 Colin Sherratt
+//   Copyright 2014 Colin Sherratt
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -472,7 +472,7 @@ impl RenderManagerContext {
                     start: geo.offset as u32,
                     end: (geo.offset + geo.count) as u32,
                     prim_type: gfx::PrimitiveType::TriangleList,
-                    kind: gfx::IndexSlice32(vb.index, 0)
+                    kind: gfx::SliceKind::Index32(vb.index, 0)
 
                 },
                 &self.state
@@ -503,7 +503,7 @@ impl RenderManagerContext {
                     start: geo.offset as u32,
                     end: (geo.offset + geo.count) as u32,
                     prim_type: gfx::PrimitiveType::TriangleList,
-                    kind: gfx::IndexSlice32(vb.index, 0)
+                    kind: gfx::SliceKind::Index32(vb.index, 0)
 
                 },
                 &self.state

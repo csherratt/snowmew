@@ -290,27 +290,26 @@ pub trait Graphics: Common {
 }
 
 
-
-macro_rules! dup(
-    ($field:expr, $src:ident, $dst:ident) => (
-        {
-            let x = $field.get($src).map(|x| x.clone());
-            x.map(|x| $field.insert($dst, x));
-        }
-    )
-)
-
 impl Duplicate for GraphicsData {
     fn duplicate(&mut self, src: Entity, dst: Entity) {
-        dup!(self.draw, src, dst);
-        dup!(self.geometry, src, dst);
-        dup!(self.vertex, src, dst);
-        dup!(self.material, src, dst);
-        dup!(self.material_index, src, dst);
-        dup!(self.texture, src, dst);
-        dup!(self.lights, src, dst);
-        dup!(self.texture_to_atlas, src, dst);
-        dup!(self.sphere, src, dst);
+        let x = self.draw.get(src).map(|x| x.clone());
+        x.map(|x| self.draw.insert(dst, x));
+        let x = self.geometry.get(src).map(|x| x.clone());
+        x.map(|x| self.geometry.insert(dst, x));
+        let x = self.vertex.get(src).map(|x| x.clone());
+        x.map(|x| self.vertex.insert(dst, x));
+        let x = self.material.get(src).map(|x| x.clone());
+        x.map(|x| self.material.insert(dst, x));
+        let x = self.material_index.get(src).map(|x| x.clone());
+        x.map(|x| self.material_index.insert(dst, x));
+        let x = self.texture.get(src).map(|x| x.clone());
+        x.map(|x| self.texture.insert(dst, x));
+        let x = self.lights.get(src).map(|x| x.clone());
+        x.map(|x| self.lights.insert(dst, x));
+        let x = self.texture_to_atlas.get(src).map(|x| x.clone());
+        x.map(|x| self.texture_to_atlas.insert(dst, x));
+        let x = self.sphere.get(src).map(|x| x.clone());
+        x.map(|x| self.sphere.insert(dst, x));
     }
 }
 
