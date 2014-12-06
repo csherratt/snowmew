@@ -21,7 +21,7 @@
 extern crate opencl;
 extern crate "snowmew-render-gfx" as gfx;
 extern crate "snowmew-core" as snowmew;
-extern crate "snowmew-render" as azdo;
+extern crate "snowmew-render-azdo" as azdo;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render-data" as render_data;

@@ -1,13 +1,13 @@
 [package]
 
-name = "snowmew-render"
+name = "snowmew-render-azdo"
 version = "0.1.0"
 authors = [
     "Colin Sherratt <colin.sherratt@gmail.com>",
 ]
 
 [lib]
-name = "snowmew-render"
+name = "snowmew-render-azdo"
 path = "lib.rs"
 
 [dependencies.glfw]
