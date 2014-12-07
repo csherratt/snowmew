@@ -36,6 +36,9 @@ pub mod render {
         RenderFactory,
         Render,
     };
+    pub use _core::camera::{
+        Camera
+    };
 }
 
 pub mod graphics {
