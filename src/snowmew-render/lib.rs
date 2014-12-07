@@ -13,10 +13,7 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-render"]
-#![license = "ASL2"]
 #![crate_type = "lib"]
-#![comment = "A game engine in rust"]
-#![allow(dead_code)]
 
 extern crate serialize;
 extern crate "snowmew-core" as snowmew;

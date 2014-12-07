@@ -13,12 +13,11 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-graphics"]
-#![license = "ASL2"]
+
 #![crate_type = "lib"]
-#![comment = "A graphics collection for snowmew"]
 #![feature(phase)]
 #![feature(macro_rules)]
-#![feature(tuple_indexing)]
+
 
 #[phase(plugin)]
 extern crate gfx_macros;

@@ -13,15 +13,13 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-core"]
-#![license = "ASL2"]
 #![crate_type = "lib"]
-#![comment = "A game engine in rust"]
 
 #![feature(macro_rules)]
 #![feature(globs)]
 #![allow(experimental)]
 #![feature(macro_rules)]
-#![feature(if_let)]
+
 
 extern crate time;
 extern crate glfw;

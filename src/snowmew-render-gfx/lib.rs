@@ -16,9 +16,6 @@
 #![crate_type = "lib"]
 
 #![feature(phase)]
-#![allow(dead_code)]
-
-//extern crate debug;
 
 extern crate libc;
 extern crate opencl;

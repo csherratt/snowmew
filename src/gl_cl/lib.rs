@@ -13,8 +13,6 @@
 //   limitations under the License.
 
 #![crate_name = "gl_cl"]
-#![comment = "An OpenGL OpenCL bridge utility library"]
-#![license = "ASL2"]
 #![crate_type = "lib"]
 
 extern crate gl;

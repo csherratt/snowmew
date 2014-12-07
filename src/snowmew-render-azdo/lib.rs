@@ -13,12 +13,11 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-render-azdo"]
-#![license = "ASL2"]
+
 #![crate_type = "lib"]
-#![comment = "A game engine in rust"]
 #![allow(dead_code)]
 #![feature(phase)]
-#![feature(if_let)]
+
 
 //extern crate debug;
 

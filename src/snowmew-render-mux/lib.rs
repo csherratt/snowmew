@@ -13,10 +13,7 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-render-mux"]
-#![license = "ASL2"]
 #![crate_type = "lib"]
-#![comment = "A game engine in rust"]
-#![allow(dead_code)]
 
 extern crate opencl;
 extern crate "snowmew-render-gfx" as gfx;

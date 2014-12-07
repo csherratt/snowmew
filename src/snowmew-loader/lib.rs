@@ -13,9 +13,8 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-loader"]
-#![license = "ASL2"]
+
 #![crate_type = "lib"]
-#![comment = "An asset loader for snowmew"]
 
 extern crate collections;
 extern crate core;

@@ -13,11 +13,9 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-position"]
-#![license = "ASL2"]
+
 #![crate_type = "lib"]
-#![comment = "A position manager for snowmew"]
 #![feature(macro_rules)]
-#![feature(tuple_indexing)]
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
