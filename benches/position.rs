@@ -42,7 +42,7 @@ fn create_buffers_mat(ctx: &Context) -> opencl::mem::CLBuffer<Matrix4<f32>> {
 
 #[bench]
 fn calc_positions_opencl_mat_gpu(bench: &mut Bencher) {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers = create_buffers_mat(&context);
@@ -56,7 +56,7 @@ fn calc_positions_opencl_mat_gpu(bench: &mut Bencher) {
 
 #[bench]
 fn calc_positions_opencl_mat_cpu(bench: &mut Bencher) {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::CPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::CPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers = create_buffers_mat(&context);
@@ -69,7 +69,7 @@ fn calc_positions_opencl_mat_cpu(bench: &mut Bencher) {
 
 #[bench]
 fn calc_positions_opencl_vec4_gpu(bench: &mut Bencher) {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::GPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers = create_buffers_vec4(&context);
@@ -82,7 +82,7 @@ fn calc_positions_opencl_vec4_gpu(bench: &mut Bencher) {
 
 #[bench]
 fn calc_positions_opencl_vec4_cpu(bench: &mut Bencher) {
-    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::CPUPrefered).unwrap();
+    let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::CPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
     let buffers = create_buffers_vec4(&context);

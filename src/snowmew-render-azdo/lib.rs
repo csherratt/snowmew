@@ -17,7 +17,7 @@
 #![crate_type = "lib"]
 #![allow(dead_code)]
 #![feature(phase)]
-
+#![feature(unsafe_destructor)]
 
 //extern crate debug;
 
@@ -80,8 +80,8 @@ mod model;
 mod matrix;
 mod command;
 
-enum RenderCommand {
-    Update(Box<Renderable+Send>),
+enum RenderCommand<R> {
+    Update(R),
     Finish
 }
 
@@ -162,7 +162,7 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, Entity)>,
     }
 }
 
-fn render_server(command: Receiver<RenderCommand>,
+fn render_server<R: Renderable+Send>(command: Receiver<RenderCommand<R>>,
                  window: Window,
                  size: (i32, i32),
                  dev: Option<Arc<Device>>) {
@@ -231,7 +231,7 @@ fn render_server(command: Receiver<RenderCommand>,
             if let Some(mut db) = db {
                 let dl = drawlists_ready.pop().unwrap();
                 let scene = db.scene().expect("no scene set");
-                dl.setup_compute(&mut *db, &mut taskpool, scene, send_drawlist_render.clone());
+                dl.setup_compute(&db, &mut taskpool, scene, send_drawlist_render.clone());
             }
             db = None;
         }
@@ -257,13 +257,13 @@ fn setup_opencl(window: &Window, dev: Option<Arc<Device>>) -> Option<(Arc<Contex
     cl
 }
 
-pub struct RenderManager {
-    ch: Sender<RenderCommand>,
+pub struct RenderManager<R> {
+    ch: Sender<RenderCommand<R>>,
     render_done: Future<rustrt::task::Result>
 }
 
-impl RenderManager {
-    fn _new(window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager {
+impl<R: Renderable+Send> RenderManager<R> {
+    fn _new(window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager<R> {
         let mut taskbuilder = task::TaskBuilder::new();
         taskbuilder = taskbuilder.named("render-server");
 
@@ -280,34 +280,35 @@ impl RenderManager {
         }
     }
 
-    pub fn new_cl(window: Window, size: (i32, i32), device: Arc<Device>) -> RenderManager {
+    pub fn new_cl(window: Window, size: (i32, i32), device: Arc<Device>) -> RenderManager<R> {
         RenderManager::_new(window, size, Some(device))
     }
 
-    pub fn new(window: Window, size: (i32, i32)) -> RenderManager {
+    pub fn new(window: Window, size: (i32, i32)) -> RenderManager<R> {
         RenderManager::_new(window, size, None)
     }
 
-    pub fn update(&mut self, db: Box<Renderable+Send>) {
+    pub fn update(&mut self, db: R) {
         self.ch.send(RenderCommand::Update(db));
     }
 }
 
-impl Drop for RenderManager {
+#[unsafe_destructor]
+impl<R: Renderable+Send> Drop for RenderManager<R> {
     fn drop(&mut self) {
         self.ch.send(RenderCommand::Finish);
         self.render_done.get_ref();
     }
 }
 
-impl<RD: Renderable+Send> snowmew::Render<RD> for RenderManager {
+impl<RD: Renderable+Send> snowmew::Render<RD> for RenderManager<RD> {
     fn update(&mut self, db: RD) {
-        self.ch.send(RenderCommand::Update(box db));
+        self.ch.send(RenderCommand::Update(db));
     }
 }
 
-impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager> for RenderFactory {
-    fn init(self: Box<RenderFactory>, _: &snowmew::IOManager, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager {
+impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
+    fn init(self: Box<RenderFactory>, _: &snowmew::IOManager, window: Window, size: (i32, i32), cl: Option<Arc<Device>>) -> RenderManager<RD> {
         RenderManager::_new(window, size, cl)
     }
 }

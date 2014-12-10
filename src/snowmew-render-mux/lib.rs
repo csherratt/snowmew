@@ -66,8 +66,8 @@ impl<'r, RD: Renderable+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for 
         };
 
         let rm: RenderMux<RD> = if use_azdo.is_some() && use_azdo.unwrap() {
-            let rf: Box<snowmew::RenderFactory<RD, azdo::RenderManager>> = box azdo::RenderFactory::new();
-            let render: Box<azdo::RenderManager> = box rf.init(io, window, size, cl);
+            let rf: Box<snowmew::RenderFactory<RD, azdo::RenderManager<RD>>> = box azdo::RenderFactory::new();
+            let render: Box<azdo::RenderManager<RD>> = box rf.init(io, window, size, cl);
             RenderMux {
                 render: render as Box<snowmew::Render<RD>>
             }

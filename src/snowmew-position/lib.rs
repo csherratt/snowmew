@@ -202,7 +202,7 @@ pub trait Positions {
             .unwrap_or_else(|| Matrix4::identity())
     }
 
-    fn write_positions<MM: MatrixManager>(&self, mm: &mut MM) {
+    fn write_positions(&self, mm: &mut MatrixManager) {
         mm.size(self.get_position().delta.highest_entity() as uint);
         for (key, _) in self.get_position().delta.iter() {
             mm.set(key as uint, self.position(key));

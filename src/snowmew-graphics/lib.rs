@@ -141,10 +141,6 @@ pub trait Graphics: Common {
     fn new_geometry(&mut self, geo: Geometry) -> Entity {
         let oid = self.new_object(None);
         self.get_graphics_mut().geometry.insert(oid, geo);
-        let sphere = self.geometry_to_collider(oid)
-            .expect("Could not create sphere collider");
-        println!("sphere: {}", sphere);
-        self.get_graphics_mut().sphere.insert(oid, sphere);
         oid
     }
 
@@ -224,15 +220,6 @@ pub trait Graphics: Common {
                 idx_iter: vb.index.slice(geo.offset, geo.offset + geo.count).iter()
             }
         )
-    }
-
-    fn geometry_to_collider<B: FromIterator<Point3<f32>>>(&self, oid: Entity) -> Option<B> {
-        let iter = match self.geometry_vertex_iter(oid) {
-            None => return None,
-            Some(iter) => iter
-        };
-
-        Some(iter.map(|(_, &[x, y, z], _, _)| Point3::new(x, y, z)).collect())
     }
 
     fn new_texture(&mut self, texture: Texture) -> Entity {

@@ -79,7 +79,7 @@ impl ModelInfoSSBOBuffer {
         }
     }
 
-    pub fn build(&mut self, db: &Renderable, scene: Entity) {
+    pub fn build<R: Renderable>(&mut self, db: &R, scene: Entity) {
         unsafe {
             let info = slice::from_raw_mut_buf(&self.ptr_model_info, self.size);
             for (idx, (id, (draw, _))) in join_set_to_map(db.scene_iter(scene),
@@ -155,7 +155,7 @@ impl ModelInfoTextureBuffer {
         }
     }
 
-    pub fn build(&mut self, db: &Renderable, scene: Entity) {
+    pub fn build<R: Renderable>(&mut self, db: &R, scene: Entity) {
         unsafe {
             let info = slice::from_raw_mut_buf(&self.ptr_model_info, self.size);
             for (idx, (id, (draw, _))) in join_set_to_map(db.scene_iter(scene),
