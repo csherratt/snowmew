@@ -86,7 +86,7 @@ fn build_vectors_poly<T: Iterator<Polygon<(f32, f32, f32)>>>(input: T)
     (mesh_data, index)
 }
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, Encodable, Decodable, Copy)]
 pub struct StandardColors {
     pub white: Entity,
     pub silver: Entity,
@@ -106,12 +106,12 @@ pub struct StandardColors {
     pub purple: Entity,
 }
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, Encodable, Decodable, Copy)]
 pub struct Materials {
     pub flat: StandardColors
 }
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, Encodable, Decodable, Copy)]
 pub struct Spheres {
     pub uv_2: Entity,
     pub uv_4: Entity,
@@ -123,14 +123,14 @@ pub struct Spheres {
     pub uv_256: Entity,
 }
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, Encodable, Decodable, Copy)]
 pub struct Shapes {
     pub cube: Entity,
     pub plane: Entity,
     pub sphere: Spheres
 }
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, Encodable, Decodable, Copy)]
 pub struct Standard {
     pub materials: Materials,
     pub shapes: Shapes

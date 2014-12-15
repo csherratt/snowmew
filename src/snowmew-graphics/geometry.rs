@@ -17,6 +17,7 @@ use std::default::Default;
 use snowmew::common::Entity;
 use serialize::{Encodable, Decodable, Encoder, Decoder};
 
+#[deriving(Copy)]
 struct F32v3([f32, ..3]);
 
 impl <E, S: Encoder<E>> Encodable<S, E> for F32v3 {
@@ -64,7 +65,7 @@ impl <E, D: Decoder<E>> Decodable<D, E> for F32v2 {
 }
 
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, Encodable, Decodable, Copy)]
 pub enum Primative {
     Point,
     Line,
@@ -72,6 +73,7 @@ pub enum Primative {
     TriangleAdjacency
 }
 
+#[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeo {
     pub position: [f32, ..3]
@@ -104,6 +106,7 @@ impl PartialEq for VertexGeo {
     }
 }
 
+#[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeoNorm {
     pub position: [f32, ..3],
@@ -149,6 +152,7 @@ impl PartialEq for VertexGeoNorm {
     }
 }
 
+#[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeoTex {
     pub position: [f32, ..3],
@@ -195,6 +199,7 @@ impl PartialEq for VertexGeoTex {
 }
 
 
+#[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeoTexNorm {
     pub position: [f32, ..3],
@@ -247,6 +252,7 @@ impl PartialEq for VertexGeoTexNorm {
 }
 
 
+#[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeoTexNormTan {
     pub position: [f32, ..3],
@@ -318,7 +324,7 @@ pub struct VertexBuffer {
 }
 
 
-#[deriving(Clone, Default, Encodable, Decodable)]
+#[deriving(Clone, Default, Encodable, Decodable, Copy)]
 pub struct Geometry {
     pub vb: Entity,
     pub count: uint, // number of index elements

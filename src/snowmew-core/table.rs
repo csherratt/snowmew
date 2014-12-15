@@ -7,7 +7,7 @@ use serialize::Encodable;
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 use cow::btree::{BTreeSet, BTreeSetIterator};
-use collect::join::{OrderedMapIterator, OrderedSetIterator};
+use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 
 
 use Entity;

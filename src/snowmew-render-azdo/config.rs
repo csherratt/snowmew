@@ -15,7 +15,7 @@
 use std::os;
 use std::str::FromStr;
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Copy)]
 enum ConfigOption {
     Unsupported,
     Disabled,
@@ -31,6 +31,7 @@ impl ConfigOption {
     }
 }
 
+#[deriving(Copy)]
 pub struct Config {
     max_size: uint,
     drawlist_count: uint,

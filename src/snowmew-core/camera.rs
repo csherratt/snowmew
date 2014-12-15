@@ -21,11 +21,13 @@ use cgmath::deg;
 // use ovr;
 use ovr::{EyeRenderDescriptor, FovPort, Pose};
 
+#[deriving(Copy)]
 /// Camera can be used to do Camera like actions
 pub struct Camera {
     transform: Matrix4<f32>
 }
 
+#[deriving(Copy)]
 /// A set of matrices that can be used to render from the point
 /// of view of the camera
 pub struct DrawMatrices {

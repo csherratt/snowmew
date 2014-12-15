@@ -19,7 +19,7 @@ use input;
 use table::{Static, StaticSet, StaticSetIterator};
 
 /// A common set of data owned by an `Entity`
-#[deriving(Clone, Default, Encodable, Decodable)]
+#[deriving(Clone, Default, Encodable, Decodable, Copy)]
 pub struct Object {
     /// Who is the parent of this object
     pub parent: Entity,

@@ -98,6 +98,7 @@ fn setup_glfw() -> glfw::Glfw {
     glfw
 }
 
+#[deriving(Copy)]
 /// Used to configure how a window should be created for the game
 pub struct DisplayConfig {
     /// The resolution in pixels (width, height)
@@ -160,6 +161,7 @@ pub trait RenderFactory<T, R: Render<T>> {
             cl: Option<Arc<Device>>) -> R;
 }
 
+#[deriving(Copy)]
 /// Used to configure the engine prior to the game stating.
 pub struct SnowmewConfig {
     /// The display configuration

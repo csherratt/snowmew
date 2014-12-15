@@ -52,7 +52,7 @@ impl<'r> MatrixManager for Vec<Matrix4<f32>> {
 }
 
 
-#[deriving(Encodable, Decodable)]
+#[deriving(Encodable, Decodable, Copy)]
 pub struct Delta {
     pub parent: Option<Entity>,
     pub delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>
@@ -276,6 +276,7 @@ pub mod cl {
 
     const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
+    #[deriving(Copy)]
     pub struct Delta {
         delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>
     }

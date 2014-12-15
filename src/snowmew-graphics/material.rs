@@ -17,7 +17,7 @@ use serialize::{Encodable, Decodable, Encoder, Decoder};
 
 use snowmew::Entity;
 
-#[deriving(Encodable, Decodable)]
+#[deriving(Encodable, Decodable, Copy)]
 pub struct Material {
     ka: F32v3,
     kd: F32v3,
@@ -149,6 +149,7 @@ impl Material {
     pub fn set_ni(&mut self, v: f32) {self.ni = v}
 }
 
+#[deriving(Copy)]
 struct F32v3([f32, ..3]);
 
 impl <E, S: Encoder<E>> Encodable<S, E> for F32v3 {

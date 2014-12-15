@@ -58,7 +58,7 @@ pub mod texture;
 pub mod texture_atlas;
 pub mod light;
 
-#[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, Encodable, Decodable)]
+#[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, Encodable, Decodable, Copy)]
 pub struct Drawable {
     pub geometry: Entity,
     pub material: Entity

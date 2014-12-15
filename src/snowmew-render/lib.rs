@@ -24,7 +24,7 @@ use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
 use serialize::Encodable;
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, Encodable, Decodable, Copy)]
 pub struct RenderData {
     camera: Option<snowmew::Entity>,
     scene: Option<snowmew::Entity>
