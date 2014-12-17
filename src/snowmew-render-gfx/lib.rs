@@ -573,10 +573,10 @@ impl RenderManagerContext {
         };
         self.graphics.clear(cdata, gfx::COLOR | gfx::DEPTH, &self.frame);
 
-        let camera_trans = db.position(camera);
-        let camera = Camera::new(camera_trans);
-
         let (width, height) = db.io_state().size;
+        let camera_trans = db.position(camera);
+        let camera = Camera::new(width as f32, height as f32, camera_trans);
+
         let proj = camera.projection_matrix(width as f32 / height as f32);
         let view = camera.view_matrix();
 

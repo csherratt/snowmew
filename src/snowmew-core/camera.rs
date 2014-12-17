@@ -24,6 +24,8 @@ use ovr::{EyeRenderDescriptor, FovPort, Pose};
 #[deriving(Copy)]
 /// Camera can be used to do Camera like actions
 pub struct Camera {
+    width: f32,
+    height: f32,
     transform: Matrix4<f32>
 }
 
@@ -51,8 +53,12 @@ fn view_matrix(t: &Matrix4<f32>) -> Matrix4<f32> {
 
 impl Camera {
     /// Create a new camera from a position matrix
-    pub fn new(transform: Matrix4<f32>) -> Camera {
-        Camera { transform: transform }
+    pub fn new(width: f32, height: f32, transform: Matrix4<f32>) -> Camera {
+        Camera {
+            width: width,
+            height: height,
+            transform: transform
+        }
     }
 
     /// Create a perspective matrix for the Camera

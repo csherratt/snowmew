@@ -134,11 +134,12 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, Entity)>,
         qm.time("setup complete".to_string());
         dl.setup_complete(&mut db, &config);
 
+        let (w, h) = dl.io_state().size;
+
         let capture = precise_time_s();
         let camera_trans = dl.position(camera);
-        let camera = Camera::new(camera_trans);
+        let camera = Camera::new(w as f32, h as f32, camera_trans);
 
-        let (w, h) = dl.io_state().size;
         pipeline.resize(w, h);
         pipeline.render(&mut *dl, &mut db, &camera, &mut *qm);
         // if the device is a hmd we need to stall the gpu
@@ -228,7 +229,7 @@ fn render_server<R: Renderable+Send>(command: Receiver<RenderCommand<R>>,
         }
 
         if drawlists_ready.len() > 0 {
-            if let Some(mut db) = db {
+            if let Some(db) = db {
                 let dl = drawlists_ready.pop().unwrap();
                 let scene = db.scene().expect("no scene set");
                 dl.setup_compute(&db, &mut taskpool, scene, send_drawlist_render.clone());
