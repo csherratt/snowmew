@@ -23,7 +23,7 @@ git = "https://github.com/bjz/gl-rs.git"
 git = "https://github.com/csherratt/rust-stb-image.git"
 
 [dependencies.gfx]
-git = "https://github.com/csherratt/gfx-rs"
+git = "https://github.com/gfx-rs/gfx-rs"
 
 [dependencies]
 genmesh = "*"

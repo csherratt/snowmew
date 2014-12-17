@@ -46,11 +46,6 @@ use gamedata::GameData;
 
 mod gamedata;
 
-#[start]
-fn start(argc: int, argv: *const *const u8) -> int {
-    std::rt::start(argc, argv, main)
-}
-
 fn main() {
     let sc = snowmew::SnowmewConfig::new();
 

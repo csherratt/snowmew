@@ -694,7 +694,7 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
         let device = gfx::GlDevice::new(|s| io.get_proc_address(s));
         glfw::make_context_current(None);
 
-        spawn(proc() {
+        spawn(move || {
             let recv: Receiver<RD> = recv;
             window.make_context_current();
 

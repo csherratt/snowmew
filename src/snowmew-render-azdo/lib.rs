@@ -180,7 +180,7 @@ fn render_server<R: Renderable+Send>(command: Receiver<RenderCommand<R>>,
 
     let (send_drawlist_setup, receiver_drawlist_setup) = channel();
     let (send_drawlist_ready, receiver_drawlist_ready) = channel();
-    taskbuilder.spawn(proc() {
+    taskbuilder.spawn(move || {
         let window = window;
         render_thread(receiver_drawlist_setup,
                       send_drawlist_ready,
@@ -268,7 +268,7 @@ impl<R: Renderable+Send> RenderManager<R> {
         taskbuilder = taskbuilder.named("render-server");
 
         let (sender, receiver) = channel();
-        let render_main_result = taskbuilder.try_future(proc() {
+        let render_main_result = taskbuilder.try_future(move || {
             let window = window;
 
             render_server(receiver, window, size, dev.clone());

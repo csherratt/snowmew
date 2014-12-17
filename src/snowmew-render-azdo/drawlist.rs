@@ -201,7 +201,7 @@ impl Drawlist for DrawlistNoSSBO {
         let start = precise_time_s();
         let db0 = data.clone();
         let (sender, receiver0) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db0;
             let mut matrix = matrix;
             matrix.build(&db);
@@ -210,7 +210,7 @@ impl Drawlist for DrawlistNoSSBO {
 
         let db1 = data.clone();
         let (sender, receiver1) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db1;
             let mut model = model;
             model.build(&db, scene);
@@ -219,7 +219,7 @@ impl Drawlist for DrawlistNoSSBO {
 
         let db2 = data.clone();
         let (sender, receiver2) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db2;
             let mut lights = lights;
             lights.build(&db);
@@ -228,7 +228,7 @@ impl Drawlist for DrawlistNoSSBO {
 
         let db3 = data.clone();
         let (sender, receiver3) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db3;
             let mut materials = materials;
             materials.build(&db);
@@ -237,14 +237,14 @@ impl Drawlist for DrawlistNoSSBO {
 
         let db4 = data.clone();
         let (sender, receiver4) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db4;
             let mut command = command;
             command.build(&db, scene, instanced_is_enabled);
             sender.send(command);
         });
 
-        tp.execute(proc() {
+        tp.execute(move || {
             ch.send(
                 match (receiver0.recv(), receiver1.recv(),
                        receiver2.recv(), receiver3.recv(),
@@ -417,7 +417,7 @@ impl Drawlist for DrawlistSSBOCompute {
         let start = precise_time_s();
         let db0 = data.clone();
         let (sender, receiver0) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db0;
             let mut matrix = matrix;
             matrix.build(&db);
@@ -426,7 +426,7 @@ impl Drawlist for DrawlistSSBOCompute {
 
         let db1 = data.clone();
         let (sender, receiver1) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db1;
             let mut model = model;
             model.build(&db, scene);
@@ -435,7 +435,7 @@ impl Drawlist for DrawlistSSBOCompute {
 
         let db2 = data.clone();
         let (sender, receiver2) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db2;
             let mut lights = lights;
             lights.build(&db);
@@ -444,7 +444,7 @@ impl Drawlist for DrawlistSSBOCompute {
 
         let db3 = data.clone();
         let (sender, receiver3) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db3;
             let mut materials = materials;
             materials.build(&db);
@@ -453,14 +453,14 @@ impl Drawlist for DrawlistSSBOCompute {
 
         let db4 = data.clone();
         let (sender, receiver4) = channel();
-        tp.execute(proc() {
+        tp.execute(move || {
             let db = db4;
             let mut command = command;
             command.build(&db, scene, instanced_is_enabled);
             sender.send(command);
         });
 
-        tp.execute(proc() {
+        tp.execute(move || {
             ch.send(
                 match (receiver0.recv(), receiver1.recv(),
                        receiver2.recv(), receiver3.recv(),
