@@ -138,7 +138,7 @@ fn render_thread(input: Receiver<(Box<Drawlist+Send>, Entity)>,
 
         let capture = precise_time_s();
         let camera_trans = dl.position(camera);
-        let camera = Camera::new(w as f32, h as f32, camera_trans);
+        let camera = Camera::new(w, h, camera_trans);
 
         pipeline.resize(w, h);
         pipeline.render(&mut *dl, &mut db, &camera, &mut *qm);

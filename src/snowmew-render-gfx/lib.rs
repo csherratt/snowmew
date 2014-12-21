@@ -575,7 +575,7 @@ impl RenderManagerContext {
 
         let (width, height) = db.io_state().size;
         let camera_trans = db.position(camera);
-        let camera = Camera::new(width as f32, height as f32, camera_trans);
+        let camera = Camera::new(width, height, camera_trans);
 
         let proj = camera.projection_matrix();
         let view = camera.view_matrix();
