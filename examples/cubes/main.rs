@@ -27,7 +27,7 @@ extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render" as render_data;
 
 use std::str::FromStr;
-use std::num::Float;
+use std::f32;
 
 use cgmath::*;
 
@@ -109,7 +109,7 @@ impl Game<GameData, InputIntegratorState> for Cubes {
         rx = rx.add_a(rad((-x / 120.) as f32));
         rz = rz.add_a(rad((-y / 120.) as f32));
 
-        let max_rot: f32 = Float::frac_pi_2();
+        let max_rot: f32 = f32::consts::FRAC_2_PI;
         if rz.s > max_rot {
             rz.s = max_rot;
         } else if rz.s < -max_rot {

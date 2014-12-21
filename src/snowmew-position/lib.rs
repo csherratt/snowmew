@@ -268,7 +268,7 @@ impl<T: Positions> Positions for DebuggerGameData<T> {
 pub mod cl {
     use cgmath::{Transform, Decomposed, Vector3, Vector4, Matrix4, Quaternion};
 
-    use opencl::hl::{Device, Context, CommandQueue, Kernel, Event, EventList};
+    use opencl::hl::{Device, Context, CommandQueue, Kernel, Event};
     use opencl::mem::CLBuffer;
     use opencl::cl::{CL_MEM_READ_ONLY};
 

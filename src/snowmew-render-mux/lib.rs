@@ -82,6 +82,7 @@ impl<'r, RD: Renderable+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for 
     }
 }
 
+#[deriving(Copy)]
 pub struct RenderFactory;
 
 impl RenderFactory {

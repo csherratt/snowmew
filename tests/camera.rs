@@ -16,8 +16,8 @@ extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
 
 use snowmew::camera::Camera;
-use cgmath::{Matrix4, Matrix};
-use cgmath::{Vector3, Vector};
+use cgmath::{Matrix4};
+use cgmath::{Vector3};
 use cgmath::{Point3, Point};
 
 #[test]

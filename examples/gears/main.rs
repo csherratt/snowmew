@@ -54,7 +54,7 @@ fn main() {
     let obj = loader.import(&mut gd);
 
     let scene = gd.new_scene();
-    let &logo = obj.find(&"rust_logo".to_string()).expect("geometry not found from import");
+    let &logo = obj.get(&"rust_logo".to_string()).expect("geometry not found from import");
     let logo_draw = gd.get_draw(logo).expect("Could not get draw binding");
 
     let scene_logos = vec!((gd.new_object(Some(scene)), gd.standard_graphics().materials.flat.green),

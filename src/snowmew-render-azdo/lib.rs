@@ -42,11 +42,10 @@ extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render" as render_data;
 
-use std::task;
 use std::comm::{Receiver, Sender};
 use std::mem;
-use std::sync::{TaskPool, Future, Arc};
-use std::thread::{Thread, JoinGuard, Builder};
+use std::sync::{TaskPool, Arc};
+use std::thread::{JoinGuard, Builder};
 use time::precise_time_s;
 
 use opencl::hl::{CommandQueue, Context, Device};
@@ -290,7 +289,7 @@ impl<R: Renderable+Send> RenderManager<R> {
 impl<R: Renderable+Send> Drop for RenderManager<R> {
     fn drop(&mut self) {
         self.ch.send(RenderCommand::Finish);
-        self.render_done.take().expect("no render_done").join();
+        let _ = self.render_done.take().expect("no render_done").join();
     }
 }
 
@@ -306,6 +305,7 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
     }
 }
 
+#[deriving(Copy)]
 pub struct RenderFactory;
 
 impl RenderFactory {

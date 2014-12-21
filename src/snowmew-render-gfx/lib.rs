@@ -36,7 +36,8 @@ extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render" as render_data;
 
 use std::collections::HashMap;
-use std::comm::{Receiver};
+use std::comm::Receiver;
+use std::thread::{Thread, JoinGuard};
 
 use opencl::hl;
 use std::sync::Arc;
@@ -49,7 +50,6 @@ use snowmew::camera::Camera;
 
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
-
 
 use cow::join::{join_set_to_map, join_maps};
 use render_data::Renderable;
@@ -247,7 +247,8 @@ pub struct RenderManagerContext {
 }
 
 pub struct RenderManager<R> {
-    channel: Sender<R>
+    channel: Sender<R>,
+    res: JoinGuard<()>
 }
 
 impl RenderManagerContext {
@@ -694,7 +695,7 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
         let device = gfx::GlDevice::new(|s| io.get_proc_address(s));
         glfw::make_context_current(None);
 
-        spawn(move || {
+        let res = Thread::spawn(move || {
             let recv: Receiver<RD> = recv;
             window.make_context_current();
 
@@ -717,11 +718,14 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
             }
         });
 
-        RenderManager { channel: sender }
-
+        RenderManager {
+            channel: sender,
+            res: res
+        }
     }
 }
 
+#[deriving(Copy)]
 pub struct RenderFactory;
 
 impl RenderFactory {
