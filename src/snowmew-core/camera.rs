@@ -13,13 +13,13 @@
 //   limitations under the License.
 
 use cgmath::{Matrix, Matrix4, ToMatrix4};
-use cgmath::{Vector3, Vector4};
-use cgmath::{Point, Point3};
+use cgmath::{Vector3, Vector4, Vector, EuclideanVector};
+use cgmath::{Point, Point3, Ray, Ray3};
 use cgmath::perspective;
 use cgmath::deg;
 
 // use ovr;
-use ovr::{EyeRenderDescriptor, FovPort, Pose};
+use ovr::{EyeRenderDescriptor, FovPort, Pose,};
 
 #[deriving(Copy)]
 /// Camera can be used to do Camera like actions
@@ -62,9 +62,9 @@ impl Camera {
     }
 
     /// Create a perspective matrix for the Camera
-    pub fn projection_matrix(&self, aspect_ratio: f32) -> Matrix4<f32> {
+    pub fn projection_matrix(&self) -> Matrix4<f32> {
         perspective(
-            deg(80f32), aspect_ratio, 0.01f32, 10000f32
+            deg(80f32), self.width / self.height, 0.01f32, 10000f32
         )
     }
 
@@ -76,7 +76,7 @@ impl Camera {
     /// Create a projection matrix and a view matrix for the camera.
     pub fn get_matrices(&self) -> DrawMatrices {
         DrawMatrices {
-            projection: self.projection_matrix(self.width/self.height),
+            projection: self.projection_matrix(),
             view: self.view_matrix()
         }
     }
@@ -101,5 +101,37 @@ impl Camera {
     pub fn move_with_vector(&self, v: &Vector3<f32>) -> Point3<f32> {
         let o = self.transform.mul_v(&Vector4::new(v.x, v.y, v.z, 1f32));
         Point3::new(o.x, o.y, o.z)
+    }
+
+    /// Calclate the camera's origin (position)
+    pub fn origin(&self) -> Point3<f32> {
+        let o = Vector4::new(0., 0., 0., 1.);
+        let p = self.view_matrix().invert().expect("could not invert view matrix").mul_v(&o);
+        let p = p.div_s(p.w);
+        Point3::new(p.x, p.y, p.z)
+    }
+
+    /// Creates a Vector into the world from the point of view of the camera
+    /// this takes a pixel coordinate and turns it into a ray
+    pub fn pixel_ray(&self, x: int, y: int) -> Ray3<f32> {
+        let ray_nds = Vector3::new(
+            2. * x as f32 / self.width - 1.,
+            1. - 2. * y as f32 / self.height,
+            1.
+        );
+        let ray_clip = Vector4::new(ray_nds.x, ray_nds.y, -1., 1.);
+
+        let view = self.view_matrix();
+        let iview = view.invert().expect("could not invert view matrix");
+        let proj = self.projection_matrix();
+        let iproj = proj.invert().expect("could not invert proj matrix");
+
+        let ray_eye = iproj.mul_v(&ray_clip);
+        let ray_eye = Vector4::new(ray_eye.x, ray_eye.y, -1., 0.);
+
+        let ray_world = iview.mul_v(&ray_eye);
+        let ray_world = Vector3::new(ray_world.x, ray_world.y, ray_world.z).normalize();
+
+        Ray::new(self.origin(), ray_world)
     }
 }
