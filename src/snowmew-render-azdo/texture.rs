@@ -14,7 +14,7 @@
 
 use gl;
 use std::mem;
-use collections::{TreeMap, TreeSet};
+use collections::{BTreeMap, BTreeSet};
 
 use graphics::Texture;
 
@@ -119,15 +119,15 @@ impl TextureArray {
 
 #[deriving(Clone)]
 pub struct TextureAtlas {
-    arrays: TreeMap<uint, TextureArray>,
-    loaded: TreeSet<(uint, uint)>
+    arrays: BTreeMap<uint, TextureArray>,
+    loaded: BTreeSet<(uint, uint)>
 }
 
 impl TextureAtlas {
     pub fn new() -> TextureAtlas {
         TextureAtlas {
-            arrays: TreeMap::new(),
-            loaded: TreeSet::new()
+            arrays: BTreeMap::new(),
+            loaded: BTreeSet::new()
         }
     }
 

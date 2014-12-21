@@ -24,8 +24,6 @@
 extern crate collections;
 extern crate time;
 extern crate libc;
-extern crate rustrt;
-
 extern crate glfw;
 extern crate cgmath;
 extern crate cow;
@@ -48,6 +46,7 @@ use std::task;
 use std::comm::{Receiver, Sender};
 use std::mem;
 use std::sync::{TaskPool, Future, Arc};
+use std::thread::{Thread, JoinGuard, Builder};
 use time::precise_time_s;
 
 use opencl::hl::{CommandQueue, Context, Device};
@@ -170,18 +169,13 @@ fn render_server<R: Renderable+Send>(command: Receiver<RenderCommand<R>>,
 
     let config = Config::new(window.get_context_version());
 
-    let cl = if config.opencl() {
-        setup_opencl(&window, dev)
-    } else {
-        None
-    };
+    let cl = if config.opencl() { setup_opencl(&window, dev) } else { None };
 
-    let mut taskbuilder = task::TaskBuilder::new();
-    taskbuilder = taskbuilder.named("render-thread");
+    let thread = Builder::new().name("render-thread".to_string());
 
     let (send_drawlist_setup, receiver_drawlist_setup) = channel();
     let (send_drawlist_ready, receiver_drawlist_ready) = channel();
-    taskbuilder.spawn(move || {
+    thread.spawn(move || {
         let window = window;
         render_thread(receiver_drawlist_setup,
                       send_drawlist_ready,
@@ -260,24 +254,22 @@ fn setup_opencl(window: &Window, dev: Option<Arc<Device>>) -> Option<(Arc<Contex
 
 pub struct RenderManager<R> {
     ch: Sender<RenderCommand<R>>,
-    render_done: Future<rustrt::task::Result>
+    render_done: Option<JoinGuard<()>>
 }
 
 impl<R: Renderable+Send> RenderManager<R> {
     fn _new(window: Window, size: (i32, i32), dev: Option<Arc<Device>>) -> RenderManager<R> {
-        let mut taskbuilder = task::TaskBuilder::new();
-        taskbuilder = taskbuilder.named("render-server");
+        let thread = Builder::new().name("render-server".to_string());
 
         let (sender, receiver) = channel();
-        let render_main_result = taskbuilder.try_future(move || {
+        let render_main_result = thread.spawn(move || {
             let window = window;
-
             render_server(receiver, window, size, dev.clone());
         });
 
         RenderManager {
             ch: sender,
-            render_done: render_main_result
+            render_done: Some(render_main_result)
         }
     }
 
@@ -298,7 +290,7 @@ impl<R: Renderable+Send> RenderManager<R> {
 impl<R: Renderable+Send> Drop for RenderManager<R> {
     fn drop(&mut self) {
         self.ch.send(RenderCommand::Finish);
-        self.render_done.get_ref();
+        self.render_done.take().expect("no render_done").join();
     }
 }
 

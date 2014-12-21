@@ -22,7 +22,7 @@ use glfw;
 use nice_glfw;
 use gl;
 
-use collections::TrieMap;
+use collect::TrieMap;
 
 use ovr;
 
