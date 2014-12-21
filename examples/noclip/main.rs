@@ -122,8 +122,10 @@ impl Game<GameData, InputIntegratorState> for Noclip {
     fn step(&mut self, state: InputIntegratorState, gd: GameData) -> GameData {
         let mut next = gd.clone();
 
+        let (w, h) = gd.io_state().size;
+
         let camera_key = gd.camera().expect("no camera set");
-        let camera = Camera::new(next.position(camera_key));
+        let camera = Camera::new(w as f32, h as f32, next.position(camera_key));
         let (mut rx, ry, mut rz) = next.get_rotation(camera_key).expect("no rot").to_euler();
 
         let (x, y) = state.mouse_delta();

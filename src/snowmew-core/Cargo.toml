@@ -38,4 +38,4 @@ git = "https://github.com/gfx-rs/gfx-rs"
 time = "*"
 
 [dependencies.collect]
-git = "https://github.com/csherratt/collect-rs.git"
+git = "https://github.com/Gankro/collect-rs"

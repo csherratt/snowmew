@@ -74,12 +74,9 @@ impl Camera {
     }
 
     /// Create a projection matrix and a view matrix for the camera.
-    pub fn get_matrices(&self, size: (i32, i32)) -> DrawMatrices {
-        let (w, h) = size;
-        let (w, h) = (w as f32, h as f32);
-
+    pub fn get_matrices(&self) -> DrawMatrices {
         DrawMatrices {
-            projection: self.projection_matrix(w/h),
+            projection: self.projection_matrix(self.width/self.height),
             view: self.view_matrix()
         }
     }
