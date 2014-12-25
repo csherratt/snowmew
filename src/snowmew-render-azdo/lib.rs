@@ -174,7 +174,7 @@ fn render_server<R: Renderable+Send>(command: Receiver<RenderCommand<R>>,
 
     let (send_drawlist_setup, receiver_drawlist_setup) = channel();
     let (send_drawlist_ready, receiver_drawlist_ready) = channel();
-    thread.spawn(move || {
+    let guard = thread.spawn(move || {
         let window = window;
         render_thread(receiver_drawlist_setup,
                       send_drawlist_ready,
@@ -230,6 +230,7 @@ fn render_server<R: Renderable+Send>(command: Receiver<RenderCommand<R>>,
             db = None;
         }
     }
+    guard.join();
 }
 
 fn setup_opencl(window: &Window, dev: Option<Arc<Device>>) -> Option<(Arc<Context>, Arc<CommandQueue>, Arc<Device>)> {
