@@ -1,6 +1,6 @@
 
 use std::collections::VecMap;
-use std::collections::vec_map::Entries;
+use std::collections::vec_map::Iter;
 use std::sync::Arc;
 use std::default::Default;
 use serialize::Encodable;
@@ -161,7 +161,7 @@ impl<T: Send+Sync+Clone> Dynamic<T> {
 }
 
 pub struct DynamicIterator<'a, T:'a> {
-    iter: Entries<'a, T>
+    iter: Iter<'a, T>
 }
 
 impl<'a, T: Send+Sync> Iterator<(Entity, &'a T)> for DynamicIterator<'a, T> {

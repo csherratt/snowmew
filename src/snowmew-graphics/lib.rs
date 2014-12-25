@@ -256,7 +256,7 @@ pub trait Graphics: Common {
         self.get_graphics().texture.iter()
     }
 
-    fn texture_atlas_iter<'a>(&'a self) -> slice::Items<'a, texture_atlas::Atlas> {
+    fn texture_atlas_iter<'a>(&'a self) -> slice::Iter<'a, texture_atlas::Atlas> {
         self.get_graphics().atlases.iter()
     }
 
@@ -317,7 +317,7 @@ impl Delete for GraphicsData {
 
 pub struct VertexBufferIter<'a> {
     vb: &'a VertexBuffer,
-    idx_iter: std::slice::Items<'a, u32>
+    idx_iter: std::slice::Iter<'a, u32>
 }
 
 impl<'a> Iterator<(u32,
