@@ -264,21 +264,39 @@ impl CommandBufferEmulated {
         for (count, (_, draw)) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()).enumerate() {
             let draw_geo = db.geometry(draw.geometry).expect("geometry not found");
 
-            self.commands.push(DrawElementsIndirectCommand {
-                count: draw_geo.count as GLuint,
-                instrance_count: 1,
-                first_index: draw_geo.offset as GLuint,
-                base_vertex: 0,
-                base_instance: count as GLuint
-            });
+            let len = self.commands.len();
+            let cmd = if batch.vbo == draw_geo.vb && len != 0 {
+                let last = &mut self.commands[len-1];
+                if last.count == draw_geo.count as u32 &&
+                   last.first_index == draw_geo.offset as u32 {
+                    last.instrance_count += 1;
+                    None
+                } else {
+                    Some(DrawElementsIndirectCommand {
+                        count: draw_geo.count as GLuint,
+                        instrance_count: 1,
+                        first_index: draw_geo.offset as GLuint,
+                        base_vertex: 0,
+                        base_instance: count as GLuint
+                    })                    
+                }
+            } else {
+                Some(DrawElementsIndirectCommand {
+                    count: draw_geo.count as GLuint,
+                    instrance_count: 1,
+                    first_index: draw_geo.offset as GLuint,
+                    base_vertex: 0,
+                    base_instance: count as GLuint
+                })
+            };
+
+            if let Some(cmd) = cmd { self.commands.push(cmd); }
 
             if batch.vbo == 0 {
                 batch.vbo = draw_geo.vb;
                 batch.offset = count;
                 batch.count = 1;
-            } else if batch.vbo == draw_geo.vb {
-                batch.count += 1;
-            } else {
+            } else if batch.vbo != draw_geo.vb {
                 self.batches.push(batch.clone());
                 batch.vbo = draw_geo.vb;
                 batch.offset = count;
