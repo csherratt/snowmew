@@ -11,7 +11,7 @@ name = "snowmew-core"
 path = "lib.rs"
 
 [dependencies.glfw]
-git = "https://github.com/csherratt/glfw-rs.git"
+git = "https://github.com/bjz/glfw-rs.git"
 
 [dependencies.nice_glfw]
 git = "https://github.com/csherratt/nice_glfw.git"

@@ -11,7 +11,7 @@ name = "snowmew-render-azdo"
 path = "lib.rs"
 
 [dependencies.glfw]
-git = "https://github.com/csherratt/glfw-rs.git"
+git = "https://github.com/bjz/glfw-rs.git"
 
 [dependencies.cow]
 git = "https://github.com/csherratt/cow-rs.git"
