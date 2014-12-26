@@ -18,7 +18,7 @@ use input::Event;
 use input::Button;
 use common::{Common, CommonData};
 use std::collections::{HashSet, HashMap};
-use serialize::Encodable;
+
 
 
 /// This `wraps` your game to allow the `input integrator` to
@@ -35,7 +35,7 @@ impl<Game> InputIntegrator<Game> {
 }
 
 /// Contains the collected input state
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, RustcEncodable, RustcDecodable)]
 pub struct InputIntegratorState {
     buttons_down: HashMap<Button, uint>,
     buttons_released: HashSet<Button>,

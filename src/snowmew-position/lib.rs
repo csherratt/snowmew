@@ -22,10 +22,10 @@ extern crate cgmath;
 extern crate opencl;
 extern crate cow;
 extern crate time;
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 
 use std::default::Default;
-use serialize::Encodable;
+
 
 use cgmath::{Transform, Decomposed, Vector3, Matrix4, ToMatrix4, Matrix, Quaternion};
 
@@ -52,7 +52,7 @@ impl<'r> MatrixManager for Vec<Matrix4<f32>> {
 }
 
 
-#[deriving(Encodable, Decodable, Copy)]
+#[deriving(RustcEncodable, RustcDecodable, Copy)]
 pub struct Delta {
     pub parent: Option<Entity>,
     pub delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>
@@ -76,7 +76,7 @@ impl Default for Delta {
     }
 }
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, RustcEncodable, RustcDecodable)]
 pub struct PositionData {
     delta: Dynamic<Delta>,
 }

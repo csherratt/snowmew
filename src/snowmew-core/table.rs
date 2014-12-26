@@ -3,7 +3,7 @@ use std::collections::VecMap;
 use std::collections::vec_map::Iter;
 use std::sync::Arc;
 use std::default::Default;
-use serialize::Encodable;
+
 
 use cow::btree::{BTreeMap, BTreeMapIterator};
 use cow::btree::{BTreeSet, BTreeSetIterator};
@@ -14,7 +14,7 @@ use Entity;
 
 
 /// a Static table should be used for infrequently updated data
-#[deriving(Encodable, Decodable)]
+#[deriving(RustcEncodable, RustcDecodable)]
 pub struct Static<T: Send+Sync+Clone+Default>(BTreeMap<Entity, T>);
 
 impl<T: Send+Clone+Sync+Default> Clone for Static<T> {
@@ -68,7 +68,7 @@ impl<'a, T: Send+Sync> Iterator<(Entity, &'a T)> for StaticIterator<'a, T> {
     }
 }
 
-#[deriving(Clone, Encodable, Decodable, Default)]
+#[deriving(Clone, RustcEncodable, RustcDecodable, Default)]
 pub struct StaticSet(BTreeSet<Entity>);
 
 impl StaticSet {
@@ -108,7 +108,7 @@ impl<'a> Iterator<Entity> for StaticSetIterator<'a> {
     }
 }
 
-#[deriving(Default, Encodable, Decodable)]
+#[deriving(Default, RustcEncodable, RustcDecodable)]
 pub struct Dynamic<T: Send+Sync+Clone>(Arc<VecMap<T>>);
 
 impl<T: Send+Clone+Sync+Default> Clone for Dynamic<T> {

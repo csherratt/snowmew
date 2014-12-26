@@ -398,7 +398,7 @@ impl Window {
     }
 }
 
-#[deriving(Clone, Encodable, Decodable, Copy)]
+#[deriving(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub struct IoState {
     pub render_size: (uint, uint),
     pub size: (uint, uint),

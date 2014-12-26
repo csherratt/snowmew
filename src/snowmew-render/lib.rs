@@ -15,16 +15,16 @@
 #![crate_name = "snowmew-render"]
 #![crate_type = "lib"]
 
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 
 use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::debugger::DebuggerGameData;
-use serialize::Encodable;
 
-#[deriving(Clone, Encodable, Decodable, Copy)]
+
+#[deriving(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub struct RenderData {
     camera: Option<snowmew::Entity>,
     scene: Option<snowmew::Entity>

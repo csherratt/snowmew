@@ -25,7 +25,7 @@ extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate cgmath;
 extern crate opencl;
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 extern crate "snowmew-render" as render_data;
 
 use cgmath::*;

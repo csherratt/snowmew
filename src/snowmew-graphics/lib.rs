@@ -25,13 +25,13 @@ extern crate gfx;
 extern crate cgmath;
 extern crate collision;
 extern crate genmesh;
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 extern crate "stb_image" as image;
 
 extern crate "snowmew-core" as snowmew;
 
 use std::slice;
-use serialize::Encodable;
+
 
 use cgmath::Point3;
 use collision::sphere::Sphere;
@@ -58,7 +58,7 @@ pub mod texture;
 pub mod texture_atlas;
 pub mod light;
 
-#[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, Encodable, Decodable, Copy)]
+#[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, RustcEncodable, RustcDecodable, Copy)]
 pub struct Drawable {
     pub geometry: Entity,
     pub material: Entity
@@ -75,7 +75,7 @@ impl Ord for Drawable {
     }
 }
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, RustcEncodable, RustcDecodable)]
 pub struct GraphicsData {
     draw:               Static<Drawable>,
     geometry:           Static<Geometry>,

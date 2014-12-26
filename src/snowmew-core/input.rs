@@ -14,7 +14,7 @@
 
 use glfw;
 
-#[deriving(Clone, Show, Eq, PartialEq, Hash, Decodable, Encodable, Copy)]
+#[deriving(Clone, Show, Eq, PartialEq, Hash, RustcDecodable, RustcEncodable, Copy)]
 pub enum Button {
     KeyboardSpace,
     KeyboardApostrophe,

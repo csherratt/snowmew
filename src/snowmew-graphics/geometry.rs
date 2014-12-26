@@ -15,7 +15,7 @@
 
 use std::default::Default;
 use snowmew::common::Entity;
-use serialize::{Encodable, Decodable, Encoder, Decoder};
+use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
 #[deriving(Copy)]
 struct F32v3([f32, ..3]);
@@ -65,7 +65,7 @@ impl <E, D: Decoder<E>> Decodable<D, E> for F32v2 {
 }
 
 
-#[deriving(Clone, Encodable, Decodable, Copy)]
+#[deriving(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub enum Primative {
     Point,
     Line,
@@ -302,7 +302,7 @@ impl Clone for VertexGeoTexNormTan {
 }
 
 
-#[deriving(Clone, Encodable, Decodable)]
+#[deriving(Clone, RustcEncodable, RustcDecodable)]
 pub enum Vertex {
     Geo(Vec<VertexGeo>),
     GeoTex(Vec<VertexGeoTex>),
@@ -317,14 +317,14 @@ impl Default for Vertex {
     }
 }
 
-#[deriving(Clone, Default, Encodable, Decodable)]
+#[deriving(Clone, Default, RustcEncodable, RustcDecodable)]
 pub struct VertexBuffer {
     pub vertex: Vertex,
     pub index: Vec<u32>
 }
 
 
-#[deriving(Clone, Default, Encodable, Decodable, Copy)]
+#[deriving(Clone, Default, RustcEncodable, RustcDecodable, Copy)]
 pub struct Geometry {
     pub vb: Entity,
     pub count: uint, // number of index elements

@@ -20,12 +20,11 @@
 #![allow(experimental)]
 #![feature(macro_rules)]
 
-
 extern crate time;
 extern crate glfw;
 extern crate cgmath;
 extern crate cow;
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 extern crate nice_glfw;
 extern crate gl;
 extern crate collections;

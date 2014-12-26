@@ -36,6 +36,7 @@ git = "https://github.com/gfx-rs/gfx-rs"
 
 [dependencies]
 time = "*"
+rustc-serialize="*"
 
 [dependencies.collect]
 git = "https://github.com/Gankro/collect-rs"

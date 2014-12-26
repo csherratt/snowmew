@@ -13,11 +13,11 @@
 //   limitations under the License.
 
 use std::default::Default;
-use serialize::{Encodable, Decodable, Encoder, Decoder};
+use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
 use snowmew::Entity;
 
-#[deriving(Encodable, Decodable, Copy)]
+#[deriving(RustcEncodable, RustcDecodable, Copy)]
 pub struct Material {
     ka: F32v3,
     kd: F32v3,
