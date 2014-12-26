@@ -132,7 +132,7 @@ impl Game<GameData, InputIntegratorState> for Noclip {
         rx = rx.add_a(rad((-x / 120.) as f32));
         rz = rz.add_a(rad((-y / 120.) as f32));
 
-        let max_rot: f32 = f32::consts::FRAC_2_PI;
+        let max_rot: f32 = f32::consts::FRAC_PI_2;
         if rz.s > max_rot {
             rz.s = max_rot;
         } else if rz.s < -max_rot {
