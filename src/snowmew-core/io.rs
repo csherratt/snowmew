@@ -34,6 +34,7 @@ struct WindowHandle {
     window: glfw::Window,
     forced_event: Option<WindowEvent>,
     receiver: Receiver<(f64, WindowEvent)>,
+    title: String
 }
 
 pub struct IOManager {
@@ -63,7 +64,8 @@ impl IOManager {
             WindowHandle {
                 window: window,
                 forced_event: Some(glfw::WindowEvent::FramebufferSize(w, h)),
-                receiver: recv
+                receiver: recv,
+                title: "snowmew".to_string()
             }
         });
 
@@ -300,7 +302,12 @@ impl IOManager {
 
     pub fn set_title(&mut self, handle: &InputHandle, title: String) {
         self.windows.get_mut(&handle.handle)
-            .map(|win| win.window.set_title(title.as_slice()));
+            .map(|win| {
+                if title != win.title {
+                    win.window.set_title(title.as_slice());
+                    win.title = title.clone();
+                }
+            });
     }
 
     fn setup_ovr(&mut self) -> bool {
