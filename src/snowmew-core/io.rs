@@ -289,13 +289,18 @@ impl IOManager {
 
     pub fn should_close(&mut self, handle: &InputHandle) -> bool {
         let should_close = self.windows.get_mut(&handle.handle)
-        .map(|win| win.window.should_close());
+            .map(|win| win.window.should_close());
 
         if let Some(x) = should_close {
             x
         } else {
             true
         }
+    }
+
+    pub fn set_title(&mut self, handle: &InputHandle, title: String) {
+        self.windows.get_mut(&handle.handle)
+            .map(|win| win.window.set_title(title.as_slice()));
     }
 
     fn setup_ovr(&mut self) -> bool {
@@ -398,13 +403,14 @@ impl Window {
     }
 }
 
-#[deriving(Clone, RustcEncodable, RustcDecodable, Copy)]
+#[deriving(Clone, RustcEncodable, RustcDecodable)]
 pub struct IoState {
     pub render_size: (uint, uint),
     pub size: (uint, uint),
     pub position: (int, int),
     pub show_mouse: bool,
-    pub mouse_over: bool
+    pub mouse_over: bool,
+    pub window_title: String
 }
 
 impl IoState {
@@ -414,7 +420,8 @@ impl IoState {
             size: (1, 1),
             position: (0, 0),
             show_mouse: true,
-            mouse_over: false
+            mouse_over: false,
+            window_title: "snowmew".to_string()
         }
     }
 

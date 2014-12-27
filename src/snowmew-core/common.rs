@@ -158,6 +158,9 @@ pub trait Common {
 
     /// Read the io metadata
     fn io_state(&self) -> &IoState { &self.get_common().io }
+
+    /// write to the io metadata
+    fn io_state_mut(&mut self) -> &mut IoState { &mut self.get_common_mut().io }
 }
 
 /// Duplicate all components owned by `src` into `dst`

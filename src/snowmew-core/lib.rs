@@ -227,6 +227,8 @@ impl SnowmewConfig {
             gd = game.step(input::Event::Cadance(frame, frame as f64 * candance_scale), gd);
             frame += 1;
 
+            let next_title = gd.io_state().window_title.clone();
+            im.set_title(&ih, next_title);
             render.update(gd.clone());
         }
     }
