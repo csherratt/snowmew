@@ -54,7 +54,7 @@ impl<GameData> DebuggerGameData<GameData> {
             index_delta: 0,
             time_delta: 0.,
             last_time: 0.,
-            max_len: 16,
+            max_len: 32,
             history: Vec::new(),
             inner: inner
         }
