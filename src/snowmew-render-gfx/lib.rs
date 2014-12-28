@@ -14,7 +14,7 @@
 
 #![crate_name = "snowmew-render-gfx"]
 #![crate_type = "lib"]
-
+#![allow(dead_code)]
 #![feature(phase)]
 
 extern crate libc;
@@ -47,6 +47,7 @@ use graphics::Graphics;
 use snowmew::common::Entity;
 use snowmew::io::Window;
 use snowmew::camera::Camera;
+use graphics::Material;
 
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
@@ -59,14 +60,39 @@ use gfx::{Device, DeviceHelper};
 use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
 use cgmath::{FixedArray, Matrix4, Vector3, Point};
 
+#[deriving(Copy)]
+struct SharedMatrix {
+    proj_mat: [[f32, ..4], ..4],
+    view_mat: [[f32, ..4], ..4]
+}
+
+#[deriving(Copy)]
+struct SharedMaterial {
+    ka_color: [f32, ..4],
+    kd_color: [f32, ..4],
+    ks_color: [f32, ..4],
+
+    ka_use_texture: i32,
+    kd_use_texture: i32,
+    ks_use_texture: i32,
+}
+
 const VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
 GLSL_150: b"
     #version 150 core
-    uniform mat4 shadow_proj_mat;
-    uniform mat4 shadow_view_mat;
+    layout(std140)
+    uniform shadow_shared_mat {
+        mat4 shadow_proj_mat;
+        mat4 shadow_view_mat;
+    };
+
+    layout(std140)
+    uniform shared_mat {
+        mat4 proj_mat;
+        mat4 view_mat;
+    };
+
     uniform mat4 shadow_bias_mat;
-    uniform mat4 proj_mat;
-    uniform mat4 view_mat;
     uniform mat4 model_mat;
 
     in vec3 position;
@@ -94,16 +120,19 @@ GLSL_150: b"
 const FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
 GLSL_150: b"
     #version 150 core
-    uniform vec4 ka_color;
-    uniform int ka_use_texture;
+    layout(std140)
+    uniform material {
+        vec4 ka_color;
+        vec4 kd_color;
+        vec4 ks_color;
+
+        int ka_use_texture;
+        int kd_use_texture;
+        int ks_use_texture;
+    };
+
     uniform sampler2D ka_texture;
-
-    uniform vec4 kd_color;
-    uniform int kd_use_texture;
     uniform sampler2D kd_texture;
-
-    uniform vec4 ks_color;
-    uniform int ks_use_texture;
     uniform sampler2D ks_texture;
 
     uniform vec4 light_normal;
@@ -167,23 +196,15 @@ GLSL_150: b"
 
 #[shader_param(MyProgram)]
 struct Params {
-    shadow_proj_mat: [[f32, ..4], ..4],
-    shadow_view_mat: [[f32, ..4], ..4],
+    shadow_shared_mat: gfx::RawBufferHandle,
+    shared_mat: gfx::RawBufferHandle,
+
     shadow_bias_mat: [[f32, ..4], ..4],
-    proj_mat: [[f32, ..4], ..4],
-    view_mat: [[f32, ..4], ..4],
     model_mat: [[f32, ..4], ..4],
 
-    ka_color: [f32, ..4],
-    ka_use_texture: i32,
+    material: gfx::RawBufferHandle,
     ka_texture: gfx::shade::TextureParam,
-
-    kd_color: [f32, ..4],
-    kd_use_texture: i32,
     kd_texture: gfx::shade::TextureParam,
-
-    ks_color: [f32, ..4],
-    ks_use_texture: i32,
     ks_texture: gfx::shade::TextureParam,
 
     light_normal: [f32, ..4],
@@ -194,8 +215,11 @@ struct Params {
 static SHADOW_VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
 GLSL_150: b"
     #version 150 core
-    uniform mat4 proj_mat;
-    uniform mat4 view_mat;
+    layout(std140)
+    uniform shared_mat {
+        mat4 proj_mat;
+        mat4 view_mat;
+    };
     uniform mat4 model_mat;
 
     in vec3 position;
@@ -216,14 +240,21 @@ GLSL_150: b"
 
 #[shader_param(ShadowProgram)]
 struct ShadowParams {
-    proj_mat: [[f32, ..4], ..4],
-    view_mat: [[f32, ..4], ..4],
+    shared_mat: gfx::RawBufferHandle,
     model_mat: [[f32, ..4], ..4],
 }
 
 struct Mesh {
     mesh: render::mesh::Mesh,
     index: device::BufferHandle<u32>
+}
+
+struct RenderMaterial {
+    material: Material,
+    buffer: device::BufferHandle<SharedMaterial>,
+    ka_texture: Option<Entity>,
+    kd_texture: Option<Entity>,
+    ks_texture: Option<Entity>,
 }
 
 pub struct RenderManagerContext {
@@ -235,6 +266,8 @@ pub struct RenderManagerContext {
     shadow_frame: render::target::Frame,
     shadow: device::TextureHandle,
     shadow_sampler: device::SamplerHandle,
+    shadow_shared_mat: device::BufferHandle<SharedMatrix>,
+    shared_mat: device::BufferHandle<SharedMatrix>,
 
     graphics: gfx::Graphics<device::gl_device::GlDevice,
                             device::gl_device::GlCommandBuffer>,
@@ -244,6 +277,8 @@ pub struct RenderManagerContext {
     textures: HashMap<Entity, device::TextureHandle>,
     sampler: device::SamplerHandle,
     window: Window,
+
+    material: HashMap<Entity, RenderMaterial>
 }
 
 pub struct RenderManager<R> {
@@ -252,7 +287,6 @@ pub struct RenderManager<R> {
 }
 
 impl RenderManagerContext {
-
     fn _new(mut device: gfx::GlDevice,
             window: Window,
             size: (i32, i32),
@@ -268,7 +302,20 @@ impl RenderManagerContext {
             )
         );
 
-        let (prog, data) = {
+        let (shadow_prog, shadow_data, shadow_shared_mat) = {
+            let buff = device.create_buffer::<SharedMatrix>(1, gfx::BufferUsage::Static);
+            let matrix: Matrix4<f32> = Matrix4::identity();
+            let data = ShadowParams {
+                shared_mat: buff.raw(),
+                model_mat: matrix.into_fixed(),
+            };
+            (device.link_program(SHADOW_VERTEX_SRC.clone(),
+                                 SHADOW_FRAGMENT_SRC.clone())
+                  .ok().expect("Failed to link program"),
+             data, buff)
+        };
+
+        let (prog, data, shared_mat) = {
             let tinfo = gfx::tex::TextureInfo {
                 width: 1,
                 height: 1,
@@ -281,29 +328,22 @@ impl RenderManagerContext {
             let dummy_texture = device.create_texture(tinfo)
                                       .ok().expect("Failed to create texture");
 
+            let buff = device.create_buffer::<SharedMatrix>(1, gfx::BufferUsage::Static);
+            let unused = device.create_buffer::<Material>(1, gfx::BufferUsage::Static);
             let matrix: Matrix4<f32> = Matrix4::identity();
             let data = Params {
-                proj_mat: matrix.into_fixed(),
-                view_mat: matrix.into_fixed(),
+                shared_mat: buff.raw(),
                 model_mat: matrix.into_fixed(),
-                shadow_proj_mat: matrix.into_fixed(),
-                shadow_view_mat: matrix.into_fixed(),
+                shadow_shared_mat: shadow_shared_mat.raw(),
                 shadow_bias_mat: [
                     [0.5, 0.0, 0.0, 0.0],
                     [0.0, 0.5, 0.0, 0.0],
                     [0.0, 0.0, 0.5, 0.0],
                     [0.5, 0.5, 0.5, 1.0],
                 ],
-                ka_use_texture: 0,
-                ka_color: [1., 1., 1., 1.],
+                material: unused.raw(),
                 ka_texture: (dummy_texture, Some(sampler)),
-
-                kd_use_texture: 0,
-                kd_color: [1., 1., 1., 1.],
                 kd_texture: (dummy_texture, Some(sampler)),
-
-                ks_use_texture: 0,
-                ks_color: [1., 1., 1., 1.],
                 ks_texture: (dummy_texture, Some(sampler)),
 
                 light_color: [1., 1., 1., 1.],
@@ -312,20 +352,7 @@ impl RenderManagerContext {
             };
             (device.link_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone())
                   .ok().expect("Failed to link program"),
-             data)
-        };
-
-        let (shadow_prog, shadow_data) = {
-            let matrix: Matrix4<f32> = Matrix4::identity();
-            let data = ShadowParams {
-                proj_mat: matrix.into_fixed(),
-                view_mat: matrix.into_fixed(),
-                model_mat: matrix.into_fixed(),
-            };
-            (device.link_program(SHADOW_VERTEX_SRC.clone(),
-                                 SHADOW_FRAGMENT_SRC.clone())
-                  .ok().expect("Failed to link program"),
-             data)
+             data, buff)
         };
 
         let shadow_info = gfx::tex::TextureInfo {
@@ -363,10 +390,13 @@ impl RenderManagerContext {
             prog: prog,
             meshes: HashMap::new(),
             textures: HashMap::new(),
+            material: HashMap::new(),
             sampler: sampler,
             window: window,
             shadow_data: shadow_data,
             shadow_prog: shadow_prog,
+            shadow_shared_mat: shadow_shared_mat,
+            shared_mat: shared_mat,
             shadow: shadow,
             shadow_frame: shadow_frame,
             shadow_sampler: shadow_sampler
@@ -452,6 +482,31 @@ impl RenderManagerContext {
         }
     }
 
+    fn load_materials<RD: Renderable>(&mut self, db: &RD) {
+        self.material.clear();
+        for (oid, mat) in db.material_iter() {
+            let ka = mat.ka();
+            let kd = mat.kd();
+            let ks = mat.ks();
+            let material = &[SharedMaterial {
+                ka_color: [ka[0], ka[1], ka[2], 1.],
+                kd_color: [kd[0], kd[1], kd[2], 1.],
+                ks_color: [ks[0], ks[1], ks[2], 1.],
+                ka_use_texture: if mat.map_ka().is_some() {1} else {0},
+                kd_use_texture: if mat.map_kd().is_some() {1} else {0},
+                ks_use_texture: if mat.map_ks().is_some() {1} else {0},
+            }];
+            let buff = self.graphics.device.create_buffer_static(material);
+            self.material.insert(oid, RenderMaterial {
+                material: *mat,
+                buffer: buff,
+                ka_texture: mat.map_ka(),
+                ks_texture: mat.map_ks(),
+                kd_texture: mat.map_kd(),
+            }); 
+        }       
+    }
+
     fn create_geometry_batches<RD: Renderable>(&mut self, db: &RD, scene: Entity) -> HashMap<u32, MyProgram> {
         let mut batches: HashMap<u32, MyProgram> = HashMap::new();
 
@@ -533,8 +588,6 @@ impl RenderManagerContext {
             -500., // + pos.z,
              500., // + pos.z
         );
-        self.shadow_data.proj_mat = proj.into_fixed();
-        self.data.shadow_proj_mat = proj.into_fixed();
 
         let dir = self.data.light_normal;
 
@@ -544,8 +597,12 @@ impl RenderManagerContext {
             &Vector3::new(0f32, 1., 0.)
         );
 
-        self.shadow_data.view_mat = view.into_fixed();
-        self.data.shadow_view_mat = view.into_fixed();
+        let shadow_mat = &[SharedMatrix {
+            proj_mat: proj.into_fixed(),
+            view_mat: view.into_fixed()
+        }];
+
+        self.graphics.device.update_buffer(self.shadow_shared_mat, shadow_mat, 0);
 
         for (_, (draw, model)) in join_set_to_map(db.scene_iter(scene),
                                         join_maps(db.drawable_iter(),
@@ -581,8 +638,12 @@ impl RenderManagerContext {
         let proj = camera.projection_matrix();
         let view = camera.view_matrix();
 
-        self.data.view_mat = view.into_fixed();
-        self.data.proj_mat = proj.into_fixed();
+        let shared_mat = &[SharedMatrix {
+            view_mat: view.into_fixed(),
+            proj_mat: proj.into_fixed()
+        }];
+
+        self.graphics.device.update_buffer(self.shared_mat, shared_mat, 0);
 
         let batches = self.create_geometry_batches(db, scene);
 
@@ -606,48 +667,28 @@ impl RenderManagerContext {
                                                join_maps(db.drawable_iter(),
                                                          db.position_iter())) {
 
-            let mat = db.material(draw.material).expect("Could not find material");
-            self.data.model_mat = model.into_fixed();
-            self.data.ka_use_texture = match mat.map_ka() {
-                Some(tid) => {
-                    let &texture = self.textures.get(&tid).expect("Texture not loaded");
-                    self.data.ka_texture = (texture, Some(self.sampler));
-                    1
-                }
-                None => {
-                    let [r, g, b] = mat.ka();
-                    self.data.ka_color = [r, g, b, 1.];
-                    0
-                }
-            };
-
-            self.data.kd_use_texture = match mat.map_kd() {
-                Some(tid) => {
-                    let &texture = self.textures.get(&tid).expect("Texture not loaded");
-                    self.data.kd_texture = (texture, Some(self.sampler));
-                    1
-                }
-                None => {
-                    let [r, g, b] = mat.kd();
-                    self.data.kd_color = [r, g, b, 1.];
-                    0
-                }
-            };
-
-            self.data.ks_use_texture = match mat.map_ks() {
-                Some(tid) => {
-                    let &texture = self.textures.get(&tid).expect("Texture not loaded");
-                    self.data.ks_texture = (texture, Some(self.sampler));
-                    1
-                }
-                None => {
-                    let [r, g, b] = mat.ks();
-                    self.data.ks_color = [r, g, b, 1.];
-                    0
-                }
-            };
-
+            let mat = self.material.find(&draw.material).expect("Could not find material");
+            if let Some(ka) = mat.ka_texture {
+                self.data.ka_texture =
+                    (*self.textures.get(&ka)
+                          .expect("Could not find texture"),
+                     Some(self.sampler));
+            }
+            if let Some(kd) = mat.kd_texture {
+                self.data.kd_texture =
+                    (*self.textures.get(&kd)
+                          .expect("Could not find texture"),
+                     Some(self.sampler));
+            }
+            if let Some(ks) = mat.ks_texture {
+                self.data.ks_texture =
+                    (*self.textures.get(&ks)
+                          .expect("Could not find texture"),
+                     Some(self.sampler));
+            }
+            self.data.material = mat.buffer.raw();
             self.data.shadow = (self.shadow, Some(self.shadow_sampler));
+            self.data.model_mat = model.into_fixed();
 
             self.graphics.draw(
                 batches.get(&draw.geometry).expect("Missing draw"),
@@ -672,6 +713,7 @@ impl RenderManagerContext {
         self.config(&db);
         self.load_meshes(&db);
         self.load_textures(&db);
+        self.load_materials(&db);
         self.draw(&db);
     }
 }

@@ -1,14 +1,20 @@
 [package]
-
 name = "snowmew-core"
-version = "0.1.0"
+version = "0.0.1"
 authors = [
     "Colin Sherratt <colin.sherratt@gmail.com>",
 ]
+license="Apache 2"
+homepage="https://github.com/csherratt/snowmew"
+description="The core of the Snowmew engine"
 
 [lib]
 name = "snowmew-core"
 path = "lib.rs"
+
+[dependencies]
+time = "*"
+rustc-serialize="*"
 
 [dependencies.glfw]
 git = "https://github.com/bjz/glfw-rs.git"
@@ -33,10 +39,6 @@ git = "https://github.com/csherratt/vr-rs.git"
 
 [dependencies.gfx]
 git = "https://github.com/gfx-rs/gfx-rs"
-
-[dependencies]
-time = "*"
-rustc-serialize="*"
 
 [dependencies.collect]
 git = "https://github.com/Gankro/collect-rs"
