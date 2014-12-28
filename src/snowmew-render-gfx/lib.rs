@@ -483,8 +483,17 @@ impl RenderManagerContext {
     }
 
     fn load_materials<RD: Renderable>(&mut self, db: &RD) {
-        self.material.clear();
-        for (oid, mat) in db.material_iter() {
+        for (oid, &mat) in db.material_iter() {
+            let update = if let Some(material) = self.material.get(&oid) {
+                Some(mat != material.material)
+            } else {None};
+
+            if update == Some(true) {
+                self.material.remove(&oid);
+            } else if update == Some(false) {
+                continue;
+            }
+
             let ka = mat.ka();
             let kd = mat.kd();
             let ks = mat.ks();
@@ -498,7 +507,7 @@ impl RenderManagerContext {
             }];
             let buff = self.graphics.device.create_buffer_static(material);
             self.material.insert(oid, RenderMaterial {
-                material: *mat,
+                material: mat,
                 buffer: buff,
                 ka_texture: mat.map_ka(),
                 ks_texture: mat.map_ks(),
@@ -667,7 +676,7 @@ impl RenderManagerContext {
                                                join_maps(db.drawable_iter(),
                                                          db.position_iter())) {
 
-            let mat = self.material.find(&draw.material).expect("Could not find material");
+            let mat = self.material.get(&draw.material).expect("Could not find material");
             if let Some(ka) = mat.ka_texture {
                 self.data.ka_texture =
                     (*self.textures.get(&ka)
