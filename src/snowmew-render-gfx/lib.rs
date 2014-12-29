@@ -35,7 +35,7 @@ extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render" as render_data;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 use std::comm::Receiver;
 use std::thread::{Thread, JoinGuard};
 
@@ -52,7 +52,7 @@ use graphics::Material;
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 
-use cow::join::{join_set_to_map, join_maps};
+use cow::join::join_set_to_map;
 use render_data::Renderable;
 
 use gfx::{Device, DeviceHelper};
@@ -92,8 +92,12 @@ GLSL_150: b"
         mat4 view_mat;
     };
 
+    uniform model {
+        mat4 model_mat[512];
+    };
+    uniform int offset;
+
     uniform mat4 shadow_bias_mat;
-    uniform mat4 model_mat;
 
     in vec3 position;
     in vec2 texture;
@@ -104,14 +108,18 @@ GLSL_150: b"
     out vec4 o_shadow_coord;
 
     void main() {
-        gl_Position = proj_mat * view_mat * model_mat * vec4(position, 1.0);
+        gl_Position =
+            proj_mat *
+            view_mat *
+            model_mat[gl_InstanceID + offset] *
+            vec4(position, 1.0);
         o_texture = texture;
-        o_normal = normalize((model_mat * vec4(normal, 0.)).xyz);
+        o_normal = normalize((model_mat[gl_InstanceID + offset] * vec4(normal, 0.)).xyz);
 
         o_shadow_coord = shadow_bias_mat *
                          shadow_proj_mat *
                          shadow_view_mat *
-                         model_mat *
+                         model_mat[gl_InstanceID + offset] *
                          vec4(position, 1.0);
     }
 "
@@ -194,13 +202,12 @@ GLSL_150: b"
 "
 };
 
-#[shader_param(MyProgram)]
+#[shader_param(DrawProgram)]
 struct Params {
     shadow_shared_mat: gfx::RawBufferHandle,
     shared_mat: gfx::RawBufferHandle,
 
     shadow_bias_mat: [[f32, ..4], ..4],
-    model_mat: [[f32, ..4], ..4],
 
     material: gfx::RawBufferHandle,
     ka_texture: gfx::shade::TextureParam,
@@ -209,7 +216,10 @@ struct Params {
 
     light_normal: [f32, ..4],
     light_color: [f32, ..4],
-    shadow: gfx::shade::TextureParam
+    shadow: gfx::shade::TextureParam,
+
+    model: gfx::RawBufferHandle,
+    offset: i32
 }
 
 static SHADOW_VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
@@ -220,12 +230,19 @@ GLSL_150: b"
         mat4 proj_mat;
         mat4 view_mat;
     };
-    uniform mat4 model_mat;
+    uniform model {
+        mat4 model_mat[512];
+    };
+    uniform int offset;
 
     in vec3 position;
 
     void main() {
-        gl_Position = proj_mat * view_mat * model_mat * vec4(position, 1.0);
+        gl_Position =
+            proj_mat *
+            view_mat *
+            model_mat[gl_InstanceID+offset] *
+            vec4(position, 1.0);
     }
 "
 };
@@ -241,7 +258,8 @@ GLSL_150: b"
 #[shader_param(ShadowProgram)]
 struct ShadowParams {
     shared_mat: gfx::RawBufferHandle,
-    model_mat: [[f32, ..4], ..4],
+    model: gfx::RawBufferHandle,
+    offset: i32
 }
 
 struct Mesh {
@@ -278,7 +296,16 @@ pub struct RenderManagerContext {
     sampler: device::SamplerHandle,
     window: Window,
 
-    material: HashMap<Entity, RenderMaterial>
+    material: HashMap<Entity, RenderMaterial>,
+
+    batch: BTreeSet<(Entity, Entity, Entity)>,
+    shadow_batches: HashMap<Entity, ShadowProgram>,
+    draw_batches: HashMap<Entity, DrawProgram>,
+
+    spare_matrix_buffers: Vec<device::BufferHandle<[[f32, ..4], ..4]>>,
+    used_matrix_buffers: Vec<device::BufferHandle<[[f32, ..4], ..4]>>,
+    shared_geometry: Vec<(u32, device::BufferHandle<[[f32; 4]; 4]>, uint, uint)>,
+    shared_geometry_material: Vec<(u32, u32, device::BufferHandle<[[f32; 4]; 4]>, uint, uint)>,
 }
 
 pub struct RenderManager<R> {
@@ -304,10 +331,10 @@ impl RenderManagerContext {
 
         let (shadow_prog, shadow_data, shadow_shared_mat) = {
             let buff = device.create_buffer::<SharedMatrix>(1, gfx::BufferUsage::Static);
-            let matrix: Matrix4<f32> = Matrix4::identity();
             let data = ShadowParams {
                 shared_mat: buff.raw(),
-                model_mat: matrix.into_fixed(),
+                model: buff.raw(),
+                offset: 0
             };
             (device.link_program(SHADOW_VERTEX_SRC.clone(),
                                  SHADOW_FRAGMENT_SRC.clone())
@@ -330,10 +357,8 @@ impl RenderManagerContext {
 
             let buff = device.create_buffer::<SharedMatrix>(1, gfx::BufferUsage::Static);
             let unused = device.create_buffer::<Material>(1, gfx::BufferUsage::Static);
-            let matrix: Matrix4<f32> = Matrix4::identity();
             let data = Params {
                 shared_mat: buff.raw(),
-                model_mat: matrix.into_fixed(),
                 shadow_shared_mat: shadow_shared_mat.raw(),
                 shadow_bias_mat: [
                     [0.5, 0.0, 0.0, 0.0],
@@ -349,6 +374,8 @@ impl RenderManagerContext {
                 light_color: [1., 1., 1., 1.],
                 light_normal: [1., 0., 0., 0.],
                 shadow: (dummy_texture, Some(sampler)),
+                model: buff.raw(),
+                offset: 0
             };
             (device.link_program(VERTEX_SRC.clone(), FRAGMENT_SRC.clone())
                   .ok().expect("Failed to link program"),
@@ -399,7 +426,14 @@ impl RenderManagerContext {
             shared_mat: shared_mat,
             shadow: shadow,
             shadow_frame: shadow_frame,
-            shadow_sampler: shadow_sampler
+            shadow_sampler: shadow_sampler,
+            batch: BTreeSet::new(),
+            shadow_batches: HashMap::new(),
+            draw_batches: HashMap::new(),
+            spare_matrix_buffers: Vec::new(),
+            used_matrix_buffers: Vec::new(),
+            shared_geometry: Vec::new(),
+            shared_geometry_material: Vec::new(),
         }
     }
 
@@ -516,71 +550,112 @@ impl RenderManagerContext {
         }       
     }
 
-    fn create_geometry_batches<RD: Renderable>(&mut self, db: &RD, scene: Entity) -> HashMap<u32, MyProgram> {
-        let mut batches: HashMap<u32, MyProgram> = HashMap::new();
+    fn load_batches<RD: Renderable>(&mut self, db: &RD) {
+        let scene = db.scene().expect("no scene set");
+        self.batch.clear();
+        self.shadow_batches.clear();
+        self.draw_batches.clear();
 
-        for (_, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
-            if batches.contains_key(&draw.geometry) {
-                continue;
+        for (id, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
+            self.batch.insert((draw.geometry, draw.material, id));
+
+            if !self.shadow_batches.contains_key(&draw.geometry) {
+                let geo = db.geometry(draw.geometry).expect("failed to find geometry");
+                let vb = self.meshes.get(&geo.vb).expect("Could not get vertex buffer");
+
+                let batch: ShadowProgram = self.graphics.make_batch(
+                    &self.shadow_prog,
+                    &vb.mesh,
+                    gfx::Slice {
+                        start: geo.offset as u32,
+                        end: (geo.offset + geo.count) as u32,
+                        prim_type: gfx::PrimitiveType::TriangleList,
+                        kind: gfx::SliceKind::Index32(vb.index, 0)
+
+                    },
+                    &self.state
+                ).unwrap();
+                self.shadow_batches.insert(draw.geometry, batch);
+
+                let batch: DrawProgram = self.graphics.make_batch(
+                    &self.prog,
+                    &vb.mesh,
+                    gfx::Slice {
+                        start: geo.offset as u32,
+                        end: (geo.offset + geo.count) as u32,
+                        prim_type: gfx::PrimitiveType::TriangleList,
+                        kind: gfx::SliceKind::Index32(vb.index, 0)
+
+                    },
+                    &self.state
+                ).unwrap();
+                self.draw_batches.insert(draw.geometry, batch);
             }
-
-            let geo = db.geometry(draw.geometry).expect("failed to find geometry");
-            let vb = self.meshes.get(&geo.vb).expect("Could not get vertex buffer");
-
-            let batch: MyProgram = self.graphics.make_batch(
-                &self.prog,
-                &vb.mesh,
-                gfx::Slice {
-                    start: geo.offset as u32,
-                    end: (geo.offset + geo.count) as u32,
-                    prim_type: gfx::PrimitiveType::TriangleList,
-                    kind: gfx::SliceKind::Index32(vb.index, 0)
-
-                },
-                &self.state
-            ).unwrap();
-
-            batches.insert(draw.geometry, batch);
         }
-
-        return batches;
     }
 
-
-    fn create_shadow_batches<RD: Renderable>(&mut self, db: &RD, scene: Entity) -> HashMap<u32, ShadowProgram> {
-        let mut batches: HashMap<u32, ShadowProgram> = HashMap::new();
-
-        for (_, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
-            if batches.contains_key(&draw.geometry) {
-                continue;
-            }
-
-            let geo = db.geometry(draw.geometry).expect("failed to find geometry");
-            let vb = self.meshes.get(&geo.vb).expect("Could not get vertex buffer");
-
-            let batch: ShadowProgram = self.graphics.make_batch(
-                &self.shadow_prog,
-                &vb.mesh,
-                gfx::Slice {
-                    start: geo.offset as u32,
-                    end: (geo.offset + geo.count) as u32,
-                    prim_type: gfx::PrimitiveType::TriangleList,
-                    kind: gfx::SliceKind::Index32(vb.index, 0)
-
-                },
-                &self.state
-            ).unwrap();
-
-            batches.insert(draw.geometry, batch);
-        }
-
-        return batches;
+    fn fetch_matrix(&mut self) -> device::BufferHandle<[[f32, ..4], ..4]> {
+        let buffer = if let Some(buffer) = self.spare_matrix_buffers.pop() {
+            buffer
+        } else {
+            self.graphics.device.create_buffer(512, gfx::BufferUsage::Static)
+        };
+        self.used_matrix_buffers.push(buffer);
+        buffer
     }
 
+    fn load_matrices<RD: Renderable>(&mut self, db: &RD) {
+        let max = 512;
+        let mut matrices = Vec::new();
+        matrices.reserve(512);
 
-    fn draw_shadow<RD: Renderable>(&mut self, db: &RD, scene: Entity, cam: &Camera) {
-        let batches = self.create_shadow_batches(db, scene);
+        let mut shared_g = Vec::new();
+        let mut shared_gm = Vec::new();
 
+        for m in self.used_matrix_buffers.drain() {
+            self.spare_matrix_buffers.push(m);
+        }
+
+        let mut mat = self.fetch_matrix();
+
+        let mut last = None;
+        for &(g, m, id) in self.batch.clone().iter() {
+            last = if let Some((lg, lm, mut idx_gm, mut idx_g)) = last {
+                if (lg, lm) != (g, m) {
+                    shared_gm.push((lg, lm, mat, matrices.len()-idx_gm, idx_gm));
+                    idx_gm = matrices.len();
+                }
+                if lg != g {
+                    shared_g.push((lg, mat, matrices.len()-idx_g, idx_g));
+                    idx_g = matrices.len();
+                }
+            
+                if matrices.len() == max {
+                    shared_gm.push((lg, lm, mat, matrices.len()-idx_gm, idx_gm));
+                    shared_g.push((lg, mat, matrices.len()-idx_g, idx_g));
+                    self.graphics.device.update_buffer(mat, matrices.as_slice(), 0);
+                    mat = self.fetch_matrix();
+                    matrices.clear();
+                }
+                Some((g, m, idx_gm, idx_g))
+            } else {
+                Some((g, m, 0, 0))
+            };
+
+            matrices.push(db.position(id).into_fixed());
+        }
+
+        if let Some((g, m, idx_gm, idx_g)) = last {
+            shared_gm.push((g, m, mat, matrices.len()-idx_gm, idx_gm));
+            shared_g.push((g, mat, matrices.len()-idx_g, idx_g));
+            self.graphics.device.update_buffer(mat, matrices.as_slice(), 0)
+        }
+
+        self.shared_geometry = shared_g;
+        self.shared_geometry_material = shared_gm;
+    }
+
+    fn draw_shadow(&mut self, cam: &Camera) {
         let cdata = gfx::ClearData {
             color: [0.3, 0.3, 0.3, 1.0],
             depth: 2.0,
@@ -613,24 +688,21 @@ impl RenderManagerContext {
 
         self.graphics.device.update_buffer(self.shadow_shared_mat, shadow_mat, 0);
 
-        for (_, (draw, model)) in join_set_to_map(db.scene_iter(scene),
-                                        join_maps(db.drawable_iter(),
-                                                  db.position_iter())) {
-
-            self.shadow_data.model_mat = model.into_fixed();
-            self.graphics.draw(
-                batches.get(&draw.geometry).expect("Missing draw"),
+        for &(geo, matrix, len, offset) in self.shared_geometry.iter() {
+            self.shadow_data.model = matrix.raw();
+            self.shadow_data.offset = offset as i32;
+            self.graphics.draw_instanced(
+                self.shadow_batches.get(&geo).expect("Missing draw"),
                 &self.shadow_data,
-                &self.shadow_frame
+                len as u32,
+                0,
+                &self.shadow_frame,
             );
-        }
-
-        //self.graphics.device.generate_mipmap(&self.shadow);
+        };
 
     }
 
     fn draw<RD: Renderable>(&mut self, db: &RD) {
-        let scene = db.scene().expect("no scene set");
         let camera = db.camera().expect("no camera set");
 
         let cdata = gfx::ClearData {
@@ -654,8 +726,6 @@ impl RenderManagerContext {
 
         self.graphics.device.update_buffer(self.shared_mat, shared_mat, 0);
 
-        let batches = self.create_geometry_batches(db, scene);
-
         for (key, light) in db.light_iter() {
             match light {
                 &graphics::Light::Point(_) => {}
@@ -670,13 +740,10 @@ impl RenderManagerContext {
             }
         }
 
-        self.draw_shadow(db, scene, &camera);
+        self.draw_shadow(&camera);
 
-        for (_, (draw, model)) in join_set_to_map(db.scene_iter(scene),
-                                               join_maps(db.drawable_iter(),
-                                                         db.position_iter())) {
-
-            let mat = self.material.get(&draw.material).expect("Could not find material");
+        for &(geo, mat, matrix, len, offset) in self.shared_geometry_material.iter() {
+            let mat = self.material.get(&mat).expect("Could not find material");
             if let Some(ka) = mat.ka_texture {
                 self.data.ka_texture =
                     (*self.textures.get(&ka)
@@ -697,14 +764,17 @@ impl RenderManagerContext {
             }
             self.data.material = mat.buffer.raw();
             self.data.shadow = (self.shadow, Some(self.shadow_sampler));
-            self.data.model_mat = model.into_fixed();
+            self.data.model = matrix.raw();
+            self.data.offset = offset as i32;
 
-            self.graphics.draw(
-                batches.get(&draw.geometry).expect("Missing draw"),
+            self.graphics.draw_instanced(
+                self.draw_batches.get(&geo).expect("Missing draw"),
                 &self.data,
-                &self.frame
+                len as u32,
+                0,
+                &self.frame,
             );
-        }
+        };
 
         self.graphics.end_frame();
         self.window.swap_buffers();
@@ -723,6 +793,8 @@ impl RenderManagerContext {
         self.load_meshes(&db);
         self.load_textures(&db);
         self.load_materials(&db);
+        self.load_batches(&db);
+        self.load_matrices(&db);
         self.draw(&db);
     }
 }
