@@ -636,8 +636,10 @@ impl RenderManagerContext {
                     self.graphics.device.update_buffer(mat, matrices.as_slice(), 0);
                     mat = self.fetch_matrix();
                     matrices.clear();
+                    None
+                } else {
+                    Some((g, m, idx_gm, idx_g))
                 }
-                Some((g, m, idx_gm, idx_g))
             } else {
                 Some((g, m, 0, 0))
             };
