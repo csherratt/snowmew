@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 use std::sync::Arc;
+use std::kinds::Sync;
 #[cfg(target_os="linux")]
 use libc::c_void;
 
@@ -369,6 +370,8 @@ impl WindowOSSpec {
         }
     }
 }
+
+unsafe impl Send for WindowOSSpec {}
 
 pub struct Window {
     handle: InputHandle,
