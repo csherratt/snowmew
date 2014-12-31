@@ -14,6 +14,7 @@
 
 use std::ptr;
 use std::mem;
+use std::kinds::Send;
 
 use gl;
 use gl::types::GLuint;
@@ -53,6 +54,8 @@ pub struct LightsBuffer {
     buffer: GLuint,
     ptr: *mut LightsStd140,
 }
+
+unsafe impl Send for LightsBuffer {}
 
 impl LightsBuffer {
     pub fn new() -> LightsBuffer {

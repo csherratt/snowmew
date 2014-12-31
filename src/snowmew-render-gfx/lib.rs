@@ -815,14 +815,14 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
             cl: Option<Arc<hl::Device>>) -> RenderManager<RD> {
 
         let (sender, recv) = channel();
-
         window.make_context_current();
         let device = gfx::GlDevice::new(|s| io.get_proc_address(s));
         glfw::make_context_current(None);
 
         let res = Thread::spawn(move || {
-            let recv: Receiver<RD> = recv;
+            let window = window;
             window.make_context_current();
+            let recv: Receiver<RD> = recv;
 
             let mut rc = RenderManagerContext::_new(device, window, size, cl);
             loop {

@@ -15,6 +15,7 @@
 use std::mem;
 use std::ptr;
 use std::slice;
+use std::kinds::Send;
 
 use gl;
 
@@ -67,6 +68,8 @@ pub struct MaterialBuffer {
     size: uint,
     ptr: *mut MaterialStd140,
 }
+
+unsafe impl Send for MaterialBuffer {}
 
 impl MaterialBuffer {
     pub fn new(max: uint) -> MaterialBuffer {

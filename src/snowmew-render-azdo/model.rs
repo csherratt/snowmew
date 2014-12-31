@@ -15,6 +15,7 @@
 use std::ptr;
 use std::mem;
 use std::slice;
+use std::kinds::Send;
 use render_data::Renderable;
 
 use cow::join::{join_set_to_map, join_maps};
@@ -41,6 +42,8 @@ pub struct ModelInfoSSBOBuffer {
     model_info: GLuint,
     size: uint
 }
+
+unsafe impl Send for ModelInfoSSBOBuffer {}
 
 impl ModelInfoSSBOBuffer {
     pub fn new(cfg: &Config) -> ModelInfoSSBOBuffer {
@@ -111,6 +114,8 @@ pub struct ModelInfoTextureBuffer {
     texture_model_info: GLuint,
     size: uint
 }
+
+unsafe impl Send for ModelInfoTextureBuffer {}
 
 impl ModelInfoTextureBuffer {
     pub fn new(cfg: &Config) -> ModelInfoTextureBuffer {

@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 use std::sync::{TaskPool, Arc};
+use std::kinds::Send;
 use time::precise_time_s;
 use libc::c_void;
 use render_data::{Renderable, RenderData};

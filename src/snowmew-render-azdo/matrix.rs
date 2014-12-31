@@ -16,6 +16,7 @@ use std::mem;
 use std::ptr;
 use std::slice;
 use std::sync::Arc;
+use std::kinds::Send;
 
 use opencl::hl::{CommandQueue, Context, Device, Event, EventList};
 use opencl::mem::{Buffer, CLBuffer};
@@ -91,6 +92,8 @@ pub struct MatrixSSBOBuffer {
     event: Option<Event>,
     cl: Option<(Accelerator, Arc<CommandQueue>, [CLBuffer<Matrix4<f32>>, ..1])>,
 }
+
+unsafe impl Send for MatrixSSBOBuffer {}
 
 impl MatrixSSBOBuffer {
     pub fn new(cfg: &Config,
@@ -187,6 +190,8 @@ pub struct MatrixTextureBuffer {
     event: Option<Event>,
     cl: Option<(Accelerator, Arc<CommandQueue>, [CLBuffer<Vector4<f32>>, ..4])>,
 }
+
+unsafe impl Send for MatrixTextureBuffer {}
 
 impl MatrixTextureBuffer {
     pub fn new(cfg: &Config,

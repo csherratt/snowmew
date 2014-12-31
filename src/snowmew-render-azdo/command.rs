@@ -16,6 +16,7 @@
 use std::ptr;
 use std::mem;
 use std::slice;
+use std::kinds::Send;
 
 use cow::join::{join_set_to_map};
 
@@ -51,6 +52,8 @@ pub struct CommandBufferIndirect {
     size: uint,
     batches: Vec<Batch>
 }
+
+unsafe impl Send for CommandBufferIndirect {}
 
 #[deriving(Clone)]
 pub struct Batch {
