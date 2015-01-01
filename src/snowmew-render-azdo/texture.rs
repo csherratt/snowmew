@@ -58,7 +58,7 @@ impl TextureArray {
 
         let textures = &mut [0];
         unsafe {
-            gl::GenTextures(textures.len() as i32, textures.unsafe_mut(0));
+            gl::GenTextures(textures.len() as i32, textures.get_unchecked_mut(0));
             gl::BindTexture(gl::TEXTURE_2D_ARRAY, textures[0]);
             gl::TexParameteri(gl::TEXTURE_2D_ARRAY, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D_ARRAY, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);

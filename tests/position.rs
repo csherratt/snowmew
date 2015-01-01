@@ -231,7 +231,7 @@ fn calc_positions_opencl_mat() {
     pos.set_delta(4, Some(3), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
 
     let evt = ctx.compute_mat(&pos, &queue, &buffers).wait();
-    let vec = queue.get(&buffers, evt);
+    let vec: Vec<Matrix4<f32>> = queue.get(&buffers, evt);
 
     let mat0 = vec[0];
     let mat1 = vec[1];
@@ -264,7 +264,7 @@ fn calc_positions_opencl_mat_tree() {
     pos.set_delta(5, Some(1), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(-1f32, -1f32, -1f32)});
 
     let evt = ctx.compute_mat(&pos, &queue, &buffers).wait();
-    let vec = queue.get(&buffers, evt);
+    let vec: Vec<Matrix4<f32>> = queue.get(&buffers, evt);
 
     let mat0 = vec[2];
     let mat1 = vec[3];
@@ -295,7 +295,7 @@ fn calc_positions_opencl_gap() {
     pos.set_delta(14, Some(13), Decomposed{scale: 1f32, rot: Quaternion::identity(), disp: Vector3::new(1f32, 1f32, 1f32)});
 
     let evt = ctx.compute_mat(&pos, &queue, &buffers).wait();
-    let vec = queue.get(&buffers, evt);
+    let vec: Vec<Matrix4<f32>> = queue.get(&buffers, evt);
 
     let mat0 = vec[0];
     let mat1 = vec[11];

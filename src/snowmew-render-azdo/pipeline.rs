@@ -66,7 +66,7 @@ impl DrawTarget {
             gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
             gl::Viewport(self.x, self.y, self.width, self.height);
             gl::Scissor(self.x, self.y, self.width, self.height);
-            gl::DrawBuffers(self.draw_buffers.len() as i32, self.draw_buffers.unsafe_get(0))
+            gl::DrawBuffers(self.draw_buffers.len() as i32, self.draw_buffers.get_unchecked(0))
         }
     }
 
@@ -136,7 +136,7 @@ impl<PIPELINE: PipelineState> Defered<PIPELINE> {
         let mut framebuffer: GLuint = 0;
 
         unsafe {
-            gl::GenTextures(textures.len() as i32, textures.unsafe_mut(0));
+            gl::GenTextures(textures.len() as i32, textures.get_unchecked_mut(0));
             gl::GenFramebuffers(1, &mut framebuffer);
         }
 
@@ -224,8 +224,8 @@ impl<PIPELINE: PipelineState> Resize for Defered<PIPELINE> {
                                             self.dxdy_texture];
 
         unsafe {
-            gl::DeleteTextures(textures.len() as i32, textures.unsafe_get(0));
-            gl::GenTextures(textures.len() as i32, textures.unsafe_mut(0));
+            gl::DeleteTextures(textures.len() as i32, textures.get_unchecked(0));
+            gl::GenTextures(textures.len() as i32, textures.get_unchecked_mut(0));
         }
 
         self.uv_texture = textures[0];

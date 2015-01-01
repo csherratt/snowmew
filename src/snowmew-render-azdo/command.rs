@@ -87,7 +87,7 @@ impl CommandBufferIndirect {
     pub fn new(cfg: &Config) -> CommandBufferIndirect {
         let cb = &mut [0];
         unsafe {
-            gl::GenBuffers(1, cb.unsafe_mut(0));
+            gl::GenBuffers(1, cb.get_unchecked_mut(0));
             gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, cb[0]);
             gl::BufferData(gl::DRAW_INDIRECT_BUFFER,
                            (mem::size_of::<DrawElementsIndirectCommand>() *

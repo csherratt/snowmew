@@ -57,10 +57,10 @@ impl<'r> MatrixManager for GLTextureMatrix<'r> {
         assert!(idx < self.x.len());
         unsafe {
             Matrix4 {
-                x: self.x.unsafe_get(idx).clone(),
-                y: self.y.unsafe_get(idx).clone(),
-                z: self.z.unsafe_get(idx).clone(),
-                w: self.w.unsafe_get(idx).clone(),
+                x: self.x.get_unchecked(idx).clone(),
+                y: self.y.get_unchecked(idx).clone(),
+                z: self.z.get_unchecked(idx).clone(),
+                w: self.w.get_unchecked(idx).clone(),
             }
         }
     }
@@ -80,7 +80,7 @@ impl<'r> MatrixManager for GLSSBOMatrix<'r> {
 
     fn get(&self, idx: uint) -> Matrix4<f32> {
         assert!(idx < self.mat.len());
-        unsafe { self.mat.unsafe_get(idx).clone() }
+        unsafe { self.mat.get_unchecked(idx).clone() }
     }
 }
 
@@ -101,7 +101,7 @@ impl MatrixSSBOBuffer {
         let buffer = &mut [0];
 
         unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
+            gl::GenBuffers(buffer.len() as i32, buffer.get_unchecked_mut(0));
 
             gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer[0]);
             gl::BufferData(gl::SHADER_STORAGE_BUFFER,
@@ -200,8 +200,8 @@ impl MatrixTextureBuffer {
         let texture = &mut [0, 0, 0, 0];
 
         unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
-            gl::GenTextures(texture.len() as i32, texture.unsafe_mut(0));
+            gl::GenBuffers(buffer.len() as i32, buffer.get_unchecked_mut(0));
+            gl::GenTextures(texture.len() as i32, texture.get_unchecked_mut(0));
 
             for (b, t) in buffer.iter().zip(texture.iter()) {
                 gl::BindBuffer(gl::TEXTURE_BUFFER, *b);

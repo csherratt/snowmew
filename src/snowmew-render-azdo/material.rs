@@ -76,7 +76,7 @@ impl MaterialBuffer {
         let ub = &mut [0];
 
         unsafe {
-            gl::GenBuffers(1, ub.unsafe_mut(0));
+            gl::GenBuffers(1, ub.get_unchecked_mut(0));
             gl::BindBuffer(gl::UNIFORM_BUFFER, ub[0]);
             gl::BufferData(gl::UNIFORM_BUFFER,
                            (max * mem::size_of::<MaterialStd140>()) as i64,

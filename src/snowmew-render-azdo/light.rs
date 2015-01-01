@@ -61,7 +61,7 @@ impl LightsBuffer {
     pub fn new() -> LightsBuffer {
         let ub = &mut [0];
         unsafe {
-            gl::GenBuffers(1, ub.unsafe_mut(0));
+            gl::GenBuffers(1, ub.get_unchecked_mut(0));
             gl::BindBuffer(gl::UNIFORM_BUFFER, ub[0]);
             gl::BufferData(gl::UNIFORM_BUFFER,
                            mem::size_of::<LightsStd140>() as i64,

@@ -50,7 +50,7 @@ impl ModelInfoSSBOBuffer {
         let buffer = &mut [0];
 
         unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
+            gl::GenBuffers(buffer.len() as i32, buffer.get_unchecked_mut(0));
             gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer[0]);
             gl::BufferData(gl::SHADER_STORAGE_BUFFER,
                            (mem::size_of::<ModelInfoSSBO>()*cfg.max_size()) as GLsizeiptr,
@@ -123,8 +123,8 @@ impl ModelInfoTextureBuffer {
         let texture = &mut [0];
 
         unsafe {
-            gl::GenBuffers(buffer.len() as i32, buffer.unsafe_mut(0));
-            gl::GenTextures(texture.len() as i32, texture.unsafe_mut(0));
+            gl::GenBuffers(buffer.len() as i32, buffer.get_unchecked_mut(0));
+            gl::GenTextures(texture.len() as i32, texture.get_unchecked_mut(0));
 
             gl::BindBuffer(gl::TEXTURE_BUFFER, buffer[0]);
             gl::BindTexture(gl::TEXTURE_BUFFER, texture[0]);
