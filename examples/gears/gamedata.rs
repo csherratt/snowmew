@@ -26,6 +26,7 @@ pub struct GameData {
     position: PositionData,
     graphics: GraphicsData,
     render: RenderData,
+    pub time: f64,
     pub gears: Vec<Entity>
 }
 
@@ -36,7 +37,8 @@ impl GameData {
             position: PositionData::new(),
             graphics: GraphicsData::new(),
             render: RenderData::new(),
-            gears: Vec::new()
+            gears: Vec::new(),
+            time: 0.,
         };
 
         gd.load_standard_graphics();

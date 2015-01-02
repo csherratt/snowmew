@@ -41,6 +41,7 @@ pub struct InputIntegratorState {
     buttons_released: HashSet<Button>,
     index: uint,
     time: f64,
+    last_time: f64,
     last_mouse: Option<(uint, f64, f64)>,
     mouse: Option<(uint, f64, f64)>,
     scroll: (f64, f64),
@@ -105,6 +106,9 @@ impl InputIntegratorState {
 
     /// get the current frame time
     pub fn time(&self) -> f64 { self.time }
+
+    /// get the current frame time
+    pub fn time_delta(&self) -> f64 { self.time - self.last_time }
 }
 
 /// This wraps the supplied GameData so that it contains
@@ -124,6 +128,7 @@ impl<GameData> InputIntegratorGameData<GameData> {
                 buttons_released: HashSet::new(),
                 index: 0,
                 time: 0.,
+                last_time: 0.,
                 last_mouse: None,
                 mouse: None,
                 scroll: (0., 0.),
@@ -153,9 +158,10 @@ impl<GameData,
         let mut gd = gd;
 
         match event {
-            input::Event::Cadance(index, time) => {
-                gd.state.index = index;
-                gd.state.time = time;
+            input::Event::Cadance(delta) => {
+                gd.state.index += 1;
+                gd.state.last_time = gd.state.time;
+                gd.state.time += delta;
                 // move the internal game
                 gd.inner = self.game.step(gd.state.clone(), gd.inner);
                 gd.state.last_mouse = gd.state.mouse;

@@ -209,7 +209,6 @@ impl SnowmewConfig {
         let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms));
         let candance_scale = self.cadance_ms as f64 / 1000.;
 
-        let mut frame = 1;
         while !im.should_close(&ih) {
             timer_port.recv();
             im.poll();
@@ -221,8 +220,7 @@ impl SnowmewConfig {
                 }
             }
 
-            gd = game.step(input::Event::Cadance(frame, frame as f64 * candance_scale), gd);
-            frame += 1;
+            gd = game.step(input::Event::Cadance(candance_scale), gd);
 
             let next_title = gd.io_state().window_title.clone();
             im.set_title(&ih, next_title);

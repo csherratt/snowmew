@@ -290,7 +290,7 @@ pub enum Event {
     ButtonUp(Button),
     Move(f64, f64),
     Scroll(f64, f64),
-    Cadance(uint, f64)
+    Cadance(f64)
 }
 
 #[deriving(Clone, Show, PartialEq, Copy)]

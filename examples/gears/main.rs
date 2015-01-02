@@ -88,7 +88,7 @@ fn main() {
     };
     let gd = GearsInputData {
         paused: false,
-        inner: DebuggerGameData::new(gd, 100)
+        inner: DebuggerGameData::new(gd, 32)
     };
     let (game, gd) = input_integrator(game, gd);
     sc.start(box RenderFactory::new(), game, gd);
@@ -96,12 +96,12 @@ fn main() {
 
 struct Gears;
 
-impl Game<GameData, InputIntegratorState> for Gears {
-    fn step(&mut self, state: InputIntegratorState, gd: GameData) -> GameData {
+impl Game<GameData, f64> for Gears {
+    fn step(&mut self, state: f64, gd: GameData) -> GameData {
         let mut next = gd.clone();
-
+        next.time += state;
         for (idx, &logo) in gd.gears.iter().enumerate() {
-            let t = state.time() as f32 * 10.;
+            let t = next.time as f32 * 10.;
             let this_gear_rot = if idx % 2 == 0 { t } else { 5.625 - t };
             next.set_rotation(logo, Rotation3::from_euler(deg(0f32).to_rad(),
                                                           deg(this_gear_rot).to_rad(),
@@ -123,13 +123,13 @@ impl Game<GearsInputData, InputIntegratorState> for GearsInput {
         }
 
         if !gd.paused {
-            gd.inner = self.debugger.step(state, gd.inner);
+            gd.inner = self.debugger.step(state.time_delta(), gd.inner);
         } else {
-            let (_, x) = state.scroll_delta();
+            let (x, _) = state.scroll_delta();
             if x < 0. {
-                gd.inner = self.debugger.skip_backward(gd.inner);
-            } else if x > 0. {
                 gd.inner = self.debugger.skip_forward(gd.inner);
+            } else if x > 0. {
+                gd.inner = self.debugger.skip_backward(gd.inner);
             }
         }
         gd
@@ -139,7 +139,7 @@ impl Game<GearsInputData, InputIntegratorState> for GearsInput {
 #[deriving(Clone)]
 struct GearsInputData {
     paused: bool,
-    inner: DebuggerGameData<GameData, InputIntegratorState>
+    inner: DebuggerGameData<GameData, f64>
 }
 
 impl Common for GearsInputData {
