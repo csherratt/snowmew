@@ -23,24 +23,23 @@ extern crate "snowmew-render-mux" as render;
 extern crate "snowmew-loader" as loader;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
+extern crate "snowmew-debugger" as debugger;
 extern crate cgmath;
 extern crate opencl;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate "snowmew-render" as render_data;
 
 use cgmath::*;
-
-use position::Positions;
-use graphics::Graphics;
+use debugger::{Debugger, DebuggerGameData};
 use graphics::light;
-use render_data::Renderable;
-
-use render::RenderFactory;
+use graphics::{Graphics, GraphicsData};
 use loader::Obj;
-use snowmew::input_integrator::{input_integrator, InputIntegratorState};
-use snowmew::common::Common;
+use position::{Positions, PositionData};
+use render::RenderFactory;
+use render_data::{Renderable, RenderData};
+use snowmew::common::{Common, CommonData};
 use snowmew::game::Game;
-use snowmew::debugger::debugger;
+use snowmew::input_integrator::{input_integrator, InputIntegratorState};
 
 use gamedata::GameData;
 
@@ -84,8 +83,14 @@ fn main() {
     gd.set_scene(scene);
     gd.set_camera(camera_loc);
 
-    let (game, gd) = input_integrator(Gears, gd);
-    let (game, gd) = debugger(game, gd);
+    let game = GearsInput {
+        debugger: Debugger::new(Gears)
+    };
+    let gd = GearsInputData {
+        paused: false,
+        inner: DebuggerGameData::new(gd, 100)
+    };
+    let (game, gd) = input_integrator(game, gd);
     sc.start(box RenderFactory::new(), game, gd);
 }
 
@@ -106,3 +111,54 @@ impl Game<GameData, InputIntegratorState> for Gears {
         next
     }
 }
+
+struct GearsInput {
+    debugger: Debugger<Gears>    
+}
+
+impl Game<GearsInputData, InputIntegratorState> for GearsInput {
+    fn step(&mut self, state: InputIntegratorState, mut gd: GearsInputData) -> GearsInputData {
+        if state.button_pressed(snowmew::input::Button::KeyboardSpace) {
+            gd.paused ^= true;
+        }
+
+        if !gd.paused {
+            gd.inner = self.debugger.step(state, gd.inner);
+        } else {
+            let (_, x) = state.scroll_delta();
+            if x < 0. {
+                gd.inner = self.debugger.skip_backward(gd.inner);
+            } else if x > 0. {
+                gd.inner = self.debugger.skip_forward(gd.inner);
+            }
+        }
+        gd
+    }
+}
+
+#[deriving(Clone)]
+struct GearsInputData {
+    paused: bool,
+    inner: DebuggerGameData<GameData, InputIntegratorState>
+}
+
+impl Common for GearsInputData {
+    fn get_common<'a>(&'a self) -> &'a CommonData { self.inner.get_common() }
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { self.inner.get_common_mut() }
+}
+
+impl Positions for GearsInputData {
+    fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
+}
+
+impl Graphics for GearsInputData {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
+}
+
+impl Renderable for GearsInputData {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.inner.get_render_data() }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
+}
+

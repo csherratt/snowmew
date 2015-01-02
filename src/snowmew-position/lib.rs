@@ -26,12 +26,10 @@ extern crate "rustc-serialize" as rustc_serialize;
 
 use std::default::Default;
 
-
 use cgmath::{Transform, Decomposed, Vector3, Matrix4, ToMatrix4, Matrix, Quaternion};
 
 use snowmew::common::{Entity, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
-use snowmew::debugger::DebuggerGameData;
 use snowmew::table::{Dynamic, DynamicIterator};
 
 pub trait MatrixManager {
@@ -256,11 +254,6 @@ impl Positions for PositionData {
 }
 
 impl<T: Positions> Positions for InputIntegratorGameData<T> {
-    fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
-    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
-}
-
-impl<T: Positions> Positions for DebuggerGameData<T> {
     fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
 }

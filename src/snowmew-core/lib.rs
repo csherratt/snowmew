@@ -59,9 +59,6 @@ pub mod game;
 pub mod input;
 /// used to convert actions into state that can be tracked
 pub mod input_integrator;
-/// used to create an interactive debugger for your game
-pub mod debugger;
-
 
 fn get_cl() -> Option<Arc<Device>> {
     let platforms = get_platforms();
@@ -219,7 +216,7 @@ impl SnowmewConfig {
             loop {
                 match im.next_event(&ih) {
                     input::EventGroup::Game(evt) => gd = game.step(evt, gd),
-                    input::EventGroup::Window(evt) => gd.get_common_mut().window_action(evt),
+                    input::EventGroup::Window(evt) => gd.window_action(evt),
                     input::EventGroup::Nop => break
                 }
             }

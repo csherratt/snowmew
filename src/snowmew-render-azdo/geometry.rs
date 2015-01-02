@@ -107,7 +107,11 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
+<<<<<<< Updated upstream
             gl::GenBuffers(2, vbo.get_unchecked_mut(0));
+=======
+            gl::GenBuffers(2, vbo.get_mut(0));
+>>>>>>> Stashed changes
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,
@@ -156,7 +160,11 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
+<<<<<<< Updated upstream
             gl::GenBuffers(2, vbo.get_unchecked_mut(0));
+=======
+            gl::GenBuffers(2, vbo.get_mut(0));
+>>>>>>> Stashed changes
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,
@@ -206,7 +214,11 @@ impl Geometry {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
+<<<<<<< Updated upstream
             gl::GenBuffers(2, vbo.get_unchecked_mut(0));
+=======
+            gl::GenBuffers(2, vbo.get_mut(0));
+>>>>>>> Stashed changes
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo[0]);
             gl::BufferData(gl::ARRAY_BUFFER,

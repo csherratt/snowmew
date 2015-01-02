@@ -21,8 +21,6 @@ extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 
 use snowmew::input_integrator::InputIntegratorGameData;
-use snowmew::debugger::DebuggerGameData;
-
 
 #[deriving(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub struct RenderData {
@@ -69,7 +67,3 @@ impl<T: Renderable> Renderable for InputIntegratorGameData<T> {
     fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
 }
 
-impl<T: Renderable> Renderable for DebuggerGameData<T> {
-    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.inner.get_render_data() }
-    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
-}

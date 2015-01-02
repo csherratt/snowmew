@@ -40,6 +40,9 @@ path = "src/snowmew-render-mux/"
 [dependencies.snowmew-loader]
 path = "src/snowmew-loader/"
 
+[dependencies.snowmew-debugger]
+path = "src/snowmew-debugger/"
+
 [dependencies]
 time = "*"
 rustc-serialize="*"
@@ -56,3 +59,9 @@ path = "examples/gears/main.rs"
 [[example]]
 name = "noclip"
 path = "examples/noclip/main.rs"
+
+[profile.test]
+opt-level = 3
+debug = true
+rpath = false
+lto = false

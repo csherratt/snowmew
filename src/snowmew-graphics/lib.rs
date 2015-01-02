@@ -32,13 +32,10 @@ extern crate "snowmew-core" as snowmew;
 
 use std::slice;
 
-
 use cgmath::Point3;
 use collision::sphere::Sphere;
-
 use snowmew::common::{Common, Entity, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
-use snowmew::debugger::DebuggerGameData;
 use snowmew::table::{Static, StaticIterator};
 
 pub use geometry::{Geometry, VertexBuffer};
@@ -364,7 +361,3 @@ impl<T: Graphics> Graphics for InputIntegratorGameData<T> {
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
 }
 
-impl <T: Graphics> Graphics for DebuggerGameData<T> {
-    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
-    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
-}

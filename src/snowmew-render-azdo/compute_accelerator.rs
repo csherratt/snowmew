@@ -129,7 +129,11 @@ impl PositionGlAccelerator {
                 gl::GetProgramInfoLog(program,
                                       len,
                                       ptr::null_mut(),
+<<<<<<< Updated upstream
                                       mem::transmute(buf.as_mut_slice().get_unchecked_mut(0)));
+=======
+                                      mem::transmute(buf.as_mut_slice().get_mut(0)));
+>>>>>>> Stashed changes
                 panic!("glsl error: {}", str::raw::from_utf8(buf.as_slice()));
             }
         }

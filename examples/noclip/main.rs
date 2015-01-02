@@ -32,7 +32,6 @@ use std::f32;
 use cgmath::*;
 
 use snowmew::input;
-use snowmew::debugger::debugger;
 use snowmew::input_integrator::{input_integrator, InputIntegratorState};
 use snowmew::game::Game;
 use snowmew::camera::Camera;
@@ -112,7 +111,6 @@ fn main() {
     db.new_light(light::Light::Directional(sun));
 
     let (game, gd) = input_integrator(Noclip, db);
-    let (game, gd) = debugger(game, gd);
     sc.start(box RenderFactory::new(), game, gd);
 }
 

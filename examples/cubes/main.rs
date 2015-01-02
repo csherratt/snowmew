@@ -33,7 +33,6 @@ use cgmath::*;
 
 use snowmew::input;
 use snowmew::input_integrator::{input_integrator, InputIntegratorState};
-use snowmew::debugger::{debugger};
 use snowmew::game::Game;
 use snowmew::camera::Camera;
 use position::Positions;
@@ -89,7 +88,6 @@ fn main() {
     gd.set_camera(camera);
 
     let (game, gd) = input_integrator(Cubes, gd);
-    let (game, gd) = debugger(game, gd);
     sc.start(box RenderFactory::new(), game, gd);
 }
 
