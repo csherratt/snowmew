@@ -113,6 +113,7 @@ impl<GameData: Clone+Send+Sync,
             }
         }
         if let Some((idx, f)) = out {
+            println!("{}", idx);
             gd.index = idx;
             gd.inner = f;
         }

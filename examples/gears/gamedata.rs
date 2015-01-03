@@ -18,6 +18,7 @@ use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use render_data::{Renderable, RenderData};
+use debugger::{DebuggerGameData};
 
 
 #[deriving(Clone, RustcEncodable, RustcDecodable)]
@@ -62,6 +63,44 @@ impl Graphics for GameData {
 }
 
 impl Renderable for GameData {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render }
+}
+
+#[deriving(Clone)]
+pub struct GearsInputData {
+    pub paused: bool,
+    pub inner: DebuggerGameData<GameData, f64>
+}
+
+impl Deref<DebuggerGameData<GameData, f64>> for GearsInputData {
+    fn deref<'a>(&'a self) -> &'a DebuggerGameData<GameData, f64> {
+        &self.inner
+    }
+}
+
+impl DerefMut<DebuggerGameData<GameData, f64>> for GearsInputData {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut DebuggerGameData<GameData, f64> {
+        &mut self.inner
+    }
+}
+
+impl Common for GearsInputData {
+    fn get_common<'a>(&'a self) -> &'a CommonData { &self.common }
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { &mut self.common }
+}
+
+impl Positions for GearsInputData {
+    fn get_position<'a>(&'a self) -> &'a PositionData { &self.position }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { &mut self.position }
+}
+
+impl Graphics for GearsInputData {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { &self.graphics }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { &mut self.graphics }
+}
+
+impl Renderable for GearsInputData {
     fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render }
     fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render }
 }

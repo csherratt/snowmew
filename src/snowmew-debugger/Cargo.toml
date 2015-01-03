@@ -1,5 +1,4 @@
 [package]
-
 name = "snowmew-debugger"
 version = "0.1.0"
 authors = [
@@ -12,12 +11,3 @@ path = "lib.rs"
 
 [dependencies.snowmew-core]
 path = "../snowmew-core"
-
-[dependencies.snowmew-position]
-path = "../snowmew-position"
-
-[dependencies.snowmew-graphics]
-path = "../snowmew-graphics"
-
-[dependencies.snowmew-render]
-path = "../snowmew-graphics"

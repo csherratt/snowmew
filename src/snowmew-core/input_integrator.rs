@@ -139,6 +139,18 @@ impl<GameData> InputIntegratorGameData<GameData> {
     }
 }
 
+impl<T> Deref<T> for InputIntegratorGameData<T> {
+    fn deref<'a>(&'a self) -> &'a T {
+        &self.inner
+    }
+}
+
+impl<T> DerefMut<T> for InputIntegratorGameData<T> {
+    fn deref_mut <'a>(&'a mut self) -> &'a mut T {
+        &mut self.inner
+    }
+}
+
 impl<T: Common> Common for InputIntegratorGameData<T> {
     fn get_common<'a>(&'a self) -> &'a CommonData { self.inner.get_common() }
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { self.inner.get_common_mut() }

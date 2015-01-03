@@ -32,23 +32,29 @@ extern crate "snowmew-render" as render_data;
 use cgmath::*;
 use debugger::{Debugger, DebuggerGameData};
 use graphics::light;
-use graphics::{Graphics, GraphicsData};
+use graphics::{Graphics};
 use loader::Obj;
-use position::{Positions, PositionData};
+use position::{Positions};
 use render::RenderFactory;
-use render_data::{Renderable, RenderData};
-use snowmew::common::{Common, CommonData};
+use render_data::{Renderable};
+use snowmew::common::{Common};
 use snowmew::game::Game;
 use snowmew::input_integrator::{input_integrator, InputIntegratorState};
 
-use gamedata::GameData;
+use gamedata::{GameData, GearsInputData};
 
 mod gamedata;
 
 fn main() {
     let sc = snowmew::SnowmewConfig::new();
+    let game = GearsInput {
+        debugger: Debugger::new(Gears)
+    };
+    let mut gd = GearsInputData {
+        paused: false,
+        inner: DebuggerGameData::new(GameData::new(), 32)
+    };
 
-    let mut gd = GameData::new();
     let loader = Obj::load(&Path::new("assets/rust_logo.obj")).ok().expect("Failed to load OBJ");
     let obj = loader.import(&mut gd);
 
@@ -83,13 +89,6 @@ fn main() {
     gd.set_scene(scene);
     gd.set_camera(camera_loc);
 
-    let game = GearsInput {
-        debugger: Debugger::new(Gears)
-    };
-    let gd = GearsInputData {
-        paused: false,
-        inner: DebuggerGameData::new(gd, 32)
-    };
     let (game, gd) = input_integrator(game, gd);
     sc.start(box RenderFactory::new(), game, gd);
 }
@@ -107,7 +106,6 @@ impl Game<GameData, f64> for Gears {
                                                           deg(this_gear_rot).to_rad(),
                                                           deg(90f32).to_rad()));
         }
-
         next
     }
 }
@@ -136,29 +134,4 @@ impl Game<GearsInputData, InputIntegratorState> for GearsInput {
     }
 }
 
-#[deriving(Clone)]
-struct GearsInputData {
-    paused: bool,
-    inner: DebuggerGameData<GameData, f64>
-}
-
-impl Common for GearsInputData {
-    fn get_common<'a>(&'a self) -> &'a CommonData { self.inner.get_common() }
-    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { self.inner.get_common_mut() }
-}
-
-impl Positions for GearsInputData {
-    fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
-    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
-}
-
-impl Graphics for GearsInputData {
-    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
-    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
-}
-
-impl Renderable for GearsInputData {
-    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.inner.get_render_data() }
-    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
-}
 
