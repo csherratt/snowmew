@@ -74,11 +74,11 @@ impl Default for Material {
 impl Material {
     pub fn new() -> Material {
         Material {
-            ka: F32v3([0., ..3]),
-            kd: F32v3([0., ..3]),
-            ks: F32v3([0., ..3]),
-            ke: F32v3([0., ..3]),
-            tf: F32v3([0., ..3]),
+            ka: F32v3([0.; 3]),
+            kd: F32v3([0.; 3]),
+            ks: F32v3([0.; 3]),
+            ke: F32v3([0.; 3]),
+            tf: F32v3([0.; 3]),
             ns: 0.,
             ni: 0.,
             tr: 0.,
@@ -95,7 +95,7 @@ impl Material {
         }
     }
 
-    pub fn simple(color: [f32, ..3]) -> Material {
+    pub fn simple(color: [f32; 3]) -> Material {
         let mut mat = Material::new();
         mat.ka = F32v3(color);
         mat.kd = F32v3(color);
@@ -103,20 +103,20 @@ impl Material {
         mat
     }
 
-    pub fn ka(&self) -> [f32, ..3] {self.ka.0}
-    pub fn set_ka(&mut self, c: [f32, ..3]) {self.ka = F32v3(c);}
+    pub fn ka(&self) -> [f32; 3] {self.ka.0}
+    pub fn set_ka(&mut self, c: [f32; 3]) {self.ka = F32v3(c);}
 
-    pub fn kd(&self) -> [f32, ..3] {self.kd.0}
-    pub fn set_kd(&mut self, c: [f32, ..3]) {self.kd = F32v3(c);}
+    pub fn kd(&self) -> [f32; 3] {self.kd.0}
+    pub fn set_kd(&mut self, c: [f32; 3]) {self.kd = F32v3(c);}
 
-    pub fn ks(&self) -> [f32, ..3] {self.ks.0}
-    pub fn set_ks(&mut self, c: [f32, ..3]) {self.ks = F32v3(c);}
+    pub fn ks(&self) -> [f32; 3] {self.ks.0}
+    pub fn set_ks(&mut self, c: [f32; 3]) {self.ks = F32v3(c);}
 
-    pub fn ke(&self) -> [f32, ..3] {self.ks.0}
-    pub fn set_ke(&mut self, c: [f32, ..3]) {self.ke = F32v3(c);}
+    pub fn ke(&self) -> [f32; 3] {self.ks.0}
+    pub fn set_ke(&mut self, c: [f32; 3]) {self.ke = F32v3(c);}
 
-    pub fn tf(&self) -> [f32, ..3] {self.tf.0}
-    pub fn set_tf(&mut self, c: [f32, ..3]) {self.tf = F32v3(c);}
+    pub fn tf(&self) -> [f32; 3] {self.tf.0}
+    pub fn set_tf(&mut self, c: [f32; 3]) {self.tf = F32v3(c);}
 
     pub fn map_ka(&self) -> Option<Entity> {self.map_ka}
     pub fn set_map_ka(&mut self, oid: Entity) {self.map_ka = Some(oid);}
@@ -150,7 +150,7 @@ impl Material {
 }
 
 #[deriving(PartialEq, Copy)]
-struct F32v3([f32, ..3]);
+struct F32v3([f32; 3]);
 
 impl <E, S: Encoder<E>> Encodable<S, E> for F32v3 {
     fn encode(&self, s: &mut S) -> Result<(), E> {

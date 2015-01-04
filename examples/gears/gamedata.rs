@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-
+use std::ops::{Deref, DerefMut};
 use snowmew::Entity;
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
@@ -73,13 +73,15 @@ pub struct GearsInputData {
     pub inner: DebuggerGameData<GameData, f64>
 }
 
-impl Deref<DebuggerGameData<GameData, f64>> for GearsInputData {
+impl Deref for GearsInputData {
+    type Target = DebuggerGameData<GameData, f64>;
+
     fn deref<'a>(&'a self) -> &'a DebuggerGameData<GameData, f64> {
         &self.inner
     }
 }
 
-impl DerefMut<DebuggerGameData<GameData, f64>> for GearsInputData {
+impl DerefMut for GearsInputData {
     fn deref_mut<'a>(&'a mut self) -> &'a mut DebuggerGameData<GameData, f64> {
         &mut self.inner
     }

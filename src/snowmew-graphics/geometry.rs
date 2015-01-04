@@ -18,7 +18,7 @@ use snowmew::common::Entity;
 use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
 #[deriving(Copy)]
-struct F32v3([f32, ..3]);
+struct F32v3([f32; 3]);
 
 impl <E, S: Encoder<E>> Encodable<S, E> for F32v3 {
     fn encode(&self, s: &mut S) -> Result<(), E> {
@@ -42,7 +42,7 @@ impl <E, D: Decoder<E>> Decodable<D, E> for F32v3 {
     }
 }
 
-struct F32v2([f32, ..2]);
+struct F32v2([f32; 2]);
 
 impl <E, S: Encoder<E>> Encodable<S, E> for F32v2 {
     fn encode(&self, s: &mut S) -> Result<(), E> {
@@ -76,7 +76,7 @@ pub enum Primative {
 #[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeo {
-    pub position: [f32, ..3]
+    pub position: [f32; 3]
 }
 
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeo {
@@ -109,8 +109,8 @@ impl PartialEq for VertexGeo {
 #[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeoNorm {
-    pub position: [f32, ..3],
-    pub normal:   [f32, ..3]
+    pub position: [f32; 3],
+    pub normal:   [f32; 3]
 }
 
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoNorm {
@@ -155,8 +155,8 @@ impl PartialEq for VertexGeoNorm {
 #[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeoTex {
-    pub position: [f32, ..3],
-    pub texture:  [f32, ..2]
+    pub position: [f32; 3],
+    pub texture:  [f32; 2]
 }
 
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTex {
@@ -202,9 +202,9 @@ impl PartialEq for VertexGeoTex {
 #[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeoTexNorm {
-    pub position: [f32, ..3],
-    pub texture:  [f32, ..2],
-    pub normal:   [f32, ..3]
+    pub position: [f32; 3],
+    pub texture:  [f32; 2],
+    pub normal:   [f32; 3]
 }
 
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTexNorm {
@@ -255,10 +255,10 @@ impl PartialEq for VertexGeoTexNorm {
 #[deriving(Copy)]
 #[vertex_format]
 pub struct VertexGeoTexNormTan {
-    pub position: [f32, ..3],
-    pub texture:  [f32, ..2],
-    pub normal:   [f32, ..3],
-    pub tangent:  [f32, ..3],
+    pub position: [f32; 3],
+    pub texture:  [f32; 2],
+    pub normal:   [f32; 3],
+    pub tangent:  [f32; 3],
 }
 
 impl <E, S: Encoder<E>> Encodable<S, E> for VertexGeoTexNormTan {

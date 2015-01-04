@@ -34,13 +34,18 @@ extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render" as render_data;
+extern crate collect;
 
 use std::collections::{HashMap, BTreeSet};
-use std::comm::Receiver;
+use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread::{Thread, JoinGuard};
+use std::sync::Arc;
 
 use opencl::hl;
-use std::sync::Arc;
+use gfx::{Device, DeviceHelper};
+use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
+use cgmath::{FixedArray, Matrix4, Vector3, Point};
+use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 
 use position::Positions;
 use graphics::Graphics;
@@ -48,29 +53,21 @@ use snowmew::common::Entity;
 use snowmew::io::Window;
 use snowmew::camera::Camera;
 use graphics::Material;
-
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
-
-use cow::join::join_set_to_map;
 use render_data::Renderable;
-
-use gfx::{Device, DeviceHelper};
-
-use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
-use cgmath::{FixedArray, Matrix4, Vector3, Point};
 
 #[deriving(Copy)]
 struct SharedMatrix {
-    proj_mat: [[f32, ..4], ..4],
-    view_mat: [[f32, ..4], ..4]
+    proj_mat: [[f32; 4]; 4],
+    view_mat: [[f32; 4]; 4]
 }
 
 #[deriving(Copy)]
 struct SharedMaterial {
-    ka_color: [f32, ..4],
-    kd_color: [f32, ..4],
-    ks_color: [f32, ..4],
+    ka_color: [f32; 4],
+    kd_color: [f32; 4],
+    ks_color: [f32; 4],
 
     ka_use_texture: i32,
     kd_use_texture: i32,
@@ -207,15 +204,15 @@ struct Params {
     shadow_shared_mat: gfx::RawBufferHandle,
     shared_mat: gfx::RawBufferHandle,
 
-    shadow_bias_mat: [[f32, ..4], ..4],
+    shadow_bias_mat: [[f32; 4]; 4],
 
     material: gfx::RawBufferHandle,
     ka_texture: gfx::shade::TextureParam,
     kd_texture: gfx::shade::TextureParam,
     ks_texture: gfx::shade::TextureParam,
 
-    light_normal: [f32, ..4],
-    light_color: [f32, ..4],
+    light_normal: [f32; 4],
+    light_color: [f32; 4],
     shadow: gfx::shade::TextureParam,
 
     model: gfx::RawBufferHandle,
@@ -302,8 +299,8 @@ pub struct RenderManagerContext {
     shadow_batches: HashMap<Entity, ShadowProgram>,
     draw_batches: HashMap<Entity, DrawProgram>,
 
-    spare_matrix_buffers: Vec<device::BufferHandle<[[f32, ..4], ..4]>>,
-    used_matrix_buffers: Vec<device::BufferHandle<[[f32, ..4], ..4]>>,
+    spare_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
+    used_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
     shared_geometry: Vec<(u32, device::BufferHandle<[[f32; 4]; 4]>, uint, uint)>,
     shared_geometry_material: Vec<(u32, u32, device::BufferHandle<[[f32; 4]; 4]>, uint, uint)>,
 }
@@ -556,7 +553,7 @@ impl RenderManagerContext {
         self.shadow_batches.clear();
         self.draw_batches.clear();
 
-        for (id, draw) in join_set_to_map(db.scene_iter(scene), db.drawable_iter()) {
+        for (id, draw) in db.scene_iter(scene).inner_join_map(db.drawable_iter()) {
             self.batch.insert((draw.geometry, draw.material, id));
 
             if !self.shadow_batches.contains_key(&draw.geometry) {
@@ -594,7 +591,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn fetch_matrix(&mut self) -> device::BufferHandle<[[f32, ..4], ..4]> {
+    fn fetch_matrix(&mut self) -> device::BufferHandle<[[f32; 4]; 4]> {
         let buffer = if let Some(buffer) = self.spare_matrix_buffers.pop() {
             buffer
         } else {
@@ -827,7 +824,7 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
             let mut rc = RenderManagerContext::_new(device, window, size, cl);
             loop {
                 // wait for a copy of the game
-                let mut db = recv.recv();
+                let mut db = recv.recv().ok().expect("Failed to rcv");
 
                 loop {
                     match recv.try_recv() {
@@ -835,8 +832,8 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
                             db = _db;
                         }
                         // no newer copy
-                        Err(std::comm::Empty) => break,
-                        Err(std::comm::Disconnected) => return,
+                        Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => return,
                     }
                 }
                 rc.update(db);

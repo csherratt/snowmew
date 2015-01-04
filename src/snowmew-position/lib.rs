@@ -16,6 +16,8 @@
 
 #![crate_type = "lib"]
 #![feature(macro_rules)]
+#![feature(old_orphan_check)]
+
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
@@ -355,7 +357,7 @@ pub mod cl {
         pub fn compute_vec4x4<P: Positions>(&mut self,
                                         pos: &P,
                                         queue: &CommandQueue,
-                                        buf: &[CLBuffer<Vector4<f32>>, ..4]) -> Event {
+                                        buf: &[CLBuffer<Vector4<f32>>; 4]) -> Event {
             self.write(pos);
             let max = pos.position_max();
             let event = [queue.write_async(&self.input, &self.input_buf.slice(0, max), ()),

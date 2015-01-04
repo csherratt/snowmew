@@ -13,9 +13,6 @@ path = "lib.rs"
 [dependencies.snowmew-core]
 path = "../snowmew-core"
 
-[dependencies.snowmew-render-azdo]
-path = "../snowmew-render-azdo"
-
 [dependencies.snowmew-render-gfx]
 path = "../snowmew-render-gfx"
 

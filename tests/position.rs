@@ -131,7 +131,7 @@ fn write_positions_tree() {
 }
 
 fn fetch_matrixs(queue: &opencl::hl::CommandQueue,
-                 buffers: &[opencl::mem::CLBuffer<Vector4<f32>>, ..4]) -> Vec<Matrix4<f32>> {
+                 buffers: &[opencl::mem::CLBuffer<Vector4<f32>>; 4]) -> Vec<Matrix4<f32>> {
 
     let vec0: Vec<Vector4<f32>> = queue.get(&buffers[0], ());
     let vec1: Vec<Vector4<f32>> = queue.get(&buffers[1], ());
@@ -151,7 +151,7 @@ fn calc_positions_opencl_vec4x4() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
-    let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4]
+    let buffers: [opencl::mem::CLBuffer<Vector4<f32>>; 4]
                 = [context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                    context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                    context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
@@ -186,7 +186,7 @@ fn calc_positions_opencl_vec4x4_tree() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
     let mut ctx = Accelerator::new(&context, &device);
 
-    let buffers: [opencl::mem::CLBuffer<Vector4<f32>>, ..4]
+    let buffers: [opencl::mem::CLBuffer<Vector4<f32>>; 4]
             = [context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),
                context.create_buffer(16, opencl::cl::CL_MEM_READ_WRITE),

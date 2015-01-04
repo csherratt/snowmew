@@ -15,6 +15,8 @@
 #![crate_name = "gears"]
 #![feature(macro_rules)]
 #![feature(globs)]
+#![feature(old_orphan_check)]
+#![feature(associated_types)]
 
 extern crate glfw;
 extern crate gl;

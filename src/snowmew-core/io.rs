@@ -14,6 +14,7 @@
 
 use std::sync::Arc;
 use std::kinds::Sync;
+use std::sync::mpsc::Receiver;
 #[cfg(target_os="linux")]
 use libc::c_void;
 

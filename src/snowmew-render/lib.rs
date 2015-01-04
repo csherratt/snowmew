@@ -15,6 +15,8 @@
 #![crate_name = "snowmew-render"]
 #![crate_type = "lib"]
 
+#![feature(old_orphan_check)]
+
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;

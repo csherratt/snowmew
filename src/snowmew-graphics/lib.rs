@@ -17,6 +17,7 @@
 #![crate_type = "lib"]
 #![feature(phase)]
 #![feature(macro_rules)]
+#![feature(old_orphan_check)]
 
 
 #[phase(plugin)]
@@ -31,6 +32,8 @@ extern crate "stb_image" as image;
 extern crate "snowmew-core" as snowmew;
 
 use std::slice;
+use std::cmp::Ordering::{Less, Equal, Greater};
+use std::cmp::Ordering;
 
 use cgmath::Point3;
 use collision::sphere::Sphere;
@@ -108,7 +111,7 @@ impl GraphicsData {
 }
 
 
-pub trait Graphics: Common {
+pub trait Graphics: Common + Sized {
     fn get_graphics<'a>(&'a self) -> &'a GraphicsData;
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData;
 
@@ -318,13 +321,13 @@ pub struct VertexBufferIter<'a> {
 }
 
 impl<'a> Iterator<(u32,
-                   &'a [f32, ..3],
-                   Option<&'a [f32, ..2]>,
-                   Option<&'a [f32, ..3]>)> for VertexBufferIter<'a> {
+                   &'a [f32; 3],
+                   Option<&'a [f32; 2]>,
+                   Option<&'a [f32; 3]>)> for VertexBufferIter<'a> {
     fn next(&mut self) -> Option<(u32,
-                                  &'a [f32, ..3],
-                                  Option<&'a [f32, ..2]>,
-                                  Option<&'a [f32, ..3]>)> {
+                                  &'a [f32; 3],
+                                  Option<&'a [f32; 2]>,
+                                  Option<&'a [f32; 3]>)> {
 
         let idx = match self.idx_iter.next() {
             None => return None,

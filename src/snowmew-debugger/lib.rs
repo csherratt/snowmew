@@ -12,10 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+#![feature(old_orphan_check)]
+#![feature(associated_types)]
+
 extern crate "snowmew-core" as core;
 
 use std::sync::Arc;
 use std::collections::{VecMap, BTreeMap};
+use std::ops::{Deref, DerefMut};
 use core::game::Game;
 
 #[deriving(Clone)]
@@ -70,14 +74,16 @@ impl<GameData: Send+Sync+Clone, Event: Send+Sync+Clone> DebuggerGameData<GameDat
     }
 }
 
-impl<E, T> Deref<T> for DebuggerGameData<T, E> {
-    fn deref<'a>(&'a self) -> &'a T {
+impl<E, T> Deref for DebuggerGameData<T, E> {
+    type Target = T;
+
+    fn deref<'a>(&'a self) -> &'a <Self as Deref>::Target {
         &self.inner
     }
 }
 
-impl<E, T> DerefMut<T> for DebuggerGameData<T, E> {
-    fn deref_mut <'a>(&'a mut self) -> &'a mut T {
+impl<E, T> DerefMut for DebuggerGameData<T, E> {
+    fn deref_mut <'a>(&'a mut self) -> &'a mut <Self as Deref>::Target {
         &mut self.inner
     }
 }

@@ -18,12 +18,9 @@
 extern crate opencl;
 extern crate "snowmew-render-gfx" as gfx;
 extern crate "snowmew-core" as snowmew;
-extern crate "snowmew-render-azdo" as azdo;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render" as render_data;
-
-use std::os;
 
 use opencl::hl::Device;
 use std::sync::Arc;
@@ -49,29 +46,7 @@ impl<'r, RD: Renderable+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for 
             size: (i32, i32),
             cl: Option<Arc<Device>>) -> RenderMux<'r, RD> {
 
-        let s = match os::getenv("AZDO") {
-            Some(s) => s,
-            None => "false".to_string()
-        };
-        let s: String = s.as_slice().chars().map(|c| c.to_lowercase()).collect();
-
-        let use_azdo = match s.as_slice() {
-            "true" => Some(true),
-            "enabled" => Some(true),
-            "1" => Some(true),
-            "false" => Some(false),
-            "disabled" => Some(false),
-            "0" => Some(false),
-            _ => None
-        };
-
-        let rm: RenderMux<RD> = if use_azdo.is_some() && use_azdo.unwrap() {
-            let rf: Box<snowmew::RenderFactory<RD, azdo::RenderManager<RD>>> = box azdo::RenderFactory::new();
-            let render: Box<azdo::RenderManager<RD>> = box rf.init(io, window, size, cl);
-            RenderMux {
-                render: render as Box<snowmew::Render<RD>>
-            }
-        } else {
+        let rm: RenderMux<RD> = {
             let rf: Box<snowmew::RenderFactory<RD, gfx::RenderManager<RD>>> = box gfx::RenderFactory::new();
             let render: Box<gfx::RenderManager<RD>> = box rf.init(io, window, size, cl);
             RenderMux {

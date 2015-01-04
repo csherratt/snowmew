@@ -17,8 +17,9 @@
 
 #![feature(macro_rules)]
 #![feature(globs)]
+#![feature(associated_types)]
+#![feature(old_orphan_check)]
 #![allow(experimental)]
-#![feature(macro_rules)]
 
 extern crate time;
 extern crate glfw;

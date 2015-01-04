@@ -18,6 +18,7 @@ use input::Event;
 use input::Button;
 use common::{Common, CommonData};
 use std::collections::{HashSet, HashMap};
+use std::ops::{Deref, DerefMut};
 
 
 
@@ -139,14 +140,15 @@ impl<GameData> InputIntegratorGameData<GameData> {
     }
 }
 
-impl<T> Deref<T> for InputIntegratorGameData<T> {
-    fn deref<'a>(&'a self) -> &'a T {
+impl<T> Deref for InputIntegratorGameData<T> {
+    type Target = T;
+    fn deref<'a>(&'a self) -> &'a <Self as Deref>::Target {
         &self.inner
     }
 }
 
-impl<T> DerefMut<T> for InputIntegratorGameData<T> {
-    fn deref_mut <'a>(&'a mut self) -> &'a mut T {
+impl<T> DerefMut for InputIntegratorGameData<T> {
+    fn deref_mut <'a>(&'a mut self) -> &'a mut <Self as Deref>::Target {
         &mut self.inner
     }
 }
