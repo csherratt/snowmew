@@ -17,7 +17,7 @@ use snowmew::table::{Static, StaticIterator};
 
 use Texture;
 
-#[deriving(Clone, RustcEncodable, RustcDecodable)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct Atlas {
     width: uint,
     height: uint,

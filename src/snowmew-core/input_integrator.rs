@@ -24,7 +24,7 @@ use std::ops::{Deref, DerefMut};
 
 /// This `wraps` your game to allow the `input integrator` to
 /// collect input events to simplify event handling.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InputIntegrator<Game> {
     game: Game
 }
@@ -36,7 +36,7 @@ impl<Game> InputIntegrator<Game> {
 }
 
 /// Contains the collected input state
-#[deriving(Clone, RustcEncodable, RustcDecodable)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct InputIntegratorState {
     buttons_down: HashMap<Button, uint>,
     buttons_released: HashSet<Button>,
@@ -114,7 +114,7 @@ impl InputIntegratorState {
 
 /// This wraps the supplied GameData so that it contains
 /// both the gamedata and the input integrators current state
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InputIntegratorGameData<GameData> {
     state: InputIntegratorState,
     /// The GameData that is wrapped by the Integrator

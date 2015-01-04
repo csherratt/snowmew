@@ -14,7 +14,7 @@ use Entity;
 
 
 /// a Static table should be used for infrequently updated data
-#[deriving(RustcEncodable, RustcDecodable)]
+#[derive(RustcEncodable, RustcDecodable)]
 pub struct Static<T: Send+Sync+Clone+Default>(BTreeMap<Entity, T>);
 
 impl<T: Send+Clone+Sync+Default> Clone for Static<T> {
@@ -68,7 +68,7 @@ impl<'a, T: Send+Sync> Iterator<(Entity, &'a T)> for StaticIterator<'a, T> {
     }
 }
 
-#[deriving(Clone, RustcEncodable, RustcDecodable, Default)]
+#[derive(Clone, RustcEncodable, RustcDecodable, Default)]
 pub struct StaticSet(BTreeSet<Entity>);
 
 impl StaticSet {
@@ -108,7 +108,7 @@ impl<'a> Iterator<Entity> for StaticSetIterator<'a> {
     }
 }
 
-#[deriving(Default, RustcEncodable, RustcDecodable)]
+#[derive(Default, RustcEncodable, RustcDecodable)]
 pub struct Dynamic<T: Send+Sync+Clone>(Arc<VecMap<T>>);
 
 impl<T: Send+Clone+Sync+Default> Clone for Dynamic<T> {

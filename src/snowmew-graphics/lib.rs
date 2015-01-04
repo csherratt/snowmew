@@ -58,7 +58,7 @@ pub mod texture;
 pub mod texture_atlas;
 pub mod light;
 
-#[deriving(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, RustcEncodable, RustcDecodable, Copy)]
+#[derive(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, RustcEncodable, RustcDecodable, Copy)]
 pub struct Drawable {
     pub geometry: Entity,
     pub material: Entity
@@ -75,7 +75,7 @@ impl Ord for Drawable {
     }
 }
 
-#[deriving(Clone, RustcEncodable, RustcDecodable)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct GraphicsData {
     draw:               Static<Drawable>,
     geometry:           Static<Geometry>,

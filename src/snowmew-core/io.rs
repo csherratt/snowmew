@@ -345,7 +345,7 @@ impl IOManager {
     }
 }
 
-#[deriving(Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct InputHandle {
     handle: uint,
 }
@@ -414,7 +414,7 @@ impl Window {
     }
 }
 
-#[deriving(Clone, RustcEncodable, RustcDecodable)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct IoState {
     pub render_size: (uint, uint),
     pub size: (uint, uint),

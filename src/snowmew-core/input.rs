@@ -14,7 +14,7 @@
 
 use glfw;
 
-#[deriving(Clone, Show, Eq, PartialEq, Hash, RustcDecodable, RustcEncodable, Copy)]
+#[derive(Clone, Show, Eq, PartialEq, Hash, RustcDecodable, RustcEncodable, Copy)]
 pub enum Button {
     KeyboardSpace,
     KeyboardApostrophe,
@@ -284,7 +284,7 @@ pub fn from_glfw_mouse_button(key: glfw::MouseButton) -> Button {
     };
 }
 
-#[deriving(Clone, Show, PartialEq, Copy)]
+#[derive(Clone, Show, PartialEq, Copy)]
 pub enum Event {
     ButtonDown(Button),
     ButtonUp(Button),
@@ -293,14 +293,14 @@ pub enum Event {
     Cadance(f64)
 }
 
-#[deriving(Clone, Show, PartialEq, Copy)]
+#[derive(Clone, Show, PartialEq, Copy)]
 pub enum WindowEvent {
     MouseOver(bool),
     Position(int, int),
     Size(int, int)
 }
 
-#[deriving(Clone, Show, PartialEq, Copy)]
+#[derive(Clone, Show, PartialEq, Copy)]
 pub enum EventGroup {
     Game(Event),
     Window(WindowEvent),

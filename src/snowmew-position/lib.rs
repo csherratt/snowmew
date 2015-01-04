@@ -52,7 +52,7 @@ impl<'r> MatrixManager for Vec<Matrix4<f32>> {
 }
 
 
-#[deriving(RustcEncodable, RustcDecodable, Copy)]
+#[derive(RustcEncodable, RustcDecodable, Copy)]
 pub struct Delta {
     pub parent: Option<Entity>,
     pub delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>
@@ -76,7 +76,7 @@ impl Default for Delta {
     }
 }
 
-#[deriving(Clone, RustcEncodable, RustcDecodable)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct PositionData {
     delta: Dynamic<Delta>,
 }
@@ -271,7 +271,7 @@ pub mod cl {
 
     const OPENCL_PROGRAM: &'static str = include_str!("position.c");
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Delta {
         delta: Decomposed<f32, Vector3<f32>, Quaternion<f32>>
     }

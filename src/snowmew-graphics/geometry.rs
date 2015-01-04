@@ -17,7 +17,7 @@ use std::default::Default;
 use snowmew::common::Entity;
 use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
-#[deriving(Copy)]
+#[derive(Copy)]
 struct F32v3([f32; 3]);
 
 impl <E, S: Encoder<E>> Encodable<S, E> for F32v3 {
@@ -65,7 +65,7 @@ impl <E, D: Decoder<E>> Decodable<D, E> for F32v2 {
 }
 
 
-#[deriving(Clone, RustcEncodable, RustcDecodable, Copy)]
+#[derive(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub enum Primative {
     Point,
     Line,
@@ -73,7 +73,7 @@ pub enum Primative {
     TriangleAdjacency
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 #[vertex_format]
 pub struct VertexGeo {
     pub position: [f32; 3]
@@ -106,7 +106,7 @@ impl PartialEq for VertexGeo {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 #[vertex_format]
 pub struct VertexGeoNorm {
     pub position: [f32; 3],
@@ -152,7 +152,7 @@ impl PartialEq for VertexGeoNorm {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 #[vertex_format]
 pub struct VertexGeoTex {
     pub position: [f32; 3],
@@ -199,7 +199,7 @@ impl PartialEq for VertexGeoTex {
 }
 
 
-#[deriving(Copy)]
+#[derive(Copy)]
 #[vertex_format]
 pub struct VertexGeoTexNorm {
     pub position: [f32; 3],
@@ -252,7 +252,7 @@ impl PartialEq for VertexGeoTexNorm {
 }
 
 
-#[deriving(Copy)]
+#[derive(Copy)]
 #[vertex_format]
 pub struct VertexGeoTexNormTan {
     pub position: [f32; 3],
@@ -302,7 +302,7 @@ impl Clone for VertexGeoTexNormTan {
 }
 
 
-#[deriving(Clone, RustcEncodable, RustcDecodable)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub enum Vertex {
     Geo(Vec<VertexGeo>),
     GeoTex(Vec<VertexGeoTex>),
@@ -317,14 +317,14 @@ impl Default for Vertex {
     }
 }
 
-#[deriving(Clone, Default, RustcEncodable, RustcDecodable)]
+#[derive(Clone, Default, RustcEncodable, RustcDecodable)]
 pub struct VertexBuffer {
     pub vertex: Vertex,
     pub index: Vec<u32>
 }
 
 
-#[deriving(Clone, Default, RustcEncodable, RustcDecodable, Copy)]
+#[derive(Clone, Default, RustcEncodable, RustcDecodable, Copy)]
 pub struct Geometry {
     pub vb: Entity,
     pub count: uint, // number of index elements

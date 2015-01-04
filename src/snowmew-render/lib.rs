@@ -24,7 +24,7 @@ extern crate "snowmew-graphics" as graphics;
 
 use snowmew::input_integrator::InputIntegratorGameData;
 
-#[deriving(Clone, RustcEncodable, RustcDecodable, Copy)]
+#[derive(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub struct RenderData {
     camera: Option<snowmew::Entity>,
     scene: Option<snowmew::Entity>

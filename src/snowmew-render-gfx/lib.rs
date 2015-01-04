@@ -57,13 +57,13 @@ use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use render_data::Renderable;
 
-#[deriving(Copy)]
+#[derive(Copy)]
 struct SharedMatrix {
     proj_mat: [[f32; 4]; 4],
     view_mat: [[f32; 4]; 4]
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 struct SharedMaterial {
     ka_color: [f32; 4],
     kd_color: [f32; 4],
@@ -847,7 +847,7 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct RenderFactory;
 
 impl RenderFactory {

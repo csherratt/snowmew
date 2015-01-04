@@ -19,7 +19,7 @@ use input;
 use table::{Static, StaticSet, StaticSetIterator};
 
 /// A common set of data owned by an `Entity`
-#[deriving(Clone, Default, RustcEncodable, RustcDecodable, Copy)]
+#[derive(Clone, Default, RustcEncodable, RustcDecodable, Copy)]
 pub struct Object {
     /// Who is the parent of this object
     pub parent: Entity,
@@ -30,7 +30,7 @@ pub type Entity = u32;
 
 /// CommonData is a container that contains all the information needed
 /// to implement the Common root of `snowmews`'s entity systems
-#[deriving(Clone, RustcEncodable, RustcDecodable)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct CommonData {
     last_oid:       Entity,
     objects:        Static<Object>,

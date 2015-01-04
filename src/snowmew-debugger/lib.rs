@@ -22,7 +22,7 @@ use std::collections::{VecMap, BTreeMap};
 use std::ops::{Deref, DerefMut};
 use core::game::Game;
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Debugger<Game> {
     game: Game
 }
@@ -33,7 +33,7 @@ impl<Game> Debugger<Game> {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct DebuggerGameData<GameData, Event> {
     index: uint,
     limit: uint,
