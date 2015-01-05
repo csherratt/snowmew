@@ -24,11 +24,13 @@ extern crate cgmath;
 extern crate opencl;
 extern crate cow;
 extern crate time;
+extern crate collect;
 extern crate "rustc-serialize" as rustc_serialize;
 
 use std::default::Default;
 
 use cgmath::{Transform, Decomposed, Vector3, Matrix4, ToMatrix4, Matrix, Quaternion};
+use collect::iter::OrderedMapIterator;
 
 use snowmew::common::{Entity, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
@@ -238,6 +240,9 @@ impl<'a> Iterator for PositionIter<'a> {
         self.iter.next().map(|(id, _)| (id, self.pos.position(id)) )
     }
 }
+
+impl<'a> OrderedMapIterator<Entity, Matrix4<f32>> for PositionIter<'a> {}
+
 
 impl Duplicate for PositionData {
     fn duplicate(&mut self, src: Entity, dst: Entity) {
