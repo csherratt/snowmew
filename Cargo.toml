@@ -40,6 +40,9 @@ path = "src/snowmew-loader/"
 [dependencies.snowmew-debugger]
 path = "src/snowmew-debugger/"
 
+[dependencies.snowmew-random]
+path = "src/snowmew-random/"
+
 [dependencies]
 time = "*"
 rustc-serialize="*"

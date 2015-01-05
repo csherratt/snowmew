@@ -1,0 +1,14 @@
+[package]
+
+name = "snowmew-random"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[lib]
+name = "snowmew-random"
+path = "lib.rs"
+
+[dependencies.snowmew-core]
+path = "../snowmew-core"

@@ -23,6 +23,7 @@ extern crate "snowmew-position"     as _position;
 extern crate "snowmew-render-mux"   as _render;
 extern crate "snowmew-render"  as _render_data;
 extern crate "snowmew-debugger" as _debugger;
+extern crate "snowmew-random" as _random;
 
 pub use _core::table;
 pub use _core::common::Entity as Entity;
@@ -112,5 +113,12 @@ pub mod debug {
     pub use _debugger::{
         Debugger,
         DebuggerGameData
+    };
+}
+
+pub mod random {
+    pub use _random::{
+        Random,
+        RandomData
     };
 }
