@@ -17,7 +17,7 @@
 #![crate_type = "lib"]
 #![feature(macro_rules)]
 #![feature(old_orphan_check)]
-
+#![feature(associated_types)]
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
@@ -231,7 +231,9 @@ pub struct PositionIter<'a> {
     iter: DynamicIterator<'a, Delta>
 }
 
-impl<'a> Iterator<(Entity, Matrix4<f32>)> for PositionIter<'a> {
+impl<'a> Iterator for PositionIter<'a> {
+    type Item = (Entity, Matrix4<f32>);
+
     fn next(&mut self) -> Option<(Entity, Matrix4<f32>)> {
         self.iter.next().map(|(id, _)| (id, self.pos.position(id)) )
     }

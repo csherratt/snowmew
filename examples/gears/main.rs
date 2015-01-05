@@ -19,7 +19,6 @@
 #![feature(associated_types)]
 
 extern crate glfw;
-extern crate gl;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-render-mux" as render;
 extern crate "snowmew-loader" as loader;

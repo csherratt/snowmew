@@ -22,7 +22,6 @@ use glfw::{WindowEvent, Glfw, Context, RenderContext};
 use glfw::WindowMode::{Windowed, FullScreen};
 use glfw;
 use nice_glfw;
-use gl;
 
 use collect::TrieMap;
 
@@ -92,11 +91,7 @@ impl IOManager {
             Some((window, events)) => (window, events),
             None => return None
         };
-
-        window.make_current();
-        gl::load_with(|name| self.glfw.get_proc_address_raw(name));
         self.glfw.set_swap_interval(1);
-        glfw::make_context_current(None);
 
         window.set_all_polling(true);
         window.show();
@@ -125,11 +120,6 @@ impl IOManager {
         match screen {
             None => None,
             Some((mut window, events)) => {
-                window.make_current();
-                gl::load_with(|name| self.glfw.get_proc_address_raw(name));
-                self.glfw.set_swap_interval(1);
-                glfw::make_context_current(None);
-
                 window.set_all_polling(true);
                 window.show();
                 let version = window.get_context_version();
@@ -235,11 +225,6 @@ impl IOManager {
                 Some((window, events)) => (window, events),
                 None => return None
             };
-
-            window.make_current();
-            gl::load_with(|name| self.glfw.get_proc_address_raw(name));
-            self.glfw.set_swap_interval(1);
-            glfw::make_context_current(None);
 
             window.set_all_polling(true);
             window.show();

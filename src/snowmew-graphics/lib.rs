@@ -18,7 +18,7 @@
 #![feature(phase)]
 #![feature(macro_rules)]
 #![feature(old_orphan_check)]
-
+#![feature(associated_types)]
 
 #[phase(plugin)]
 extern crate gfx_macros;
@@ -320,10 +320,9 @@ pub struct VertexBufferIter<'a> {
     idx_iter: std::slice::Iter<'a, u32>
 }
 
-impl<'a> Iterator<(u32,
-                   &'a [f32; 3],
-                   Option<&'a [f32; 2]>,
-                   Option<&'a [f32; 3]>)> for VertexBufferIter<'a> {
+impl<'a> Iterator for VertexBufferIter<'a> {
+    type Item = (u32, &'a [f32; 3], Option<&'a [f32; 2]>, Option<&'a [f32; 3]>);
+
     fn next(&mut self) -> Option<(u32,
                                   &'a [f32; 3],
                                   Option<&'a [f32; 2]>,

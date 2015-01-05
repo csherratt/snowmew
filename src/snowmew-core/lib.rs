@@ -27,7 +27,6 @@ extern crate cgmath;
 extern crate cow;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate nice_glfw;
-extern crate gl;
 extern crate collections;
 extern crate libc;
 extern crate opencl;

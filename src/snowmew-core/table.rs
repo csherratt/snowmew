@@ -59,7 +59,9 @@ pub struct StaticIterator<'a, T:'a> {
     iter: BTreeMapIterator<'a, Entity, T>
 }
 
-impl<'a, T: Send+Sync> Iterator<(Entity, &'a T)> for StaticIterator<'a, T> {
+impl<'a, T: Send+Sync> Iterator for StaticIterator<'a, T> {
+    type Item = (Entity, &'a T);
+
     fn next(&mut self) -> Option<(Entity, &'a T)> {
         match self.iter.next() {
             None => None,
@@ -99,7 +101,9 @@ pub struct StaticSetIterator<'a> {
     iter: BTreeSetIterator<'a, Entity>
 }
 
-impl<'a> Iterator<Entity> for StaticSetIterator<'a> {
+impl<'a> Iterator for StaticSetIterator<'a> {
+    type Item = Entity;
+
     fn next(&mut self) -> Option<Entity> {
         match self.iter.next() {
             None => None,
@@ -164,7 +168,9 @@ pub struct DynamicIterator<'a, T:'a> {
     iter: Iter<'a, T>
 }
 
-impl<'a, T: Send+Sync> Iterator<(Entity, &'a T)> for DynamicIterator<'a, T> {
+impl<'a, T: Send+Sync> Iterator for DynamicIterator<'a, T> {
+    type Item = (Entity, &'a T);
+
     fn next(&mut self) -> Option<(Entity, &'a T)> {
         match self.iter.next() {
             None => None,

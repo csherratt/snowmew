@@ -16,8 +16,6 @@ git = "https://github.com/csherratt/collision-rs.git"
 [dependencies.snowmew-core]
 path = "../snowmew-core/"
 
-[dependencies.gl]
-git = "https://github.com/bjz/gl-rs.git"
 
 [dependencies.stb_image]
 git = "https://github.com/csherratt/rust-stb-image.git"

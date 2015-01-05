@@ -22,7 +22,7 @@ use genmesh::{MapToVertices, Indexer, LruIndexer};
 use genmesh::{Vertices, Triangulate, Quad, Polygon};
 use cgmath::{Vector3, EuclideanVector};
 
-fn build_vectors<T: Iterator<Quad<VertexGeoTexNorm>>>(input: T)
+fn build_vectors<T: Iterator<Item=Quad<VertexGeoTexNorm>>>(input: T)
     -> (Vec<VertexGeoTexNorm>, Vec<u32>) {
 
     let mut mesh_data: Vec<VertexGeoTexNorm> = Vec::new();
@@ -62,7 +62,7 @@ fn build_vectors<T: Iterator<Quad<VertexGeoTexNorm>>>(input: T)
     (mesh_data, index)
 }
 
-fn build_vectors_poly<T: Iterator<Polygon<(f32, f32, f32)>>>(input: T)
+fn build_vectors_poly<T: Iterator<Item=Polygon<(f32, f32, f32)>>>(input: T)
     -> (Vec<VertexGeoTexNorm>, Vec<u32>) {
 
     let mut mesh_data: Vec<VertexGeoTexNorm> = Vec::new();

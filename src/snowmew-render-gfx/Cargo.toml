@@ -13,12 +13,6 @@ path = "lib.rs"
 [dependencies.collision]
 git = "https://github.com/csherratt/collision-rs.git"
 
-[dependencies.cow]
-git = "https://github.com/csherratt/cow-rs.git"
-
-[dependencies.gl]
-git = "https://github.com/bjz/gl-rs.git"
-
 [dependencies.stb_image]
 git = "https://github.com/csherratt/rust-stb-image.git"
 

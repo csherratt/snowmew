@@ -28,9 +28,6 @@ git = "https://github.com/bjz/cgmath-rs.git"
 [dependencies.cow]
 git = "https://github.com/csherratt/cow-rs.git"
 
-[dependencies.gl]
-git = "https://github.com/bjz/gl-rs.git"
-
 [dependencies.opencl]
 git = "https://github.com/csherratt/rust-opencl.git"
 
