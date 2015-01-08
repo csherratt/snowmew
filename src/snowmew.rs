@@ -23,6 +23,7 @@ extern crate "snowmew-render-mux"   as _render;
 extern crate "snowmew-render"  as _render_data;
 extern crate "snowmew-debugger" as _debugger;
 extern crate "snowmew-random" as _random;
+extern crate "snowmew-timer" as _timer;
 
 pub use _core::table;
 pub use _core::common::Entity as Entity;
@@ -131,4 +132,8 @@ pub mod random {
 
 pub mod loader {
     pub use _loader::Obj;
+}
+
+pub mod timer {
+    pub use _timer::{Timer, Phase};
 }

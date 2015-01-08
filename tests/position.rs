@@ -12,9 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-#![feature(macro_rules)]
-#![feature(globs)]
-#![feature(phase)]
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
