@@ -15,9 +15,9 @@
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
-use render_data::{Renderable, RenderData};
+use render::{Renderable, RenderData};
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct GameData {
     common: CommonData,
     position: PositionData,

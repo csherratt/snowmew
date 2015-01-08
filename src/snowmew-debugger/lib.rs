@@ -12,9 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-#![feature(old_orphan_check)]
-#![feature(associated_types)]
-
 extern crate "snowmew-core" as core;
 
 use std::sync::Arc;

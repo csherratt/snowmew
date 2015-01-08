@@ -15,12 +15,6 @@
 #![crate_name = "snowmew-core"]
 #![crate_type = "lib"]
 
-#![feature(macro_rules)]
-#![feature(globs)]
-#![feature(associated_types)]
-#![feature(old_orphan_check)]
-#![allow(experimental)]
-
 extern crate time;
 extern crate glfw;
 extern crate cgmath;

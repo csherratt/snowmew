@@ -13,7 +13,6 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew"]
-#![feature(globs)]
 
 extern crate "snowmew-core"         as _core;
 extern crate "snowmew-graphics"     as _graphics;
@@ -121,4 +120,8 @@ pub mod random {
         Random,
         RandomData
     };
+}
+
+pub mod loader {
+    pub use _loader::Obj;
 }

@@ -17,11 +17,11 @@ use snowmew::Entity;
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
-use render_data::{Renderable, RenderData};
-use debugger::{DebuggerGameData};
+use render::{Renderable, RenderData};
+use debug::{DebuggerGameData};
 
 
-#[deriving(Clone, RustcEncodable, RustcDecodable)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct GameData {
     common: CommonData,
     position: PositionData,
@@ -67,7 +67,7 @@ impl Renderable for GameData {
     fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct GearsInputData {
     pub paused: bool,
     pub inner: DebuggerGameData<GameData, f64>

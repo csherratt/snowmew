@@ -13,40 +13,39 @@
 //   limitations under the License.
 
 #![crate_name = "cubes"]
-#![feature(macro_rules)]
-#![feature(globs)]
 
 extern crate cgmath;
+extern crate snowmew;
+extern crate "rustc-serialize" as rustc_serialize;
 
-extern crate "snowmew-core" as snowmew;
-extern crate "snowmew-render-mux" as render;
-extern crate "snowmew-position" as position;
-extern crate "snowmew-graphics" as graphics;
-extern crate "snowmew-render" as render_data;
+pub use snowmew::{
+    core,
+    render,
+    loader,
+    graphics,
+    position,
+    input,
+    config,
+    debug
+};
 
 use std::str::FromStr;
 use std::f32;
 
 use cgmath::*;
-
-use snowmew::input;
-use snowmew::input_integrator::{input_integrator, InputIntegratorState};
-use snowmew::game::Game;
-use snowmew::camera::Camera;
-use position::Positions;
-use graphics::Graphics;
+use core::Game;
 use graphics::light;
-
-use render_data::Renderable;
-use render::RenderFactory;
-use snowmew::common::Common;
+use graphics::{Graphics};
+use input::{integrator, InputIntegratorState};
+use position::{Positions};
+use render::{Renderable, DefaultRender, Camera};
+use snowmew::common::{Common};
 
 use gamedata::GameData;
-
 mod gamedata;
 
 fn main() {
-    let sc = snowmew::SnowmewConfig::new();
+    let sc = config::SnowmewConfig::new();
 
     let mut gd = GameData::new();
     let scene = gd.new_scene();
@@ -85,8 +84,8 @@ fn main() {
     gd.set_scene(scene);
     gd.set_camera(camera);
 
-    let (game, gd) = input_integrator(Cubes, gd);
-    sc.start(box RenderFactory::new(), game, gd);
+    let (game, gd) = integrator(Cubes, gd);
+    sc.start(box DefaultRender::new(), game, gd);
 }
 
 struct Cubes;

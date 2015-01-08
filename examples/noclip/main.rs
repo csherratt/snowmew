@@ -13,41 +13,40 @@
 //   limitations under the License.
 
 #![crate_name = "noclip"]
-#![feature(macro_rules)]
-#![feature(globs)]
 
 extern crate cgmath;
-extern crate "snowmew-core" as snowmew;
-extern crate "snowmew-render-mux" as render;
-extern crate "snowmew-loader" as loader;
-extern crate "snowmew-position" as position;
-extern crate "snowmew-graphics" as graphics;
-extern crate "snowmew-render" as render_data;
+extern crate snowmew;
+
+pub use snowmew::{
+    core,
+    render,
+    loader,
+    graphics,
+    position,
+    input,
+    config,
+    debug
+};
 
 use std::str::FromStr;
 use std::f32;
 
 use cgmath::*;
-
-use snowmew::input;
-use snowmew::input_integrator::{input_integrator, InputIntegratorState};
-use snowmew::game::Game;
-use snowmew::camera::Camera;
-use position::Positions;
-use graphics::Graphics;
+use core::Game;
 use graphics::light;
-
-use render_data::Renderable;
-use render::RenderFactory;
+use graphics::{Graphics};
+use input::{integrator, InputIntegratorState};
 use loader::Obj;
-use snowmew::common::Common;
+use position::{Positions};
+use render::{Renderable, DefaultRender, Camera};
+use snowmew::common::{Common};
 
 use gamedata::GameData;
 
 mod gamedata;
 
 fn main() {
-    let sc = snowmew::SnowmewConfig::new();
+    let sc = config::SnowmewConfig::new();
 
     let args = std::os::args();
     if args.len() == 1 {
@@ -108,8 +107,8 @@ fn main() {
     db.set_camera(camera_loc);
     db.new_light(light::Light::Directional(sun));
 
-    let (game, gd) = input_integrator(Noclip, db);
-    sc.start(box RenderFactory::new(), game, gd);
+    let (game, gd) = integrator(Noclip, db);
+    sc.start(box DefaultRender::new(), game, gd);
 }
 
 struct Noclip;

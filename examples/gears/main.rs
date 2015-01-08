@@ -13,39 +13,39 @@
 //   limitations under the License.
 
 #![crate_name = "gears"]
-#![feature(macro_rules)]
-#![feature(globs)]
-#![feature(old_orphan_check)]
-#![feature(associated_types)]
 
 extern crate cgmath;
-extern crate "snowmew-core" as snowmew;
-extern crate "snowmew-render-mux" as render;
-extern crate "snowmew-loader" as loader;
-extern crate "snowmew-position" as position;
-extern crate "snowmew-graphics" as graphics;
-extern crate "snowmew-debugger" as debugger;
+extern crate snowmew;
 extern crate "rustc-serialize" as rustc_serialize;
-extern crate "snowmew-render" as render_data;
+
+pub use snowmew::{
+    core,
+    render,
+    loader,
+    graphics,
+    position,
+    input,
+    config,
+    debug
+};
 
 use cgmath::*;
-use debugger::{Debugger, DebuggerGameData};
+use core::Game;
+use debug::{Debugger, DebuggerGameData};
 use graphics::light;
 use graphics::{Graphics};
+use input::{integrator, InputIntegratorState};
 use loader::Obj;
 use position::{Positions};
-use render::RenderFactory;
-use render_data::{Renderable};
+use render::{Renderable, DefaultRender};
 use snowmew::common::{Common};
-use snowmew::game::Game;
-use snowmew::input_integrator::{input_integrator, InputIntegratorState};
 
 use gamedata::{GameData, GearsInputData};
 
 mod gamedata;
 
 fn main() {
-    let sc = snowmew::SnowmewConfig::new();
+    let sc = config::SnowmewConfig::new();
     let game = GearsInput {
         debugger: Debugger::new(Gears)
     };
@@ -88,8 +88,8 @@ fn main() {
     gd.set_scene(scene);
     gd.set_camera(camera_loc);
 
-    let (game, gd) = input_integrator(game, gd);
-    sc.start(box RenderFactory::new(), game, gd);
+    let (game, gd) = integrator(game, gd);
+    sc.start(box DefaultRender::new(), game, gd);
 }
 
 struct Gears;

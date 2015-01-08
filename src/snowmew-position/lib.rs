@@ -13,11 +13,7 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-position"]
-
 #![crate_type = "lib"]
-#![feature(macro_rules)]
-#![feature(old_orphan_check)]
-#![feature(associated_types)]
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
