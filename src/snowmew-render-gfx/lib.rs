@@ -439,7 +439,6 @@ impl RenderManagerContext {
             if self.meshes.get(&oid).is_none() {
                 let mesh = match vb.vertex {
                     Geo(ref d) => {
-                        println!("Geo");
                         let data: Vec<VertexGeoTex> = d.iter()
                             .map(|v| {
                                 VertexGeoTex {
@@ -451,7 +450,6 @@ impl RenderManagerContext {
                         self.graphics.device.create_mesh(data.as_slice())
                     },
                     GeoTex(ref d) => {
-                        println!("GeoTex");
                         self.graphics.device.create_mesh(d.as_slice())
                     },
                     GeoNorm(ref d) => {
@@ -467,11 +465,9 @@ impl RenderManagerContext {
                         self.graphics.device.create_mesh(data.as_slice())
                     },
                     GeoTexNorm(ref d) => {
-                        println!("GeoTexNorm");
                         self.graphics.device.create_mesh(d.as_slice())
                     },
                     GeoTexNormTan(ref d) => {
-                        println!("GeoTexNormTan");
                         self.graphics.device.create_mesh(d.as_slice())
                     }
                 };
