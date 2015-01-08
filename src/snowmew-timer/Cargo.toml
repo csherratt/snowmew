@@ -1,0 +1,10 @@
+[package]
+name = "snowmew-timer"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[lib]
+name = "snowmew-timer"
+path = "lib.rs"

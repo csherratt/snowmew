@@ -43,6 +43,9 @@ path = "src/snowmew-debugger/"
 [dependencies.snowmew-random]
 path = "src/snowmew-random/"
 
+[dependencies.snowmew-timer]
+path = "src/snowmew-timer/"
+
 [dependencies]
 time = "*"
 rustc-serialize="*"
@@ -63,8 +66,3 @@ path = "examples/gears/main.rs"
 name = "noclip"
 path = "examples/noclip/main.rs"
 
-[profile.test]
-opt-level = 3
-debug = true
-rpath = false
-lto = false
