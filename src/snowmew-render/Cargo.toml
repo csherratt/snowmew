@@ -21,3 +21,9 @@ path = "../snowmew-graphics"
 
 [dependencies.opencl]
 git = "https://github.com/csherratt/rust-opencl.git"
+
+[dependencies]
+rustc-serialize="*"
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs.git"

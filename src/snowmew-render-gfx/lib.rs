@@ -15,14 +15,14 @@
 #![crate_name = "snowmew-render-gfx"]
 #![crate_type = "lib"]
 #![allow(dead_code)]
-#![feature(phase)]
+#![feature(plugin)]
 
 extern crate libc;
 extern crate opencl;
-extern crate cow;
 extern crate glfw;
 
-#[phase(plugin)]
+#[plugin]
+#[macro_use]
 extern crate gfx_macros;
 extern crate gfx;
 extern crate device;

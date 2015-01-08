@@ -16,6 +16,7 @@ use std::default::Default;
 use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
 use snowmew::Entity;
+use super::geometry::F32v3;
 
 #[derive(RustcEncodable, RustcDecodable, PartialEq, Copy)]
 pub struct Material {
@@ -147,29 +148,4 @@ impl Material {
 
     pub fn ni(&self) -> f32 {self.ni}
     pub fn set_ni(&mut self, v: f32) {self.ni = v}
-}
-
-#[derive(PartialEq, Copy)]
-struct F32v3([f32; 3]);
-
-impl <E, S: Encoder<E>> Encodable<S, E> for F32v3 {
-    fn encode(&self, s: &mut S) -> Result<(), E> {
-        s.emit_seq(3, |s| {
-            try!(s.emit_seq_elt(0, |s| self.0[0].encode(s)));
-            try!(s.emit_seq_elt(1, |s| self.0[1].encode(s)));
-            try!(s.emit_seq_elt(2, |s| self.0[2].encode(s)));
-            Ok(())
-        })
-    }
-}
-
-impl <E, D: Decoder<E>> Decodable<D, E> for F32v3 {
-    fn decode(d: &mut D) -> Result<F32v3, E> {
-        d.read_seq(|d, _| {
-            let a = try!(d.read_seq_elt(0, |d| Decodable::decode(d)));
-            let b = try!(d.read_seq_elt(1, |d| Decodable::decode(d)));
-            let c = try!(d.read_seq_elt(2, |d| Decodable::decode(d)));
-            Ok(F32v3([a, b, c]))
-        })
-    }
 }

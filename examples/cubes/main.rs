@@ -17,8 +17,6 @@
 #![feature(globs)]
 
 extern crate cgmath;
-extern crate opencl;
-extern crate glfw;
 
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-render-mux" as render;

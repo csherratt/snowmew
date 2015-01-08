@@ -17,12 +17,13 @@ extern crate snowmew;
 use snowmew::random::{Random, RandomData};
 use std::rand::Rng;
 
+#[deriving(Clone)]
 struct Foo {
     random: RandomData
 }
 
 impl Random for Foo {
-    fn get_random_mut(&mut self) -> &mut RandomData {
+    fn rng(&mut self) -> &mut RandomData {
         &mut self.random
     }
 }
@@ -34,14 +35,20 @@ fn check_seed() {
     foo.set_nonce(1234);
 
     foo.set_frame(10);
-    let f10: Vec<u32> = range(0, 8).map(|_| foo.rng().next_u32()).collect();
+    let f10: Vec<u32> = range(0, 4).map(|_| foo.rng().next_u32()).collect();
 
     foo.set_frame(11);
-    let f11: Vec<u32> = range(0, 8).map(|_| foo.rng().next_u32()).collect();
+    let f11: Vec<u32> = range(0, 4).map(|_| foo.rng().next_u32()).collect();
 
     foo.set_frame(10);
-    let f10_2: Vec<u32> = range(0, 8).map(|_| foo.rng().next_u32()).collect();
+    let f10_2: Vec<u32> = range(0, 4).map(|_| foo.rng().next_u32()).collect();
+
+    foo.set_frame(10);
+    let mut f10_3: Vec<u32> = range(0, 2).map(|_| foo.rng().next_u32()).collect();
+    let mut foo2 = foo.clone();
+    f10_3.extend(range(0, 2).map(|_| foo2.rng().next_u32()));
 
     assert_eq!(f10, f10_2);
+    assert_eq!(f10, f10_3);
     assert!(f10 != f11);
 }

@@ -18,15 +18,13 @@
 #![feature(old_orphan_check)]
 #![feature(associated_types)]
 
-extern crate glfw;
+extern crate cgmath;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-render-mux" as render;
 extern crate "snowmew-loader" as loader;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-debugger" as debugger;
-extern crate cgmath;
-extern crate opencl;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate "snowmew-render" as render_data;
 

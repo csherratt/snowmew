@@ -48,6 +48,9 @@ time = "*"
 rustc-serialize="*"
 log="*"
 
+[dev-dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs.git"
+
 [[example]]
 name = "cubes"
 path = "examples/cubes/main.rs"

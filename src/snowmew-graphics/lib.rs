@@ -16,11 +16,9 @@
 
 #![crate_type = "lib"]
 #![feature(phase)]
-#![feature(macro_rules)]
-#![feature(old_orphan_check)]
-#![feature(associated_types)]
+#![feature(plugin)]
 
-#[phase(plugin)]
+#[plugin]
 extern crate gfx_macros;
 extern crate gfx;
 extern crate cgmath;

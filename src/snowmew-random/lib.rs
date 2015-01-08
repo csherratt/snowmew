@@ -24,6 +24,16 @@ pub struct RandomData {
     rng: ChaChaRng
 }
 
+impl Clone for RandomData {
+    fn clone(&self) -> RandomData {
+        RandomData {
+            nonce: self.nonce,
+            frame: self.frame,
+            rng: self.rng
+        }
+    }
+}
+
 impl RandomData {
     pub fn new() -> RandomData {
         RandomData {
@@ -35,26 +45,28 @@ impl RandomData {
 
     fn reseed(&mut self) {
         let nonce = self.nonce;
-        let frame = self.frame;
-        self.rng.set_counter((frame as u64) << 32, nonce);
+        let frame = self.frame as u64;
+        self.rng.set_counter(frame << 32, nonce);
     }
 }
 
 pub trait Random {
-    fn get_random_mut(&mut self) -> &mut RandomData;
-
-    fn rng(&mut self) -> &mut ChaChaRng {
-        &mut self.get_random_mut().rng
-    }
+    fn rng(&mut self) -> &mut RandomData;
 
     fn set_nonce(&mut self, nonce: u64) {
-        self.get_random_mut().nonce = nonce;
-        self.get_random_mut().reseed();
+        self.rng().nonce = nonce;
+        self.rng().reseed();
 
     }
 
     fn set_frame(&mut self, frame: u32) {
-        self.get_random_mut().frame = frame;
-        self.get_random_mut().reseed();
+        self.rng().frame = frame;
+        self.rng().reseed();
+    }
+}
+
+impl Rng for RandomData {
+    fn next_u32(&mut self) -> u32 {
+        self.rng.next_u32()
     }
 }

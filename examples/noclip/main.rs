@@ -16,13 +16,12 @@
 #![feature(macro_rules)]
 #![feature(globs)]
 
-extern crate glfw;
+extern crate cgmath;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-render-mux" as render;
 extern crate "snowmew-loader" as loader;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
-extern crate cgmath;
 extern crate "snowmew-render" as render_data;
 
 use std::str::FromStr;

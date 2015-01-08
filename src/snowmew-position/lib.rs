@@ -44,9 +44,11 @@ pub trait MatrixManager {
 
 impl<'r> MatrixManager for Vec<Matrix4<f32>> {
     fn size(&mut self, size: uint) {
+        use std::iter::repeat;
+
         if self.len() < size {
             let amount = self.len() - size;
-            self.grow(amount, Matrix4::identity())
+            self.extend(repeat(Matrix4::identity()).take(amount));
         }
     }
     fn set(&mut self, idx: uint, m: Matrix4<f32>) { self[idx] = m; }
@@ -302,6 +304,8 @@ pub mod cl {
 
     impl Accelerator {
         pub fn new(ctx: &Context, device: &Device) -> Accelerator {
+            use std::iter::repeat;
+
             let program = ctx.create_program_from_source(OPENCL_PROGRAM);
             match program.build(device) {
                 Ok(_) => (),
@@ -315,11 +319,11 @@ pub mod cl {
             let kernel_mat = program.create_kernel("calc_mat");
             let kernel_vec4 = program.create_kernel("calc_vec4");
             let delta_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
-            let delta_buf = Vec::from_elem(1024*1024, Delta {
-                delta: Transform::identity()
-            });
+            let delta_buf: Vec<Delta> =
+                repeat(Delta {delta: Transform::identity()}).take(1024*1024).collect();
+            let parent_buf: Vec<u32> =
+                repeat(0u32).take(1024*1024).collect();
             let parent_mem = ctx.create_buffer(1024*1024, CL_MEM_READ_ONLY);
-            let parent_buf = Vec::from_elem(1024*1024, 0u32);
 
             Accelerator {
                 kernel_vec4: kernel_vec4,

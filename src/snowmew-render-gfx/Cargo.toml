@@ -19,6 +19,21 @@ git = "https://github.com/csherratt/rust-stb-image.git"
 [dependencies.gfx]
 git = "https://github.com/gfx-rs/gfx-rs"
 
+[dependencies.device]
+git = "https://github.com/gfx-rs/gfx-rs"
+
+[dependencies.gfx_macros]
+git = "https://github.com/gfx-rs/gfx-rs"
+
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs.git"
+
+[dependencies.opencl]
+git = "https://github.com/csherratt/rust-opencl.git"
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs.git"
+
 [dependencies]
 genmesh = "*"
 time = "*"

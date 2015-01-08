@@ -37,5 +37,8 @@ git = "https://github.com/csherratt/vr-rs.git"
 [dependencies.gfx]
 git = "https://github.com/gfx-rs/gfx-rs"
 
+[dependencies.device]
+git = "https://github.com/gfx-rs/gfx-rs"
+
 [dependencies.collect]
 git = "https://github.com/Gankro/collect-rs"

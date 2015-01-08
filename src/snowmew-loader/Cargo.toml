@@ -17,6 +17,9 @@ genmesh = "*"
 [dependencies.stb_image]
 git = "https://github.com/csherratt/rust-stb-image.git"
 
+[dependencies.cgmath]
+git = "https://github.com/bjz/cgmath-rs.git"
+
 [dependencies.snowmew-core]
 path = "../snowmew-core/"
 
