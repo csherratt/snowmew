@@ -59,6 +59,13 @@ pub mod graphics {
         VertexBuffer,
         VertexBufferIter,
     };
+    pub mod vertex {
+        pub use _graphics::geometry::VertexGeo as Geo;
+        pub use _graphics::geometry::VertexGeoTex as GeoTex;
+        pub use _graphics::geometry::VertexGeoNorm as GeoNorm;
+        pub use _graphics::geometry::VertexGeoTexNorm as GeoTexNorm;
+        pub use _graphics::geometry::VertexGeoTexNormTan as GeoTexNormTan;
+    }
 }
 
 pub mod position {
