@@ -42,10 +42,8 @@ impl Timer {
         }
     }
 
-    /// each timer must be cycled periodically
-    /// seconds it the number of seconds that has passed
-    /// This should be a fixed base
-    pub fn cycle(&mut self, seconds: f32) -> bool {
+    /// calculate the increment
+    fn increment(&self, seconds: f32) -> u32 {
         let imax = std::u32::MAX as u64 + 1;
         let max = imax as f32;
         let inc = match self.phase {
@@ -56,14 +54,48 @@ impl Timer {
                 ((seconds * max) / self.rate) as u64
             }
         };
+        inc as u32
+    }
 
+    /// each timer must be cycled periodically
+    /// seconds it the number of seconds that has passed
+    /// This should be a fixed base
+    pub fn cycle(&mut self, seconds: f32) -> bool {
         let last = self.accumulator;
-        self.accumulator += inc as u32;
+        self.accumulator += self.increment(seconds);
         
         match (self.accumulator > last, self.phase) {
             (true, Phase::In) => true,
             (false, Phase::OutOf) => true,
             _ => false
         }
+    }
+
+    /// check to see if calling cycle() will start a new
+    /// cycle, iff it will zero the accumulator, iff it doen't
+    /// this is the equivalent of calling cycle()
+    pub fn try_cycle(&mut self, seconds: f32) -> bool {
+        let last = self.accumulator;
+        let next = self.accumulator + self.increment(seconds);
+        
+        match (next > last, self.phase) {
+            (true, Phase::In) => {
+                self.accumulator = 0;
+                true
+            }
+            (false, Phase::In) => {
+                self.accumulator = next;
+                false
+            }
+            (x, Phase::OutOf) => {
+                self.accumulator = 0;
+                !x
+            }
+        }
+    }
+
+    /// sets the rate to a new value
+    pub fn set_rate(&mut self, rate: f32) {
+        self.rate = rate;
     }
 }

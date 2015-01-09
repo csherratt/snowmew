@@ -61,3 +61,23 @@ fn timer_average_out_of_phase() {
     assert_eq!(cnt_idle, 600);
     assert_eq!(cnt_fired, 400);
 }
+
+#[test]
+fn timer_try_inphase() {
+    let mut timer = Timer::new(Phase::In, 0.5);
+    let fired: Vec<bool> = range(0, 5).map(|_| timer.try_cycle(0.1)).collect();
+
+    assert_eq!(fired.as_slice(),
+        [true, true, true, true, true]
+    );
+}
+
+#[test]
+fn timer_try_out_of_phase() {
+    let mut timer = Timer::new(Phase::OutOf, 0.5);
+    let fired: Vec<bool> = range(0, 5).map(|_| timer.try_cycle(0.1)).collect();
+
+    assert_eq!(fired.as_slice(),
+        [false, false, false, false, false]
+    );
+}
