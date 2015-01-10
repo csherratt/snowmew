@@ -153,7 +153,7 @@ GLSL_150: b"
     void main() {
         vec4 normal = vec4(o_normal, 0.);
         vec3 shadow_coord = o_shadow_coord.xyz / o_shadow_coord.w;
-        shadow_coord.z -= 0.001;
+        shadow_coord.z -= 0.0002;
         vec4 color;
         vec4 ka, kd, ks;
         if (1 == ka_use_texture) {
