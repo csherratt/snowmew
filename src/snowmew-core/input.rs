@@ -338,7 +338,7 @@ impl Event {
                 EventGroup::Window(WindowEvent::Size(x as int, y as int))
             }
             x => {
-                println!("unhandled {}", x);
+                println!("unhandled {:?}", x);
                 EventGroup::Nop
             }
         }

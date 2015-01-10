@@ -15,7 +15,6 @@
 #![crate_name = "snowmew-graphics"]
 
 #![crate_type = "lib"]
-#![feature(phase)]
 #![feature(plugin)]
 
 #[plugin]

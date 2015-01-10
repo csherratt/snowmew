@@ -119,7 +119,7 @@ GLSL_150: b"
                          model_mat[gl_InstanceID + offset] *
                          vec4(position, 1.0);
     }
-"
+",
 };
 
 const FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
@@ -196,7 +196,7 @@ GLSL_150: b"
                  max(0, dot(light_normal, normal));
         o_Color = color;
     }
-"
+",
 };
 
 #[shader_param(DrawProgram)]
@@ -241,7 +241,7 @@ GLSL_150: b"
             model_mat[gl_InstanceID+offset] *
             vec4(position, 1.0);
     }
-"
+",
 };
 
 static SHADOW_FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
@@ -249,7 +249,7 @@ GLSL_150: b"
     #version 150 core
 
     void main() {}
-"
+",
 };
 
 #[shader_param(ShadowProgram)]
@@ -307,7 +307,7 @@ pub struct RenderManagerContext {
 
 pub struct RenderManager<R> {
     channel: Sender<R>,
-    res: JoinGuard<()>
+    res: std::thread::Thread
 }
 
 impl RenderManagerContext {

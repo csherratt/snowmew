@@ -85,7 +85,7 @@ fn main() {
     gd.set_camera(camera);
 
     let (game, gd) = integrator(Cubes, gd);
-    sc.start(box DefaultRender::new(), game, gd);
+    sc.start(Box::new(DefaultRender::new()), game, gd);
 }
 
 struct Cubes;

@@ -47,8 +47,8 @@ impl<'r, RD: Renderable+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for 
             cl: Option<Arc<Device>>) -> RenderMux<'r, RD> {
 
         let rm: RenderMux<RD> = {
-            let rf: Box<snowmew::RenderFactory<RD, gfx::RenderManager<RD>>> = box gfx::RenderFactory::new();
-            let render: Box<gfx::RenderManager<RD>> = box rf.init(io, window, size, cl);
+            let rf: Box<snowmew::RenderFactory<RD, gfx::RenderManager<RD>>> = Box::new(gfx::RenderFactory::new());
+            let render: Box<gfx::RenderManager<RD>> = Box::new(rf.init(io, window, size, cl));
             RenderMux {
                 render: render as Box<snowmew::Render<RD>>
             }

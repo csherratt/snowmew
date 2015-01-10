@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+#![feature(old_impl_check)]
+
 extern crate "snowmew-core" as core;
 
 use std::sync::Arc;
@@ -85,9 +87,11 @@ impl<E, T> DerefMut for DebuggerGameData<T, E> {
     }
 }
 
+#[old_impl_check]
 impl<GameData: Clone+Send+Sync,
      Event: Clone+Send+Sync,
      InputGame: Game<GameData, Event>> Debugger<InputGame> {
+
     /// seek a checkpoint ahead of the current point
     pub fn skip_forward(&mut self, mut gd: DebuggerGameData<GameData, Event>)
         -> DebuggerGameData<GameData, Event> {

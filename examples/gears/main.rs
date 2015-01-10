@@ -89,7 +89,7 @@ fn main() {
     gd.set_camera(camera_loc);
 
     let (game, gd) = integrator(game, gd);
-    sc.start(box DefaultRender::new(), game, gd);
+    sc.start(Box::new(DefaultRender::new()), game, gd);
 }
 
 struct Gears;

@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 use std::sync::Arc;
-use std::kinds::Sync;
+use std::marker::Sync;
 use std::sync::mpsc::Receiver;
 #[cfg(target_os="linux")]
 use libc::c_void;
@@ -362,7 +362,7 @@ unsafe impl Send for WindowOSSpec {}
 pub struct Window {
     handle: InputHandle,
     render: RenderContext,
-    version: (uint, uint),
+    version: (u64, u64),
     hmd: Option<Arc<ovr::Hmd>>,
     os_spec: WindowOSSpec
 }
@@ -376,7 +376,7 @@ impl Window {
         self.render.make_current()
     }
 
-    pub fn get_context_version(&self) -> (uint, uint) {
+    pub fn get_context_version(&self) -> (u64, u64) {
         self.version
     }
 

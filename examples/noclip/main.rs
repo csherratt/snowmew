@@ -108,7 +108,7 @@ fn main() {
     db.new_light(light::Light::Directional(sun));
 
     let (game, gd) = integrator(Noclip, db);
-    sc.start(box DefaultRender::new(), game, gd);
+    sc.start(Box::new(DefaultRender::new()), game, gd);
 }
 
 struct Noclip;

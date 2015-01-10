@@ -29,7 +29,7 @@ impl<T: Send+Clone+Sync+Default> Static<T> {
     }
 
     pub fn insert(&mut self, key: Entity, value: T) -> bool {
-        match self { &Static(ref mut t) => t.insert(key, value) }
+        match self { &mut Static(ref mut t) => t.insert(key, value) }
     }
 
     pub fn get(&self, key: Entity) -> Option<&T> {
@@ -37,11 +37,11 @@ impl<T: Send+Clone+Sync+Default> Static<T> {
     }
 
     pub fn get_mut(&mut self, key: Entity) -> Option<&mut T> {
-        match self { &Static(ref mut t) => t.get_mut(&key) }
+        match self { &mut Static(ref mut t) => t.get_mut(&key) }
     }
 
     pub fn remove(&mut self, key: Entity) -> bool {
-        match self { &Static(ref mut t) => t.remove(&key) }
+        match self { &mut Static(ref mut t) => t.remove(&key) }
     }
 
     pub fn iter(&self) -> StaticIterator<T> {
@@ -79,11 +79,11 @@ impl StaticSet {
     }
 
     pub fn insert(&mut self, key: Entity) -> bool {
-        match self { &StaticSet(ref mut t) => t.insert(key) }
+        match self { &mut StaticSet(ref mut t) => t.insert(key) }
     }
 
     pub fn remove(&mut self, key: Entity) -> bool {
-        match self { &StaticSet(ref mut t) => t.remove(&key) }
+        match self { &mut StaticSet(ref mut t) => t.remove(&key) }
     }
 
     pub fn iter(&self) -> StaticSetIterator {
@@ -131,15 +131,15 @@ impl<T: Send+Sync+Clone> Dynamic<T> {
     }
 
     pub fn get_mut(&mut self, key: Entity) -> Option<&mut T> {
-        match self { &Dynamic(ref mut t) => t.make_unique().get_mut(&(key as uint)) }
+        match self { &mut Dynamic(ref mut t) => t.make_unique().get_mut(&(key as uint)) }
     }
 
     pub fn insert(&mut self, key: Entity, value: T) -> bool {
-        match self { &Dynamic(ref mut t) => t.make_unique().insert(key as uint, value) }.is_some()
+        match self { &mut Dynamic(ref mut t) => t.make_unique().insert(key as uint, value) }.is_some()
     }
 
     pub fn remove(&mut self, key: Entity) -> bool {
-        match self { &Dynamic(ref mut t) => t.make_unique().remove(&(key as uint)) }.is_some()
+        match self { &mut Dynamic(ref mut t) => t.make_unique().remove(&(key as uint)) }.is_some()
     }
 
     pub fn iter(&self) -> DynamicIterator<T> {

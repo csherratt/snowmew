@@ -17,7 +17,7 @@ extern crate snowmew;
 use snowmew::random::{Random, RandomData};
 use std::rand::Rng;
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct Foo {
     random: RandomData
 }
