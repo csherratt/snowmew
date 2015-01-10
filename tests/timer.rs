@@ -81,3 +81,21 @@ fn timer_try_out_of_phase() {
         [false, false, false, false, false]
     );
 }
+
+#[test]
+fn timer_epoc_out_of_phase() {
+    let mut timer = Timer::new(Phase::OutOf, 0.5);
+
+    assert_eq!(timer.cycles_to_epoc(0.1), 5);
+    assert!(timer.cycle(0.1) == false);
+    assert_eq!(timer.cycles_to_epoc(0.1), 4);
+    assert!(timer.cycle(0.1) == false);
+    assert_eq!(timer.cycles_to_epoc(0.1), 3);
+    assert!(timer.cycle(0.1) == false);
+    assert_eq!(timer.cycles_to_epoc(0.1), 2);
+    assert!(timer.cycle(0.1) == false);
+    assert_eq!(timer.cycles_to_epoc(0.1), 1);
+    assert!(timer.cycle(0.1) == true);
+    assert_eq!(timer.cycles_to_epoc(0.1), 5);
+    assert!(timer.cycle(0.1) == false);
+}

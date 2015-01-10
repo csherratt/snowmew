@@ -94,6 +94,25 @@ impl Timer {
         }
     }
 
+    /// calculate the number of cycles to epoc
+    pub fn cycles_to_epoc(&self, seconds: f32) -> u32 {
+        let amount = self.accumulator as f64 / (std::u32::MAX as f64 + 1.);
+        let total_cycles = self.rate as f64 / seconds as f64;
+        return ((1. - amount) * total_cycles) as u32 + 1;
+    }
+
+    /// calculate the number cycles in a timer cycle
+    pub fn total_cycles(&self, seconds: f32) -> u32 {
+        return (self.rate as f64 / seconds as f64) as u32;
+    }
+
+    /// calculate the % of cycles until a timer is done
+    pub fn percent_done(&self, seconds: f32) -> f32 {
+        let total = self.total_cycles(seconds) as f32;
+        let to_epoc = self.cycles_to_epoc(seconds) as f32;
+        return (total - to_epoc) / total;
+    }
+
     /// sets the rate to a new value
     pub fn set_rate(&mut self, rate: f32) {
         self.rate = rate;
