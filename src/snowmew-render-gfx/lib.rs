@@ -75,7 +75,7 @@ struct SharedMaterial {
 }
 
 const VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
-GLSL_150: b"
+glsl_150: b"
     #version 150 core
     layout(std140)
     uniform shadow_shared_mat {
@@ -119,11 +119,10 @@ GLSL_150: b"
                          model_mat[gl_InstanceID + offset] *
                          vec4(position, 1.0);
     }
-",
-};
+"};
 
 const FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
-GLSL_150: b"
+glsl_150: b"
     #version 150 core
     layout(std140)
     uniform material {
@@ -196,8 +195,7 @@ GLSL_150: b"
                  max(0, dot(light_normal, normal));
         o_Color = color;
     }
-",
-};
+"};
 
 #[shader_param(DrawProgram)]
 struct Params {
@@ -220,7 +218,7 @@ struct Params {
 }
 
 static SHADOW_VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
-GLSL_150: b"
+glsl_150: b"
     #version 150 core
     layout(std140)
     uniform shared_mat {
@@ -241,16 +239,14 @@ GLSL_150: b"
             model_mat[gl_InstanceID+offset] *
             vec4(position, 1.0);
     }
-",
-};
+"};
 
 static SHADOW_FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
-GLSL_150: b"
+glsl_150: b"
     #version 150 core
 
     void main() {}
-",
-};
+"};
 
 #[shader_param(ShadowProgram)]
 struct ShadowParams {
