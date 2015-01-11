@@ -127,6 +127,29 @@ impl<GameData: Clone+Send+Sync,
         gd
     }
 
+    pub fn replay_one(&mut self, mut gd: DebuggerGameData<GameData, Event>)
+        -> DebuggerGameData<GameData, Event> {
+        if let Some(event) = gd.events.get(&gd.index).map(|x| x.clone()) {
+            gd.inner = self.game.step(event, gd.inner);
+            gd.index += 1;
+        }
+        gd
+    }
+
+    pub fn revert_one(&mut self, mut gd: DebuggerGameData<GameData, Event>)
+        -> DebuggerGameData<GameData, Event> {
+        let idx = gd.index - 1;
+        if idx == 0 {
+            gd
+        } else {
+            gd = self.skip_backward(gd);
+            while gd.index != idx {
+                gd = self.replay_one(gd);
+            }
+            gd
+        }
+    }
+
     /// set limit of checkpoints
     pub fn limit(&mut self, limit: uint, mut gd: DebuggerGameData<GameData, Event>)
         -> DebuggerGameData<GameData, Event> {
@@ -145,6 +168,7 @@ impl<GameData: Clone+Send+Sync,
 
         let mut next = gd.clone();
         next.history.make_unique().insert(next.index, gd.inner.clone());
+        next.events.make_unique().insert(next.index, event.clone());
         next.index += 1;
         next.compact();
         next.inner = self.game.step(event, gd.inner);
