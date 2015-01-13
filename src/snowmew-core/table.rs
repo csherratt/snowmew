@@ -14,7 +14,7 @@ use Entity;
 
 
 /// a Static table should be used for infrequently updated data
-pub struct Static<T: Send+Sync+Clone>(CowTrieMap<T>);
+pub struct Static<T: Send+Sync+Clone>(Arc<CowTrieMap<T>>);
 
 impl<T: Send+Clone+Sync> Clone for Static<T> {
     fn clone(&self) -> Static<T> {
@@ -24,11 +24,11 @@ impl<T: Send+Clone+Sync> Clone for Static<T> {
 
 impl<T: Send+Clone+Sync> Static<T> {
     pub fn new() -> Static<T> {
-        Static(CowTrieMap::new())
+        Static(Arc::new(CowTrieMap::new()))
     }
 
     pub fn insert(&mut self, key: Entity, value: T) -> bool {
-        match self { &mut Static(ref mut t) => t.insert(key as usize, value).is_some() }
+        match self { &mut Static(ref mut t) => t.make_unique().insert(key as usize, value).is_some() }
     }
 
     pub fn get(&self, key: Entity) -> Option<&T> {
@@ -38,12 +38,12 @@ impl<T: Send+Clone+Sync> Static<T> {
 
     pub fn get_mut(&mut self, key: Entity) -> Option<&mut T> {
         let key = key as usize;
-        match self { &mut Static(ref mut t) => t.get_mut(&key) }
+        match self { &mut Static(ref mut t) => t.make_unique().get_mut(&key) }
     }
 
     pub fn remove(&mut self, key: Entity) -> bool {
         let key = key as usize;
-        match self { &mut Static(ref mut t) => t.remove(&key).is_some() }
+        match self { &mut Static(ref mut t) => t.make_unique().remove(&key).is_some() }
     }
 
     pub fn iter(&self) -> StaticIterator<T> {
