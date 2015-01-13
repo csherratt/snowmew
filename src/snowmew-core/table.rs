@@ -2,11 +2,11 @@
 use std::collections::VecMap;
 use std::collections::vec_map::Iter;
 use std::sync::Arc;
-use std::default::Default;
 
+use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
-use cow::btree::{BTreeMap, BTreeMapIterator};
-use cow::btree::{BTreeSet, BTreeSetIterator};
+use collect::{cow_trie_map, cow_trie_set};
+use collect::{CowTrieMap, CowTrieSet};
 use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 
 
@@ -14,34 +14,36 @@ use Entity;
 
 
 /// a Static table should be used for infrequently updated data
-#[derive(RustcEncodable, RustcDecodable)]
-pub struct Static<T: Send+Sync+Clone+Default>(BTreeMap<Entity, T>);
+pub struct Static<T: Send+Sync+Clone>(CowTrieMap<T>);
 
-impl<T: Send+Clone+Sync+Default> Clone for Static<T> {
+impl<T: Send+Clone+Sync> Clone for Static<T> {
     fn clone(&self) -> Static<T> {
         Static(match self { &Static(ref t) => t.clone() })
     }
 }
 
-impl<T: Send+Clone+Sync+Default> Static<T> {
+impl<T: Send+Clone+Sync> Static<T> {
     pub fn new() -> Static<T> {
-        Static(BTreeMap::new())
+        Static(CowTrieMap::new())
     }
 
     pub fn insert(&mut self, key: Entity, value: T) -> bool {
-        match self { &mut Static(ref mut t) => t.insert(key, value) }
+        match self { &mut Static(ref mut t) => t.insert(key as usize, value).is_some() }
     }
 
     pub fn get(&self, key: Entity) -> Option<&T> {
+        let key = key as usize;
         match self { &Static(ref t) => t.get(&key) }
     }
 
     pub fn get_mut(&mut self, key: Entity) -> Option<&mut T> {
+        let key = key as usize;
         match self { &mut Static(ref mut t) => t.get_mut(&key) }
     }
 
     pub fn remove(&mut self, key: Entity) -> bool {
-        match self { &mut Static(ref mut t) => t.remove(&key) }
+        let key = key as usize;
+        match self { &mut Static(ref mut t) => t.remove(&key).is_some() }
     }
 
     pub fn iter(&self) -> StaticIterator<T> {
@@ -56,7 +58,7 @@ impl<T: Send+Clone+Sync+Default> Static<T> {
 }
 
 pub struct StaticIterator<'a, T:'a> {
-    iter: BTreeMapIterator<'a, Entity, T>
+    iter: cow_trie_map::Iter<'a, T>
 }
 
 impl<'a, T: Send+Sync> Iterator for StaticIterator<'a, T> {
@@ -65,24 +67,54 @@ impl<'a, T: Send+Sync> Iterator for StaticIterator<'a, T> {
     fn next(&mut self) -> Option<(Entity, &'a T)> {
         match self.iter.next() {
             None => None,
-            Some((&key, value)) => Some((key, value))
+            Some((key, value)) => Some((key as Entity, value))
         }
     }
 }
 
-#[derive(Clone, RustcEncodable, RustcDecodable, Default)]
-pub struct StaticSet(BTreeSet<Entity>);
+impl<T:Send+Sync+Clone+Encodable> Encodable for Static<T> {
+    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
+        e.emit_map(self.len(), |e| {
+            let mut i = 0;
+            for (key, val) in self.iter() {
+                try!(e.emit_map_elt_key(i, |e| key.encode(e)));
+                try!(e.emit_map_elt_val(i, |e| val.encode(e)));
+                i += 1;
+            }
+            Ok(())
+        })
+    }
+}
+
+impl<T:Send+Sync+Clone+Decodable> Decodable for Static<T> {
+    fn decode<D: Decoder>(d: &mut D) -> Result<Static<T>, D::Error> {
+        d.read_map(|d, len| {
+            let mut map = Static::new();
+            for i in range(0u, len) {
+                let key = try!(d.read_map_elt_key(i, |d| Decodable::decode(d)));
+                let val = try!(d.read_map_elt_val(i, |d| Decodable::decode(d)));
+                map.insert(key, val);
+            }
+            Ok(map)
+        })
+    }
+}
+
+
+#[derive(Clone, Default)]
+pub struct StaticSet(CowTrieSet);
 
 impl StaticSet {
     pub fn new() -> StaticSet {
-        StaticSet(BTreeSet::new())
+        StaticSet(CowTrieSet::new())
     }
 
     pub fn insert(&mut self, key: Entity) -> bool {
-        match self { &mut StaticSet(ref mut t) => t.insert(key) }
+        match self { &mut StaticSet(ref mut t) => t.insert(key as usize) }
     }
 
     pub fn remove(&mut self, key: Entity) -> bool {
+        let key = key as usize;
         match self { &mut StaticSet(ref mut t) => t.remove(&key) }
     }
 
@@ -98,7 +130,7 @@ impl StaticSet {
 }
 
 pub struct StaticSetIterator<'a> {
-    iter: BTreeSetIterator<'a, Entity>
+    iter: cow_trie_set::Iter<'a>
 }
 
 impl<'a> Iterator for StaticSetIterator<'a> {
@@ -107,15 +139,40 @@ impl<'a> Iterator for StaticSetIterator<'a> {
     fn next(&mut self) -> Option<Entity> {
         match self.iter.next() {
             None => None,
-            Some(&key) => Some(key)
+            Some(key) => Some(key as Entity)
         }
+    }
+}
+
+impl Encodable for StaticSet {
+    fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
+        s.emit_seq(self.len(), |s| {
+            let mut i = 0;
+            for e in self.iter() {
+                try!(s.emit_seq_elt(i, |s| e.encode(s)));
+                i += 1;
+            }
+            Ok(())
+        })
+    }
+}
+
+impl Decodable for StaticSet {
+    fn decode<D: Decoder>(d: &mut D) -> Result<StaticSet, D::Error> {
+        d.read_seq(|d, len| {
+            let mut set = StaticSet::new();
+            for i in range(0u, len) {
+                set.insert(try!(d.read_seq_elt(i, |d| Decodable::decode(d))));
+            }
+            Ok(set)
+        })
     }
 }
 
 #[derive(Default, RustcEncodable, RustcDecodable)]
 pub struct Dynamic<T: Send+Sync+Clone>(Arc<VecMap<T>>);
 
-impl<T: Send+Clone+Sync+Default> Clone for Dynamic<T> {
+impl<T: Send+Clone+Sync> Clone for Dynamic<T> {
     fn clone(&self) -> Dynamic<T> {
         Dynamic(match self { &Dynamic(ref t) => t.clone() })
     }
@@ -150,17 +207,6 @@ impl<T: Send+Sync+Clone> Dynamic<T> {
 
     pub fn len(&self) -> uint {
         match self { &Dynamic(ref t) => t.len() }
-    }
-
-    pub fn highest_entity(&self) -> Entity {
-        match self {
-            &Dynamic(ref t) => {
-                t.iter()
-                 .next_back()
-                 .map(|(k, _)| k as u32)
-                 .unwrap_or(0u32)
-            }
-        }
     }
 }
 

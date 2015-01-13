@@ -24,13 +24,14 @@ extern crate collect;
 extern crate "rustc-serialize" as rustc_serialize;
 
 use std::default::Default;
+use std::cmp::max;
 
 use cgmath::{Transform, Decomposed, Vector3, Matrix4, ToMatrix4, Matrix, Quaternion};
 use collect::iter::OrderedMapIterator;
 
 use snowmew::common::{Entity, Duplicate, Delete};
 use snowmew::input_integrator::InputIntegratorGameData;
-use snowmew::table::{Dynamic, DynamicIterator};
+use snowmew::table::{Static, StaticIterator};
 
 pub trait MatrixManager {
     fn size(&mut self, size: uint);
@@ -78,13 +79,15 @@ impl Default for Delta {
 
 #[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct PositionData {
-    delta: Dynamic<Delta>,
+    max: Entity,
+    delta: Static<Delta>,
 }
 
 impl PositionData {
     pub fn new() -> PositionData {
         PositionData {
-            delta: Dynamic::new()
+            max: 0,
+            delta: Static::new()
         }
     }
 }
@@ -97,6 +100,7 @@ pub trait Positions {
                  key: Entity,
                  parent: Option<Entity>,
                  transform: Decomposed<f32, Vector3<f32>, Quaternion<f32>>) {
+        self.get_position_mut().max = max(key, self.get_position().max);
         self.get_position_mut().delta.insert(key,
             Delta {
                 parent: parent,
@@ -203,13 +207,13 @@ pub trait Positions {
     }
 
     fn write_positions(&self, mm: &mut MatrixManager) {
-        mm.size(self.get_position().delta.highest_entity() as uint);
+        mm.size(self.position_max());
         for (key, _) in self.get_position().delta.iter() {
             mm.set(key as uint, self.position(key));
         }
     }
 
-    fn delta_iter(&self) -> DynamicIterator<Delta> {
+    fn delta_iter(&self) -> StaticIterator<Delta> {
         self.get_position().delta.iter()
     }
 
@@ -221,14 +225,12 @@ pub trait Positions {
         }
     }
 
-    fn position_max(&self) -> uint {
-        self.get_position().delta.highest_entity() as uint + 1
-    }
+    fn position_max(&self) -> uint { self.get_position().max as uint + 1 }
 }
 
 pub struct PositionIter<'a> {
     pos: &'a PositionData,
-    iter: DynamicIterator<'a, Delta>
+    iter: StaticIterator<'a, Delta>
 }
 
 impl<'a> Iterator for PositionIter<'a> {
