@@ -61,7 +61,7 @@ impl Obj {
             for m in obj.materials().iter() {
                 let mut p = path.clone();
                 p.pop();
-                p.push(m.as_slice());
+                p.push(&m[]);
                 let file = File::open(&p).ok().expect("failed to open material");
                 let mut f = BufferedReader::new(file);
                 let m = obj::Mtl::load(&mut f);

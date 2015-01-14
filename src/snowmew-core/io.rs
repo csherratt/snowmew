@@ -192,7 +192,7 @@ impl IOManager {
     fn create_hmd_window(&self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
         self.glfw.with_connected_monitors(|monitors| {
             for m in monitors.iter() {
-                if !m.get_name().as_slice().contains("Rift") {
+                if !m.get_name()[].contains("Rift") {
                     continue;
                 }
 
@@ -291,7 +291,7 @@ impl IOManager {
         self.windows.get_mut(&handle.handle)
             .map(|win| {
                 if title != win.title {
-                    win.window.set_title(title.as_slice());
+                    win.window.set_title(&title[]);
                     win.title = title.clone();
                 }
             });

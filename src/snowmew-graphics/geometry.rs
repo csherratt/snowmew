@@ -103,7 +103,7 @@ impl Clone for VertexGeo {
 
 impl PartialEq for VertexGeo {
     fn eq(&self, other: &VertexGeo) -> bool {
-        self.position.as_slice() == other.position.as_slice()
+        self.position[] == other.position[]
     }
 }
 
@@ -148,8 +148,8 @@ impl Clone for VertexGeoNorm {
 
 impl PartialEq for VertexGeoNorm {
     fn eq(&self, other: &VertexGeoNorm) -> bool {
-        self.position.as_slice() == other.position.as_slice() &&
-        self.normal.as_slice() == other.normal.as_slice()
+        self.position[] == other.position[] &&
+        self.normal[] == other.normal[]
     }
 }
 
@@ -194,8 +194,8 @@ impl Clone for VertexGeoTex {
 
 impl PartialEq for VertexGeoTex {
     fn eq(&self, other: &VertexGeoTex) -> bool {
-        self.position.as_slice() == other.position.as_slice() &&
-        self.texture.as_slice() == other.texture.as_slice()
+        self.position[] == other.position[] &&
+        self.texture[] == other.texture[]
     }
 }
 
@@ -246,9 +246,9 @@ impl Clone for VertexGeoTexNorm {
 
 impl PartialEq for VertexGeoTexNorm {
     fn eq(&self, other: &VertexGeoTexNorm) -> bool {
-        self.position.as_slice() == other.position.as_slice() &&
-        self.normal.as_slice() == other.normal.as_slice() &&
-        self.texture.as_slice() == other.texture.as_slice()
+        self.position[] == other.position[] &&
+        self.normal[] == other.normal[] &&
+        self.texture[] == other.texture[]
     }
 }
 

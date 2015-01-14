@@ -354,13 +354,13 @@ pub mod cl {
                                       buf: &CLBuffer<Matrix4<f32>>) -> Event {
             self.write(pos);
             let max = pos.position_max();
-            let event = [queue.write_async(&self.input, &self.input_buf.slice(0, max), ()),
-                         queue.write_async(&self.parent, &self.parent_buf.slice(0, max), ())];
+            let event = [queue.write_async(&self.input, &&self.input_buf[0..max], ()),
+                         queue.write_async(&self.parent, &&self.parent_buf[0..max], ())];
             self.kernel_mat.set_arg(0, &self.input);
             self.kernel_mat.set_arg(1, &self.parent);
             self.kernel_mat.set_arg(2, buf);
             self.kernel_mat.set_arg(3, &(pos.position_max() as u32));
-            queue.enqueue_async_kernel(&self.kernel_mat, pos.position_max(), None, event.as_slice())
+            queue.enqueue_async_kernel(&self.kernel_mat, pos.position_max(), None, &event[])
         }
 
         pub fn compute_vec4x4<P: Positions>(&mut self,
@@ -369,8 +369,8 @@ pub mod cl {
                                         buf: &[CLBuffer<Vector4<f32>>; 4]) -> Event {
             self.write(pos);
             let max = pos.position_max();
-            let event = [queue.write_async(&self.input, &self.input_buf.slice(0, max), ()),
-                         queue.write_async(&self.parent, &self.parent_buf.slice(0, max), ())];
+            let event = [queue.write_async(&self.input, &&self.input_buf[0..max], ()),
+                         queue.write_async(&self.parent, &&self.parent_buf[0..max], ())];
             self.kernel_vec4.set_arg(0, &self.input);
             self.kernel_vec4.set_arg(1, &self.parent);
             self.kernel_vec4.set_arg(2, &buf[0]);
@@ -378,7 +378,7 @@ pub mod cl {
             self.kernel_vec4.set_arg(4, &buf[2]);
             self.kernel_vec4.set_arg(5, &buf[3]);
             self.kernel_vec4.set_arg(6, &(max as u32));
-            queue.enqueue_async_kernel(&self.kernel_vec4, pos.position_max(), None, event.as_slice())
+            queue.enqueue_async_kernel(&self.kernel_vec4, pos.position_max(), None, &event[])
         }
     }
 }

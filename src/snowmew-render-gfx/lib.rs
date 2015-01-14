@@ -443,10 +443,10 @@ impl RenderManagerContext {
                                 }
                             })
                             .collect();
-                        self.graphics.device.create_mesh(data.as_slice())
+                        self.graphics.device.create_mesh(&data[])
                     },
                     GeoTex(ref d) => {
-                        self.graphics.device.create_mesh(d.as_slice())
+                        self.graphics.device.create_mesh(&d[])
                     },
                     GeoNorm(ref d) => {
                         let data: Vec<VertexGeoTexNorm> = d.iter()
@@ -458,19 +458,19 @@ impl RenderManagerContext {
                                 }
                             })
                             .collect();
-                        self.graphics.device.create_mesh(data.as_slice())
+                        self.graphics.device.create_mesh(&data[])
                     },
                     GeoTexNorm(ref d) => {
-                        self.graphics.device.create_mesh(d.as_slice())
+                        self.graphics.device.create_mesh(&d[])
                     },
                     GeoTexNormTan(ref d) => {
-                        self.graphics.device.create_mesh(d.as_slice())
+                        self.graphics.device.create_mesh(&d[])
                     }
                 };
 
                 let vb: Vec<u32> = vb.index.iter().map(|&x| x as u32).collect();
 
-                let index = self.graphics.device.create_buffer_static(vb.as_slice());
+                let index = self.graphics.device.create_buffer_static(&vb[]);
 
                 self.meshes.insert(oid, Mesh {
                     index: index,
@@ -622,7 +622,7 @@ impl RenderManagerContext {
                 if matrices.len() == max {
                     shared_gm.push((lg, lm, mat, matrices.len()-idx_gm, idx_gm));
                     shared_g.push((lg, mat, matrices.len()-idx_g, idx_g));
-                    self.graphics.device.update_buffer(mat, matrices.as_slice(), 0);
+                    self.graphics.device.update_buffer(mat, &matrices[], 0);
                     mat = self.fetch_matrix();
                     matrices.clear();
                     None
@@ -639,7 +639,7 @@ impl RenderManagerContext {
         if let Some((g, m, idx_gm, idx_g)) = last {
             shared_gm.push((g, m, mat, matrices.len()-idx_gm, idx_gm));
             shared_g.push((g, mat, matrices.len()-idx_g, idx_g));
-            self.graphics.device.update_buffer(mat, matrices.as_slice(), 0)
+            self.graphics.device.update_buffer(mat, &matrices[], 0)
         }
 
         self.shared_geometry = shared_g;

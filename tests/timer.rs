@@ -8,7 +8,7 @@ fn timer_inphase() {
     let mut timer = Timer::new(Phase::In, 0.5);
     let fired: Vec<bool> = range(0, 10).map(|_| timer.cycle(0.1)).collect();
 
-    assert_eq!(fired.as_slice(),
+    assert_eq!(&fired[],
         [true, false, false, false, true,
          false, false, false, false, true]
     );
@@ -19,7 +19,7 @@ fn timer_out_of_phase() {
     let mut timer = Timer::new(Phase::OutOf, 0.5);
     let fired: Vec<bool> = range(0, 10).map(|_| timer.cycle(0.1)).collect();
 
-    assert_eq!(fired.as_slice(),
+    assert_eq!(&fired[],
         [false, false, false, false, true,
          false, false, false, false, true]
     );
@@ -67,7 +67,7 @@ fn timer_try_inphase() {
     let mut timer = Timer::new(Phase::In, 0.5);
     let fired: Vec<bool> = range(0, 5).map(|_| timer.try_cycle(0.1)).collect();
 
-    assert_eq!(fired.as_slice(),
+    assert_eq!(&fired[],
         [true, true, true, true, true]
     );
 }
@@ -77,7 +77,7 @@ fn timer_try_out_of_phase() {
     let mut timer = Timer::new(Phase::OutOf, 0.5);
     let fired: Vec<bool> = range(0, 5).map(|_| timer.try_cycle(0.1)).collect();
 
-    assert_eq!(fired.as_slice(),
+    assert_eq!(&fired[],
         [false, false, false, false, false]
     );
 }

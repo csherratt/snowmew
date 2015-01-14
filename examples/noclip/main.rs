@@ -53,9 +53,9 @@ fn main() {
         println!("Please supply a path to an obj to load");
         return;
     }
-    let path = Path::new(args[1].as_slice());
+    let path = Path::new(&args[1][]);
     let scale: f32 = if args.len() >= 3 {
-        match FromStr::from_str(args[2].as_slice()) {
+        match FromStr::from_str(&args[2][]) {
             Some(v) => v,
             None => 1.0
         }
@@ -83,9 +83,9 @@ fn main() {
     db.set_to_identity(camera_loc);
 
     let pos = if args.len() >= 6 {
-        let x = FromStr::from_str(args[3].as_slice());
-        let y = FromStr::from_str(args[4].as_slice());
-        let z = FromStr::from_str(args[5].as_slice());
+        let x = FromStr::from_str(&args[3][]);
+        let y = FromStr::from_str(&args[4][]);
+        let z = FromStr::from_str(&args[5][]);
         match (x, y, z) {
             (Some(x), Some(y), Some(z)) => {
                 Point3::new(x, y, z)
