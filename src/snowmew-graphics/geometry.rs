@@ -339,12 +339,12 @@ impl Default for Primative {
 
 fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: usize, a: IDX, b: IDX) -> IDX {
     let my_idx = my_idx as isize;
-    for i in range(0, (index.len()/3) as isize) {
+    for i in (0..(index.len()/3) as isize) {
         if i != my_idx {
             /* look for candidate */
             let mut found_a = -1;
             let mut found_b = -1;
-            for j in range(0is, 3) {
+            for j in (0is..3) {
                 if a == index[(i*3+j) as usize] {
                     found_a = j;
                 }
@@ -355,7 +355,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: usize, a: IDX, b: IDX) -> IDX
 
             /* found a candidate */
             if found_a != -1 && found_b != -1  {
-                for j in range(0is, 3) {
+                for j in (0is..3) {
                     if j != found_a && j != found_b {
                         return index[(i*3+j) as usize].clone();
                     }
@@ -368,7 +368,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: usize, a: IDX, b: IDX) -> IDX
 
 pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX> {
     let mut vec = Vec::with_capacity(index.len()*2);
-    for i in range(0, index.len()/3) {
+    for i in (0..index.len()/3) {
         let a = &index[i*3];
         let b = &index[i*3+1];
         let c = &index[i*3+2];

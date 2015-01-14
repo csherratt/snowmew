@@ -30,10 +30,10 @@ fn offset(width: usize, depth: usize,
 }
 
 fn flip(dat: &mut Vec<u8>, height: usize, width: usize, depth: usize) {
-    for row in range(0, height/2) {
+    for row in (0..height/2) {
         let swap_row = height - row - 1;
-        for column in range(0, width) {
-            for d in range(0, depth) {
+        for column in (0..width) {
+            for d in (0..depth) {
                 let a_addr = offset(width, depth, row, column, d);
                 let b_addr = offset(width, depth, swap_row, column, d);
                 let temp = (*dat)[a_addr];

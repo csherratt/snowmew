@@ -60,9 +60,9 @@ fn main() {
         10is
     };
 
-    for x in range(-count, count) {
-        for y in range(-count, count) {
-            for z in range(-count, count) {
+    for x in (-count..count) {
+        for y in (-count..count) {
+            for z in (-count..count) {
                 let new = gd.new_object(Some(scene));
                 let x = x as f32 * 2.5;
                 let y = y as f32 * 2.5;
