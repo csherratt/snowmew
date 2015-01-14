@@ -52,7 +52,7 @@ impl<T: Send+Clone+Sync> Static<T> {
         }
     }
 
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         match self { &Static(ref t) => t.len() }
     }
 }
@@ -90,7 +90,7 @@ impl<T:Send+Sync+Clone+Decodable> Decodable for Static<T> {
     fn decode<D: Decoder>(d: &mut D) -> Result<Static<T>, D::Error> {
         d.read_map(|d, len| {
             let mut map = Static::new();
-            for i in range(0u, len) {
+            for i in range(0us, len) {
                 let key = try!(d.read_map_elt_key(i, |d| Decodable::decode(d)));
                 let val = try!(d.read_map_elt_val(i, |d| Decodable::decode(d)));
                 map.insert(key, val);
@@ -124,7 +124,7 @@ impl StaticSet {
         }
     }
 
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         match self { &StaticSet(ref t) => t.len() }
     }
 }
@@ -161,7 +161,7 @@ impl Decodable for StaticSet {
     fn decode<D: Decoder>(d: &mut D) -> Result<StaticSet, D::Error> {
         d.read_seq(|d, len| {
             let mut set = StaticSet::new();
-            for i in range(0u, len) {
+            for i in range(0us, len) {
                 set.insert(try!(d.read_seq_elt(i, |d| Decodable::decode(d))));
             }
             Ok(set)
@@ -184,19 +184,19 @@ impl<T: Send+Sync+Clone> Dynamic<T> {
     }
 
     pub fn get(&self, key: Entity) -> Option<&T> {
-        match self { &Dynamic(ref t) => t.get(&(key as uint)) }
+        match self { &Dynamic(ref t) => t.get(&(key as usize)) }
     }
 
     pub fn get_mut(&mut self, key: Entity) -> Option<&mut T> {
-        match self { &mut Dynamic(ref mut t) => t.make_unique().get_mut(&(key as uint)) }
+        match self { &mut Dynamic(ref mut t) => t.make_unique().get_mut(&(key as usize)) }
     }
 
     pub fn insert(&mut self, key: Entity, value: T) -> bool {
-        match self { &mut Dynamic(ref mut t) => t.make_unique().insert(key as uint, value) }.is_some()
+        match self { &mut Dynamic(ref mut t) => t.make_unique().insert(key as usize, value) }.is_some()
     }
 
     pub fn remove(&mut self, key: Entity) -> bool {
-        match self { &mut Dynamic(ref mut t) => t.make_unique().remove(&(key as uint)) }.is_some()
+        match self { &mut Dynamic(ref mut t) => t.make_unique().remove(&(key as usize)) }.is_some()
     }
 
     pub fn iter(&self) -> DynamicIterator<T> {
@@ -205,7 +205,7 @@ impl<T: Send+Sync+Clone> Dynamic<T> {
         }
     }
 
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         match self { &Dynamic(ref t) => t.len() }
     }
 }

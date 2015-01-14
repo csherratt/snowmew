@@ -139,7 +139,7 @@ impl Obj {
             let mut vertices = Vec::new();
             let indices: Vec<u32> = {
                  let mut indexer = LruIndexer::new(64, |_, v| {
-                    let (p, t, n): (uint, Option<uint>, Option<uint>) = v;
+                    let (p, t, n): (usize, Option<usize>, Option<usize>) = v;
                     let vert = match (t, n) {
                         (Some(t), Some(n)) => {
                             VertexGeoTexNorm {

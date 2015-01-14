@@ -297,8 +297,8 @@ pub struct RenderManagerContext {
 
     spare_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
     used_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
-    shared_geometry: Vec<(u32, device::BufferHandle<[[f32; 4]; 4]>, uint, uint)>,
-    shared_geometry_material: Vec<(u32, u32, device::BufferHandle<[[f32; 4]; 4]>, uint, uint)>,
+    shared_geometry: Vec<(u32, device::BufferHandle<[[f32; 4]; 4]>, usize, usize)>,
+    shared_geometry_material: Vec<(u32, u32, device::BufferHandle<[[f32; 4]; 4]>, usize, usize)>,
 }
 
 pub struct RenderManager<R> {
@@ -773,8 +773,8 @@ impl RenderManagerContext {
 
     fn config<RD: Renderable>(&mut self, db: &RD) {
         let (width, height) = db.io_state().size;
-        if self.frame.width as uint != width ||
-           self.frame.height as uint != height {
+        if self.frame.width as u32 != width ||
+           self.frame.height as u32 != height {
             self.frame = gfx::Frame::new(width as u16, height as u16);
         }
     }

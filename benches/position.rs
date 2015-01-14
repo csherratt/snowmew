@@ -13,7 +13,7 @@ use cgmath::{Matrix4, Decomposed, Quaternion, Vector3, Vector4};
 
 use opencl::hl::{EventList, Context};
 
-const SIZE: uint = 1024*64;
+const SIZE: usize = 1024*64;
 
 fn create_positon_data() -> PositionData {
     let mut pos = PositionData::new();

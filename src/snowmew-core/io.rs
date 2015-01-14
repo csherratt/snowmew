@@ -29,7 +29,7 @@ use ovr;
 
 use input;
 
-pub type WindowId = uint;
+pub type WindowId = usize;
 
 struct WindowHandle {
     window: glfw::Window,
@@ -42,7 +42,7 @@ pub struct IOManager {
     glfw: Glfw,
     ovr: Option<ovr::Ovr>,
     windows: TrieMap<WindowHandle>,
-    window_id: uint
+    window_id: usize
 }
 
 impl IOManager {
@@ -332,7 +332,7 @@ impl IOManager {
 
 #[derive(Clone, Copy)]
 pub struct InputHandle {
-    handle: uint,
+    handle: usize,
 }
 
 #[cfg(target_os="macos")]
@@ -401,9 +401,9 @@ impl Window {
 
 #[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct IoState {
-    pub render_size: (uint, uint),
-    pub size: (uint, uint),
-    pub position: (int, int),
+    pub render_size: (u32, u32),
+    pub size: (u32, u32),
+    pub position: (i32, i32),
     pub show_mouse: bool,
     pub mouse_over: bool,
     pub window_title: String
@@ -424,7 +424,7 @@ impl IoState {
     pub fn window_action(&mut self, win: input::WindowEvent) {
         match win {
             input::WindowEvent::Size(x, y) => {
-                self.size = (x as uint, y as uint);
+                self.size = (x, y);
             }
             input::WindowEvent::Position(x, y) => {
                 self.position = (x, y);

@@ -38,13 +38,13 @@ impl<Game> InputIntegrator<Game> {
 /// Contains the collected input state
 #[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct InputIntegratorState {
-    buttons_down: HashMap<Button, uint>,
+    buttons_down: HashMap<Button, u64>,
     buttons_released: HashSet<Button>,
-    index: uint,
+    index: u64,
     time: f64,
     last_time: f64,
-    last_mouse: Option<(uint, f64, f64)>,
-    mouse: Option<(uint, f64, f64)>,
+    last_mouse: Option<(u64, f64, f64)>,
+    mouse: Option<(u64, f64, f64)>,
     scroll: (f64, f64),
     last_scroll: (f64, f64)
 }
@@ -103,7 +103,7 @@ impl InputIntegratorState {
     }
 
     /// get the current frame index
-    pub fn index(&self) -> uint { self.index }
+    pub fn index(&self) -> u64 { self.index }
 
     /// get the current frame time
     pub fn time(&self) -> f64 { self.time }

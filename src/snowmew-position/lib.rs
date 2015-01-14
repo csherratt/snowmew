@@ -34,13 +34,13 @@ use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::table::{Static, StaticIterator};
 
 pub trait MatrixManager {
-    fn size(&mut self, size: uint);
-    fn set(&mut self, idx: uint, mat: Matrix4<f32>);
-    fn get(&self, idx: uint) -> Matrix4<f32>;
+    fn size(&mut self, size: usize);
+    fn set(&mut self, idx: usize, mat: Matrix4<f32>);
+    fn get(&self, idx: usize) -> Matrix4<f32>;
 }
 
 impl<'r> MatrixManager for Vec<Matrix4<f32>> {
-    fn size(&mut self, size: uint) {
+    fn size(&mut self, size: usize) {
         use std::iter::repeat;
 
         if self.len() < size {
@@ -48,8 +48,8 @@ impl<'r> MatrixManager for Vec<Matrix4<f32>> {
             self.extend(repeat(Matrix4::identity()).take(amount));
         }
     }
-    fn set(&mut self, idx: uint, m: Matrix4<f32>) { self[idx] = m; }
-    fn get(&self, idx: uint) -> Matrix4<f32> { self[idx] }
+    fn set(&mut self, idx: usize, m: Matrix4<f32>) { self[idx] = m; }
+    fn get(&self, idx: usize) -> Matrix4<f32> { self[idx] }
 }
 
 
@@ -209,7 +209,7 @@ pub trait Positions {
     fn write_positions(&self, mm: &mut MatrixManager) {
         mm.size(self.position_max());
         for (key, _) in self.get_position().delta.iter() {
-            mm.set(key as uint, self.position(key));
+            mm.set(key as usize, self.position(key));
         }
     }
 
@@ -225,7 +225,7 @@ pub trait Positions {
         }
     }
 
-    fn position_max(&self) -> uint { self.get_position().max as uint + 1 }
+    fn position_max(&self) -> usize { self.get_position().max as usize + 1 }
 }
 
 pub struct PositionIter<'a> {
@@ -333,19 +333,19 @@ pub mod cl {
             }
         }
 
-        fn write<P: Positions>(&mut self, pos: &P) -> uint {
+        fn write<P: Positions>(&mut self, pos: &P) -> usize {
             let mut top = 0;
             for i in range(0, pos.position_max()) {
                 self.parent_buf[i] = !0;
             }
             for (idx, &p) in pos.delta_iter() {
                 top = idx;
-                self.parent_buf[idx as uint] = p.parent.unwrap_or(!0);
-                self.input_buf[idx as uint] = Delta {
+                self.parent_buf[idx as usize] = p.parent.unwrap_or(!0);
+                self.input_buf[idx as usize] = Delta {
                     delta: p.delta
                 };
             }
-            top as uint
+            top as usize
         }
 
         pub fn compute_mat<P: Positions>(&mut self,

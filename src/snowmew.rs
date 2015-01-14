@@ -56,7 +56,6 @@ pub mod graphics {
         Material,
         texture,
         Texture,
-        texture_atlas,
         VertexBuffer,
         VertexBufferIter,
     };

@@ -52,7 +52,6 @@ pub mod geometry;
 pub mod material;
 pub mod standard;
 pub mod texture;
-pub mod texture_atlas;
 pub mod light;
 
 #[derive(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, RustcEncodable, RustcDecodable, Copy)]
@@ -82,8 +81,6 @@ pub struct GraphicsData {
     material_index:     Static<i32>,
     material_idx_last:  i32,
     texture:            Static<Texture>,
-    texture_to_atlas:   Static<(uint, uint)>,
-    atlases:            Vec<texture_atlas::Atlas>,
     lights:             Static<light::Light>,
     standard:           Option<standard::Standard>
 }
@@ -98,15 +95,12 @@ impl GraphicsData {
             material_index: Static::new(),
             texture: Static::new(),
             lights: Static::new(),
-            atlases: Vec::new(),
-            texture_to_atlas: Static::new(),
             material_idx_last: 0,
             sphere: Static::new(),
             standard: None
         }
     }
 }
-
 
 pub trait Graphics: Common + Sized {
     fn get_graphics<'a>(&'a self) -> &'a GraphicsData;
@@ -188,7 +182,7 @@ pub trait Graphics: Common + Sized {
         }
     }
 
-    fn drawable_count(&self) -> uint {
+    fn drawable_count(&self) -> usize {
         self.get_graphics().draw.len()
     }
 
@@ -221,23 +215,7 @@ pub trait Graphics: Common + Sized {
 
     fn new_texture(&mut self, texture: Texture) -> Entity {
         let oid = self.new_object(None);
-        let mut found = None;
-        for (idx, atlas) in self.get_graphics_mut().atlases.iter_mut().enumerate() {
-            if atlas.check_texture(&texture) {
-                found = Some((idx, atlas.add_texture(oid, &texture)));
-                break;
-            }
-        }
-        if found.is_none() {
-            let mut atlas = texture_atlas::Atlas::new(texture.width(), texture.height(), texture.depth());
-            let idx = atlas.add_texture(oid, &texture);
-            let idx_atlas = self.get_graphics().atlases.len();
-            self.get_graphics_mut().atlases.push(atlas);
-            found = Some((idx_atlas, idx))
-        }
-
         self.get_graphics_mut().texture.insert(oid, texture);
-        self.get_graphics_mut().texture_to_atlas.insert(oid, found.unwrap());
         oid
     }
 
@@ -245,16 +223,8 @@ pub trait Graphics: Common + Sized {
         self.get_graphics().texture.get(oid)
     }
 
-    fn get_texture_atlas_index<'a>(&'a self, oid: Entity) -> Option<&'a (uint, uint)> {
-        self.get_graphics().texture_to_atlas.get(oid)
-    }
-
     fn texture_iter<'a>(&'a self) -> StaticIterator<'a, Texture> {
         self.get_graphics().texture.iter()
-    }
-
-    fn texture_atlas_iter<'a>(&'a self) -> slice::Iter<'a, texture_atlas::Atlas> {
-        self.get_graphics().atlases.iter()
     }
 
     fn new_light(&mut self, light: Light) -> Entity {
@@ -289,8 +259,6 @@ impl Duplicate for GraphicsData {
         x.map(|x| self.texture.insert(dst, x));
         let x = self.lights.get(src).map(|x| x.clone());
         x.map(|x| self.lights.insert(dst, x));
-        let x = self.texture_to_atlas.get(src).map(|x| x.clone());
-        x.map(|x| self.texture_to_atlas.insert(dst, x));
         let x = self.sphere.get(src).map(|x| x.clone());
         x.map(|x| self.sphere.insert(dst, x));
     }
@@ -306,7 +274,6 @@ impl Delete for GraphicsData {
         self.material_index.remove(oid)   |
         self.texture.remove(oid)          |
         self.lights.remove(oid)           |
-        self.texture_to_atlas.remove(oid) |
         self.sphere.remove(oid)
     }
 }
@@ -332,23 +299,23 @@ impl<'a> Iterator for VertexBufferIter<'a> {
 
         match self.vb.vertex {
             geometry::Vertex::Geo(ref v) => {
-                let v = &v[*idx as uint];
+                let v = &v[*idx as usize];
                 Some((*idx, &v.position, None, None))
             }
             geometry::Vertex::GeoTex(ref v) => {
-                let v = &v[*idx as uint];
+                let v = &v[*idx as usize];
                 Some((*idx, &v.position, Some(&v.texture), None))
             }
             geometry::Vertex::GeoNorm(ref v) => {
-                let v = &v[*idx as uint];
+                let v = &v[*idx as usize];
                 Some((*idx, &v.position, None, Some(&v.normal)))
             }
             geometry::Vertex::GeoTexNorm(ref v) => {
-                let v = &v[*idx as uint];
+                let v = &v[*idx as usize];
                 Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
             }
             geometry::Vertex::GeoTexNormTan(ref v) => {
-                let v = &v[*idx as uint];
+                let v = &v[*idx as usize];
                 Some((*idx, &v.position, Some(&v.texture), Some(&v.normal)))
             }
         }

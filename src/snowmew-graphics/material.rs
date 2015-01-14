@@ -29,7 +29,7 @@ pub struct Material {
     ni: f32,
     tr: f32,
     d: f32,
-    illum: int,
+    illum: i32,
 
     map_ka:   Option<Entity>,
     map_kd:   Option<Entity>,

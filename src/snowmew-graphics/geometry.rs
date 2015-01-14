@@ -328,8 +328,8 @@ pub struct VertexBuffer {
 #[derive(Clone, Default, RustcEncodable, RustcDecodable, Copy)]
 pub struct Geometry {
     pub vb: Entity,
-    pub count: uint, // number of index elements
-    pub offset: uint, // offset into the index buffer
+    pub count: usize, // number of index elements
+    pub offset: usize, // offset into the index buffer
     pub prim: Primative
 }
 
@@ -337,27 +337,27 @@ impl Default for Primative {
     fn default() -> Primative {Primative::Point}
 }
 
-fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: uint, a: IDX, b: IDX) -> IDX {
-    let my_idx = my_idx as int;
-    for i in range(0, (index.len()/3) as int) {
+fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: usize, a: IDX, b: IDX) -> IDX {
+    let my_idx = my_idx as isize;
+    for i in range(0, (index.len()/3) as isize) {
         if i != my_idx {
             /* look for candidate */
             let mut found_a = -1;
             let mut found_b = -1;
-            for j in range(0i, 3) {
-                if a == index[(i*3+j) as uint] {
+            for j in range(0is, 3) {
+                if a == index[(i*3+j) as usize] {
                     found_a = j;
                 }
-                if b == index[(i*3+j) as uint] {
+                if b == index[(i*3+j) as usize] {
                     found_b = j;
                 }
             }
 
             /* found a candidate */
             if found_a != -1 && found_b != -1  {
-                for j in range(0i, 3) {
+                for j in range(0is, 3) {
                     if j != found_a && j != found_b {
-                        return index[(i*3+j) as uint].clone();
+                        return index[(i*3+j) as usize].clone();
                     }
                 }
             }
@@ -384,7 +384,7 @@ pub fn to_triangles_adjacency<IDX: Eq+Clone>(index: &[IDX]) -> Vec<IDX> {
 }
 
 impl Geometry {
-    pub fn triangles(vb: Entity, offset: uint, count: uint) -> Geometry {
+    pub fn triangles(vb: Entity, offset: usize, count: usize) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -393,7 +393,7 @@ impl Geometry {
         }
     }
 
-    pub fn triangles_adjacency(vb: Entity, offset: uint, count: uint) -> Geometry {
+    pub fn triangles_adjacency(vb: Entity, offset: usize, count: usize) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -402,7 +402,7 @@ impl Geometry {
         }
     }
 
-    pub fn lines(vb: Entity, offset: uint, count: uint) -> Geometry {
+    pub fn lines(vb: Entity, offset: usize, count: usize) -> Geometry {
         Geometry {
             vb: vb,
             count: count,
@@ -411,7 +411,7 @@ impl Geometry {
         }
     }
 
-    pub fn points(vb: Entity, offset: uint, count: uint) -> Geometry {
+    pub fn points(vb: Entity, offset: usize, count: usize) -> Geometry {
         Geometry {
             vb: vb,
             count: count,

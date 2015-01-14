@@ -34,15 +34,15 @@ impl<Game> Debugger<Game> {
 
 #[derive(Clone)]
 pub struct DebuggerGameData<GameData, Event> {
-    index: uint,
-    limit: uint,
+    index: usize,
+    limit: usize,
     events: Arc<VecMap<Event>>,
-    history: Arc<BTreeMap<uint, GameData>>,
+    history: Arc<BTreeMap<usize, GameData>>,
     pub inner: GameData
 }
 
 impl<GameData: Send+Sync+Clone, Event: Send+Sync+Clone> DebuggerGameData<GameData, Event> {
-    pub fn new(inner: GameData, limit: uint) -> DebuggerGameData<GameData, Event> {
+    pub fn new(inner: GameData, limit: usize) -> DebuggerGameData<GameData, Event> {
         DebuggerGameData {
             index: 0,
             limit: limit,
@@ -151,7 +151,7 @@ impl<GameData: Clone+Send+Sync,
     }
 
     /// set limit of checkpoints
-    pub fn limit(&mut self, limit: uint, mut gd: DebuggerGameData<GameData, Event>)
+    pub fn limit(&mut self, limit: usize, mut gd: DebuggerGameData<GameData, Event>)
         -> DebuggerGameData<GameData, Event> {
         gd.limit = limit;
         gd.compact();

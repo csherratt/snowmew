@@ -21,11 +21,17 @@ pub fn load_texture(path: &Path) -> Texture {
         Error(s) => panic!("failed to load image: {} {}", s, path.as_str().unwrap()),
         ImageU8(d) => {
             println!("loaded texture {} {} {}", path.as_str().unwrap(), d.data.len(), d.depth);
-            Texture::new(d.width, d.height, d.depth, d.data)
+            Texture::new(d.width as u32,
+                d.height as u32,
+                d.depth as u32,
+                d.data)
         }
         ImageF32(d) => {
             println!("loaded texture {} {} {}", path.as_str().unwrap(), d.data.len(), d.depth);
-            Texture::new(d.width, d.height, d.depth, d.data.iter().map(|v| *v as u8).collect())
+            Texture::new(d.width as u32,
+                d.height as u32,
+                d.depth as u32,
+                d.data.iter().map(|v| *v as u8).collect())
         }
     };
     res.flip();

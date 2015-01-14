@@ -296,8 +296,8 @@ pub enum Event {
 #[derive(Clone, Show, PartialEq, Copy)]
 pub enum WindowEvent {
     MouseOver(bool),
-    Position(int, int),
-    Size(int, int)
+    Position(i32, i32),
+    Size(u32, u32)
 }
 
 #[derive(Clone, Show, PartialEq, Copy)]
@@ -332,10 +332,10 @@ impl Event {
                 EventGroup::Window(WindowEvent::MouseOver(x))
             }
             glfw::WindowEvent::Pos(x, y) => {
-                EventGroup::Window(WindowEvent::Position(x as int, y as int))
+                EventGroup::Window(WindowEvent::Position(x as i32, y as i32))
             }
             glfw::WindowEvent::FramebufferSize(x, y) => {
-                EventGroup::Window(WindowEvent::Size(x as int, y as int))
+                EventGroup::Window(WindowEvent::Size(x as u32, y as u32))
             }
             x => {
                 println!("unhandled {:?}", x);

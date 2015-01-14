@@ -136,7 +136,7 @@ pub struct Standard {
     pub shapes: Shapes
 }
 
-fn build_sphere<G: Graphics>(db: &mut G, size: uint) -> Entity {
+fn build_sphere<G: Graphics>(db: &mut G, size: usize) -> Entity {
     let (sphere_v, sphere_i) = build_vectors_poly(SphereUV::new(size, size));
     let sphere_len = sphere_i.len();
     let sphere_vb = VertexBuffer::new_position_texture_normal(sphere_v, sphere_i);

@@ -16,20 +16,20 @@ use std::default;
 
 #[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct Texture {
-    width: uint,
-    height: uint,
-    depth: uint,
+    width: u32,
+    height: u32,
+    depth: u32,
     data: Vec<u8>
 }
 
-fn offset(width: uint, depth: uint,
-          row: uint, column: uint, component: uint) -> uint {
+fn offset(width: usize, depth: usize,
+          row: usize, column: usize, component: usize) -> usize {
     width * depth * row +
     depth * column +
     component
 }
 
-fn flip(dat: &mut Vec<u8>, height: uint, width: uint, depth: uint) {
+fn flip(dat: &mut Vec<u8>, height: usize, width: usize, depth: usize) {
     for row in range(0, height/2) {
         let swap_row = height - row - 1;
         for column in range(0, width) {
@@ -52,7 +52,7 @@ impl default::Default for Texture {
 }
 
 impl Texture {
-    pub fn new(width: uint, height: uint, depth: uint, data: Vec<u8>) -> Texture {
+    pub fn new(width: u32, height: u32, depth: u32, data: Vec<u8>) -> Texture {
         Texture {
             width: width,
             height: height,
@@ -61,11 +61,11 @@ impl Texture {
         }
     }
 
-    pub fn width(&self) -> uint { self.width }
-    pub fn height(&self) -> uint { self.height }
-    pub fn depth(&self) -> uint { self.depth }
+    pub fn width(&self) -> u32 { self.width }
+    pub fn height(&self) -> u32 { self.height }
+    pub fn depth(&self) -> u32 { self.depth }
     pub fn data<'a>(&'a self) -> &'a [u8] { self.data.as_slice() }
     pub fn flip(&mut self) {
-        flip(&mut self.data, self.height, self.width, self.depth);
+        flip(&mut self.data, self.height as usize, self.width as usize, self.depth as usize);
     }
 }

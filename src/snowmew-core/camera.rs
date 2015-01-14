@@ -53,7 +53,7 @@ fn view_matrix(t: &Matrix4<f32>) -> Matrix4<f32> {
 
 impl Camera {
     /// Create a new camera from a position matrix
-    pub fn new(width: uint, height: uint, transform: Matrix4<f32>) -> Camera {
+    pub fn new(width: u32, height: u32, transform: Matrix4<f32>) -> Camera {
         Camera {
             width: width as f32,
             height: height as f32,
@@ -113,7 +113,7 @@ impl Camera {
 
     /// Creates a Vector into the world from the point of view of the camera
     /// this takes a pixel coordinate and turns it into a ray
-    pub fn pixel_ray(&self, x: int, y: int) -> Ray3<f32> {
+    pub fn pixel_ray(&self, x: i32, y: i32) -> Ray3<f32> {
         let ray_nds = Vector3::new(
             2. * x as f32 / self.width - 1.,
             1. - 2. * y as f32 / self.height,
