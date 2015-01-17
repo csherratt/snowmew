@@ -14,6 +14,7 @@
 
 #![crate_name = "snowmew-position"]
 #![crate_type = "lib"]
+#![allow(unstable)]
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
@@ -138,6 +139,13 @@ pub trait Positions {
         self.get_position_mut()
             .delta.get_mut(key)
             .map(|d| d.delta.rot = rot);
+    }
+
+    fn set_parent(&mut self, key: Entity, parent: Option<Entity>) {
+        self.init_position(key);
+        self.get_position_mut()
+            .delta.get_mut(key)
+            .map(|d| d.parent = parent);
     }
 
     fn get_scale(&mut self, key: Entity) -> Option<&f32> {
@@ -335,7 +343,7 @@ pub mod cl {
 
         fn write<P: Positions>(&mut self, pos: &P) -> usize {
             let mut top = 0;
-            for i in range(0, pos.position_max()) {
+            for i in (0..pos.position_max()) {
                 self.parent_buf[i] = !0;
             }
             for (idx, &p) in pos.delta_iter() {

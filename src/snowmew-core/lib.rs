@@ -14,6 +14,7 @@
 
 #![crate_name = "snowmew-core"]
 #![crate_type = "lib"]
+#![allow(unstable)]
 
 extern crate time;
 extern crate glfw;

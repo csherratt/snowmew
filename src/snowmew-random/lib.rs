@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+#![allow(unstable)]
+
 extern crate "snowmew-core" as core;
 
 use std::rand::{Rng, ChaChaRng};

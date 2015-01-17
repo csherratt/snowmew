@@ -20,7 +20,7 @@ path = "../snowmew-position"
 path = "../snowmew-graphics"
 
 [dependencies.opencl]
-git = "https://github.com/csherratt/rust-opencl.git"
+git = "https://github.com/luqmana/rust-opencl.git"
 
 [dependencies]
 rustc-serialize="*"

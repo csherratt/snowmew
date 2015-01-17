@@ -14,6 +14,7 @@
 
 #![crate_name = "snowmew-render"]
 #![crate_type = "lib"]
+#![allow(unstable)]
 
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate "snowmew-core" as snowmew;

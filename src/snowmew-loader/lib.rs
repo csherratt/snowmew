@@ -13,8 +13,8 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-loader"]
-
 #![crate_type = "lib"]
+#![allow(unstable)]
 
 extern crate collections;
 extern crate core;

@@ -29,7 +29,7 @@ git = "https://github.com/bjz/cgmath-rs.git"
 git = "https://github.com/csherratt/cow-rs.git"
 
 [dependencies.opencl]
-git = "https://github.com/csherratt/rust-opencl.git"
+git = "https://github.com/luqmana/rust-opencl.git"
 
 [dependencies.ovr]
 git = "https://github.com/csherratt/vr-rs.git"

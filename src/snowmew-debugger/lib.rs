@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 #![feature(old_impl_check)]
+#![allow(unstable)]
 
 extern crate "snowmew-core" as core;
 

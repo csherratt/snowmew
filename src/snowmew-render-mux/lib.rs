@@ -14,6 +14,7 @@
 
 #![crate_name = "snowmew-render-mux"]
 #![crate_type = "lib"]
+#![allow(unstable)]
 
 extern crate opencl;
 extern crate "snowmew-render-gfx" as gfx;

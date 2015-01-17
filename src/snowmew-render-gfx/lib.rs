@@ -14,8 +14,10 @@
 
 #![crate_name = "snowmew-render-gfx"]
 #![crate_type = "lib"]
-#![allow(dead_code)]
 #![feature(plugin)]
+#![allow(unstable)]
+#![allow(dead_code)]
+
 
 extern crate libc;
 extern crate opencl;
@@ -38,7 +40,7 @@ extern crate collect;
 
 use std::collections::{HashMap, BTreeSet};
 use std::sync::mpsc::{channel, Sender, Receiver};
-use std::thread::{Thread, JoinGuard};
+use std::thread::Thread;
 use std::sync::Arc;
 
 use opencl::hl;

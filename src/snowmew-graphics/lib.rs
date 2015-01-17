@@ -13,9 +13,9 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew-graphics"]
-
 #![crate_type = "lib"]
 #![feature(plugin)]
+#![allow(unstable)]
 
 #[plugin]
 extern crate gfx_macros;

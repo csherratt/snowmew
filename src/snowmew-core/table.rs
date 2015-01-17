@@ -113,6 +113,10 @@ impl StaticSet {
         match self { &mut StaticSet(ref mut t) => t.insert(key as usize) }
     }
 
+    pub fn contains(&self, key: Entity) -> bool {
+        match self { &StaticSet(ref t) => t.contains(&(key as usize)) }
+    }
+
     pub fn remove(&mut self, key: Entity) -> bool {
         let key = key as usize;
         match self { &mut StaticSet(ref mut t) => t.remove(&key) }

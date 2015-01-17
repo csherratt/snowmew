@@ -26,4 +26,4 @@ path = "../snowmew-graphics"
 path = "../snowmew-render"
 
 [dependencies.opencl]
-git = "https://github.com/csherratt/rust-opencl.git"
+git = "https://github.com/luqmana/rust-opencl.git"
