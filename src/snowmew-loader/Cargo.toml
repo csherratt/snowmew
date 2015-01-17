@@ -11,7 +11,7 @@ name = "snowmew-loader"
 path = "lib.rs"
 
 [dependencies]
-obj = "~0.0.1"
+obj = "*"
 genmesh = "*"
 
 [dependencies.stb_image]

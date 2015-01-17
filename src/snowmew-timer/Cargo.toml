@@ -8,3 +8,7 @@ authors = [
 [lib]
 name = "snowmew-timer"
 path = "lib.rs"
+
+[dependencies]
+rustc-serialize="*"
+

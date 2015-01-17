@@ -24,6 +24,7 @@ extern crate "snowmew-render"  as _render_data;
 extern crate "snowmew-debugger" as _debugger;
 extern crate "snowmew-random" as _random;
 extern crate "snowmew-timer" as _timer;
+extern crate "snowmew-network" as _network;
 
 pub use _core::table;
 pub use _core::common::Entity as Entity;
@@ -135,4 +136,8 @@ pub mod loader {
 
 pub mod timer {
     pub use _timer::{Timer, Phase};
+}
+
+pub mod networking {
+    pub use _network::{Server, Client};
 }

@@ -1,0 +1,20 @@
+[package]
+name = "snowmew-network"
+version = "0.1.0"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+
+[lib]
+name = "snowmew-network"
+path = "lib.rs"
+
+[dependencies.snowmew-core]
+path = "../snowmew-core/"
+
+[dependencies.wire]
+git = "https://github.com/TyOverby/wire.git"
+
+[dependencies]
+bchannel = "*"
+bincode = "*"

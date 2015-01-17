@@ -12,7 +12,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-#[derive(Copy, Clone)]
+extern crate "rustc-serialize" as rustc_serialize;
+
+#[derive(Copy, Clone, RustcEncodable, RustcDecodable)]
 /// Determines when the timer should fire
 pub enum Phase {
     /// The timer should fire at the start of a cycle.
@@ -24,7 +26,7 @@ pub enum Phase {
     OutOf
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, RustcEncodable, RustcDecodable)]
 pub struct Timer {
     phase: Phase,
     accumulator: u32,

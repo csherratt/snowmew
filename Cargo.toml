@@ -46,6 +46,9 @@ path = "src/snowmew-random/"
 [dependencies.snowmew-timer]
 path = "src/snowmew-timer/"
 
+[dependencies.snowmew-network]
+path = "src/snowmew-network/"
+
 [dependencies]
 time = "*"
 rustc-serialize="*"
