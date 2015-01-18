@@ -412,8 +412,8 @@ pub struct IoState {
 impl IoState {
     pub fn new() -> IoState {
         IoState {
-            render_size: (1, 1),
-            size: (1, 1),
+            render_size: (800, 600),
+            size: (800, 600),
             position: (0, 0),
             show_mouse: true,
             mouse_over: false,
