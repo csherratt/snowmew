@@ -122,6 +122,7 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
 
 #[derive(Clone)]
 pub struct ClientState<T, E> {
+    sync: bool,
     predict_frame: u32,
     predict: T,
     predict_delta: Vec<(u32, E)>,
@@ -185,6 +186,7 @@ impl<G, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable> Client<G, 
             ServerMessage::Image(state) => {
                 println!("download done");
                 ClientState {
+                    sync: false,
                     predict_frame: 0,
                     predict: state.clone(),
                     predict_delta: Vec::new(),
@@ -201,13 +203,8 @@ impl<G: Game<T, E>, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable
     Game<ClientState<T, E>, E> for Client<G, T, E> {
 
     fn step(&mut self, event: E, mut gd: ClientState<T, E>) -> ClientState<T, E> {
-        self.to_server.send(&ClientMessage::Event(event.clone()));
-
         let mut frame = gd.predict.clone();
         let mut index = gd.predict_frame;
-
-        gd.predict_delta.push((gd.predict_frame, event));
-        gd.predict_frame += 1;
 
         loop {
             match self.from_server.recv() {
@@ -217,13 +214,26 @@ impl<G: Game<T, E>, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable
                 }
                 Some(ServerMessage::Sync) => {
                     gd.server_frame += 1;
-                    let camera = gd.camera().expect("no camera found");
                     frame = gd.server.clone();
                     index = gd.server_frame;
                 },
                 None => break
             }
         }
+
+        if gd.sync {
+            gd.sync = gd.predict_frame > gd.server_frame + 1;
+            if gd.sync {
+                return gd
+            }
+        } else if gd.predict_frame > gd.server_frame + 5 {
+            gd.sync = true;
+            return gd;
+        }
+
+        self.to_server.send(&ClientMessage::Event(event.clone()));
+        gd.predict_delta.push((gd.predict_frame, event));
+        gd.predict_frame += 1;
 
         let mut predict = Vec::new();
         for (idx, e) in gd.predict_delta.drain() {
