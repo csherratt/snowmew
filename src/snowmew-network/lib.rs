@@ -1,4 +1,16 @@
-
+//   Copyright 2015 Colin Sherratt
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
 
 extern crate "snowmew-core" as core;
 extern crate "snowmew-position" as position;
@@ -17,14 +29,6 @@ use render::{Renderable, RenderData};
 use std::sync::mpsc;
 use std::thread::Thread;
 use std::ops::{Deref, DerefMut};
-use std::io::net::tcp::{
-    TcpStream,
-    TcpListener,
-    TcpAcceptor
-};
-use std::io::{
-    IoError,
-};
 use wire::SizeLimit;
 use wire::tcp::OutTcpStream;
 use rustc_serialize::{Decodable, Encodable};
@@ -74,7 +78,7 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
             let (read_limit, write_limit) = (SizeLimit::Infinite, SizeLimit::Infinite);
 
             for connection in listener.into_blocking_iter() {
-                let (i, mut o) = wire::upgrade_tcp(connection, read_limit, write_limit);
+                let (i, o) = wire::upgrade_tcp(connection, read_limit, write_limit);
                 
                 let client = ServerClient {
                     to_client: o,
