@@ -17,28 +17,32 @@
 extern crate "snowmew-core"         as _core;
 extern crate "snowmew-graphics"     as _graphics;
 extern crate "snowmew-loader"       as _loader;
-//extern crate "snowmew-physics"      as _physics;
 extern crate "snowmew-position"     as _position;
-extern crate "snowmew-render-mux"   as _render;
-extern crate "snowmew-render"  as _render_data;
+extern crate "snowmew-render-mux"   as _mux;
+extern crate "snowmew-render"  as _render;
 extern crate "snowmew-debugger" as _debugger;
 extern crate "snowmew-random" as _random;
 extern crate "snowmew-timer" as _timer;
 extern crate "snowmew-network" as _network;
+extern crate "snowmew-input" as _input;
+extern crate "snowmew-input-integrator" as _input_integrator;
+extern crate opencl;
+extern crate glfw;
 
 pub use _core::table;
 pub use _core::common::Entity as Entity;
 
 pub mod render {
-    pub use _render::RenderFactory as DefaultRender;
-    pub use _render_data::{
+    pub use _mux::RenderFactory as DefaultRender;
+    pub use _render::{
         RenderData,
         Renderable
     };
-    pub use _core::{
+    pub use _render::{
         RenderFactory,
-        Render,
+        Render
     };
+    pub use _input::DisplayConfig;
     pub use _core::camera::{
         Camera
     };
@@ -78,17 +82,6 @@ pub mod position {
 }
 
 pub mod core {
-    pub use _core::{
-        DisplayConfig,
-        Render,
-        IOManager,
-    };
-
-    pub use _core::io::{
-        InputHandle,
-        Window,
-    };
-
     pub use _core::game::Game;
 }
 
@@ -102,18 +95,14 @@ pub mod common {
     };
 }
 
-pub mod config  {
-    pub use _core::SnowmewConfig as SnowmewConfig;
-}
-
 pub mod input {
-    pub use _core::input::*;
-    pub use _core::input_integrator::{
+    pub use _input::*;
+    pub use _input_integrator::{
         InputIntegrator,
         InputIntegratorGameData,
-        InputIntegratorState,
+        InputIntegratorState
     };
-    pub use _core::input_integrator::input_integrator as integrator;
+    pub use _input_integrator::input_integrator as integrator;
 }
 
 pub mod debug {
@@ -140,4 +129,126 @@ pub mod timer {
 
 pub mod networking {
     pub use _network::{Server, Client};
+}
+
+pub mod config {
+    use std::sync::Arc;
+    use std::io::timer::Timer;
+    use std::time::Duration;
+
+    use opencl::hl::{Device, get_platforms};
+    use opencl::hl::DeviceType::{GPU, CPU};
+    use glfw::{self, Glfw};
+
+    use super::input::{Event, EventGroup, DisplayConfig};
+    use super::common::Common;
+    use super::core;
+    use super::render;
+    use super::input;
+
+    fn get_cl() -> Option<Arc<Device>> {
+        let platforms = get_platforms();
+
+        // find a gpu
+        for platform in platforms.iter() {
+            let devices = platform.get_devices_by_types(&[GPU]);
+            if devices.len() != 0 {
+                return Some(Arc::new(devices[0]));
+            }
+        }
+
+        // use cpu if no gpu was found
+        for platform in platforms.iter() {
+            let devices = platform.get_devices_by_types(&[CPU, GPU]);
+            if devices.len() != 0 {
+                return Some(Arc::new(devices[0]));
+            }
+        }
+
+        None
+    }
+
+    fn setup_glfw() -> glfw::Glfw {
+        let mut glfw = glfw::init(glfw::LOG_ERRORS).ok().unwrap();
+
+        glfw.window_hint(glfw::WindowHint::OpenglForwardCompat(true));
+        glfw.window_hint(glfw::WindowHint::Visible(false));
+        glfw.window_hint(glfw::WindowHint::DepthBits(24));
+        glfw.window_hint(glfw::WindowHint::StencilBits(8));
+        glfw.window_hint(glfw::WindowHint::Decorated(false));
+
+        glfw
+    }
+
+    #[derive(Copy)]
+    /// Used to configure the engine prior to the game stating.
+    pub struct SnowmewConfig {
+        /// The display configuration
+        pub display: DisplayConfig,
+        /// Configure if the engine should use OpenCL
+        pub use_opencl: bool,
+        /// Configure the cadence, the minimum peroid for a frame update
+        pub cadance_ms: i64
+    }
+
+    impl SnowmewConfig {
+        /// Create a new configuration with sane defaults
+        pub fn new() -> SnowmewConfig {
+            SnowmewConfig {
+                display: DisplayConfig {
+                    resolution: None,
+                    position: None,
+                    hmd: true,
+                    window: true,
+                },
+                use_opencl: true,
+                cadance_ms: 15
+            }
+        }
+
+        /// Start the game engine running based on the confirmation.
+        pub fn start<GameData: Common+Clone,
+                     Game: core::Game<GameData, Event>,
+                     R: render::Render<GameData>,
+                     RF: render::RenderFactory<GameData, R>>
+                     (self,
+                      render: Box<RF>,
+                      mut game: Game,
+                      mut gd: GameData) {
+            let mut im = input::IOManager::new(setup_glfw());
+
+            // create display
+            let display = match self.display.create_display(&mut im) {
+                None => return,
+                Some(display) => display
+            };
+            let ih = display.handle();
+
+            let res = im.get_framebuffer_size(&display);
+            let dev = if self.use_opencl { get_cl() } else { None };
+            let mut render = render.init(&im, display, res, dev);
+
+            let mut timer = Timer::new().unwrap();
+            let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms));
+            let candance_scale = self.cadance_ms as f64 / 1000.;
+
+            while !im.should_close(&ih) {
+                timer_port.recv();
+                im.poll();
+                loop {
+                    match im.next_event(&ih) {
+                        EventGroup::Game(evt) => gd = game.step(evt, gd),
+                        EventGroup::Window(evt) => {} /*gd.window_action(evt)*/,
+                        EventGroup::Nop => break
+                    }
+                }
+
+                gd = game.step(Event::Cadance(candance_scale), gd);
+
+                //let next_title = gd.io_state().window_title.clone();
+                //im.set_title(&ih, next_title);
+                render.update(gd.clone());
+            }
+        }
+    }
 }

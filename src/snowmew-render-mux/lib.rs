@@ -21,37 +21,38 @@ extern crate "snowmew-render-gfx" as gfx;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
-extern crate "snowmew-render" as render_data;
+extern crate "snowmew-render" as render;
+extern crate "snowmew-input" as input;
 
 use opencl::hl::Device;
 use std::sync::Arc;
 
-use snowmew::io::Window;
+use input::Window;
 
-use render_data::Renderable;
+use render::Renderable;
 
-impl<'r, RD: Renderable+Send> snowmew::Render<RD> for RenderMux<'r, RD> {
+impl<'r, RD: Renderable+Send> render::Render<RD> for RenderMux<'r, RD> {
     fn update(&mut self, db: RD) {
         self.render.update(db)
     }
 }
 
 pub struct RenderMux<'r, RD> {
-    render: Box<snowmew::Render<RD> + 'r>
+    render: Box<render::Render<RD> + 'r>
 }
 
-impl<'r, RD: Renderable+Send> snowmew::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
+impl<'r, RD: Renderable+Send> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
-            io: &snowmew::IOManager,
+            io: &input::IOManager,
             window: Window,
             size: (i32, i32),
             cl: Option<Arc<Device>>) -> RenderMux<'r, RD> {
 
         let rm: RenderMux<RD> = {
-            let rf: Box<snowmew::RenderFactory<RD, gfx::RenderManager<RD>>> = Box::new(gfx::RenderFactory::new());
+            let rf: Box<render::RenderFactory<RD, gfx::RenderManager<RD>>> = Box::new(gfx::RenderFactory::new());
             let render: Box<gfx::RenderManager<RD>> = Box::new(rf.init(io, window, size, cl));
             RenderMux {
-                render: render as Box<snowmew::Render<RD>>
+                render: render as Box<render::Render<RD>>
             }
         };
         rm

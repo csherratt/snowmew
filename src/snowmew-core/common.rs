@@ -12,10 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-
 use std::sync::Arc;
-use io::IoState;
-use input;
 use table::{Static, StaticSet, StaticSetIterator};
 
 /// A common set of data owned by an `Entity`
@@ -36,8 +33,7 @@ pub struct CommonData {
     objects:        Static<Object>,
     parent_child:   Static<StaticSet>,
     scene_children: Static<StaticSet>,
-    freelist: Arc<Vec<Entity>>,
-    io: IoState
+    freelist:       Arc<Vec<Entity>>
 }
 
 impl CommonData {
@@ -48,8 +44,7 @@ impl CommonData {
             objects: Static::new(),
             parent_child: Static::new(),
             scene_children: Static::new(),
-            freelist: Arc::new(Vec::new()),
-            io: IoState::new()
+            freelist: Arc::new(Vec::new())
         }
     }
 
@@ -150,6 +145,7 @@ pub trait Common {
         self.get_common().objects.get(oid)
     }
 
+/*
     /// Apply an `WindowEvent` to the system, this will update
     /// the io metadata (io_state)
     fn window_action(&mut self, evt: input::WindowEvent) {
@@ -161,6 +157,7 @@ pub trait Common {
 
     /// write to the io metadata
     fn io_state_mut(&mut self) -> &mut IoState { &mut self.get_common_mut().io }
+*/
 }
 
 /// Duplicate all components owned by `src` into `dst`

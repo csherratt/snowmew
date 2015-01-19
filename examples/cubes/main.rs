@@ -95,7 +95,8 @@ impl Game<GameData, InputIntegratorState> for Cubes {
     fn step(&mut self, state: InputIntegratorState, gd: GameData) -> GameData {
         let mut next = gd.clone();
 
-        let (w, h) = gd.io_state().size;
+        //let (w, h) = gd.io_state().size;
+        let (w, h) = (800, 600);
 
         let camera_key = gd.camera().expect("no camera set");
         let camera = Camera::new(w, h, next.position(camera_key));

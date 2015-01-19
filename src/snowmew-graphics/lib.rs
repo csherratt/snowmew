@@ -28,14 +28,12 @@ extern crate "stb_image" as image;
 
 extern crate "snowmew-core" as snowmew;
 
-use std::slice;
 use std::cmp::Ordering::{Less, Equal, Greater};
 use std::cmp::Ordering;
 
 use cgmath::Point3;
 use collision::sphere::Sphere;
 use snowmew::common::{Common, Entity, Duplicate, Delete};
-use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::table::{Static, StaticIterator};
 
 pub use geometry::{Geometry, VertexBuffer};
@@ -278,7 +276,6 @@ impl Delete for GraphicsData {
     }
 }
 
-
 pub struct VertexBufferIter<'a> {
     vb: &'a VertexBuffer,
     idx_iter: std::slice::Iter<'a, u32>
@@ -321,9 +318,3 @@ impl<'a> Iterator for VertexBufferIter<'a> {
         }
     }
 }
-
-impl<T: Graphics> Graphics for InputIntegratorGameData<T> {
-    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
-    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
-}
-

@@ -12,15 +12,23 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use game::Game;
-use input;
-use input::Event;
-use input::Button;
-use common::{Common, CommonData};
+extern crate "snowmew-core" as core;
+extern crate "snowmew-input" as input;
+extern crate "snowmew-graphics" as graphics;
+extern crate "snowmew-position" as position;
+extern crate "snowmew-render" as render;
+extern crate "rustc-serialize" as rustc_serialize;
+
 use std::collections::{HashSet, HashMap};
 use std::ops::{Deref, DerefMut};
 
-
+use core::game::Game;
+use core::common::{Common, CommonData};
+use input::Event;
+use input::Button;
+use graphics::{Graphics, GraphicsData};
+use position::{Positions, PositionData};
+use render::{Renderable, RenderData};
 
 /// This `wraps` your game to allow the `input integrator` to
 /// collect input events to simplify event handling.
@@ -200,4 +208,19 @@ impl<GameData,
 
         gd
     }
+}
+
+impl<T: Positions> Positions for InputIntegratorGameData<T> {
+    fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
+}
+
+impl<T: Graphics> Graphics for InputIntegratorGameData<T> {
+    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
+}
+
+impl<T: Renderable> Renderable for InputIntegratorGameData<T> {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.inner.get_render_data() }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
 }

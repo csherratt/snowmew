@@ -20,8 +20,10 @@ extern crate "rustc-serialize" as rustc_serialize;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
+extern crate "snowmew-input" as input;
+extern crate opencl;
 
-use snowmew::input_integrator::InputIntegratorGameData;
+use std::sync::Arc;
 
 #[derive(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub struct RenderData {
@@ -63,8 +65,18 @@ pub trait Renderable: graphics::Graphics + position::Positions {
     }
 }
 
-impl<T: Renderable> Renderable for InputIntegratorGameData<T> {
-    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.inner.get_render_data() }
-    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
+/// Render is a trait that describes the describes how a render is implemented
+/// in the engine. `update` is called once per cadence pulse.
+pub trait Render<T> {
+    fn update(&mut self, db: T);
 }
 
+/// RenderFactor is used to create a `Render` object. This is used to pass a configured
+/// Window to the Render.
+pub trait RenderFactory<T, R: Render<T>> {
+    fn init(self: Box<Self>,
+            im: &input::IOManager,
+            window: input::Window,
+            size: (i32, i32),
+            cl: Option<Arc<opencl::hl::Device>>) -> R;
+}

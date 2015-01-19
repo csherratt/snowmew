@@ -52,6 +52,15 @@ path = "src/snowmew-network/"
 [dependencies.snowmew-input]
 path = "src/snowmew-input/"
 
+[dependencies.snowmew-input-integrator]
+path = "src/snowmew-input-integrator/"
+
+[dependencies.opencl]
+git = "https://github.com/luqmana/rust-opencl.git"
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs.git"
+
 [dependencies]
 time = "*"
 rustc-serialize="*"

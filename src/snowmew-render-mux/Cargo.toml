@@ -25,5 +25,8 @@ path = "../snowmew-graphics"
 [dependencies.snowmew-render]
 path = "../snowmew-render"
 
+[dependencies.snowmew-input]
+path = "../snowmew-input/"
+
 [dependencies.opencl]
 git = "https://github.com/luqmana/rust-opencl.git"

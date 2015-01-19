@@ -35,7 +35,8 @@ extern crate cgmath;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
-extern crate "snowmew-render" as render_data;
+extern crate "snowmew-render" as sm_render;
+extern crate "snowmew-input" as input;
 extern crate collect;
 
 use std::collections::{HashMap, BTreeSet};
@@ -52,12 +53,12 @@ use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 use position::Positions;
 use graphics::Graphics;
 use snowmew::common::Entity;
-use snowmew::io::Window;
 use snowmew::camera::Camera;
 use graphics::Material;
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
-use render_data::Renderable;
+use sm_render::Renderable;
+use input::Window;
 
 #[derive(Copy)]
 struct SharedMatrix {
@@ -705,7 +706,8 @@ impl RenderManagerContext {
         };
         self.graphics.clear(cdata, gfx::COLOR | gfx::DEPTH, &self.frame);
 
-        let (width, height) = db.io_state().size;
+        let (width, height) = (800, 600);
+        //let (width, height) = db.io_state().size;
         let camera_trans = db.position(camera);
         let camera = Camera::new(width, height, camera_trans);
 
@@ -774,7 +776,8 @@ impl RenderManagerContext {
     }
 
     fn config<RD: Renderable>(&mut self, db: &RD) {
-        let (width, height) = db.io_state().size;
+        //let (width, height) = db.io_state().size;
+        let (width, height) = (800, 600);
         if self.frame.width as u32 != width ||
            self.frame.height as u32 != height {
             self.frame = gfx::Frame::new(width as u16, height as u16);
@@ -792,15 +795,15 @@ impl RenderManagerContext {
     }
 }
 
-impl<RD: Renderable+Send> snowmew::Render<RD> for RenderManager<RD> {
+impl<RD: Renderable+Send> sm_render::Render<RD> for RenderManager<RD> {
     fn update(&mut self, db: RD) {
         self.channel.send(db);
     }
 }
 
-impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
+impl<RD: Renderable+Send> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
-            io: &snowmew::IOManager,
+            io: &input::IOManager,
             mut window: Window,
             size: (i32, i32),
             cl: Option<Arc<hl::Device>>) -> RenderManager<RD> {
