@@ -27,7 +27,7 @@ fn create_positon_data() -> PositionData {
     pos
 }
 
-fn create_buffers_vec4(ctx: &Context) -> [opencl::mem::CLBuffer<Vector4<f32>>, ..4] {
+fn create_buffers_vec4(ctx: &Context) -> [opencl::mem::CLBuffer<Vector4<f32>>; 4] {
     [
         ctx.create_buffer(SIZE, opencl::cl::CL_MEM_WRITE_ONLY),
         ctx.create_buffer(SIZE, opencl::cl::CL_MEM_WRITE_ONLY),
