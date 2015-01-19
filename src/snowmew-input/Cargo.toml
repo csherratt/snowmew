@@ -1,0 +1,30 @@
+[package]
+name = "snowmew-input"
+version = "0.0.1"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+license="Apache 2"
+homepage="https://github.com/csherratt/snowmew"
+description="The input of the Snowmew engine"
+
+[lib]
+name = "snowmew-input"
+path = "lib.rs"
+
+[dependencies]
+time = "*"
+rustc-serialize="*"
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs.git"
+
+[dependencies.nice_glfw]
+git = "https://github.com/csherratt/nice_glfw.git"
+
+[dependencies.ovr]
+git = "https://github.com/csherratt/vr-rs.git"
+
+[dependencies.collect]
+git = "https://github.com/csherratt/collect-rs"
+branch = "cow_trie"
