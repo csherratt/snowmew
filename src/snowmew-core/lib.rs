@@ -78,7 +78,7 @@ fn get_cl() -> Option<Arc<Device>> {
 }
 
 fn setup_glfw() -> glfw::Glfw {
-    let glfw = glfw::init(glfw::LOG_ERRORS).ok().unwrap();
+    let mut glfw = glfw::init(glfw::LOG_ERRORS).ok().unwrap();
 
     glfw.window_hint(glfw::WindowHint::OpenglForwardCompat(true));
     glfw.window_hint(glfw::WindowHint::Visible(false));

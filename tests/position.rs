@@ -16,7 +16,6 @@
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
 extern crate opencl;
-extern crate cow;
 extern crate "snowmew-position" as position;
 
 use position::{PositionData, Positions};

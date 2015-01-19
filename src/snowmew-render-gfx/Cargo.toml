@@ -25,6 +25,9 @@ git = "https://github.com/gfx-rs/gfx-rs"
 [dependencies.gfx_macros]
 git = "https://github.com/gfx-rs/gfx-rs"
 
+[dependencies.render]
+git = "https://github.com/gfx-rs/gfx-rs"
+
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
 
@@ -50,3 +53,6 @@ path = "../snowmew-graphics/"
 [dependencies.snowmew-render]
 path = "../snowmew-render/"
 
+[dependencies.collect]
+git = "https://github.com/csherratt/collect-rs"
+branch = "cow_trie"

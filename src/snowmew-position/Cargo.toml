@@ -18,3 +18,10 @@ git = "https://github.com/luqmana/rust-opencl.git"
 
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
+
+[dependencies.collect]
+git = "https://github.com/csherratt/collect-rs"
+branch = "cow_trie"
+
+[dependencies]
+rustc-serialize="*"

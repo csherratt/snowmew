@@ -54,8 +54,11 @@ time = "*"
 rustc-serialize="*"
 log="*"
 
-[dev-dependencies.cgmath]
+[dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
+
+[dev-dependencies.opencl]
+git = "https://github.com/luqmana/rust-opencl.git"
 
 [[example]]
 name = "cubes"
@@ -68,4 +71,3 @@ path = "examples/gears/main.rs"
 [[example]]
 name = "noclip"
 path = "examples/noclip/main.rs"
-

@@ -27,3 +27,4 @@ git = "https://github.com/TyOverby/wire.git"
 [dependencies]
 bchannel = "*"
 bincode = "*"
+rustc-serialize="*"

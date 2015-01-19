@@ -801,7 +801,7 @@ impl<RD: Renderable+Send> snowmew::Render<RD> for RenderManager<RD> {
 impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &snowmew::IOManager,
-            window: Window,
+            mut window: Window,
             size: (i32, i32),
             cl: Option<Arc<hl::Device>>) -> RenderManager<RD> {
 
@@ -810,20 +810,31 @@ impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for Rend
         let device = gfx::GlDevice::new(|s| io.get_proc_address(s));
         glfw::make_context_current(None);
 
+        let (free_send, free_recv) = channel();
+        Thread::spawn(move || {
+            for db in free_recv.iter() {
+                drop(db)
+            }
+        });
+
         let res = Thread::spawn(move || {
-            let window = window;
+            let mut window = window;
             window.make_context_current();
             let recv: Receiver<RD> = recv;
 
             let mut rc = RenderManagerContext::_new(device, window, size, cl);
             loop {
                 // wait for a copy of the game
-                let mut db = recv.recv().ok().expect("Failed to rcv");
+                let mut db = match recv.recv() {
+                    Ok(db) => db,
+                    Err(_) => return
+                };
 
                 loop {
                     match recv.try_recv() {
-                        Ok(_db) => {
-                            db = _db;
+                        Ok(mut _db) => {
+                            std::mem::swap(&mut db, &mut _db);
+                            free_send.send(_db);
                         }
                         // no newer copy
                         Err(std::sync::mpsc::TryRecvError::Empty) => break,

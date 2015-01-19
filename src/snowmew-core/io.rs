@@ -45,6 +45,17 @@ pub struct IOManager {
     window_id: usize
 }
 
+fn create_window_context(glfw :&mut Glfw, width: u32, height: u32, name: &str, mode: glfw::WindowMode)
+        -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
+
+    nice_glfw::WindowBuilder::new(glfw)
+        .try_modern_context_hints()
+        .size(width, height)
+        .title(name)
+        .mode(mode)
+        .create()
+}
+
 impl IOManager {
     pub fn new(glfw: glfw::Glfw) -> IOManager {
         IOManager {
@@ -73,20 +84,9 @@ impl IOManager {
         InputHandle{ handle: id }
     }
 
-    fn create_window_context(&self, width: u32, height: u32, name: &str, mode: glfw::WindowMode)
-            -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
-
-        nice_glfw::WindowBuilder::new(&self.glfw)
-            .try_modern_context_hints()
-            .size(width, height)
-            .title(name)
-            .mode(mode)
-            .create()
-    }
-
     pub fn window(&mut self, size: (u32, u32)) -> Option<Window> {
         let (width, height) = size;
-        let win_opt = self.create_window_context(width, height, "Snowmew", Windowed);
+        let win_opt = create_window_context(&mut self.glfw, width, height, "Snowmew", Windowed);
         let (mut window, events) = match win_opt {
             Some((window, events)) => (window, events),
             None => return None
@@ -110,10 +110,10 @@ impl IOManager {
 
     pub fn primary(&mut self, size: (u32, u32)) -> Option<Window> {
         let screen = {
-            self.glfw.with_primary_monitor(|display| {
+            self.glfw.with_primary_monitor(|glfw, display| {
                 let display = display.unwrap();
                 let (width, height) = size;
-                self.create_window_context(width, height, "Snowmew FullScreen", FullScreen(display))
+                create_window_context(glfw, width, height, "Snowmew FullScreen", FullScreen(display))
             })
         };
 
@@ -138,16 +138,16 @@ impl IOManager {
 
     }
 
-    pub fn get_primary_resolution(&self) -> (u32, u32) {
-        self.glfw.with_primary_monitor(|display| {
+    pub fn get_primary_resolution(&mut self) -> (u32, u32) {
+        self.glfw.with_primary_monitor(|_, display| {
             let display = display.expect("Could not get primnay display");
             let vm = display.get_video_mode().expect("Could not get video mode");
             (vm.width, vm.height)
         })
     }
 
-    pub fn get_primary_position(&self) -> (i32, i32) {
-        self.glfw.with_primary_monitor(|display| {
+    pub fn get_primary_position(&mut self) -> (i32, i32) {
+        self.glfw.with_primary_monitor(|_, display| {
             let display = display.expect("Could not get primnay display");
             display.get_pos()
         })
@@ -189,15 +189,15 @@ impl IOManager {
     }
 
     #[cfg(target_os="macos")]
-    fn create_hmd_window(&self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
-        self.glfw.with_connected_monitors(|monitors| {
+    fn create_hmd_window(&mut self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
+        self.glfw.with_connected_monitors(|glfw, monitors| {
             for m in monitors.iter() {
                 if !m.get_name()[].contains("Rift") {
                     continue;
                 }
 
                 let (width, height) = (hmd.resolution.x, hmd.resolution.y);
-                let win_opt = self.create_window_context(width as u32, height as u32, "Snowmew FullScreen", FullScreen(m));
+                let win_opt = create_window_context(glfw, width as u32, height as u32, "Snowmew FullScreen", FullScreen(m));
                 let (window, events) = match win_opt {
                     Some((window, events)) => (window, events),
                     None => return None
@@ -368,11 +368,11 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn swap_buffers(&self) {
+    pub fn swap_buffers(&mut self) {
         self.render.swap_buffers()
     }
 
-    pub fn make_context_current(&self) {
+    pub fn make_context_current(&mut self) {
         self.render.make_current()
     }
 

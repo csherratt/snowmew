@@ -230,6 +230,6 @@ impl<'a, T: Send+Sync> Iterator for DynamicIterator<'a, T> {
 }
 
 impl<'a, T: Send+Sync> OrderedMapIterator<Entity, &'a T> for StaticIterator<'a, T> {}
-impl<'a> OrderedSetIterator<Entity> for StaticSetIterator<'a> {}
 impl<'a, T: Send+Sync> OrderedMapIterator<Entity, &'a T> for DynamicIterator<'a, T> {}
+impl<'a> OrderedSetIterator<Entity> for StaticSetIterator<'a> {}
 
