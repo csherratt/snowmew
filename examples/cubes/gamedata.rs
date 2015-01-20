@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use std::ops::{Deref, DerefMut};
 use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};

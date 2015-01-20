@@ -32,6 +32,7 @@ use input::{IoState, GetIoState};
 use std::sync::mpsc;
 use std::thread::Thread;
 use std::ops::{Deref, DerefMut};
+use std::iter::FromIterator;
 use wire::SizeLimit;
 use wire::tcp::OutTcpStream;
 use rustc_serialize::{Decodable, Encodable};
@@ -41,8 +42,7 @@ use core::game::Game;
 #[derive(RustcEncodable, RustcDecodable)]
 pub enum ServerMessage<T, E> {
     Image(T),
-    Event(E),
-    Sync
+    Event(E)
 }
 
 #[derive(RustcEncodable, RustcDecodable)]
@@ -55,10 +55,10 @@ pub struct Server<Game, GameData> {
     data: GameData
 }
 
-unsafe impl<T:Send, E:Send> Send for ServerClient<T, E> {}
+unsafe impl<T:Send, E:Send, CE:Send> Send for ServerClient<T, E, CE> {}
 
-struct ServerClient<T, E> {
-    to_client: OutTcpStream<ServerMessage<T, E>>,
+struct ServerClient<T, E, CE> {
+    to_client: OutTcpStream<ServerMessage<T, CE>>,
     from_client: bchannel::Receiver<ClientMessage<E>, bincode::DecodingError>
 }
 
@@ -70,13 +70,14 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
         }
     }
 
-    pub fn serve<E:Send+Encodable+Clone+Decodable>(mut self, iface: &str, port: u16)
+    pub fn serve<E: Send+Encodable+Clone+Decodable+FromIterator<CE>,
+                 CE: Send+Encodable+Clone+Decodable>(mut self, iface: &str, port: u16)
         where G: Game<GD, E> {
 
         let (listener, _) = wire::listen_tcp(iface, port).unwrap();
 
-        let (tx, rx): (mpsc::Sender<ServerClient<GD, E>>,
-                       mpsc::Receiver<ServerClient<GD, E>>) = mpsc::channel();
+        let (tx, rx): (mpsc::Sender<ServerClient<GD, CE, E>>,
+                       mpsc::Receiver<ServerClient<GD, CE, E>>) = mpsc::channel();
         Thread::spawn(move || {
             let (read_limit, write_limit) = (SizeLimit::Infinite, SizeLimit::Infinite);
 
@@ -104,25 +105,18 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
 
             while let Ok(mut res) = rx.try_recv() {
                 res.to_client.send(&ServerMessage::Image(self.data.clone()));
-                clients.push(res)
+                clients.push(res) 
             }
 
-            let mut events = Vec::new();
+            let event: E = clients.iter().map(|c| {
+                let e = c.from_client.recv_block().expect("client sucks man");
+                match e { ClientMessage::Event(e) => e }
+            }).collect();
 
-            for c in clients.iter() {
-                events.push(c.from_client.recv_block().expect("client sucks man"));
-            }
-
-            for ClientMessage::Event(e) in events.drain() {
-                for c in clients.iter_mut() {
-                    c.to_client.send(&ServerMessage::Event(e.clone()));
-                }
-                self.data = self.game.step(e, self.data)
-            }
             for c in clients.iter_mut() {
-                c.to_client.send(&ServerMessage::Sync);
+                c.to_client.send(&ServerMessage::Event(event.clone()));
             }
-
+            self.data = self.game.step(event, self.data);
         }
     }
 }
@@ -176,14 +170,17 @@ impl<E, T: GetIoState> GetIoState for ClientState<T, E> {
     fn get_io_state_mut<'a>(&'a mut self) -> &'a mut IoState { self.predict.get_io_state_mut() }
 }
 
-pub struct Client<G, T, E> {
+pub struct Client<G, T, SE, CE> {
     game: G,
-    to_server: OutTcpStream<ClientMessage<E>>,
-    from_server: bchannel::Receiver<ServerMessage<T, E>, bincode::DecodingError>
+    to_server: OutTcpStream<ClientMessage<CE>>,
+    from_server: bchannel::Receiver<ServerMessage<T, SE>, bincode::DecodingError>
 }
 
-impl<G, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable> Client<G, T, E> {
-    pub fn new(game: G, server: &str, port: u16) -> Client<G, T, E> {
+impl<G, T:Send+Encodable+Decodable+Clone,
+     E:Send+Encodable+Decodable,
+     CE:Send+Encodable+Decodable> Client<G, T, E, CE> {
+
+    pub fn new(game: G, server: &str, port: u16) -> Client<G, T, E, CE> {
         let (o, i) = wire::connect_tcp(server, port, SizeLimit::Infinite, SizeLimit::Infinite).unwrap();
 
         Client {
@@ -211,10 +208,13 @@ impl<G, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable> Client<G, 
     }
 }
 
-impl<G: Game<T, E>, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable+Clone>
-    Game<ClientState<T, E>, E> for Client<G, T, E> {
+impl<G: Game<T, SE>,
+     T:Send+Encodable+Decodable+Clone,
+     SE:Send+Encodable+Decodable+Clone+FromIterator<CE>,
+     CE:Send+Encodable+Decodable+Clone>
+    Game<ClientState<T, CE>, CE> for Client<G, T, SE, CE> {
 
-    fn step(&mut self, event: E, mut gd: ClientState<T, E>) -> ClientState<T, E> {
+    fn step(&mut self, event: CE, mut gd: ClientState<T, CE>) -> ClientState<T, CE> {
         let mut frame = gd.predict.clone();
         let mut index = gd.predict_frame;
 
@@ -223,8 +223,6 @@ impl<G: Game<T, E>, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable
                 Some(ServerMessage::Image(_)) => panic!("unexpected game data"),
                 Some(ServerMessage::Event(e)) => {
                     gd.server = self.game.step(e, gd.server);
-                }
-                Some(ServerMessage::Sync) => {
                     gd.server_frame += 1;
                     frame = gd.server.clone();
                     index = gd.server_frame;
@@ -235,9 +233,7 @@ impl<G: Game<T, E>, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable
 
         if gd.sync {
             gd.sync = gd.predict_frame > gd.server_frame + 1;
-            if gd.sync {
-                return gd
-            }
+            if gd.sync { return gd }
         } else if gd.predict_frame > gd.server_frame + 5 {
             gd.sync = true;
             return gd;
@@ -251,11 +247,11 @@ impl<G: Game<T, E>, T:Send+Encodable+Decodable+Clone, E:Send+Encodable+Decodable
         for (idx, e) in gd.predict_delta.drain() {
             if idx > index {
                 println!("{} > {}", idx, index);
-                frame = self.game.step(e.clone(), frame);
+                frame = self.game.step([e.clone()].iter().map(|x| x.clone()).collect(), frame);
             }
 
             if idx > gd.server_frame {
-                predict.push((idx, e));
+                predict.push((idx, e.clone()));
             }
         }
 

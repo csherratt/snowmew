@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew"]
+#![allow(unstable)]
 
 extern crate "snowmew-core"         as _core;
 extern crate "snowmew-graphics"     as _graphics;
@@ -232,7 +233,7 @@ pub mod config {
             let candance_scale = self.cadance_ms as f64 / 1000.;
 
             while !im.should_close(&ih) {
-                timer_port.recv();
+                timer_port.recv().ok().expect("failed to recv");
                 im.poll();
                 loop {
                     match im.next_event(&ih) {
