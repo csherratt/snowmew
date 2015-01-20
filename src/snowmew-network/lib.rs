@@ -234,7 +234,7 @@ impl<G: Game<T, SE>,
         if gd.sync {
             gd.sync = gd.predict_frame > gd.server_frame + 1;
             if gd.sync { return gd }
-        } else if gd.predict_frame > gd.server_frame + 5 {
+        } else if gd.predict_frame > gd.server_frame + 25 {
             gd.sync = true;
             return gd;
         }
