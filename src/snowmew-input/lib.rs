@@ -165,14 +165,14 @@ impl IOManager {
     }
 
     #[cfg(target_os="linux")]
-    fn create_hmd_window(&self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
-        self.glfw.with_connected_monitors(|monitors| {
+    fn create_hmd_window(&mut self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64, glfw::WindowEvent)>)> {
+        let window = self.glfw.with_connected_monitors(|glfw, monitors| {
             for m in monitors.iter() {
                 let (x, y) = m.get_pos();
                 if x == hmd.window_position.x && 
                    y == hmd.window_position.y {
                     let (width, height) = (hmd.resolution.x, hmd.resolution.y);
-                    let win_opt = self.create_window_context(width as u32, height as u32, "Snowmew FullScreen", FullScreen(m));
+                    let win_opt = create_window_context(glfw, width as u32, height as u32, "Snowmew FullScreen", FullScreen(m));
                     let (window, events) = match win_opt {
                         Some((window, events)) => (window, events),
                         None => return None
@@ -181,11 +181,14 @@ impl IOManager {
                     return Some((window, events));
                 }
             }
+            None
+        });
 
+        if window.is_none() {
             // fallback if we could not guess at the screen
             let (width, height) = (hmd.resolution.x, hmd.resolution.y);
             let win_opt = self.glfw.create_window(width as u32, height as u32, "Snowmew", Windowed);
-            let (window, events) = match win_opt {
+            let (mut window, events) = match win_opt {
                 Some((window, events)) => (window, events),
                 None => return None
             };
@@ -195,8 +198,9 @@ impl IOManager {
             window.set_pos(dx as i32, dy as i32);
 
             Some((window, events))
-
-        })
+        } else {
+            window
+        }
     }
 
     #[cfg(target_os="macos")]
