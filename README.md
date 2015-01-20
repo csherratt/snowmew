@@ -5,7 +5,7 @@ Snowmew
 Snowmew is a game engine written entirely in rust. It is based around a 
 copy-on-write game state that can be shared safely with tasks in parallel.
 
-![snowmew-preview](https://s3.amazonaws.com/snowmew/Snowmew_june_5.png)
+![snowmew-preview](https://raw.githubusercontent.com/csherratt/snowmew/master/.screenshot.jpg)
 
 Last Tested Version
 -------------------
