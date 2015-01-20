@@ -40,7 +40,7 @@ impl RenderData {
     }
 }
 
-pub trait Renderable: graphics::Graphics + position::Positions + input::GetIoState {
+pub trait Renderable: graphics::Graphics + position::Positions {
     fn get_render_data(&self) -> &RenderData;
     fn get_render_data_mut(&mut self) -> &mut RenderData;
 

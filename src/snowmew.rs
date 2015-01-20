@@ -135,14 +135,12 @@ pub mod config {
     use std::sync::Arc;
     use std::io::timer::Timer;
     use std::time::Duration;
-    use std::ops::DerefMut;
 
     use opencl::hl::{Device, get_platforms};
     use opencl::hl::DeviceType::{GPU, CPU};
     use glfw::{self, Glfw};
 
     use super::input::{Event, EventGroup, DisplayConfig};
-    use super::common::Common;
     use super::core;
     use super::render;
     use super::input;

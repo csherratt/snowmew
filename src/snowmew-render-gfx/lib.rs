@@ -58,7 +58,7 @@ use graphics::Material;
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use sm_render::Renderable;
-use input::Window;
+use input::{Window, GetIoState};
 
 #[derive(Copy)]
 struct SharedMatrix {
@@ -433,7 +433,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn load_meshes<RD: Renderable>(&mut self, db: &RD) {
+    fn load_meshes<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         for (oid, vb) in db.vertex_buffer_iter() {
             if self.meshes.get(&oid).is_none() {
                 let mesh = match vb.vertex {
@@ -483,7 +483,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn load_textures<RD: Renderable>(&mut self, db: &RD) {
+    fn load_textures<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         for (oid, text) in db.texture_iter() {
             if self.textures.get(&oid).is_none() {
                 let tinfo = gfx::tex::TextureInfo {
@@ -508,7 +508,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn load_materials<RD: Renderable>(&mut self, db: &RD) {
+    fn load_materials<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         for (oid, &mat) in db.material_iter() {
             let update = if let Some(material) = self.material.get(&oid) {
                 Some(mat != material.material)
@@ -542,7 +542,7 @@ impl RenderManagerContext {
         }       
     }
 
-    fn load_batches<RD: Renderable>(&mut self, db: &RD) {
+    fn load_batches<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         let scene = db.scene().expect("no scene set");
         self.batch.clear();
         self.shadow_batches.clear();
@@ -596,7 +596,7 @@ impl RenderManagerContext {
         buffer
     }
 
-    fn load_matrices<RD: Renderable>(&mut self, db: &RD) {
+    fn load_matrices<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         let max = 512;
         let mut matrices = Vec::new();
         matrices.reserve(512);
@@ -696,7 +696,7 @@ impl RenderManagerContext {
 
     }
 
-    fn draw<RD: Renderable>(&mut self, db: &RD) {
+    fn draw<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         let camera = db.camera().expect("no camera set");
 
         let cdata = gfx::ClearData {
@@ -774,7 +774,7 @@ impl RenderManagerContext {
         self.window.swap_buffers();
     }
 
-    fn config<RD: Renderable>(&mut self, db: &RD) {
+    fn config<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         let (width, height) = db.get_io_state().size;
         if self.frame.width as u32 != width ||
            self.frame.height as u32 != height {
@@ -782,7 +782,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn update<RD: Renderable>(&mut self, db: RD) {
+    fn update<RD: Renderable+GetIoState>(&mut self, db: RD) {
         self.config(&db);
         self.load_meshes(&db);
         self.load_textures(&db);
@@ -793,13 +793,13 @@ impl RenderManagerContext {
     }
 }
 
-impl<RD: Renderable+Send> sm_render::Render<RD> for RenderManager<RD> {
+impl<RD: Renderable+GetIoState+Send> sm_render::Render<RD> for RenderManager<RD> {
     fn update(&mut self, db: RD) {
         self.channel.send(db);
     }
 }
 
-impl<RD: Renderable+Send> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
+impl<RD: Renderable+GetIoState+Send> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &input::IOManager,
             mut window: Window,

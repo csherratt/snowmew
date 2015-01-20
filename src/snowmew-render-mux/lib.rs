@@ -27,11 +27,11 @@ extern crate "snowmew-input" as input;
 use opencl::hl::Device;
 use std::sync::Arc;
 
-use input::Window;
+use input::{Window, GetIoState};
 
 use render::Renderable;
 
-impl<'r, RD: Renderable+Send> render::Render<RD> for RenderMux<'r, RD> {
+impl<'r, RD: Renderable+GetIoState+Send> render::Render<RD> for RenderMux<'r, RD> {
     fn update(&mut self, db: RD) {
         self.render.update(db)
     }
@@ -41,7 +41,7 @@ pub struct RenderMux<'r, RD> {
     render: Box<render::Render<RD> + 'r>
 }
 
-impl<'r, RD: Renderable+Send> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
+impl<'r, RD: Renderable+GetIoState+Send> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &input::IOManager,
             window: Window,
