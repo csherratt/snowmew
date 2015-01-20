@@ -16,6 +16,8 @@ extern crate "snowmew-core" as core;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render" as render;
+extern crate "snowmew-input" as input;
+
 extern crate wire;
 extern crate bchannel;
 extern crate bincode;
@@ -25,6 +27,7 @@ use core::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use render::{Renderable, RenderData};
+use input::{IoState, GetIoState};
 
 use std::sync::mpsc;
 use std::thread::Thread;
@@ -163,9 +166,14 @@ impl<E, T: Graphics> Graphics for ClientState<T, E> {
     fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.predict.get_graphics_mut() }
 }
 
-impl<E, T: Renderable+Common+Positions+Graphics> Renderable for ClientState<T, E> {
+impl<E, T: Renderable> Renderable for ClientState<T, E> {
     fn get_render_data<'a>(&'a self) -> &'a RenderData { self.predict.get_render_data() }
     fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.predict.get_render_data_mut() }
+}
+
+impl<E, T: GetIoState> GetIoState for ClientState<T, E> {
+    fn get_io_state<'a>(&'a self) -> &'a IoState { self.predict.get_io_state() }
+    fn get_io_state_mut<'a>(&'a mut self) -> &'a mut IoState { self.predict.get_io_state_mut() }
 }
 
 pub struct Client<G, T, E> {

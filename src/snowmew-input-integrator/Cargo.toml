@@ -1,0 +1,32 @@
+[package]
+name = "snowmew-input-integrator"
+version = "0.0.1"
+authors = [
+    "Colin Sherratt <colin.sherratt@gmail.com>",
+]
+license="Apache 2"
+homepage="https://github.com/csherratt/snowmew"
+description="This garthers input events and turns them into a single event."
+
+[lib]
+name = "snowmew-input-integrator"
+path = "lib.rs"
+
+[dependencies]
+time = "*"
+rustc-serialize="*"
+
+[dependencies.snowmew-input]
+path = "../snowmew-input"
+
+[dependencies.snowmew-core]
+path = "../snowmew-core"
+
+[dependencies.snowmew-position]
+path = "../snowmew-position"
+
+[dependencies.snowmew-graphics]
+path = "../snowmew-graphics"
+
+[dependencies.snowmew-render]
+path = "../snowmew-render"

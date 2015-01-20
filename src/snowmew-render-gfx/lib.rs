@@ -35,7 +35,8 @@ extern crate cgmath;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
-extern crate "snowmew-render" as render_data;
+extern crate "snowmew-render" as sm_render;
+extern crate "snowmew-input" as input;
 extern crate collect;
 
 use std::collections::{HashMap, BTreeSet};
@@ -52,12 +53,12 @@ use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 use position::Positions;
 use graphics::Graphics;
 use snowmew::common::Entity;
-use snowmew::io::Window;
 use snowmew::camera::Camera;
 use graphics::Material;
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
-use render_data::Renderable;
+use sm_render::Renderable;
+use input::{Window, GetIoState};
 
 #[derive(Copy)]
 struct SharedMatrix {
@@ -432,7 +433,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn load_meshes<RD: Renderable>(&mut self, db: &RD) {
+    fn load_meshes<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         for (oid, vb) in db.vertex_buffer_iter() {
             if self.meshes.get(&oid).is_none() {
                 let mesh = match vb.vertex {
@@ -482,7 +483,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn load_textures<RD: Renderable>(&mut self, db: &RD) {
+    fn load_textures<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         for (oid, text) in db.texture_iter() {
             if self.textures.get(&oid).is_none() {
                 let tinfo = gfx::tex::TextureInfo {
@@ -507,7 +508,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn load_materials<RD: Renderable>(&mut self, db: &RD) {
+    fn load_materials<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         for (oid, &mat) in db.material_iter() {
             let update = if let Some(material) = self.material.get(&oid) {
                 Some(mat != material.material)
@@ -541,7 +542,7 @@ impl RenderManagerContext {
         }       
     }
 
-    fn load_batches<RD: Renderable>(&mut self, db: &RD) {
+    fn load_batches<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         let scene = db.scene().expect("no scene set");
         self.batch.clear();
         self.shadow_batches.clear();
@@ -595,7 +596,7 @@ impl RenderManagerContext {
         buffer
     }
 
-    fn load_matrices<RD: Renderable>(&mut self, db: &RD) {
+    fn load_matrices<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         let max = 512;
         let mut matrices = Vec::new();
         matrices.reserve(512);
@@ -695,7 +696,7 @@ impl RenderManagerContext {
 
     }
 
-    fn draw<RD: Renderable>(&mut self, db: &RD) {
+    fn draw<RD: Renderable+GetIoState>(&mut self, db: &RD) {
         let camera = db.camera().expect("no camera set");
 
         let cdata = gfx::ClearData {
@@ -705,7 +706,7 @@ impl RenderManagerContext {
         };
         self.graphics.clear(cdata, gfx::COLOR | gfx::DEPTH, &self.frame);
 
-        let (width, height) = db.io_state().size;
+        let (width, height) = db.get_io_state().size;
         let camera_trans = db.position(camera);
         let camera = Camera::new(width, height, camera_trans);
 
@@ -773,15 +774,15 @@ impl RenderManagerContext {
         self.window.swap_buffers();
     }
 
-    fn config<RD: Renderable>(&mut self, db: &RD) {
-        let (width, height) = db.io_state().size;
+    fn config<RD: Renderable+GetIoState>(&mut self, db: &RD) {
+        let (width, height) = db.get_io_state().size;
         if self.frame.width as u32 != width ||
            self.frame.height as u32 != height {
             self.frame = gfx::Frame::new(width as u16, height as u16);
         }
     }
 
-    fn update<RD: Renderable>(&mut self, db: RD) {
+    fn update<RD: Renderable+GetIoState>(&mut self, db: RD) {
         self.config(&db);
         self.load_meshes(&db);
         self.load_textures(&db);
@@ -792,15 +793,15 @@ impl RenderManagerContext {
     }
 }
 
-impl<RD: Renderable+Send> snowmew::Render<RD> for RenderManager<RD> {
+impl<RD: Renderable+GetIoState+Send> sm_render::Render<RD> for RenderManager<RD> {
     fn update(&mut self, db: RD) {
         self.channel.send(db);
     }
 }
 
-impl<RD: Renderable+Send> snowmew::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
+impl<RD: Renderable+GetIoState+Send> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
-            io: &snowmew::IOManager,
+            io: &input::IOManager,
             mut window: Window,
             size: (i32, i32),
             cl: Option<Arc<hl::Device>>) -> RenderManager<RD> {

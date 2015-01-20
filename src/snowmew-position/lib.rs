@@ -29,7 +29,6 @@ use cgmath::{Transform, Decomposed, Vector3, Matrix4, ToMatrix4, Matrix, Quatern
 use collect::iter::OrderedMapIterator;
 
 use snowmew::common::{Entity, Duplicate, Delete};
-use snowmew::input_integrator::InputIntegratorGameData;
 use snowmew::table::{Static, StaticIterator};
 
 pub trait MatrixManager {
@@ -266,11 +265,6 @@ impl Delete for PositionData {
 impl Positions for PositionData {
     fn get_position<'a>(&'a self) -> &'a PositionData { self }
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self }
-}
-
-impl<T: Positions> Positions for InputIntegratorGameData<T> {
-    fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
-    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
 }
 
 pub mod cl {

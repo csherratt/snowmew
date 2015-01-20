@@ -16,13 +16,15 @@ use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use render::{Renderable, RenderData};
+use input::{GetIoState, IoState};
 
 #[derive(Clone)]
 pub struct GameData {
     common: CommonData,
     position: PositionData,
     graphics: GraphicsData,
-    render: RenderData
+    render: RenderData,
+    input: IoState
 }
 
 impl GameData {
@@ -31,7 +33,8 @@ impl GameData {
             common: CommonData::new(),
             position: PositionData::new(),
             graphics: GraphicsData::new(),
-            render: RenderData::new()
+            render: RenderData::new(),
+            input: IoState::new()
         };
 
         gd.load_standard_graphics();
@@ -57,4 +60,9 @@ impl Graphics for GameData {
 impl Renderable for GameData {
     fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render }
     fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render }
+}
+
+impl GetIoState for GameData {
+    fn get_io_state<'a>(&'a self) -> &'a IoState { &self.input }
+    fn get_io_state_mut<'a>(&'a mut self) -> &'a mut IoState { &mut self.input }
 }

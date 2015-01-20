@@ -18,6 +18,7 @@ use snowmew::common::{Common, CommonData};
 use position::{Positions, PositionData};
 use graphics::{Graphics, GraphicsData};
 use render::{Renderable, RenderData};
+use input::{GetIoState, IoState};
 use debug::{DebuggerGameData};
 
 
@@ -27,6 +28,7 @@ pub struct GameData {
     position: PositionData,
     graphics: GraphicsData,
     render: RenderData,
+    input: IoState,
     pub time: f64,
     pub gears: Vec<Entity>
 }
@@ -39,6 +41,7 @@ impl GameData {
             graphics: GraphicsData::new(),
             render: RenderData::new(),
             gears: Vec::new(),
+            input: IoState::new(),
             time: 0.,
         };
 
@@ -65,6 +68,11 @@ impl Graphics for GameData {
 impl Renderable for GameData {
     fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render }
     fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render }
+}
+
+impl GetIoState for GameData {
+    fn get_io_state<'a>(&'a self) -> &'a IoState { &self.input }
+    fn get_io_state_mut<'a>(&'a mut self) -> &'a mut IoState { &mut self.input }
 }
 
 #[derive(Clone)]
@@ -105,4 +113,9 @@ impl Graphics for GearsInputData {
 impl Renderable for GearsInputData {
     fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render }
     fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render }
+}
+
+impl GetIoState for GearsInputData {
+    fn get_io_state<'a>(&'a self) -> &'a IoState { &self.input }
+    fn get_io_state_mut<'a>(&'a mut self) -> &'a mut IoState { &mut self.input }
 }

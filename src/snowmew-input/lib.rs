@@ -26,18 +26,26 @@ use std::sync::mpsc::Receiver;
 #[cfg(target_os="linux")]
 use libc::c_void;
 
-use glfw::{WindowEvent, Glfw, Context, RenderContext};
+use glfw::{Glfw, Context, RenderContext};
 use glfw::WindowMode::{Windowed, FullScreen};
 use collect::TrieMap;
 
+pub use input::{
+    Button,
+    Event,
+    WindowEvent,
+    EventGroup
+};
+
 mod input;
+
 
 pub type WindowId = usize;
 
 struct WindowHandle {
     window: glfw::Window,
-    forced_event: Option<WindowEvent>,
-    receiver: Receiver<(f64, WindowEvent)>,
+    forced_event: Option<glfw::WindowEvent>,
+    receiver: Receiver<(f64, glfw::WindowEvent)>,
     title: String
 }
 
@@ -49,7 +57,7 @@ pub struct IOManager {
 }
 
 fn create_window_context(glfw :&mut Glfw, width: u32, height: u32, name: &str, mode: glfw::WindowMode)
-        -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
+        -> Option<(glfw::Window, Receiver<(f64, glfw::WindowEvent)>)> {
 
     nice_glfw::WindowBuilder::new(glfw)
         .try_modern_context_hints()
@@ -69,7 +77,7 @@ impl IOManager {
         }
     }
 
-    fn add_window(&mut self, window: glfw::Window, recv: Receiver<(f64, WindowEvent)>) -> InputHandle {
+    fn add_window(&mut self, window: glfw::Window, recv: Receiver<(f64, glfw::WindowEvent)>) -> InputHandle {
         let id = self.window_id;
         self.window_id += 1;
 
@@ -192,7 +200,7 @@ impl IOManager {
     }
 
     #[cfg(target_os="macos")]
-    fn create_hmd_window(&mut self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64,WindowEvent)>)> {
+    fn create_hmd_window(&mut self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64, glfw::WindowEvent)>)> {
         self.glfw.with_connected_monitors(|glfw, monitors| {
             for m in monitors.iter() {
                 if !m.get_name()[].contains("Rift") {
@@ -434,6 +442,67 @@ impl IoState {
             }
             input::WindowEvent::MouseOver(mouse) => {
                 self.mouse_over = mouse;
+            }
+        }
+    }
+}
+
+pub trait GetIoState {
+    /// Apply an `WindowEvent` to the system, this will update
+    /// the io metadata (io_state)
+    fn window_action(&mut self, evt: input::WindowEvent) {
+        self.get_io_state_mut().window_action(evt);
+    }
+
+    /// Read the io metadata
+    fn get_io_state(&self) -> &IoState;
+
+    /// write to the io metadata
+    fn get_io_state_mut(&mut self) -> &mut IoState;
+}
+
+#[derive(Copy)]
+/// Used to configure how a window should be created for the game
+pub struct DisplayConfig {
+    /// The resolution in pixels (width, height)
+    /// if not set the engine will do a best guess
+    pub resolution: Option<(u32, u32)>,
+    /// The position of the window, if not set the window
+    /// will be placed at the best guess for the engine
+    pub position: Option<(i32, i32)>,
+    /// Enable HMD for Oculus Rift support, Only supported by the AZDO backend
+    pub hmd: bool,
+    /// Should the window be created as a window instead of fullscreen.
+    pub window: bool,
+}
+
+impl DisplayConfig {
+    pub fn create_display(&self, im: &mut IOManager) -> Option<Window> {
+        let window = if self.hmd { im.hmd() } else { None };
+        if window.is_some() {
+            return window;
+        }
+
+        let resolution = match self.resolution {
+            Some(res) => res,
+            None => im.get_primary_resolution()
+        };
+
+        let position = match self.position {
+            Some(pos) => pos,
+            None => im.get_primary_position()
+        };
+
+        if !self.window {
+            im.primary(resolution)
+        } else {
+            let win = im.window(resolution);
+            match win {
+                Some(win) => {
+                    im.set_window_position(&win, position);
+                    Some(win)
+                }
+                None => None
             }
         }
     }

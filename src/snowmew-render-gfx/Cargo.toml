@@ -37,6 +37,10 @@ git = "https://github.com/luqmana/rust-opencl.git"
 [dependencies.glfw]
 git = "https://github.com/bjz/glfw-rs.git"
 
+[dependencies.collect]
+git = "https://github.com/csherratt/collect-rs"
+branch = "cow_trie"
+
 [dependencies]
 genmesh = "*"
 time = "*"
@@ -53,6 +57,6 @@ path = "../snowmew-graphics/"
 [dependencies.snowmew-render]
 path = "../snowmew-render/"
 
-[dependencies.collect]
-git = "https://github.com/csherratt/collect-rs"
-branch = "cow_trie"
+[dependencies.snowmew-input]
+path = "../snowmew-input/"
+
