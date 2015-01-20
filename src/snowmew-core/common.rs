@@ -144,20 +144,6 @@ pub trait Common {
     fn object<'a>(&'a self, oid: Entity) -> Option<&'a Object> {
         self.get_common().objects.get(oid)
     }
-
-/*
-    /// Apply an `WindowEvent` to the system, this will update
-    /// the io metadata (io_state)
-    fn window_action(&mut self, evt: input::WindowEvent) {
-        self.get_common_mut().io.window_action(evt);
-    }
-
-    /// Read the io metadata
-    fn io_state(&self) -> &IoState { &self.get_common().io }
-
-    /// write to the io metadata
-    fn io_state_mut(&mut self) -> &mut IoState { &mut self.get_common_mut().io }
-*/
 }
 
 /// Duplicate all components owned by `src` into `dst`

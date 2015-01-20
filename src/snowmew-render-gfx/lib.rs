@@ -706,8 +706,7 @@ impl RenderManagerContext {
         };
         self.graphics.clear(cdata, gfx::COLOR | gfx::DEPTH, &self.frame);
 
-        let (width, height) = (800, 600);
-        //let (width, height) = db.io_state().size;
+        let (width, height) = db.get_io_state().size;
         let camera_trans = db.position(camera);
         let camera = Camera::new(width, height, camera_trans);
 
@@ -776,8 +775,7 @@ impl RenderManagerContext {
     }
 
     fn config<RD: Renderable>(&mut self, db: &RD) {
-        //let (width, height) = db.io_state().size;
-        let (width, height) = (800, 600);
+        let (width, height) = db.get_io_state().size;
         if self.frame.width as u32 != width ||
            self.frame.height as u32 != height {
             self.frame = gfx::Frame::new(width as u16, height as u16);

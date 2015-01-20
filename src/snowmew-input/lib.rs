@@ -447,6 +447,20 @@ impl IoState {
     }
 }
 
+pub trait GetIoState {
+    /// Apply an `WindowEvent` to the system, this will update
+    /// the io metadata (io_state)
+    fn window_action(&mut self, evt: input::WindowEvent) {
+        self.get_io_state_mut().window_action(evt);
+    }
+
+    /// Read the io metadata
+    fn get_io_state(&self) -> &IoState;
+
+    /// write to the io metadata
+    fn get_io_state_mut(&mut self) -> &mut IoState;
+}
+
 #[derive(Copy)]
 /// Used to configure how a window should be created for the game
 pub struct DisplayConfig {

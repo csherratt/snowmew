@@ -135,6 +135,7 @@ pub mod config {
     use std::sync::Arc;
     use std::io::timer::Timer;
     use std::time::Duration;
+    use std::ops::DerefMut;
 
     use opencl::hl::{Device, get_platforms};
     use opencl::hl::DeviceType::{GPU, CPU};
@@ -207,7 +208,7 @@ pub mod config {
         }
 
         /// Start the game engine running based on the confirmation.
-        pub fn start<GameData: Common+Clone,
+        pub fn start<GameData: Clone+input::GetIoState,
                      Game: core::Game<GameData, Event>,
                      R: render::Render<GameData>,
                      RF: render::RenderFactory<GameData, R>>
@@ -238,15 +239,15 @@ pub mod config {
                 loop {
                     match im.next_event(&ih) {
                         EventGroup::Game(evt) => gd = game.step(evt, gd),
-                        EventGroup::Window(evt) => {} /*gd.window_action(evt)*/,
+                        EventGroup::Window(evt) => { gd.window_action(evt) },
                         EventGroup::Nop => break
                     }
                 }
 
                 gd = game.step(Event::Cadance(candance_scale), gd);
 
-                //let next_title = gd.io_state().window_title.clone();
-                //im.set_title(&ih, next_title);
+                let next_title = gd.get_io_state().window_title.clone();
+                im.set_title(&ih, next_title);
                 render.update(gd.clone());
             }
         }

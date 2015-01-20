@@ -21,6 +21,9 @@ path = "../snowmew-graphics/"
 [dependencies.snowmew-render]
 path = "../snowmew-render/"
 
+[dependencies.snowmew-input]
+path = "../snowmew-input"
+
 [dependencies.wire]
 git = "https://github.com/TyOverby/wire.git"
 

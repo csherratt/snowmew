@@ -24,8 +24,7 @@ use std::ops::{Deref, DerefMut};
 
 use core::game::Game;
 use core::common::{Common, CommonData};
-use input::Event;
-use input::Button;
+use input::{Event, Button, IoState, GetIoState};
 use graphics::{Graphics, GraphicsData};
 use position::{Positions, PositionData};
 use render::{Renderable, RenderData};
@@ -156,7 +155,7 @@ impl<T> Deref for InputIntegratorGameData<T> {
 }
 
 impl<T> DerefMut for InputIntegratorGameData<T> {
-    fn deref_mut <'a>(&'a mut self) -> &'a mut <Self as Deref>::Target {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut <Self as Deref>::Target {
         &mut self.inner
     }
 }
@@ -224,3 +223,9 @@ impl<T: Renderable> Renderable for InputIntegratorGameData<T> {
     fn get_render_data<'a>(&'a self) -> &'a RenderData { self.inner.get_render_data() }
     fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
 }
+
+impl<T: GetIoState> GetIoState for InputIntegratorGameData<T> {
+    fn get_io_state<'a>(&'a self) -> &'a IoState { self.inner.get_io_state() }
+    fn get_io_state_mut<'a>(&'a mut self) -> &'a mut IoState { self.inner.get_io_state_mut() }
+}
+
