@@ -129,7 +129,7 @@ pub mod timer {
 }
 
 pub mod networking {
-    pub use _network::{Server, Client};
+    pub use _network::{Server, Client, ClientState};
 }
 
 pub mod config {

@@ -108,6 +108,11 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
 
         let mut clients = Vec::new();
 
+        if let Ok(mut res) = rx.recv() {
+            res.to_client.send(ServerMessage::Image(self.data.clone()));
+            clients.push(res);
+        }
+
         loop {
             while let Ok(mut res) = rx.try_recv() {
                 res.to_client.send(ServerMessage::Image(self.data.clone()));
@@ -199,11 +204,13 @@ pub struct Client<G, T, SE, CE> {
     from_server: bchannel::Receiver<ServerMessage<T, SE>, bincode::DecodingError>
 }
 
-impl<G, T:Send+Encodable+Decodable+Clone,
-     E:Send+Encodable+Decodable,
-     CE:Send+Encodable+Decodable> Client<G, T, E, CE> {
+impl<Game, GameState, ServerEvent, ClientEvent> Client<Game, GameState, ServerEvent, ClientEvent>
+    where GameState: Send+Encodable+Decodable+Clone,
+          ServerEvent: Send+Encodable+Decodable+Clone,
+          ClientEvent: Send+Encodable+Decodable+Clone
+     {
 
-    pub fn new(game: G, server: &str, port: u16) -> Client<G, T, E, CE> {
+    pub fn new(game: Game, server: &str, port: u16) -> Client<Game, GameState, ServerEvent, ClientEvent> {
         let (o, i) = wire::connect_tcp(server, port, SizeLimit::Infinite, SizeLimit::Infinite).unwrap();
 
         Client {
@@ -213,7 +220,7 @@ impl<G, T:Send+Encodable+Decodable+Clone,
         }
     }
 
-    pub fn gamedata(&mut self) -> ClientState<T, E> {
+    pub fn gamedata(&mut self) -> ClientState<GameState, ClientEvent> {
         match self.from_server.recv_block().expect("failed to get state") {
             ServerMessage::Image(state) => {
                 println!("download done");
@@ -269,6 +276,7 @@ impl<G: Game<T, SE>,
             if idx > index {
                 println!("{} > {} > {}", idx, index, gd.server_frame);
                 frame = self.game.step([e.clone()].iter().map(|x| x.clone()).collect(), frame);
+                index = idx;
             }
 
             if idx > gd.server_frame {
@@ -278,6 +286,7 @@ impl<G: Game<T, SE>,
 
         gd.predict = frame;
         gd.predict_delta = predict;
+        gd.predict_frame = index;
         gd
     }
 }
