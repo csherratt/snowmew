@@ -47,6 +47,7 @@ pub enum ServerMessage<T, E> {
 
 #[derive(RustcEncodable, RustcDecodable)]
 pub enum ClientMessage<E> {
+    Join,
     Event(E)
 }
 
@@ -58,7 +59,8 @@ pub struct Server<Game, GameData> {
 unsafe impl<T:Send, E:Send, CE:Send> Send for ServerClient<T, E, CE> {}
 
 struct ServerClient<T, E, CE> {
-    to_client: OutTcpStream<ServerMessage<T, CE>>,
+    joined: bool,
+    to_client: mpsc::Sender<ServerMessage<T, CE>>,
     from_client: bchannel::Receiver<ClientMessage<E>, bincode::DecodingError>
 }
 
@@ -84,8 +86,19 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
             for connection in listener.into_blocking_iter() {
                 let (i, o) = wire::upgrade_tcp(connection, read_limit, write_limit);
                 
+                let (to_client_tx, to_client_rx) = mpsc::channel();
+
+                // client thread
+                Thread::spawn(move || {
+                    let mut o = o;
+                    for msg in to_client_rx.iter() {
+                        o.send(&msg);
+                    }
+                });
+
                 let client = ServerClient {
-                    to_client: o,
+                    joined: false,
+                    to_client: to_client_tx,
                     from_client: i
                 };
 
@@ -96,25 +109,35 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
         let mut clients = Vec::new();
 
         loop {
-            // add clients to game
-            while clients.len() == 0 {
-                let mut res = rx.recv().ok().expect("failed to get message");
-                res.to_client.send(&ServerMessage::Image(self.data.clone()));
+            while let Ok(mut res) = rx.try_recv() {
+                res.to_client.send(ServerMessage::Image(self.data.clone()));
                 clients.push(res);
             }
 
-            while let Ok(mut res) = rx.try_recv() {
-                res.to_client.send(&ServerMessage::Image(self.data.clone()));
-                clients.push(res) 
-            }
+            let mut events: Vec<CE> = clients.iter_mut().map(|c| {
+                if c.joined {
+                    let e = c.from_client.recv_block().expect("client sucks man");
+                    Some(match e {
+                        ClientMessage::Join => panic!("invalid message"),
+                        ClientMessage::Event(e) => e
+                    })
+                } else {
+                    match c.from_client.recv() {
+                        Some(ClientMessage::Join) => c.joined = true,
+                        _ => ()
+                    }
+                    None
+                }
+            }).filter(|x| x.is_some()).map(|x| x.unwrap()).collect();
 
-            let event: E = clients.iter().map(|c| {
-                let e = c.from_client.recv_block().expect("client sucks man");
-                match e { ClientMessage::Event(e) => e }
-            }).collect();
+            println!("events.len={}", events.len());
+
+            if events.len() == 0 { continue }
+
+            let event: E = events.drain().collect();
 
             for c in clients.iter_mut() {
-                c.to_client.send(&ServerMessage::Event(event.clone()));
+                c.to_client.send(ServerMessage::Event(event.clone()));
             }
             self.data = self.game.step(event, self.data);
         }
@@ -123,7 +146,7 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
 
 #[derive(Clone)]
 pub struct ClientState<T, E> {
-    sync: bool,
+    joined: bool,
     predict_frame: u32,
     predict: T,
     predict_delta: Vec<(u32, E)>,
@@ -195,7 +218,7 @@ impl<G, T:Send+Encodable+Decodable+Clone,
             ServerMessage::Image(state) => {
                 println!("download done");
                 ClientState {
-                    sync: false,
+                    joined: false,
                     predict_frame: 0,
                     predict: state.clone(),
                     predict_delta: Vec::new(),
@@ -215,6 +238,12 @@ impl<G: Game<T, SE>,
     Game<ClientState<T, CE>, CE> for Client<G, T, SE, CE> {
 
     fn step(&mut self, event: CE, mut gd: ClientState<T, CE>) -> ClientState<T, CE> {
+        // ack the server at start
+        if !gd.joined {
+            self.to_server.send(&ClientMessage::Join);
+            gd.joined = true;
+        }
+
         let mut frame = gd.predict.clone();
         let mut index = gd.predict_frame;
 
@@ -231,22 +260,14 @@ impl<G: Game<T, SE>,
             }
         }
 
-        if gd.sync {
-            gd.sync = gd.predict_frame > gd.server_frame + 1;
-            if gd.sync { return gd }
-        } else if gd.predict_frame > gd.server_frame + 25 {
-            gd.sync = true;
-            return gd;
-        }
-
         self.to_server.send(&ClientMessage::Event(event.clone()));
-        gd.predict_delta.push((gd.predict_frame, event));
         gd.predict_frame += 1;
+        gd.predict_delta.push((gd.predict_frame, event));
 
         let mut predict = Vec::new();
         for (idx, e) in gd.predict_delta.drain() {
             if idx > index {
-                println!("{} > {}", idx, index);
+                println!("{} > {} > {}", idx, index, gd.server_frame);
                 frame = self.game.step([e.clone()].iter().map(|x| x.clone()).collect(), frame);
             }
 
