@@ -15,3 +15,9 @@ install:
   - make
   - sudo make install
   - cd ..
+
+script:
+  - cargo build
+  - cargo build --features "use_opencl"
+  - cargo test
+  - cargo test --features "use_opencl"
