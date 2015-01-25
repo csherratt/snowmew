@@ -13,26 +13,13 @@ name = "snowmew-core"
 path = "lib.rs"
 
 [dependencies]
-time = "*"
 rustc-serialize="*"
 
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
 
-[dependencies.cow]
-git = "https://github.com/csherratt/cow-rs.git"
-
-[dependencies.opencl]
-git = "https://github.com/luqmana/rust-opencl.git"
-
 [dependencies.ovr]
 git = "https://github.com/csherratt/vr-rs.git"
-
-[dependencies.gfx]
-git = "https://github.com/gfx-rs/gfx-rs"
-
-[dependencies.device]
-git = "https://github.com/gfx-rs/gfx-rs"
 
 [dependencies.collect]
 git = "https://github.com/csherratt/collect-rs"

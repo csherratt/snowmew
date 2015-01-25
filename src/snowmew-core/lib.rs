@@ -16,16 +16,11 @@
 #![crate_type = "lib"]
 #![allow(unstable)]
 
-extern crate time;
 extern crate cgmath;
-extern crate cow;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate collections;
-extern crate libc;
-extern crate opencl;
-extern crate device;
-extern crate ovr;
 extern crate collect;
+extern crate ovr;
 
 pub use common::Entity;
 
