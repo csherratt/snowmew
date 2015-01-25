@@ -12,28 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-use image::image::load;
-use image::image::LoadResult::{Error, ImageU8, ImageF32};
+use image::{self, GenericImage};
 use graphics::Texture;
 
 pub fn load_texture(path: &Path) -> Texture {
-    let mut res = match load(path) {
-        Error(s) => panic!("failed to load image: {} {}", s, path.as_str().unwrap()),
-        ImageU8(d) => {
-            println!("loaded texture {} {} {}", path.as_str().unwrap(), d.data.len(), d.depth);
-            Texture::new(d.width as u32,
-                d.height as u32,
-                d.depth as u32,
-                d.data)
-        }
-        ImageF32(d) => {
-            println!("loaded texture {} {} {}", path.as_str().unwrap(), d.data.len(), d.depth);
-            Texture::new(d.width as u32,
-                d.height as u32,
-                d.depth as u32,
-                d.data.iter().map(|v| *v as u8).collect())
-        }
-    };
-    res.flip();
-    res
+    let img = image::open(path).ok().expect("Failed to load image.")
+                               .to_rgba();
+    let (w, h) = img.dimensions();
+    let data = img.into_vec();
+    let mut out = Texture::new(w, h, 4, data);
+    out
 }

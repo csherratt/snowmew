@@ -13,9 +13,6 @@ path = "lib.rs"
 [dependencies.collision]
 git = "https://github.com/csherratt/collision-rs.git"
 
-[dependencies.stb_image]
-git = "https://github.com/csherratt/rust-stb-image.git"
-
 [dependencies.gfx]
 git = "https://github.com/gfx-rs/gfx-rs"
 

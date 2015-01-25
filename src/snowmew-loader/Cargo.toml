@@ -14,9 +14,6 @@ path = "lib.rs"
 obj = "*"
 genmesh = "*"
 
-[dependencies.stb_image]
-git = "https://github.com/csherratt/rust-stb-image.git"
-
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
 
@@ -25,3 +22,6 @@ path = "../snowmew-core/"
 
 [dependencies.snowmew-graphics]
 path = "../snowmew-graphics"
+
+[dependencies.image]
+git = "https://github.com/PistonDevelopers/image"

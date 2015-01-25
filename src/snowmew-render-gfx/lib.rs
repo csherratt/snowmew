@@ -502,7 +502,8 @@ impl RenderManagerContext {
                 let img_info = tinfo.to_image_info();
                 let texture = self.graphics.device.create_texture(tinfo)
                                          .ok().expect("Failed to create texture");
-                self.graphics.device.update_texture(&texture, &img_info, text.data()).unwrap();
+                self.graphics.device.update_texture(&texture, &img_info, text.data())
+                    .ok().expect("Failed to update texture.");
                 self.textures.insert(oid, texture);
             }
         }
@@ -566,7 +567,8 @@ impl RenderManagerContext {
 
                     },
                     &self.state
-                ).unwrap();
+                ).ok().expect("Failed to create batch.");
+
                 self.shadow_batches.insert(draw.geometry, batch);
 
                 let batch: DrawProgram = self.graphics.make_batch(
@@ -580,7 +582,7 @@ impl RenderManagerContext {
 
                     },
                     &self.state
-                ).unwrap();
+                ).ok().expect("Failed to create batch.");
                 self.draw_batches.insert(draw.geometry, batch);
             }
         }

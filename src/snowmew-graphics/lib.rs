@@ -23,8 +23,8 @@ extern crate gfx;
 extern crate cgmath;
 extern crate collision;
 extern crate genmesh;
+extern crate image;
 extern crate "rustc-serialize" as rustc_serialize;
-extern crate "stb_image" as image;
 
 extern crate "snowmew-core" as snowmew;
 

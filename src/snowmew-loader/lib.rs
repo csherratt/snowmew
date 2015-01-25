@@ -20,7 +20,7 @@ extern crate collections;
 extern crate core;
 extern crate cgmath;
 extern crate genmesh;
-extern crate "stb_image" as image;
+extern crate image;
 extern crate "obj" as obj;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-graphics" as graphics;
