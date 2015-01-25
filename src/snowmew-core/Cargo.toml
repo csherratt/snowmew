@@ -16,12 +16,6 @@ path = "lib.rs"
 time = "*"
 rustc-serialize="*"
 
-[dependencies.glfw]
-git = "https://github.com/bjz/glfw-rs.git"
-
-[dependencies.nice_glfw]
-git = "https://github.com/csherratt/nice_glfw.git"
-
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
 
