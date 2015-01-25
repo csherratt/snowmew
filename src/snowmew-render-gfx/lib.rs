@@ -283,8 +283,7 @@ pub struct RenderManagerContext {
     shadow_shared_mat: device::BufferHandle<SharedMatrix>,
     shared_mat: device::BufferHandle<SharedMatrix>,
 
-    graphics: gfx::Graphics<device::gl_device::GlDevice,
-                            device::gl_device::GlCommandBuffer>,
+    graphics: gfx::Graphics<device::gl_device::GlDevice>,
     frame: render::target::Frame,
     state: render::state::DrawState,
     meshes: HashMap<Entity, Mesh>,
