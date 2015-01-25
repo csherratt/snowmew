@@ -33,6 +33,7 @@ use std::sync::mpsc;
 use std::thread::Thread;
 use std::ops::{Deref, DerefMut};
 use std::iter::FromIterator;
+use std::io::net::ip::ToSocketAddr;
 use wire::SizeLimit;
 use wire::tcp::OutTcpStream;
 use rustc_serialize::{Decodable, Encodable};
@@ -73,10 +74,11 @@ impl<G, GD:Clone+Send+Decodable+Encodable> Server<G, GD> {
     }
 
     pub fn serve<E: Send+Encodable+Clone+Decodable+FromIterator<CE>,
-                 CE: Send+Encodable+Clone+Decodable>(mut self, iface: &str, port: u16)
-        where G: Game<GD, E> {
+                 CE: Send+Encodable+Clone+Decodable,
+                 A>(mut self, addr: A)
+        where G: Game<GD, E>, A: ToSocketAddr {
 
-        let (listener, _) = wire::listen_tcp(iface, port).unwrap();
+        let (listener, _) = wire::listen_tcp(addr).unwrap();
 
         let (tx, rx): (mpsc::Sender<ServerClient<GD, CE, E>>,
                        mpsc::Receiver<ServerClient<GD, CE, E>>) = mpsc::channel();
@@ -210,8 +212,9 @@ impl<Game, GameState, ServerEvent, ClientEvent> Client<Game, GameState, ServerEv
           ClientEvent: Send+Encodable+Decodable+Clone
      {
 
-    pub fn new(game: Game, server: &str, port: u16) -> Client<Game, GameState, ServerEvent, ClientEvent> {
-        let (o, i) = wire::connect_tcp(server, port, SizeLimit::Infinite, SizeLimit::Infinite).unwrap();
+    pub fn new<A>(game: Game, addr: A) -> Client<Game, GameState, ServerEvent, ClientEvent>
+        where A: ToSocketAddr {
+        let (o, i) = wire::connect_tcp(addr, SizeLimit::Infinite, SizeLimit::Infinite).unwrap();
 
         Client {
             game: game,
