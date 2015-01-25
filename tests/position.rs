@@ -15,14 +15,17 @@
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
+#[cfg(feature="use_opencl")]
 extern crate opencl;
 extern crate "snowmew-position" as position;
 
 use position::{PositionData, Positions};
+#[cfg(feature="use_opencl")]
 use position::cl::Accelerator;
 
 use cgmath::{Matrix4, Matrix, Decomposed, Quaternion, Vector3, Vector4};
 
+#[cfg(feature="use_opencl")]
 use opencl::hl::EventList;
 
 #[test]
@@ -126,6 +129,7 @@ fn write_positions_tree() {
     assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
 }
 
+#[cfg(feature="use_opencl")]
 fn fetch_matrixs(queue: &opencl::hl::CommandQueue,
                  buffers: &[opencl::mem::CLBuffer<Vector4<f32>>; 4]) -> Vec<Matrix4<f32>> {
 
@@ -142,6 +146,7 @@ fn fetch_matrixs(queue: &opencl::hl::CommandQueue,
     }).collect()
 }
 
+#[cfg(feature="use_opencl")]
 #[test]
 fn calc_positions_opencl_vec4x4() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
@@ -177,6 +182,7 @@ fn calc_positions_opencl_vec4x4() {
     assert_eq!(mat4.mul_v(&vec), Vector4::new(5f32, 5f32, 5f32, 1f32));
 }
 
+#[cfg(feature="use_opencl")]
 #[test]
 fn calc_positions_opencl_vec4x4_tree() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
@@ -211,6 +217,7 @@ fn calc_positions_opencl_vec4x4_tree() {
     assert!(mat3.mul_v(&vec) == Vector4::new(-2f32, -2f32, -2f32, 1f32));
 }
 
+#[cfg(feature="use_opencl")]
 #[test]
 fn calc_positions_opencl_mat() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
@@ -243,6 +250,7 @@ fn calc_positions_opencl_mat() {
     assert_eq!(mat4.mul_v(&vec), Vector4::new(5f32, 5f32, 5f32, 1f32));
 }
 
+#[cfg(feature="use_opencl")]
 #[test]
 fn calc_positions_opencl_mat_tree() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();
@@ -275,6 +283,7 @@ fn calc_positions_opencl_mat_tree() {
 }
 
 
+#[cfg(feature="use_opencl")]
 #[test]
 fn calc_positions_opencl_gap() {
     let (device, context, queue) = opencl::util::create_compute_context_prefer(opencl::util::PreferedType::GPUPrefered).unwrap();

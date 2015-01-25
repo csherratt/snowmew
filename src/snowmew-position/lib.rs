@@ -18,6 +18,7 @@
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;
+#[cfg(feature="use_opencl")]
 extern crate opencl;
 extern crate collect;
 extern crate "rustc-serialize" as rustc_serialize;
@@ -267,6 +268,7 @@ impl Positions for PositionData {
     fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self }
 }
 
+#[cfg(feature="use_opencl")]
 pub mod cl {
     use cgmath::{Transform, Decomposed, Vector3, Vector4, Matrix4, Quaternion};
 

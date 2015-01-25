@@ -28,9 +28,6 @@ git = "https://github.com/gfx-rs/gfx-rs"
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
 
-[dependencies.opencl]
-git = "https://github.com/luqmana/rust-opencl.git"
-
 [dependencies.collect]
 git = "https://github.com/csherratt/collect-rs"
 branch = "cow_trie"
@@ -55,3 +52,9 @@ path = "../snowmew-render/"
 [dependencies.snowmew-input]
 path = "../snowmew-input/"
 
+[features]
+use_opencl=["opencl", "snowmew-render/use_opencl"]
+
+[dependencies.opencl]
+git = "https://github.com/luqmana/rust-opencl.git"
+optional = true

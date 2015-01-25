@@ -21,8 +21,11 @@ extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-input" as input;
+
+#[cfg(feature="use_opencl")]
 extern crate opencl;
 
+#[cfg(feature="use_opencl")]
 use std::sync::Arc;
 
 #[derive(Clone, RustcEncodable, RustcDecodable, Copy)]
@@ -73,10 +76,19 @@ pub trait Render<T> {
 
 /// RenderFactor is used to create a `Render` object. This is used to pass a configured
 /// Window to the Render.
+#[cfg(feature="use_opencl")]
 pub trait RenderFactory<T, R: Render<T>> {
     fn init(self: Box<Self>,
             im: &input::IOManager,
             window: input::Window,
             size: (i32, i32),
             cl: Option<Arc<opencl::hl::Device>>) -> R;
+}
+
+#[cfg(not(feature="use_opencl"))]
+pub trait RenderFactory<T, R: Render<T>> {
+    fn init(self: Box<Self>,
+            im: &input::IOManager,
+            window: input::Window,
+            size: (i32, i32)) -> R;
 }

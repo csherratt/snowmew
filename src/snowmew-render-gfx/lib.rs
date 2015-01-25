@@ -20,6 +20,7 @@
 
 
 extern crate libc;
+#[cfg(feature="use_opencl")]
 extern crate opencl;
 extern crate glfw;
 
@@ -44,6 +45,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread::Thread;
 use std::sync::Arc;
 
+#[cfg(feature="use_opencl")]
 use opencl::hl;
 use gfx::{Device, DeviceHelper};
 use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
@@ -311,8 +313,7 @@ pub struct RenderManager<R> {
 impl RenderManagerContext {
     fn _new(mut device: gfx::GlDevice,
             window: Window,
-            size: (i32, i32),
-            _: Option<Arc<hl::Device>>) -> RenderManagerContext {
+            size: (i32, i32)) -> RenderManagerContext {
 
         let (width, height) = size;
         let frame = gfx::Frame::new(width as u16, height as u16);
@@ -800,12 +801,13 @@ impl<RD: Renderable+GetIoState+Send> sm_render::Render<RD> for RenderManager<RD>
     }
 }
 
+#[cfg(feature="use_opencl")]
 impl<RD: Renderable+GetIoState+Send> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &input::IOManager,
             mut window: Window,
             size: (i32, i32),
-            cl: Option<Arc<hl::Device>>) -> RenderManager<RD> {
+            _: Option<Arc<hl::Device>>) -> RenderManager<RD> {
 
         let (sender, recv) = channel();
         window.make_context_current();
@@ -824,7 +826,61 @@ impl<RD: Renderable+GetIoState+Send> sm_render::RenderFactory<RD, RenderManager<
             window.make_context_current();
             let recv: Receiver<RD> = recv;
 
-            let mut rc = RenderManagerContext::_new(device, window, size, cl);
+            let mut rc = RenderManagerContext::_new(device, window, size);
+            loop {
+                // wait for a copy of the game
+                let mut db = match recv.recv() {
+                    Ok(db) => db,
+                    Err(_) => return
+                };
+
+                loop {
+                    match recv.try_recv() {
+                        Ok(mut _db) => {
+                            std::mem::swap(&mut db, &mut _db);
+                            free_send.send(_db);
+                        }
+                        // no newer copy
+                        Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => return,
+                    }
+                }
+                rc.update(db);
+            }
+        });
+
+        RenderManager {
+            channel: sender,
+            res: res
+        }
+    }
+}
+
+#[cfg(not(feature="use_opencl"))]
+impl<RD: Renderable+GetIoState+Send> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
+    fn init(self: Box<RenderFactory>,
+            io: &input::IOManager,
+            mut window: Window,
+            size: (i32, i32)) -> RenderManager<RD> {
+
+        let (sender, recv) = channel();
+        window.make_context_current();
+        let device = gfx::GlDevice::new(|s| io.get_proc_address(s));
+        glfw::make_context_current(None);
+
+        let (free_send, free_recv) = channel();
+        Thread::spawn(move || {
+            for db in free_recv.iter() {
+                drop(db)
+            }
+        });
+
+        let res = Thread::spawn(move || {
+            let mut window = window;
+            window.make_context_current();
+            let recv: Receiver<RD> = recv;
+
+            let mut rc = RenderManagerContext::_new(device, window, size);
             loop {
                 // wait for a copy of the game
                 let mut db = match recv.recv() {

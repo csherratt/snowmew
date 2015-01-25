@@ -16,6 +16,7 @@
 #![crate_type = "lib"]
 #![allow(unstable)]
 
+#[cfg(feature="use_opencl")]
 extern crate opencl;
 extern crate "snowmew-render-gfx" as gfx;
 extern crate "snowmew-core" as snowmew;
@@ -24,7 +25,9 @@ extern crate "snowmew-graphics" as graphics;
 extern crate "snowmew-render" as render;
 extern crate "snowmew-input" as input;
 
+#[cfg(feature="use_opencl")]
 use opencl::hl::Device;
+#[cfg(feature="use_opencl")]
 use std::sync::Arc;
 
 use input::{Window, GetIoState};
@@ -41,6 +44,7 @@ pub struct RenderMux<'r, RD> {
     render: Box<render::Render<RD> + 'r>
 }
 
+#[cfg(feature="use_opencl")]
 impl<'r, RD: Renderable+GetIoState+Send> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &input::IOManager,
@@ -58,6 +62,25 @@ impl<'r, RD: Renderable+GetIoState+Send> render::RenderFactory<RD, RenderMux<'r,
         rm
     }
 }
+
+#[cfg(not(feature="use_opencl"))]
+impl<'r, RD: Renderable+GetIoState+Send> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
+    fn init(self: Box<RenderFactory>,
+            io: &input::IOManager,
+            window: Window,
+            size: (i32, i32)) -> RenderMux<'r, RD> {
+
+        let rm: RenderMux<RD> = {
+            let rf: Box<render::RenderFactory<RD, gfx::RenderManager<RD>>> = Box::new(gfx::RenderFactory::new());
+            let render: Box<gfx::RenderManager<RD>> = Box::new(rf.init(io, window, size));
+            RenderMux {
+                render: render as Box<render::Render<RD>>
+            }
+        };
+        rm
+    }
+}
+
 
 #[derive(Copy)]
 pub struct RenderFactory;

@@ -27,6 +27,7 @@ extern crate "snowmew-timer" as _timer;
 extern crate "snowmew-network" as _network;
 extern crate "snowmew-input" as _input;
 extern crate "snowmew-input-integrator" as _input_integrator;
+#[cfg(feature="use_opencl")]
 extern crate opencl;
 extern crate glfw;
 
@@ -133,11 +134,14 @@ pub mod networking {
 }
 
 pub mod config {
+    #[cfg(feature="use_opencl")]
     use std::sync::Arc;
     use std::io::timer::Timer;
     use std::time::Duration;
 
+    #[cfg(feature="use_opencl")]
     use opencl::hl::{Device, get_platforms};
+    #[cfg(feature="use_opencl")]
     use opencl::hl::DeviceType::{GPU, CPU};
     use glfw::{self, Glfw};
 
@@ -146,6 +150,7 @@ pub mod config {
     use super::render;
     use super::input;
 
+    #[cfg(feature="use_opencl")]
     fn get_cl() -> Option<Arc<Device>> {
         let platforms = get_platforms();
 
@@ -185,6 +190,7 @@ pub mod config {
     pub struct SnowmewConfig {
         /// The display configuration
         pub display: DisplayConfig,
+        #[cfg(feature="use_opencl")]
         /// Configure if the engine should use OpenCL
         pub use_opencl: bool,
         /// Configure the cadence, the minimum peroid for a frame update
@@ -193,6 +199,7 @@ pub mod config {
 
     impl SnowmewConfig {
         /// Create a new configuration with sane defaults
+        #[cfg(feature="use_opencl")]
         pub fn new() -> SnowmewConfig {
             SnowmewConfig {
                 display: DisplayConfig {
@@ -204,6 +211,39 @@ pub mod config {
                 use_opencl: true,
                 cadance_ms: 15
             }
+        }
+
+        #[cfg(not(feature="use_opencl"))]
+        pub fn new() -> SnowmewConfig {
+            SnowmewConfig {
+                display: DisplayConfig {
+                    resolution: None,
+                    position: None,
+                    hmd: true,
+                    window: true,
+                },
+                cadance_ms: 15
+            }
+        }
+
+        // helper to create the render
+        #[cfg(feature="use_opencl")]
+        fn config_render<GameData: Clone,
+                         R: render::Render<GameData>,
+                         RF: render::RenderFactory<GameData, R>>
+                         (&self, im: &mut input::IOManager, display: input::Window, render: Box<RF>) -> R {
+            let res = im.get_framebuffer_size(&display);            
+            let dev = if self.use_opencl { get_cl() } else { None };
+            render.init(im, display, res, dev)
+        }
+
+        #[cfg(not(feature="use_opencl"))]
+        fn config_render<GameData: Clone,
+                         R: render::Render<GameData>,
+                         RF: render::RenderFactory<GameData, R>>
+                         (&self, im: &mut input::IOManager, display: input::Window, render: Box<RF>) -> R {
+            let res = im.get_framebuffer_size(&display);            
+            render.init(im, display, res)
         }
 
         /// Start the game engine running based on the confirmation.
@@ -224,9 +264,7 @@ pub mod config {
             };
             let ih = display.handle();
 
-            let res = im.get_framebuffer_size(&display);
-            let dev = if self.use_opencl { get_cl() } else { None };
-            let mut render = render.init(&im, display, res, dev);
+            let mut render = self.config_render(&mut im, display, render);
 
             let mut timer = Timer::new().unwrap();
             let timer_port = timer.periodic(Duration::milliseconds(self.cadance_ms));

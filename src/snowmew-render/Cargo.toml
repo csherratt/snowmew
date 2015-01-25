@@ -22,11 +22,15 @@ path = "../snowmew-graphics"
 [dependencies.snowmew-input]
 path = "../snowmew-input"
 
-[dependencies.opencl]
-git = "https://github.com/luqmana/rust-opencl.git"
-
 [dependencies]
 rustc-serialize="*"
 
 [dependencies.cgmath]
 git = "https://github.com/bjz/cgmath-rs.git"
+
+[features]
+use_opencl=["opencl"]
+
+[dependencies.opencl]
+git = "https://github.com/luqmana/rust-opencl.git"
+optional = true

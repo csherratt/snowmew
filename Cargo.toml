@@ -24,6 +24,7 @@ path = "src/snowmew-graphics/"
 
 [dependencies.snowmew-position]
 path = "src/snowmew-position/"
+opencl = ["snowmew/opencl"]
 
 [dependencies.snowmew-render]
 path = "src/snowmew-render/"
@@ -55,9 +56,6 @@ path = "src/snowmew-input/"
 [dependencies.snowmew-input-integrator]
 path = "src/snowmew-input-integrator/"
 
-[dependencies.opencl]
-git = "https://github.com/luqmana/rust-opencl.git"
-
 [dependencies]
 time = "*"
 rustc-serialize="*"
@@ -81,3 +79,14 @@ path = "examples/gears/main.rs"
 [[example]]
 name = "noclip"
 path = "examples/noclip/main.rs"
+
+[features]
+use_opencl = ["opencl",
+		      "snowmew-position/use_opencl",
+              "snowmew-render/use_opencl",
+              "snowmew-render-gfx/use_opencl",
+              "snowmew-render-mux/use_opencl"]
+
+[dependencies.opencl]
+git = "https://github.com/luqmana/rust-opencl.git"
+optional = true
