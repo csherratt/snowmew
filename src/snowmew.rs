@@ -24,6 +24,7 @@ extern crate "snowmew-render"  as _render;
 extern crate "snowmew-debugger" as _debugger;
 extern crate "snowmew-random" as _random;
 extern crate "snowmew-timer" as _timer;
+#[cfg(feature="networking")]
 extern crate "snowmew-network" as _network;
 extern crate "snowmew-input" as _input;
 extern crate "snowmew-input-integrator" as _input_integrator;
@@ -129,6 +130,7 @@ pub mod timer {
     pub use _timer::{Timer, Phase};
 }
 
+#[cfg(feature="networking")]
 pub mod networking {
     pub use _network::{Server, Client, ClientState};
 }

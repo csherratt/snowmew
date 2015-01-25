@@ -47,9 +47,6 @@ path = "src/snowmew-random/"
 [dependencies.snowmew-timer]
 path = "src/snowmew-timer/"
 
-[dependencies.snowmew-network]
-path = "src/snowmew-network/"
-
 [dependencies.snowmew-input]
 path = "src/snowmew-input/"
 
@@ -86,7 +83,12 @@ use_opencl = ["opencl",
               "snowmew-render/use_opencl",
               "snowmew-render-gfx/use_opencl",
               "snowmew-render-mux/use_opencl"]
+networking = ["snowmew-network"]
 
 [dependencies.opencl]
 git = "https://github.com/luqmana/rust-opencl.git"
+optional = true
+
+[dependencies.snowmew-network]
+path = "src/snowmew-network/"
 optional = true
