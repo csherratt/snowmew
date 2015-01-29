@@ -160,11 +160,6 @@ impl<T> DerefMut for InputIntegratorGameData<T> {
     }
 }
 
-impl<T: Common> Common for InputIntegratorGameData<T> {
-    fn get_common<'a>(&'a self) -> &'a CommonData { self.inner.get_common() }
-    fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData { self.inner.get_common_mut() }
-}
-
 /// Create an input integrator, this wraps your game and its state
 pub fn input_integrator<Game, GameData>(game: Game, inner: GameData)
     -> (InputIntegrator<Game>, InputIntegratorGameData<GameData>) {
@@ -209,23 +204,13 @@ impl<GameData,
     }
 }
 
-impl<T: Positions> Positions for InputIntegratorGameData<T> {
-    fn get_position<'a>(&'a self) -> &'a PositionData { self.inner.get_position() }
-    fn get_position_mut<'a>(&'a mut self) -> &'a mut PositionData { self.inner.get_position_mut() }
-}
+impl<T> render::IntoRender for InputIntegratorGameData<T> {
+    type RenderGameState = T;
 
-impl<T: Graphics> Graphics for InputIntegratorGameData<T> {
-    fn get_graphics<'a>(&'a self) -> &'a GraphicsData { self.inner.get_graphics() }
-    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut GraphicsData { self.inner.get_graphics_mut() }
-}
-
-impl<T: Renderable> Renderable for InputIntegratorGameData<T> {
-    fn get_render_data<'a>(&'a self) -> &'a RenderData { self.inner.get_render_data() }
-    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { self.inner.get_render_data_mut() }
+    fn into_render(self) -> T { self.inner }
 }
 
 impl<T: GetIoState> GetIoState for InputIntegratorGameData<T> {
     fn get_io_state<'a>(&'a self) -> &'a IoState { self.inner.get_io_state() }
     fn get_io_state_mut<'a>(&'a mut self) -> &'a mut IoState { self.inner.get_io_state_mut() }
 }
-

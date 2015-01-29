@@ -54,9 +54,10 @@ fn main() {
         paused: false,
         inner: DebuggerGameData::new(GameData::new(), 32)
     };
+    let (game, mut gd) = integrator(game, gd);
 
     let loader = Obj::load(&Path::new("assets/rust_logo.obj")).ok().expect("Failed to load OBJ");
-    let obj = loader.import(&mut gd);
+    let obj = loader.import(&mut *gd);
 
     let scene = gd.new_scene();
     let &logo = obj.get(&"rust_logo".to_string()).expect("geometry not found from import");
@@ -89,7 +90,6 @@ fn main() {
     gd.set_scene(scene);
     gd.set_camera(camera_loc);
 
-    let (game, gd) = integrator(game, gd);
     sc.start(Box::new(DefaultRender::new()), game, gd);
 }
 

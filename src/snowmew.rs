@@ -39,7 +39,8 @@ pub mod render {
     pub use _mux::RenderFactory as DefaultRender;
     pub use _render::{
         RenderData,
-        Renderable
+        Renderable,
+        IntoRender
     };
     pub use _render::{
         RenderFactory,
@@ -149,7 +150,7 @@ pub mod config {
 
     use super::input::{Event, EventGroup, DisplayConfig};
     use super::core;
-    use super::render;
+    use super::render::{self, IntoRender};
     use super::input;
 
     #[cfg(feature="use_opencl")]
@@ -249,10 +250,11 @@ pub mod config {
         }
 
         /// Start the game engine running based on the confirmation.
-        pub fn start<GameData: Clone+input::GetIoState,
+        pub fn start<GameData: Clone+input::GetIoState+IntoRender<RenderGameState=RD>,
                      Game: core::Game<GameData, Event>,
-                     R: render::Render<GameData>,
-                     RF: render::RenderFactory<GameData, R>>
+                     RD: Clone,
+                     R: render::Render<RD>,
+                     RF: render::RenderFactory<RD, R>>
                      (self,
                       render: Box<RF>,
                       mut game: Game,
@@ -287,7 +289,7 @@ pub mod config {
 
                 let next_title = gd.get_io_state().window_title.clone();
                 im.set_title(&ih, next_title);
-                render.update(gd.clone());
+                render.update(gd.clone().into_render());
             }
         }
     }

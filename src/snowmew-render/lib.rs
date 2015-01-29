@@ -98,3 +98,63 @@ pub trait RenderFactory<T, R: Render<T>> {
             window: input::Window,
             size: (i32, i32)) -> R;
 }
+
+/// Convert your game into
+pub trait IntoRender {
+    /// The output render form of your gamestate
+    type RenderGameState;
+
+    fn into_render(self) -> Self::RenderGameState;
+}
+
+impl<T> IntoRender for T
+    where T: position::Positions + graphics::Graphics + Renderable +
+             input::GetIoState + snowmew::common::Common {
+    
+    type RenderGameState = BasicRenderData;
+
+    fn into_render(self) -> BasicRenderData {
+        BasicRenderData {
+            common: self.get_common().clone(),
+            graphics: self.get_graphics().clone(),
+            render_data: self.get_render_data().clone(),
+            io_state: self.get_io_state().clone(),
+            position: self.get_position().clone()
+        }
+    }
+
+}
+
+#[derive(Clone)]
+struct BasicRenderData {
+    common: snowmew::common::CommonData,
+    graphics: graphics::GraphicsData,
+    position: position::PositionData,
+    io_state: input::IoState,
+    render_data: RenderData
+}
+
+impl position::Positions for BasicRenderData {
+    fn get_position<'a>(&'a self) -> &'a position::PositionData { &self.position }
+    fn get_position_mut<'a>(&'a mut self) -> &'a mut position::PositionData { &mut self.position }
+}
+
+impl graphics::Graphics for BasicRenderData {
+    fn get_graphics<'a>(&'a self) -> &'a graphics::GraphicsData { &self.graphics }
+    fn get_graphics_mut<'a>(&'a mut self) -> &'a mut graphics::GraphicsData { &mut self.graphics }
+}
+
+impl Renderable for BasicRenderData {
+    fn get_render_data<'a>(&'a self) -> &'a RenderData { &self.render_data }
+    fn get_render_data_mut<'a>(&'a mut self) -> &'a mut RenderData { &mut self.render_data }
+}
+
+impl input::GetIoState for BasicRenderData {
+    fn get_io_state<'a>(&'a self) -> &'a input::IoState { &self.io_state }
+    fn get_io_state_mut<'a>(&'a mut self) -> &'a mut input::IoState { &mut self.io_state }
+}
+
+impl snowmew::common::Common for BasicRenderData {
+    fn get_common<'a>(&'a self) -> &'a snowmew::common::CommonData { &self.common }
+    fn get_common_mut<'a>(&'a mut self) -> &'a mut snowmew::common::CommonData { &mut self.common }
+}
