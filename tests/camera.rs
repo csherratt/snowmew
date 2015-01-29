@@ -12,10 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-extern crate "snowmew-core" as snowmew;
+extern crate "snowmew-render" as render;
 extern crate cgmath;
 
-use snowmew::camera::Camera;
+use render::camera::Camera;
 use cgmath::{Matrix4};
 use cgmath::{Vector3};
 use cgmath::{Point3, Point};
