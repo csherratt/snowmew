@@ -33,7 +33,7 @@ use std::sync::mpsc;
 use std::thread::Thread;
 use std::ops::{Deref, DerefMut};
 use std::iter::FromIterator;
-use std::io::net::ip::ToSocketAddr;
+use std::old_io::net::ip::ToSocketAddr;
 use wire::SizeLimit;
 use wire::tcp::OutTcpStream;
 use rustc_serialize::{Decodable, Encodable};
