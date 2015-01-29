@@ -17,6 +17,9 @@
 #![allow(unstable)]
 
 extern crate "rustc-serialize" as rustc_serialize;
+extern crate cgmath;
+extern crate ovr;
+
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;
@@ -27,6 +30,9 @@ extern crate opencl;
 
 #[cfg(feature="use_opencl")]
 use std::sync::Arc;
+
+/// contains utility functions for managing a camera
+pub mod camera;
 
 #[derive(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub struct RenderData {

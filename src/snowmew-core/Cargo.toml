@@ -15,12 +15,6 @@ path = "lib.rs"
 [dependencies]
 rustc-serialize="*"
 
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs.git"
-
-[dependencies.ovr]
-git = "https://github.com/csherratt/vr-rs.git"
-
 [dependencies.collect]
 git = "https://github.com/csherratt/collect-rs"
 branch = "cow_trie"

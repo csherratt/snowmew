@@ -46,7 +46,7 @@ pub mod render {
         Render
     };
     pub use _input::DisplayConfig;
-    pub use _core::camera::{
+    pub use _render::camera::{
         Camera
     };
 }

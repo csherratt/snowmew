@@ -16,11 +16,9 @@
 #![crate_type = "lib"]
 #![allow(unstable)]
 
-extern crate cgmath;
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate collections;
 extern crate collect;
-extern crate ovr;
 
 pub use common::Entity;
 
@@ -29,8 +27,6 @@ pub mod common;
 /// contains a few different formats that can be used
 /// to represent a table in snowmew
 pub mod table;
-/// contains utility functions for managing a camera
-pub mod camera;
 /// contains the `Game` trait
 pub mod game;
 

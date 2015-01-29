@@ -55,7 +55,7 @@ use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 use position::Positions;
 use graphics::Graphics;
 use snowmew::common::Entity;
-use snowmew::camera::Camera;
+use sm_render::camera::Camera;
 use graphics::Material;
 use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
