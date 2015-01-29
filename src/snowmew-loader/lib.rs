@@ -25,7 +25,7 @@ extern crate "obj" as obj;
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-graphics" as graphics;
 
-use std::io::{BufferedReader, File, IoResult};
+use std::old_io::{BufferedReader, File, IoResult};
 use std::collections::HashMap;
 
 use snowmew::common::Common;

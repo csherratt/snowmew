@@ -19,7 +19,7 @@ pub fn load_texture(path: &Path) -> Texture {
     let img = image::open(path).ok().expect("Failed to load image.")
                                .to_rgba();
     let (w, h) = img.dimensions();
-    let data = img.into_vec();
+    let data = img.into_raw();
     let mut out = Texture::new(w, h, 4, data);
     out
 }

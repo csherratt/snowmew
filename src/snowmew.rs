@@ -138,7 +138,7 @@ pub mod networking {
 pub mod config {
     #[cfg(feature="use_opencl")]
     use std::sync::Arc;
-    use std::io::timer::Timer;
+    use std::old_io::timer::Timer;
     use std::time::Duration;
 
     #[cfg(feature="use_opencl")]
