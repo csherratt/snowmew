@@ -48,6 +48,7 @@ use std::sync::Arc;
 #[cfg(feature="use_opencl")]
 use opencl::hl;
 use gfx::{Device, DeviceHelper};
+use gfx::batch::RefBatch;
 use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
 use cgmath::{FixedArray, Matrix4, Vector3, Point};
 use collect::iter::{OrderedMapIterator, OrderedSetIterator};
@@ -202,7 +203,7 @@ glsl_150: b"
     }
 "};
 
-#[shader_param(DrawProgram)]
+#[shader_param]
 struct Params {
     shadow_shared_mat: gfx::RawBufferHandle,
     shared_mat: gfx::RawBufferHandle,
@@ -253,7 +254,7 @@ glsl_150: b"
     void main() {}
 "};
 
-#[shader_param(ShadowProgram)]
+#[shader_param]
 struct ShadowParams {
     shared_mat: gfx::RawBufferHandle,
     model: gfx::RawBufferHandle,
@@ -296,8 +297,8 @@ pub struct RenderManagerContext {
     material: HashMap<Entity, RenderMaterial>,
 
     batch: BTreeSet<(Entity, Entity, Entity)>,
-    shadow_batches: HashMap<Entity, ShadowProgram>,
-    draw_batches: HashMap<Entity, DrawProgram>,
+    shadow_batches: HashMap<Entity, RefBatch<ShadowParams>>,
+    draw_batches: HashMap<Entity, RefBatch<Params>>,
 
     spare_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
     used_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
@@ -556,7 +557,7 @@ impl RenderManagerContext {
                 let geo = db.geometry(draw.geometry).expect("failed to find geometry");
                 let vb = self.meshes.get(&geo.vb).expect("Could not get vertex buffer");
 
-                let batch: ShadowProgram = self.graphics.make_batch(
+                let batch: RefBatch<ShadowParams> = self.graphics.make_batch(
                     &self.shadow_prog,
                     &vb.mesh,
                     gfx::Slice {
@@ -571,7 +572,7 @@ impl RenderManagerContext {
 
                 self.shadow_batches.insert(draw.geometry, batch);
 
-                let batch: DrawProgram = self.graphics.make_batch(
+                let batch: RefBatch<Params> = self.graphics.make_batch(
                     &self.prog,
                     &vb.mesh,
                     gfx::Slice {

@@ -31,6 +31,8 @@ git = "https://github.com/bjz/cgmath-rs.git"
 [dependencies.collect]
 git = "https://github.com/csherratt/collect-rs"
 branch = "cow_trie"
+features = ["cow_trie_map", "trie_map", "ordered_iter"]
+default-features = false
 
 [dependencies]
 genmesh = "*"
