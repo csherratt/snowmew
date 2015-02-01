@@ -49,6 +49,7 @@ use std::sync::Arc;
 use opencl::hl;
 use gfx::{Device, DeviceHelper};
 use gfx::batch::RefBatch;
+use device::state;
 use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
 use cgmath::{FixedArray, Matrix4, Vector3, Point};
 use collect::iter::{OrderedMapIterator, OrderedSetIterator};
@@ -223,6 +224,17 @@ struct Params {
     offset: i32
 }
 
+const BACK_FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
+glsl_150: b"
+    #version 150 core
+
+    out vec4 o_Color;
+
+    void main() {
+        o_Color = vec4(0., 0., 0., 1.);
+    }
+"};
+
 static SHADOW_VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
 glsl_150: b"
     #version 150 core
@@ -286,9 +298,13 @@ pub struct RenderManagerContext {
     shadow_shared_mat: device::BufferHandle<SharedMatrix>,
     shared_mat: device::BufferHandle<SharedMatrix>,
 
+    back_data: ShadowParams,
+    back_prog: device::Handle<u32,device::shade::ProgramInfo>,
+
     graphics: gfx::Graphics<device::gl_device::GlDevice>,
     frame: render::target::Frame,
     state: render::state::DrawState,
+    back_state: render::state::DrawState,
     meshes: HashMap<Entity, Mesh>,
     textures: HashMap<Entity, device::TextureHandle>,
     sampler: device::SamplerHandle,
@@ -299,6 +315,7 @@ pub struct RenderManagerContext {
     batch: BTreeSet<(Entity, Entity, Entity)>,
     shadow_batches: HashMap<Entity, RefBatch<ShadowParams>>,
     draw_batches: HashMap<Entity, RefBatch<Params>>,
+    draw_back_batches: HashMap<Entity, RefBatch<ShadowParams>>,
 
     spare_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
     used_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
@@ -318,7 +335,13 @@ impl RenderManagerContext {
 
         let (width, height) = size;
         let frame = gfx::Frame::new(width as u16, height as u16);
-        let state = gfx::DrawState::new().depth(gfx::state::Comparison::LessEqual, true);
+        let mut back_state = gfx::DrawState::new().depth(gfx::state::Comparison::Less, true);
+        back_state.primitive = state::Primitive {
+            front_face: state::WindingOrder::Clockwise,
+            method: state::RasterMethod::Line(1.0),
+            offset: None,
+        };
+        let state = gfx::DrawState::new().depth(gfx::state::Comparison::Less, true);
 
         let sampler = device.create_sampler(
             gfx::tex::SamplerInfo::new(
@@ -379,6 +402,19 @@ impl RenderManagerContext {
              data, buff)
         };
 
+        let (back_prog, back_data) = {
+            let buff = device.create_buffer::<SharedMatrix>(1, gfx::BufferUsage::Static);
+            let data = ShadowParams {
+                shared_mat: shared_mat.raw(),
+                model: shared_mat.raw(),
+                offset: 0
+            };
+            (device.link_program(SHADOW_VERTEX_SRC.clone(),
+                                 BACK_FRAGMENT_SRC.clone())
+                  .ok().expect("Failed to link program"),
+             data)
+        };
+
         let shadow_info = gfx::tex::TextureInfo {
             width: 2048,
             height: 2048,
@@ -411,6 +447,7 @@ impl RenderManagerContext {
             graphics: gfx::Graphics::new(device),
             frame: frame,
             state: state,
+            back_state: back_state,
             prog: prog,
             meshes: HashMap::new(),
             textures: HashMap::new(),
@@ -427,10 +464,13 @@ impl RenderManagerContext {
             batch: BTreeSet::new(),
             shadow_batches: HashMap::new(),
             draw_batches: HashMap::new(),
+            draw_back_batches: HashMap::new(),
             spare_matrix_buffers: Vec::new(),
             used_matrix_buffers: Vec::new(),
             shared_geometry: Vec::new(),
             shared_geometry_material: Vec::new(),
+            back_prog: back_prog,
+            back_data: back_data,
         }
     }
 
@@ -549,6 +589,7 @@ impl RenderManagerContext {
         self.batch.clear();
         self.shadow_batches.clear();
         self.draw_batches.clear();
+        self.draw_back_batches.clear();
 
         for (id, draw) in db.scene_iter(scene).inner_join_map(db.drawable_iter()) {
             self.batch.insert((draw.geometry, draw.material, id));
@@ -565,11 +606,9 @@ impl RenderManagerContext {
                         end: (geo.offset + geo.count) as u32,
                         prim_type: gfx::PrimitiveType::TriangleList,
                         kind: gfx::SliceKind::Index32(vb.index, 0)
-
                     },
                     &self.state
                 ).ok().expect("Failed to create batch.");
-
                 self.shadow_batches.insert(draw.geometry, batch);
 
                 let batch: RefBatch<Params> = self.graphics.make_batch(
@@ -580,11 +619,23 @@ impl RenderManagerContext {
                         end: (geo.offset + geo.count) as u32,
                         prim_type: gfx::PrimitiveType::TriangleList,
                         kind: gfx::SliceKind::Index32(vb.index, 0)
-
                     },
                     &self.state
                 ).ok().expect("Failed to create batch.");
                 self.draw_batches.insert(draw.geometry, batch);
+
+                let batch: RefBatch<ShadowParams> = self.graphics.make_batch(
+                    &self.back_prog,
+                    &vb.mesh,
+                    gfx::Slice {
+                        start: geo.offset as u32,
+                        end: (geo.offset + geo.count) as u32,
+                        prim_type: gfx::PrimitiveType::TriangleList,
+                        kind: gfx::SliceKind::Index32(vb.index, 0)
+                    },
+                    &self.back_state
+                ).ok().expect("Failed to create batch.");
+                self.draw_back_batches.insert(draw.geometry, batch);
             }
         }
     }
@@ -738,6 +789,19 @@ impl RenderManagerContext {
         }
 
         self.draw_shadow(&camera);
+
+        for &(geo, mat, matrix, len, offset) in self.shared_geometry_material.iter() {
+            self.back_data.model = matrix.raw();
+            self.back_data.offset = offset as i32;
+
+            self.graphics.draw_instanced(
+                self.draw_back_batches.get(&geo).expect("Missing draw"),
+                &self.back_data,
+                len as u32,
+                0,
+                &self.frame,
+            );
+        };
 
         for &(geo, mat, matrix, len, offset) in self.shared_geometry_material.iter() {
             let mat = self.material.get(&mat).expect("Could not find material");
