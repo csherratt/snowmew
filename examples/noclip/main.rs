@@ -13,7 +13,9 @@
 //   limitations under the License.
 
 #![crate_name = "noclip"]
-#![allow(unstable)]
+#![feature(os)]
+#![feature(core)]
+#![feature(path)]
 
 extern crate cgmath;
 extern crate snowmew;

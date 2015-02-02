@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 use std::default::Default;
-use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
+use rustc_serialize::{Encodable, Encoder, Decoder};
 
 use snowmew::Entity;
 use super::geometry::F32v3;

@@ -13,7 +13,9 @@
 //   limitations under the License.
 
 #![crate_name = "cubes"]
-#![allow(unstable)]
+#![feature(os)]
+#![feature(core)]
+
 
 extern crate cgmath;
 extern crate snowmew;

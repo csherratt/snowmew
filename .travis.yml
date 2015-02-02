@@ -16,8 +16,4 @@ install:
 
 script:
   - cargo build
-  - cargo build --features "use_opencl"
-  - cargo build --features "networking"
   - cargo test
-  - cargo test --features "use_opencl"
-  - cargo test --features "networking"

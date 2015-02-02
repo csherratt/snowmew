@@ -12,6 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+#![feature(std_misc)]
+#![feature(collections)]
+#![feature(std_misc)]
+
 extern crate "snowmew-core" as core;
 extern crate "snowmew-position" as position;
 extern crate "snowmew-graphics" as graphics;

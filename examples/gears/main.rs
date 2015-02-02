@@ -13,7 +13,8 @@
 //   limitations under the License.
 
 #![crate_name = "gears"]
-#![allow(unstable)]
+#![feature(path)]
+#![feature(collections)]
 
 extern crate cgmath;
 extern crate snowmew;
@@ -50,7 +51,7 @@ fn main() {
     let game = GearsInput {
         debugger: Debugger::new(Gears)
     };
-    let mut gd = GearsInputData {
+    let gd = GearsInputData {
         paused: false,
         inner: DebuggerGameData::new(GameData::new(), 32)
     };

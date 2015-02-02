@@ -15,7 +15,8 @@
 #![crate_name = "snowmew-graphics"]
 #![crate_type = "lib"]
 #![feature(plugin)]
-
+#![feature(core)]
+#![feature(hash)]
 
 #[plugin]
 extern crate gfx_macros;
@@ -206,7 +207,7 @@ pub trait Graphics: Common + Sized {
         Some(
             VertexBufferIter {
                 vb: vb,
-                idx_iter: vb.index.slice(geo.offset, geo.offset + geo.count).iter()
+                idx_iter: vb.index[geo.offset..geo.offset + geo.count].iter()
             }
         )
     }

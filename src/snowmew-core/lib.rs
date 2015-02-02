@@ -14,7 +14,8 @@
 
 #![crate_name = "snowmew-core"]
 #![crate_type = "lib"]
-
+#![feature(alloc)]
+#![feature(collections)]
 
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate collections;
