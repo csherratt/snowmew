@@ -23,11 +23,7 @@ use std::collections::{HashSet, HashMap};
 use std::ops::{Deref, DerefMut};
 
 use core::game::Game;
-use core::common::{Common, CommonData};
 use input::{Event, Button, IoState, GetIoState};
-use graphics::{Graphics, GraphicsData};
-use position::{Positions, PositionData};
-use render::{Renderable, RenderData};
 
 /// This `wraps` your game to allow the `input integrator` to
 /// collect input events to simplify event handling.

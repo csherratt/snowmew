@@ -20,6 +20,5 @@ pub fn load_texture(path: &Path) -> Texture {
                                .to_rgba();
     let (w, h) = img.dimensions();
     let data = img.into_raw();
-    let mut out = Texture::new(w, h, 4, data);
-    out
+    Texture::new(w, h, 4, data)
 }

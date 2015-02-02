@@ -14,7 +14,7 @@
 
 #![crate_name = "gl_cl"]
 #![crate_type = "lib"]
-#![allow(unstable)]
+
 
 extern crate gl;
 extern crate opencl;

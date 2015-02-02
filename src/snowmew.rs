@@ -13,7 +13,8 @@
 //   limitations under the License.
 
 #![crate_name = "snowmew"]
-#![allow(unstable)]
+#![feature(io)]
+#![feature(std_misc)]
 
 extern crate "snowmew-core"         as _core;
 extern crate "snowmew-graphics"     as _graphics;

@@ -14,10 +14,11 @@
 
 #![crate_name = "snowmew-loader"]
 #![crate_type = "lib"]
-#![allow(unstable)]
+#![feature(collections)]
+#![feature(io)]
+#![feature(path)]
 
 extern crate collections;
-extern crate core;
 extern crate cgmath;
 extern crate genmesh;
 extern crate image;

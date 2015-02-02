@@ -14,7 +14,7 @@
 
 #![crate_name = "snowmew-position"]
 #![crate_type = "lib"]
-#![allow(unstable)]
+
 
 extern crate "snowmew-core" as snowmew;
 extern crate cgmath;

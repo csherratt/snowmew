@@ -14,7 +14,7 @@
 
 #![crate_name = "snowmew-render-mux"]
 #![crate_type = "lib"]
-#![allow(unstable)]
+
 
 #[cfg(feature="use_opencl")]
 extern crate opencl;

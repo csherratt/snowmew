@@ -15,7 +15,7 @@
 #![crate_name = "snowmew-graphics"]
 #![crate_type = "lib"]
 #![feature(plugin)]
-#![allow(unstable)]
+
 
 #[plugin]
 extern crate gfx_macros;
@@ -52,7 +52,7 @@ pub mod standard;
 pub mod texture;
 pub mod light;
 
-#[derive(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Show, RustcEncodable, RustcDecodable, Copy)]
+#[derive(Clone, Default, Eq, PartialEq, PartialOrd, Hash, Debug, RustcEncodable, RustcDecodable, Copy)]
 pub struct Drawable {
     pub geometry: Entity,
     pub material: Entity

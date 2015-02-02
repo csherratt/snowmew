@@ -14,8 +14,11 @@
 
 #![crate_name = "snowmew-render-gfx"]
 #![crate_type = "lib"]
+
 #![feature(plugin)]
-#![allow(unstable)]
+#![feature(libc)]
+#![feature(collections)]
+#![feature(std_misc)]
 #![allow(dead_code)]
 
 
@@ -43,6 +46,8 @@ extern crate collect;
 use std::collections::{HashMap, BTreeSet};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread::Thread;
+
+#[cfg(feature="use_opencl")]
 use std::sync::Arc;
 
 #[cfg(feature="use_opencl")]
@@ -403,7 +408,6 @@ impl RenderManagerContext {
         };
 
         let (back_prog, back_data) = {
-            let buff = device.create_buffer::<SharedMatrix>(1, gfx::BufferUsage::Static);
             let data = ShadowParams {
                 shared_mat: shared_mat.raw(),
                 model: shared_mat.raw(),
@@ -790,7 +794,7 @@ impl RenderManagerContext {
 
         self.draw_shadow(&camera);
 
-        for &(geo, mat, matrix, len, offset) in self.shared_geometry_material.iter() {
+        for &(geo, _, matrix, len, offset) in self.shared_geometry_material.iter() {
             self.back_data.model = matrix.raw();
             self.back_data.offset = offset as i32;
 
