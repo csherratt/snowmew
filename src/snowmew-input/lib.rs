@@ -12,6 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+#![feature(core)]
+#![feature(hash)]
+#![feature(libc)]
+#![feature(collections)]
+
 extern crate time;
 extern crate glfw;
 extern crate "rustc-serialize" as rustc_serialize;
@@ -21,7 +26,6 @@ extern crate collect;
 extern crate libc;
 
 use std::sync::Arc;
-use std::marker::Sync;
 use std::sync::mpsc::Receiver;
 #[cfg(target_os="linux")]
 use libc::c_void;
