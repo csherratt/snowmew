@@ -3,18 +3,16 @@ env:
   global:
     - RUST_THREADS=2
 
+before_install:
+# install a newer cmake since at this time Travis only has version 2.8.7
+  - yes | sudo add-apt-repository ppa:kalakris/cmake
+  - sudo apt-get update -qq
+
 install:
   - sudo apt-get update
   - sudo apt-get install libudev-dev libglfw-dev fglrx opencl-headers xorg-dev libglu1-mesa-dev freeglut3 freeglut3-dev
-
   # glfw3
-  - git clone https://github.com/glfw/glfw.git
-  - cd glfw
-  - git checkout 3.0.3
-  - cmake -DCMAKE_C_FLAGS=-fPIC -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF .
-  - make
-  - sudo make install
-  - cd ..
+  - sudo apt-get install xdotool cmake libXxf86vm-dev libxinerama-dev libxinerama1 libxcursor-dev libxcursor1
 
 script:
   - cargo build
