@@ -31,8 +31,7 @@ extern crate glfw;
 #[macro_use]
 extern crate gfx_macros;
 extern crate gfx;
-extern crate device;
-extern crate render;
+extern crate "gfx_device_gl" as device;
 extern crate genmesh;
 extern crate cgmath;
 
@@ -68,6 +67,7 @@ use graphics::geometry::{VertexGeoTex, VertexGeoTexNorm};
 use graphics::geometry::Vertex::{Geo, GeoTex, GeoNorm, GeoTexNorm, GeoTexNormTan};
 use sm_render::Renderable;
 use input::{Window, GetIoState};
+use gfx::render;
 
 #[derive(Copy)]
 struct SharedMatrix {
