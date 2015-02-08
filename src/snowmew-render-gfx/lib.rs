@@ -305,7 +305,9 @@ pub struct RenderManagerContext {
     back_data: ShadowParams,
     back_prog: device::Handle<u32,device::shade::ProgramInfo>,
 
-    graphics: gfx::Graphics<device::gl_device::GlDevice>,
+    render: gfx::render::Renderer<gfx::GlCommandBuffer>,
+    device: device::gl_device::GlDevice,
+    context: gfx::render::batch::Context,
     frame: render::target::Frame,
     state: render::state::DrawState,
     back_state: render::state::DrawState,
@@ -447,7 +449,9 @@ impl RenderManagerContext {
 
         RenderManagerContext {
             data: data,
-            graphics: gfx::Graphics::new(device),
+            render: device.create_renderer(),
+            device: device,
+            context: gfx::batch::Context::new(),
             frame: frame,
             state: state,
             back_state: back_state,
@@ -490,10 +494,10 @@ impl RenderManagerContext {
                                 }
                             })
                             .collect();
-                        self.graphics.device.create_mesh(&data[])
+                        self.device.create_mesh(&data[])
                     },
                     GeoTex(ref d) => {
-                        self.graphics.device.create_mesh(&d[])
+                        self.device.create_mesh(&d[])
                     },
                     GeoNorm(ref d) => {
                         let data: Vec<VertexGeoTexNorm> = d.iter()
@@ -505,19 +509,19 @@ impl RenderManagerContext {
                                 }
                             })
                             .collect();
-                        self.graphics.device.create_mesh(&data[])
+                        self.device.create_mesh(&data[])
                     },
                     GeoTexNorm(ref d) => {
-                        self.graphics.device.create_mesh(&d[])
+                        self.device.create_mesh(&d[])
                     },
                     GeoTexNormTan(ref d) => {
-                        self.graphics.device.create_mesh(&d[])
+                        self.device.create_mesh(&d[])
                     }
                 };
 
                 let vb: Vec<u32> = vb.index.iter().map(|&x| x as u32).collect();
 
-                let index = self.graphics.device.create_buffer_static(&vb[]);
+                let index = self.device.create_buffer_static(&vb[]);
 
                 self.meshes.insert(oid, Mesh {
                     index: index,
@@ -544,9 +548,9 @@ impl RenderManagerContext {
                 };
 
                 let img_info = tinfo.to_image_info();
-                let texture = self.graphics.device.create_texture(tinfo)
+                let texture = self.device.create_texture(tinfo)
                                          .ok().expect("Failed to create texture");
-                self.graphics.device.update_texture(&texture, &img_info, text.data())
+                self.device.update_texture(&texture, &img_info, text.data())
                     .ok().expect("Failed to update texture.");
                 self.textures.insert(oid, texture);
             }
@@ -576,7 +580,7 @@ impl RenderManagerContext {
                 kd_use_texture: if mat.map_kd().is_some() {1} else {0},
                 ks_use_texture: if mat.map_ks().is_some() {1} else {0},
             }];
-            let buff = self.graphics.device.create_buffer_static(material);
+            let buff = self.device.create_buffer_static(material);
             self.material.insert(oid, RenderMaterial {
                 material: mat,
                 buffer: buff,
@@ -601,7 +605,7 @@ impl RenderManagerContext {
                 let geo = db.geometry(draw.geometry).expect("failed to find geometry");
                 let vb = self.meshes.get(&geo.vb).expect("Could not get vertex buffer");
 
-                let batch: RefBatch<ShadowParams> = self.graphics.make_batch(
+                let batch: RefBatch<ShadowParams> = self.context.make_batch(
                     &self.shadow_prog,
                     &vb.mesh,
                     gfx::Slice {
@@ -614,7 +618,7 @@ impl RenderManagerContext {
                 ).ok().expect("Failed to create batch.");
                 self.shadow_batches.insert(draw.geometry, batch);
 
-                let batch: RefBatch<Params> = self.graphics.make_batch(
+                let batch: RefBatch<Params> = self.context.make_batch(
                     &self.prog,
                     &vb.mesh,
                     gfx::Slice {
@@ -627,7 +631,7 @@ impl RenderManagerContext {
                 ).ok().expect("Failed to create batch.");
                 self.draw_batches.insert(draw.geometry, batch);
 
-                let batch: RefBatch<ShadowParams> = self.graphics.make_batch(
+                let batch: RefBatch<ShadowParams> = self.context.make_batch(
                     &self.back_prog,
                     &vb.mesh,
                     gfx::Slice {
@@ -647,7 +651,7 @@ impl RenderManagerContext {
         let buffer = if let Some(buffer) = self.spare_matrix_buffers.pop() {
             buffer
         } else {
-            self.graphics.device.create_buffer(512, gfx::BufferUsage::Static)
+            self.device.create_buffer(512, gfx::BufferUsage::Static)
         };
         self.used_matrix_buffers.push(buffer);
         buffer
@@ -682,7 +686,7 @@ impl RenderManagerContext {
                 if matrices.len() == max {
                     shared_gm.push((lg, lm, mat, matrices.len()-idx_gm, idx_gm));
                     shared_g.push((lg, mat, matrices.len()-idx_g, idx_g));
-                    self.graphics.device.update_buffer(mat, &matrices[], 0);
+                    self.device.update_buffer(mat, &matrices[], 0);
                     mat = self.fetch_matrix();
                     matrices.clear();
                     None
@@ -699,7 +703,7 @@ impl RenderManagerContext {
         if let Some((g, m, idx_gm, idx_g)) = last {
             shared_gm.push((g, m, mat, matrices.len()-idx_gm, idx_gm));
             shared_g.push((g, mat, matrices.len()-idx_g, idx_g));
-            self.graphics.device.update_buffer(mat, &matrices[], 0)
+            self.device.update_buffer(mat, &matrices[], 0)
         }
 
         self.shared_geometry = shared_g;
@@ -712,7 +716,7 @@ impl RenderManagerContext {
             depth: 2.0,
             stencil: 0,
         };
-        self.graphics.clear(cdata, gfx::DEPTH, &self.shadow_frame);
+        self.render.clear(cdata, gfx::DEPTH, &self.shadow_frame);
 
         let pos = cam.move_with_vector(&Vector3::new(0f32, 15., 0.));
         let proj = cgmath::ortho(
@@ -737,14 +741,15 @@ impl RenderManagerContext {
             view_mat: view.into_fixed()
         }];
 
-        self.graphics.device.update_buffer(self.shadow_shared_mat, shadow_mat, 0);
+        self.device.update_buffer(self.shadow_shared_mat, shadow_mat, 0);
 
         for &(geo, matrix, len, offset) in self.shared_geometry.iter() {
             self.shadow_data.model = matrix.raw();
             self.shadow_data.offset = offset as i32;
-            self.graphics.draw_instanced(
-                self.shadow_batches.get(&geo).expect("Missing draw"),
-                &self.shadow_data,
+            self.render.draw_instanced(
+                &(self.shadow_batches.get(&geo).expect("Missing draw"),
+                  &self.shadow_data,
+                  &self.context),
                 len as u32,
                 0,
                 &self.shadow_frame,
@@ -761,7 +766,7 @@ impl RenderManagerContext {
             depth: 1.0,
             stencil: 0,
         };
-        self.graphics.clear(cdata, gfx::COLOR | gfx::DEPTH, &self.frame);
+        self.render.clear(cdata, gfx::COLOR | gfx::DEPTH, &self.frame);
 
         let (width, height) = db.get_io_state().size;
         let camera_trans = db.position(camera);
@@ -775,7 +780,7 @@ impl RenderManagerContext {
             proj_mat: proj.into_fixed()
         }];
 
-        self.graphics.device.update_buffer(self.shared_mat, shared_mat, 0);
+        self.device.update_buffer(self.shared_mat, shared_mat, 0);
 
         for (key, light) in db.light_iter() {
             match light {
@@ -797,9 +802,10 @@ impl RenderManagerContext {
             self.back_data.model = matrix.raw();
             self.back_data.offset = offset as i32;
 
-            self.graphics.draw_instanced(
-                self.draw_back_batches.get(&geo).expect("Missing draw"),
-                &self.back_data,
+            self.render.draw_instanced(
+                &(self.draw_back_batches.get(&geo).expect("Missing draw"),
+                  &self.back_data,
+                  &self.context),
                 len as u32,
                 0,
                 &self.frame,
@@ -831,16 +837,18 @@ impl RenderManagerContext {
             self.data.model = matrix.raw();
             self.data.offset = offset as i32;
 
-            self.graphics.draw_instanced(
-                self.draw_batches.get(&geo).expect("Missing draw"),
-                &self.data,
+            self.render.draw_instanced(
+                &(self.draw_batches.get(&geo).expect("Missing draw"),
+                  &self.data,
+                  &self.context),
                 len as u32,
                 0,
                 &self.frame,
             );
         };
 
-        self.graphics.end_frame();
+        self.device.submit(self.render.as_buffer());
+        self.render.reset();
         self.window.swap_buffers();
     }
 

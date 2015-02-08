@@ -58,9 +58,7 @@ time = "*"
 rustc-serialize="*"
 log="*"
 glfw="*"
-
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs.git"
+cgmath="*"
 
 [[example]]
 name = "cubes"

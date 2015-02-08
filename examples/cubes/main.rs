@@ -57,10 +57,10 @@ fn main() {
     let red = gd.standard_graphics().materials.flat.red;
 
     let args = std::os::args();
-    let count = if args.len() >= 2 {
-        FromStr::from_str(&args[1][]).expect("Could not parse int")
+    let count: i32 = if args.len() >= 2 {
+        FromStr::from_str(&args[1][]).unwrap()
     } else {
-        10is
+        10i32
     };
 
     for x in (-count..count) {
