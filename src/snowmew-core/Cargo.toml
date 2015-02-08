@@ -14,9 +14,5 @@ path = "lib.rs"
 
 [dependencies]
 rustc-serialize="*"
-
-[dependencies.collect]
-git = "https://github.com/csherratt/collect-rs"
-branch = "cow_trie"
-features = ["cow_trie_map", "ordered_iter"]
-default-features = false
+collect="*"
+cow="*"

@@ -54,8 +54,7 @@ use opencl::hl;
 use gfx::{Device, DeviceHelper};
 use gfx::batch::RefBatch;
 use device::state;
-use cgmath::{Vector4, Vector, EuclideanVector, Matrix};
-use cgmath::{FixedArray, Matrix4, Vector3, Point};
+use cgmath::*;
 use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 
 use position::Positions;

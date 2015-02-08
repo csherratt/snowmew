@@ -14,12 +14,12 @@
 
 #![crate_name = "snowmew-core"]
 #![crate_type = "lib"]
-#![feature(alloc)]
-#![feature(collections)]
+#![feature(alloc, collections, core)]
 
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate collections;
 extern crate collect;
+extern crate cow;
 
 pub use common::Entity;
 

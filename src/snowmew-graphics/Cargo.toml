@@ -10,14 +10,8 @@ authors = [
 name = "snowmew-graphics"
 path = "lib.rs"
 
-[dependencies.collision]
-git = "https://github.com/csherratt/collision-rs.git"
-
 [dependencies.snowmew-core]
 path = "../snowmew-core/"
-
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs.git"
 
 [dependencies.image]
 git = "https://github.com/PistonDevelopers/image"
@@ -27,4 +21,5 @@ genmesh = "*"
 rustc-serialize="*"
 gfx = "*"
 gfx_macros="*"
-
+cgmath="*"
+collision="*"

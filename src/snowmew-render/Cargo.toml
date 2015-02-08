@@ -25,11 +25,9 @@ path = "../snowmew-input"
 [dependencies.ovr]
 git = "https://github.com/csherratt/vr-rs.git"
 
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs.git"
-
 [dependencies]
 rustc-serialize="*"
+cgmath="*"
 
 [features]
 use_opencl=["opencl"]

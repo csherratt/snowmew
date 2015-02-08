@@ -5,8 +5,9 @@ use std::sync::Arc;
 
 use rustc_serialize::{Encodable, Decodable, Encoder, Decoder};
 
-use collect::{cow_trie_map, cow_trie_set};
-use collect::{CowTrieMap, CowTrieSet};
+use cow::{TrieMap, TrieSet};
+use cow::trie::map;
+use cow::trie::set;
 use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 
 
@@ -14,7 +15,7 @@ use Entity;
 
 
 /// a Static table should be used for infrequently updated data
-pub struct Static<T: Send+Sync+Clone>(Arc<CowTrieMap<T>>);
+pub struct Static<T: Send+Sync+Clone>(Arc<TrieMap<T>>);
 
 impl<T: Send+Clone+Sync> Clone for Static<T> {
     fn clone(&self) -> Static<T> {
@@ -24,7 +25,7 @@ impl<T: Send+Clone+Sync> Clone for Static<T> {
 
 impl<T: Send+Clone+Sync> Static<T> {
     pub fn new() -> Static<T> {
-        Static(Arc::new(CowTrieMap::new()))
+        Static(Arc::new(TrieMap::new()))
     }
 
     pub fn insert(&mut self, key: Entity, value: T) -> bool {
@@ -58,7 +59,7 @@ impl<T: Send+Clone+Sync> Static<T> {
 }
 
 pub struct StaticIterator<'a, T:'a> {
-    iter: cow_trie_map::Iter<'a, T>
+    iter: map::Iter<'a, T>
 }
 
 impl<'a, T: Send+Sync> Iterator for StaticIterator<'a, T> {
@@ -102,11 +103,11 @@ impl<T:Send+Sync+Clone+Decodable> Decodable for Static<T> {
 
 
 #[derive(Clone, Default)]
-pub struct StaticSet(CowTrieSet);
+pub struct StaticSet(TrieSet);
 
 impl StaticSet {
     pub fn new() -> StaticSet {
-        StaticSet(CowTrieSet::new())
+        StaticSet(TrieSet::new())
     }
 
     pub fn insert(&mut self, key: Entity) -> bool {
@@ -134,7 +135,7 @@ impl StaticSet {
 }
 
 pub struct StaticSetIterator<'a> {
-    iter: cow_trie_set::Iter<'a>
+    iter: set::Iter<'a>
 }
 
 impl<'a> Iterator for StaticSetIterator<'a> {

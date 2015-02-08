@@ -10,19 +10,13 @@ authors = [
 name = "snowmew-render-gfx"
 path = "lib.rs"
 
-[dependencies.collision]
-git = "https://github.com/csherratt/collision-rs.git"
-
-[dependencies.cgmath]
-git = "https://github.com/bjz/cgmath-rs.git"
-
-[dependencies.collect]
-git = "https://github.com/csherratt/collect-rs"
-branch = "cow_trie"
-features = ["cow_trie_map", "trie_map", "ordered_iter"]
-default-features = false
+#[dependencies.collision]
+#git = "https://github.com/csherratt/collision-rs.git"
 
 [dependencies]
+cgmath="*"
+cow="*"
+collect="*"
 genmesh = "*"
 time = "*"
 glfw = "*"
