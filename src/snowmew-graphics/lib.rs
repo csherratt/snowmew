@@ -18,7 +18,7 @@
 #![feature(core)]
 #![feature(hash)]
 
-#[plugin]
+#![plugin(gfx_macros)]
 extern crate gfx_macros;
 extern crate gfx;
 extern crate cgmath;

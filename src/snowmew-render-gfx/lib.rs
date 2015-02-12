@@ -20,6 +20,7 @@
 #![feature(collections)]
 #![feature(std_misc)]
 #![allow(dead_code)]
+#![plugin(gfx_macros)]
 
 
 extern crate libc;
@@ -27,7 +28,6 @@ extern crate libc;
 extern crate opencl;
 extern crate glfw;
 
-#[plugin]
 #[macro_use]
 extern crate gfx_macros;
 extern crate gfx;
