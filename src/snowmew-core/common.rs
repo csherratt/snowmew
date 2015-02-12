@@ -142,11 +142,6 @@ pub trait Common {
             .expect("Failed to get scene");
         sc.iter()
     }
-
-    /// Get the object metadata for Entity
-    fn object<'a>(&'a self, oid: Entity) -> Option<&'a Object> {
-        self.get_common().objects.get(oid)
-    }
 }
 
 /// Duplicate all components owned by `src` into `dst`
