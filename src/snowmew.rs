@@ -92,12 +92,12 @@ pub mod core {
 
 pub mod common {
     pub use _core::{
-        New,
         Get,
         GetRef,
         GetRefMut,
         Set,
         Entity,
+        ToEntity
     };
 
     pub use _core::common::{
@@ -105,7 +105,8 @@ pub mod common {
         CommonData,
         Duplicate,
         Delete,
-        Parent
+        Parent,
+        Scene
     };
 }
 

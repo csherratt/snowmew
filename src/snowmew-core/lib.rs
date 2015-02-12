@@ -31,11 +31,6 @@ pub mod table;
 /// contains the `Game` trait
 pub mod game;
 
-pub trait New {
-	type Key;
-    fn new(&mut self) -> Self::Key;
-}
-
 pub trait Get<K> {
     type Value;
 
@@ -56,4 +51,12 @@ pub trait GetRefMut<K> {
 
 pub trait Set<K, V> {
     fn set(&mut self, key: K, Value: V);
+}
+
+pub trait ToEntity {
+    fn to_entity(self) -> Entity;
+}
+
+impl ToEntity for Entity {
+    fn to_entity(self) -> Entity { self }
 }

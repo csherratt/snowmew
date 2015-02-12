@@ -34,6 +34,8 @@ pub use snowmew::{
 use std::str::FromStr;
 use std::f32;
 
+use snowmew::common::*;
+
 use cgmath::*;
 use core::Game;
 use graphics::light;
@@ -42,7 +44,6 @@ use input::{integrator, InputIntegratorState};
 use loader::Obj;
 use position::{Positions};
 use render::{Renderable, DefaultRender, Camera};
-use snowmew::common::{Common};
 
 use gamedata::GameData;
 
@@ -71,7 +72,7 @@ fn main() {
     for (_, &id) in objs.iter() {
         match db.get_draw(id) {
             Some(d) => {
-                let obj = db.new_object(Some(scene));
+                let obj = db.new_object(Some(scene.to_entity()));
                 db.set_draw(obj, d.geometry, d.material);
                 db.set_scale(obj, scale);
             }

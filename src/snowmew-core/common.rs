@@ -15,7 +15,7 @@
 use std::sync::Arc;
 use table::{Static, StaticSet, StaticSetIterator};
 
-use {New, Get, Set};
+use {Get, Set, ToEntity};
 
 /// A common set of data owned by an `Entity`
 #[derive(Clone, Default, RustcEncodable, RustcDecodable, Copy)]
@@ -88,10 +88,10 @@ pub trait Common {
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData;
 
     /// Create a new scene.
-    fn new_scene(&mut self) -> Entity {
+    fn new_scene(&mut self) -> Scene {
         let oid = self.new_object(None);
         self.get_common_mut().scene_children.insert(oid, StaticSet::new());
-        oid
+        Scene(oid)
     }
 
     /// Create a new object, if a parent is supplied the object
@@ -136,7 +136,8 @@ pub trait Common {
     }
 
     /// Create an Iterator that iterators over the scene supplied.
-    fn scene_iter<'a>(&'a self, oid: Entity) -> StaticSetIterator<'a> {
+    fn scene_iter<'a>(&'a self, oid: Scene) -> StaticSetIterator<'a> {
+        let Scene(oid) = oid;
         let sc = self.get_common().scene_children.get(oid)
             .expect("Failed to get scene");
         sc.iter()
@@ -182,12 +183,8 @@ impl Common for CommonData {
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}
 }
 
+#[derive(RustcEncodable, RustcDecodable, Copy, Clone)]
 pub struct Parent<T>(pub T);
-
-impl New for CommonData {
-    type Key = Entity;
-    fn new(&mut self) -> Entity { self.new_object(None) }
-}
 
 impl Get<Entity> for CommonData {
     type Value = Parent<Entity>;
@@ -202,5 +199,15 @@ impl Set<Entity, Parent<Entity>> for CommonData {
         self.objects.get_mut(key).map(|o| {
             o.parent = value;
         });
+    }
+}
+
+#[derive(RustcEncodable, RustcDecodable, Copy, Clone)]
+pub struct Scene(pub Entity);
+
+impl ToEntity for Scene {
+    fn to_entity(self) -> Entity {
+        let Scene(eid) = self;
+        eid
     }
 }

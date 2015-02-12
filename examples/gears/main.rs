@@ -31,6 +31,8 @@ pub use snowmew::{
     debug
 };
 
+use snowmew::common::*;
+
 use cgmath::*;
 use core::Game;
 use debug::{Debugger, DebuggerGameData};
@@ -40,7 +42,6 @@ use input::{integrator, InputIntegratorState};
 use loader::Obj;
 use position::{Positions};
 use render::{Renderable, DefaultRender};
-use snowmew::common::{Common};
 
 use gamedata::{GameData, GearsInputData};
 
@@ -64,9 +65,9 @@ fn main() {
     let &logo = obj.get(&"rust_logo".to_string()).expect("geometry not found from import");
     let logo_draw = gd.get_draw(logo).expect("Could not get draw binding");
 
-    let scene_logos = vec!((gd.new_object(Some(scene)), gd.standard_graphics().materials.flat.green),
-                           (gd.new_object(Some(scene)), gd.standard_graphics().materials.flat.blue),
-                           (gd.new_object(Some(scene)), gd.standard_graphics().materials.flat.red));
+    let scene_logos = vec!((gd.new_object(Some(scene.to_entity())), gd.standard_graphics().materials.flat.green),
+                           (gd.new_object(Some(scene.to_entity())), gd.standard_graphics().materials.flat.blue),
+                           (gd.new_object(Some(scene.to_entity())), gd.standard_graphics().materials.flat.red));
 
     for (idx, &(logo, material)) in scene_logos.iter().enumerate() {
         gd.set_draw(logo, logo_draw.geometry, material);

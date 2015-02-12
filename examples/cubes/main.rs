@@ -66,9 +66,7 @@ fn main() {
     for x in (-count..count) {
         for y in (-count..count) {
             for z in (-count..count) {
-                let new: Entity = gd.common.new();
-                gd.common.set(new, Parent(scene));
-                let new = gd.new_object(Some(scene));
+                let new = gd.new_object(Some(scene.to_entity()));
                 let x = x as f32 * 2.5;
                 let y = y as f32 * 2.5;
                 let z = z as f32 * 2.5;

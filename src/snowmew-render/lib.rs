@@ -37,7 +37,7 @@ pub mod camera;
 #[derive(Clone, RustcEncodable, RustcDecodable, Copy)]
 pub struct RenderData {
     camera: Option<snowmew::Entity>,
-    scene: Option<snowmew::Entity>
+    scene: Option<snowmew::common::Scene>
 }
 
 impl RenderData {
@@ -59,7 +59,7 @@ pub trait Renderable: graphics::Graphics + position::Positions {
     }
 
     /// set the scene to be rendered
-    fn set_scene(&mut self, scene: snowmew::Entity) {
+    fn set_scene(&mut self, scene: snowmew::common::Scene) {
         self.get_render_data_mut().scene = Some(scene);
     }
 
@@ -69,7 +69,7 @@ pub trait Renderable: graphics::Graphics + position::Positions {
     }
 
     /// get the scene for rendering
-    fn scene(&self) -> Option<snowmew::Entity> {
+    fn scene(&self) -> Option<snowmew::common::Scene> {
         self.get_render_data().scene
     }
 }
