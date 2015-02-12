@@ -51,7 +51,7 @@ use std::sync::Arc;
 
 #[cfg(feature="use_opencl")]
 use opencl::hl;
-use gfx::{Device, DeviceHelper};
+use gfx::{Device, DeviceExt};
 use gfx::batch::RefBatch;
 use device::state;
 use cgmath::*;
@@ -85,8 +85,7 @@ struct SharedMaterial {
     ks_use_texture: i32,
 }
 
-const VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
-glsl_150: b"
+const VERTEX_SRC: &'static [u8] = b"
     #version 150 core
     layout(std140)
     uniform shadow_shared_mat {
@@ -130,10 +129,9 @@ glsl_150: b"
                          model_mat[gl_InstanceID + offset] *
                          vec4(position, 1.0);
     }
-"};
+";
 
-const FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
-glsl_150: b"
+const FRAGMENT_SRC: &'static [u8] = b"
     #version 150 core
     layout(std140)
     uniform material {
@@ -206,7 +204,7 @@ glsl_150: b"
                  max(0, dot(light_normal, normal));
         o_Color = color;
     }
-"};
+";
 
 #[shader_param]
 struct Params {
@@ -228,8 +226,7 @@ struct Params {
     offset: i32
 }
 
-const BACK_FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
-glsl_150: b"
+const BACK_FRAGMENT_SRC: &'static [u8] = b"
     #version 150 core
 
     out vec4 o_Color;
@@ -237,10 +234,9 @@ glsl_150: b"
     void main() {
         o_Color = vec4(0., 0., 0., 1.);
     }
-"};
+";
 
-static SHADOW_VERTEX_SRC: gfx::ShaderSource<'static> = shaders! {
-glsl_150: b"
+static SHADOW_VERTEX_SRC: &'static [u8] = b"
     #version 150 core
     layout(std140)
     uniform shared_mat {
@@ -261,14 +257,13 @@ glsl_150: b"
             model_mat[gl_InstanceID+offset] *
             vec4(position, 1.0);
     }
-"};
+";
 
-static SHADOW_FRAGMENT_SRC: gfx::ShaderSource<'static> = shaders! {
-glsl_150: b"
+static SHADOW_FRAGMENT_SRC: &'static [u8] = b"
     #version 150 core
 
     void main() {}
-"};
+";
 
 #[shader_param]
 struct ShadowParams {
