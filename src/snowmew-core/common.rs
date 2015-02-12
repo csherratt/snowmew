@@ -15,6 +15,8 @@
 use std::sync::Arc;
 use table::{Static, StaticSet, StaticSetIterator};
 
+use {New, Get, Set};
+
 /// A common set of data owned by an `Entity`
 #[derive(Clone, Default, RustcEncodable, RustcDecodable, Copy)]
 pub struct Object {
@@ -178,4 +180,27 @@ impl Delete for CommonData {
 impl Common for CommonData {
     fn get_common<'a>(&'a self) -> &'a CommonData {self}
     fn get_common_mut<'a>(&'a mut self) -> &'a mut CommonData {self}
+}
+
+pub struct Parent<T>(pub T);
+
+impl New for CommonData {
+    type Key = Entity;
+    fn new(&mut self) -> Entity { self.new_object(None) }
+}
+
+impl Get<Entity> for CommonData {
+    type Value = Parent<Entity>;
+
+    fn get(&self, key: Entity) -> Option<Parent<Entity>> {
+        self.objects.get(key).map(|o| Parent(o.parent))
+    }
+}
+
+impl Set<Entity, Parent<Entity>> for CommonData {
+    fn set(&mut self, key: Entity, Parent(value): Parent<Entity>) {
+        self.objects.get_mut(key).map(|o| {
+            o.parent = value;
+        });
+    }
 }

@@ -31,18 +31,18 @@ pub use snowmew::{
     config,
     debug
 };
+use snowmew::core::*;
+use snowmew::common::*;
 
 use std::str::FromStr;
 use std::f32;
 
 use cgmath::*;
-use core::Game;
 use graphics::light;
 use graphics::{Graphics};
 use input::{integrator, InputIntegratorState};
 use position::{Positions};
 use render::{Renderable, DefaultRender, Camera};
-use snowmew::common::{Common};
 
 use gamedata::GameData;
 mod gamedata;
@@ -66,6 +66,8 @@ fn main() {
     for x in (-count..count) {
         for y in (-count..count) {
             for z in (-count..count) {
+                let new: Entity = gd.common.new();
+                gd.common.set(new, Parent(scene));
                 let new = gd.new_object(Some(scene));
                 let x = x as f32 * 2.5;
                 let y = y as f32 * 2.5;

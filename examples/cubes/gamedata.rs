@@ -20,11 +20,11 @@ use input::{GetIoState, IoState};
 
 #[derive(Clone)]
 pub struct GameData {
-    common: CommonData,
-    position: PositionData,
-    graphics: GraphicsData,
-    render: RenderData,
-    input: IoState
+    pub common: CommonData,
+    pub position: PositionData,
+    pub graphics: GraphicsData,
+    pub render: RenderData,
+    pub input: IoState
 }
 
 impl GameData {

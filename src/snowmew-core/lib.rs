@@ -31,5 +31,29 @@ pub mod table;
 /// contains the `Game` trait
 pub mod game;
 
+pub trait New {
+	type Key;
+    fn new(&mut self) -> Self::Key;
+}
 
+pub trait Get<K> {
+    type Value;
 
+    fn get(&self, key: K) -> Option<Self::Value>;
+}
+
+pub trait GetRef<K> {
+    type Value;
+
+    fn get_ref(&self, key: K) -> Option<&Self::Value>;
+}
+
+pub trait GetRefMut<K> {
+    type Value;
+
+    fn get_mut(&mut self, key: K) -> Option<&mut Self::Value>;
+}
+
+pub trait Set<K, V> {
+    fn set(&mut self, key: K, Value: V);
+}

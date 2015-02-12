@@ -91,12 +91,21 @@ pub mod core {
 }
 
 pub mod common {
+    pub use _core::{
+        New,
+        Get,
+        GetRef,
+        GetRefMut,
+        Set,
+        Entity,
+    };
+
     pub use _core::common::{
         Common,
         CommonData,
-        Entity,
         Duplicate,
-        Delete
+        Delete,
+        Parent
     };
 }
 
