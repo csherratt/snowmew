@@ -13,8 +13,7 @@
 //   limitations under the License.
 
 #![crate_name = "gears"]
-#![feature(path)]
-#![feature(collections)]
+#![feature(old_path)]
 
 extern crate cgmath;
 extern crate snowmew;

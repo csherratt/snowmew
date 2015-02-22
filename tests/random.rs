@@ -12,12 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-#![feature(rand)]
-
 extern crate snowmew;
+extern crate rand;
 
 use snowmew::random::{Random, RandomData};
-use std::rand::Rng;
+use rand::Rng;
 
 #[derive(Clone)]
 struct Foo {

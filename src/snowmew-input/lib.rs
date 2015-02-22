@@ -12,11 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-#![feature(core)]
-#![feature(hash)]
-#![feature(libc)]
-#![feature(collections)]
-
 extern crate time;
 extern crate glfw;
 extern crate "rustc-serialize" as rustc_serialize;
@@ -211,7 +206,7 @@ impl IOManager {
     fn create_hmd_window(&mut self, hmd: &ovr::HmdDescription) -> Option<(glfw::Window, Receiver<(f64, glfw::WindowEvent)>)> {
         self.glfw.with_connected_monitors(|glfw, monitors| {
             for m in monitors.iter() {
-                if !m.get_name()[].contains("Rift") {
+                if !m.get_name().contains("Rift") {
                     continue;
                 }
 
@@ -310,7 +305,7 @@ impl IOManager {
         self.windows.get_mut(&handle.handle)
             .map(|win| {
                 if title != win.title {
-                    win.window.set_title(&title[]);
+                    win.window.set_title(&title);
                     win.title = title.clone();
                 }
             });

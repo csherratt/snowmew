@@ -13,9 +13,7 @@
 //   limitations under the License.
 
 #![crate_name = "noclip"]
-#![feature(os)]
-#![feature(core)]
-#![feature(path)]
+#![feature(old_path, env, core)]
 
 extern crate cgmath;
 extern crate snowmew;
@@ -52,14 +50,14 @@ mod gamedata;
 fn main() {
     let sc = config::SnowmewConfig::new();
 
-    let args = std::os::args();
+    let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 {
         println!("Please supply a path to an obj to load");
         return;
     }
-    let path = Path::new(&args[1][]);
+    let path = Path::new(&args[1]);
     let scale: f32 = if args.len() >= 3 {
-        FromStr::from_str(&args[2][]).unwrap()
+        FromStr::from_str(&args[2]).unwrap()
     } else {
         1.0
     };
@@ -84,9 +82,9 @@ fn main() {
     db.set_to_identity(camera_loc);
 
     let pos = if args.len() >= 6 {
-        let x = FromStr::from_str(&args[3][]).unwrap();
-        let y = FromStr::from_str(&args[4][]).unwrap();
-        let z = FromStr::from_str(&args[5][]).unwrap();
+        let x = FromStr::from_str(&args[3]).unwrap();
+        let y = FromStr::from_str(&args[4]).unwrap();
+        let z = FromStr::from_str(&args[5]).unwrap();
         Point3::new(x, y, z)
     } else {
         Point3::new(0f32, 0f32, 0f32)

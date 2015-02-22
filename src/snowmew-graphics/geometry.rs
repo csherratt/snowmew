@@ -103,7 +103,7 @@ impl Clone for VertexGeo {
 
 impl PartialEq for VertexGeo {
     fn eq(&self, other: &VertexGeo) -> bool {
-        self.position[] == other.position[]
+        self.position == other.position
     }
 }
 
@@ -148,8 +148,8 @@ impl Clone for VertexGeoNorm {
 
 impl PartialEq for VertexGeoNorm {
     fn eq(&self, other: &VertexGeoNorm) -> bool {
-        self.position[] == other.position[] &&
-        self.normal[] == other.normal[]
+        self.position == other.position &&
+        self.normal == other.normal
     }
 }
 
@@ -194,8 +194,8 @@ impl Clone for VertexGeoTex {
 
 impl PartialEq for VertexGeoTex {
     fn eq(&self, other: &VertexGeoTex) -> bool {
-        self.position[] == other.position[] &&
-        self.texture[] == other.texture[]
+        self.position == other.position &&
+        self.texture == other.texture
     }
 }
 
@@ -246,9 +246,9 @@ impl Clone for VertexGeoTexNorm {
 
 impl PartialEq for VertexGeoTexNorm {
     fn eq(&self, other: &VertexGeoTexNorm) -> bool {
-        self.position[] == other.position[] &&
-        self.normal[] == other.normal[] &&
-        self.texture[] == other.texture[]
+        self.position == other.position &&
+        self.normal == other.normal &&
+        self.texture == other.texture
     }
 }
 
@@ -344,7 +344,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: usize, a: IDX, b: IDX) -> IDX
             /* look for candidate */
             let mut found_a = -1;
             let mut found_b = -1;
-            for j in (0is..3) {
+            for j in (0isize..3) {
                 if a == index[(i*3+j) as usize] {
                     found_a = j;
                 }
@@ -355,7 +355,7 @@ fn find_trig<IDX: Eq+Clone>(index: &[IDX], my_idx: usize, a: IDX, b: IDX) -> IDX
 
             /* found a candidate */
             if found_a != -1 && found_b != -1  {
-                for j in (0is..3) {
+                for j in (0isize..3) {
                     if j != found_a && j != found_b {
                         return index[(i*3+j) as usize].clone();
                     }

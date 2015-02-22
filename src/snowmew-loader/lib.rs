@@ -14,9 +14,7 @@
 
 #![crate_name = "snowmew-loader"]
 #![crate_type = "lib"]
-#![feature(collections)]
-#![feature(io)]
-#![feature(path)]
+#![feature(collections, old_path, old_io)]
 
 extern crate collections;
 extern crate cgmath;
@@ -62,7 +60,7 @@ impl Obj {
             for m in obj.materials().iter() {
                 let mut p = path.clone();
                 p.pop();
-                p.push(&m[]);
+                p.push(&m);
                 let file = File::open(&p).ok().expect("failed to open material");
                 let mut f = BufferedReader::new(file);
                 let m = obj::Mtl::load(&mut f);

@@ -91,7 +91,7 @@ impl<T:Send+Sync+Clone+Decodable> Decodable for Static<T> {
     fn decode<D: Decoder>(d: &mut D) -> Result<Static<T>, D::Error> {
         d.read_map(|d, len| {
             let mut map = Static::new();
-            for i in (0us..len) {
+            for i in (0usize..len) {
                 let key = try!(d.read_map_elt_key(i, |d| Decodable::decode(d)));
                 let val = try!(d.read_map_elt_val(i, |d| Decodable::decode(d)));
                 map.insert(key, val);
@@ -166,7 +166,7 @@ impl Decodable for StaticSet {
     fn decode<D: Decoder>(d: &mut D) -> Result<StaticSet, D::Error> {
         d.read_seq(|d, len| {
             let mut set = StaticSet::new();
-            for i in (0us..len) {
+            for i in (0usize..len) {
                 set.insert(try!(d.read_seq_elt(i, |d| Decodable::decode(d))));
             }
             Ok(set)

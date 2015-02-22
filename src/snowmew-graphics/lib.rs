@@ -15,8 +15,6 @@
 #![crate_name = "snowmew-graphics"]
 #![crate_type = "lib"]
 #![feature(plugin)]
-#![feature(core)]
-#![feature(hash)]
 
 #![plugin(gfx_macros)]
 extern crate gfx_macros;
@@ -31,7 +29,6 @@ extern crate "snowmew-core" as snowmew;
 use std::cmp::Ordering::{Less, Equal, Greater};
 use std::cmp::Ordering;
 
-use cgmath::Point3;
 use snowmew::common::{Common, Entity, Duplicate, Delete};
 use snowmew::table::{Static, StaticIterator};
 

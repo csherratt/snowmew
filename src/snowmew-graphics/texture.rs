@@ -64,7 +64,7 @@ impl Texture {
     pub fn width(&self) -> u32 { self.width }
     pub fn height(&self) -> u32 { self.height }
     pub fn depth(&self) -> u32 { self.depth }
-    pub fn data<'a>(&'a self) -> &'a [u8] { &self.data[] }
+    pub fn data<'a>(&'a self) -> &'a [u8] { &self.data }
     pub fn flip(&mut self) {
         flip(&mut self.data, self.height as usize, self.width as usize, self.depth as usize);
     }

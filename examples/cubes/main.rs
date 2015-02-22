@@ -13,9 +13,7 @@
 //   limitations under the License.
 
 #![crate_name = "cubes"]
-#![feature(os)]
-#![feature(core)]
-
+#![feature(core, env)]
 
 extern crate cgmath;
 extern crate snowmew;
@@ -56,9 +54,9 @@ fn main() {
     let cube = gd.standard_graphics().shapes.cube;;
     let red = gd.standard_graphics().materials.flat.red;
 
-    let args = std::os::args();
+    let args: Vec<String> = std::env::args().collect();
     let count: i32 = if args.len() >= 2 {
-        FromStr::from_str(&args[1][]).unwrap()
+        FromStr::from_str(&args[1]).unwrap()
     } else {
         10i32
     };

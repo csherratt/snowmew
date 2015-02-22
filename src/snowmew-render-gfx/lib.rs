@@ -18,7 +18,6 @@
 #![feature(plugin)]
 #![feature(libc)]
 #![feature(collections)]
-#![feature(std_misc)]
 #![allow(dead_code)]
 #![plugin(gfx_macros)]
 
@@ -44,7 +43,7 @@ extern crate collect;
 
 use std::collections::{HashMap, BTreeSet};
 use std::sync::mpsc::{channel, Sender, Receiver};
-use std::thread::Thread;
+use std::thread::spawn;
 
 #[cfg(feature="use_opencl")]
 use std::sync::Arc;
@@ -328,7 +327,7 @@ pub struct RenderManagerContext {
 
 pub struct RenderManager<R> {
     channel: Sender<R>,
-    res: std::thread::Thread
+    res: std::thread::JoinHandle
 }
 
 impl RenderManagerContext {
@@ -491,10 +490,10 @@ impl RenderManagerContext {
                                 }
                             })
                             .collect();
-                        self.device.create_mesh(&data[])
+                        self.device.create_mesh(&data)
                     },
                     GeoTex(ref d) => {
-                        self.device.create_mesh(&d[])
+                        self.device.create_mesh(&d)
                     },
                     GeoNorm(ref d) => {
                         let data: Vec<VertexGeoTexNorm> = d.iter()
@@ -506,19 +505,19 @@ impl RenderManagerContext {
                                 }
                             })
                             .collect();
-                        self.device.create_mesh(&data[])
+                        self.device.create_mesh(&data)
                     },
                     GeoTexNorm(ref d) => {
-                        self.device.create_mesh(&d[])
+                        self.device.create_mesh(&d)
                     },
                     GeoTexNormTan(ref d) => {
-                        self.device.create_mesh(&d[])
+                        self.device.create_mesh(&d)
                     }
                 };
 
                 let vb: Vec<u32> = vb.index.iter().map(|&x| x as u32).collect();
 
-                let index = self.device.create_buffer_static(&vb[]);
+                let index = self.device.create_buffer_static(&vb);
 
                 self.meshes.insert(oid, Mesh {
                     index: index,
@@ -685,7 +684,7 @@ impl RenderManagerContext {
                 if matrices.len() == max {
                     shared_gm.push((lg, lm, mat.clone(), matrices.len()-idx_gm, idx_gm));
                     shared_g.push((lg, mat.clone(), matrices.len()-idx_g, idx_g));
-                    self.device.update_buffer(mat.clone(), &matrices[], 0);
+                    self.device.update_buffer(mat.clone(), &matrices, 0);
                     mat = self.fetch_matrix();
                     matrices.clear();
                     None
@@ -752,7 +751,7 @@ impl RenderManagerContext {
                 len as u32,
                 0,
                 &self.shadow_frame.clone(),
-            );
+            ).unwrap();
         };
 
     }
@@ -808,7 +807,7 @@ impl RenderManagerContext {
                 len as u32,
                 0,
                 &self.frame.clone(),
-            );
+            ).unwrap();
         };
 
         for &(geo, mat, ref matrix, len, offset) in self.shared_geometry_material.iter() {
@@ -843,7 +842,7 @@ impl RenderManagerContext {
                 len as u32,
                 0,
                 &self.frame.clone(),
-            );
+            ).unwrap();
         };
 
         self.device.submit(self.render.as_buffer());
@@ -872,7 +871,7 @@ impl RenderManagerContext {
 
 impl<RD: Renderable+GetIoState+Send+'static> sm_render::Render<RD> for RenderManager<RD> {
     fn update(&mut self, db: RD) {
-        self.channel.send(db);
+        self.channel.send(db).unwrap();
     }
 }
 
@@ -944,13 +943,13 @@ impl<RD: Renderable+GetIoState+Send+'static> sm_render::RenderFactory<RD, Render
         glfw::make_context_current(None);
 
         let (free_send, free_recv) = channel();
-        Thread::spawn(move || {
+        spawn(move || {
             for db in free_recv.iter() {
                 drop(db)
             }
         });
 
-        let res = Thread::spawn(move || {
+        let res = spawn(move || {
             let mut window = window;
             window.make_context_current();
             let recv: Receiver<RD> = recv;
@@ -967,7 +966,7 @@ impl<RD: Renderable+GetIoState+Send+'static> sm_render::RenderFactory<RD, Render
                     match recv.try_recv() {
                         Ok(mut _db) => {
                             std::mem::swap(&mut db, &mut _db);
-                            free_send.send(_db);
+                            free_send.send(_db).unwrap();
                         }
                         // no newer copy
                         Err(std::sync::mpsc::TryRecvError::Empty) => break,

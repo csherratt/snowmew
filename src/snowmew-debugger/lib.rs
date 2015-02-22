@@ -12,8 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-#![feature(old_impl_check)]
-#![feature(alloc)]
+#![feature(old_impl_check, collections, alloc)]
 
 extern crate "snowmew-core" as core;
 

@@ -88,3 +88,6 @@ optional = true
 [dependencies.snowmew-network]
 path = "src/snowmew-network/"
 optional = true
+
+[dev-dependencies]
+rand="*"
