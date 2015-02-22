@@ -207,6 +207,7 @@ const FRAGMENT_SRC: &'static [u8] = b"
 ";
 
 #[shader_param]
+#[derive(Debug, Clone)]
 struct Params {
     shadow_shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
     shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
@@ -266,6 +267,7 @@ static SHADOW_FRAGMENT_SRC: &'static [u8] = b"
 ";
 
 #[shader_param]
+#[derive(Debug, Clone)]
 struct ShadowParams {
     shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
     model: gfx::RawBufferHandle<gfx::GlResources>,
@@ -796,21 +798,21 @@ impl RenderManagerContext {
 
         self.draw_shadow(&camera);
 
-        /*for &(geo, _, matrix, len, offset) in self.shared_geometry_material.iter() {
-            self.back_data.model = matrix.raw();
+        for &(geo, _, ref matrix, len, offset) in self.shared_geometry_material.iter() {
+            self.back_data.model = matrix.clone().raw();
             self.back_data.offset = offset as i32;
 
             self.render.draw_instanced(
-                &(self.draw_back_batches.get(&geo).expect("Missing draw"),
+                &(self.draw_back_batches.get(&geo).expect("Missing draw").clone(),
                   &self.back_data,
                   &self.context),
                 len as u32,
                 0,
-                &self.frame,
+                &self.frame.clone(),
             );
-        };*/
+        };
 
-        for &(geo, mat, matrix, len, offset) in self.shared_geometry_material.iter() {
+        for &(geo, mat, ref matrix, len, offset) in self.shared_geometry_material.iter() {
             let mat = self.material.get(&mat).expect("Could not find material");
             if let Some(ka) = mat.ka_texture {
                 self.data.ka_texture =
@@ -832,16 +834,16 @@ impl RenderManagerContext {
             }
             self.data.material = mat.buffer.raw();
             self.data.shadow = (self.shadow, Some(self.shadow_sampler));
-            self.data.model = matrix.raw();
+            self.data.model = matrix.clone().raw();
             self.data.offset = offset as i32;
 
             self.render.draw_instanced(
                 &(self.draw_batches.get(&geo).expect("Missing draw").clone(),
-                  &self.data,
+                  &self.data.clone(),
                   &self.context),
                 len as u32,
                 0,
-                &self.frame,
+                &self.frame.clone(),
             );
         };
 
