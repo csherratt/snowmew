@@ -12,11 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-#![feature(rand)]
-
 extern crate "snowmew-core" as core;
+extern crate rand;
 
-use std::rand::{Rng, ChaChaRng};
+use rand::{Rng, ChaChaRng};
 
 #[derive(Copy)]
 pub struct RandomData {
