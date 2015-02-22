@@ -73,7 +73,7 @@ name = "noclip"
 path = "examples/noclip/main.rs"
 
 [features]
-default = ["networking"]
+default = []
 use_opencl = ["opencl",
 		      "snowmew-position/use_opencl",
               "snowmew-render/use_opencl",

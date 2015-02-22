@@ -22,7 +22,6 @@
 extern crate gfx_macros;
 extern crate gfx;
 extern crate cgmath;
-extern crate collision;
 extern crate genmesh;
 extern crate image;
 extern crate "rustc-serialize" as rustc_serialize;
@@ -33,7 +32,6 @@ use std::cmp::Ordering::{Less, Equal, Greater};
 use std::cmp::Ordering;
 
 use cgmath::Point3;
-use collision::sphere::Sphere;
 use snowmew::common::{Common, Entity, Duplicate, Delete};
 use snowmew::table::{Static, StaticIterator};
 
@@ -74,7 +72,6 @@ impl Ord for Drawable {
 pub struct GraphicsData {
     draw:               Static<Drawable>,
     geometry:           Static<Geometry>,
-    sphere:             Static<Sphere<f32>>,
     vertex:             Static<VertexBuffer>,
     material:           Static<Material>,
     material_index:     Static<i32>,
@@ -95,7 +92,6 @@ impl GraphicsData {
             texture: Static::new(),
             lights: Static::new(),
             material_idx_last: 0,
-            sphere: Static::new(),
             standard: None
         }
     }
@@ -132,13 +128,6 @@ pub trait Graphics: Common + Sized {
         let oid = self.new_object(None);
         self.get_graphics_mut().geometry.insert(oid, geo);
         oid
-    }
-
-    fn sphere(&self, geo: Entity) -> Sphere<f32> {
-        match self.get_graphics().sphere.get(geo) {
-            Some(s) => { s.clone() }
-            None => Sphere::new(Point3::new(0f32, 0., 0.,), 0f32)
-        }
     }
 
     fn material<'a>(&'a self, oid: Entity) -> Option<&'a Material> {
@@ -258,8 +247,6 @@ impl Duplicate for GraphicsData {
         x.map(|x| self.texture.insert(dst, x));
         let x = self.lights.get(src).map(|x| x.clone());
         x.map(|x| self.lights.insert(dst, x));
-        let x = self.sphere.get(src).map(|x| x.clone());
-        x.map(|x| self.sphere.insert(dst, x));
     }
 }
 
@@ -272,8 +259,7 @@ impl Delete for GraphicsData {
         self.material.remove(oid)         |
         self.material_index.remove(oid)   |
         self.texture.remove(oid)          |
-        self.lights.remove(oid)           |
-        self.sphere.remove(oid)
+        self.lights.remove(oid)
     }
 }
 

@@ -34,7 +34,7 @@ use input::{Window, GetIoState};
 
 use render::Renderable;
 
-impl<'r, RD: Renderable+GetIoState+Send> render::Render<RD> for RenderMux<'r, RD> {
+impl<'r, RD: Renderable+GetIoState+Send+> render::Render<RD> for RenderMux<'r, RD> {
     fn update(&mut self, db: RD) {
         self.render.update(db)
     }
@@ -45,7 +45,7 @@ pub struct RenderMux<'r, RD> {
 }
 
 #[cfg(feature="use_opencl")]
-impl<'r, RD: Renderable+GetIoState+Send> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
+impl<'r, RD: Renderable+GetIoState+Send+'static> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &input::IOManager,
             window: Window,
@@ -64,7 +64,7 @@ impl<'r, RD: Renderable+GetIoState+Send> render::RenderFactory<RD, RenderMux<'r,
 }
 
 #[cfg(not(feature="use_opencl"))]
-impl<'r, RD: Renderable+GetIoState+Send> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
+impl<'r, RD: Renderable+GetIoState+Send+'static> render::RenderFactory<RD, RenderMux<'r, RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &input::IOManager,
             window: Window,

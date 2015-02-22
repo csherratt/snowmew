@@ -68,13 +68,13 @@ use sm_render::Renderable;
 use input::{Window, GetIoState};
 use gfx::render;
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 struct SharedMatrix {
     proj_mat: [[f32; 4]; 4],
     view_mat: [[f32; 4]; 4]
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 struct SharedMaterial {
     ka_color: [f32; 4],
     kd_color: [f32; 4],
@@ -208,12 +208,12 @@ const FRAGMENT_SRC: &'static [u8] = b"
 
 #[shader_param]
 struct Params {
-    shadow_shared_mat: gfx::RawBufferHandle,
-    shared_mat: gfx::RawBufferHandle,
+    shadow_shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
+    shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
 
     shadow_bias_mat: [[f32; 4]; 4],
 
-    material: gfx::RawBufferHandle,
+    material: gfx::RawBufferHandle<gfx::GlResources>,
     ka_texture: gfx::shade::TextureParam,
     kd_texture: gfx::shade::TextureParam,
     ks_texture: gfx::shade::TextureParam,
@@ -222,7 +222,7 @@ struct Params {
     light_color: [f32; 4],
     shadow: gfx::shade::TextureParam,
 
-    model: gfx::RawBufferHandle,
+    model: gfx::RawBufferHandle<gfx::GlResources>,
     offset: i32
 }
 
@@ -267,48 +267,48 @@ static SHADOW_FRAGMENT_SRC: &'static [u8] = b"
 
 #[shader_param]
 struct ShadowParams {
-    shared_mat: gfx::RawBufferHandle,
-    model: gfx::RawBufferHandle,
+    shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
+    model: gfx::RawBufferHandle<gfx::GlResources>,
     offset: i32
 }
 
 struct Mesh {
-    mesh: render::mesh::Mesh,
-    index: device::BufferHandle<u32>
+    mesh: render::mesh::Mesh<gfx::GlResources>,
+    index: device::BufferHandle<gfx::GlResources, u32>
 }
 
 struct RenderMaterial {
     material: Material,
-    buffer: device::BufferHandle<SharedMaterial>,
+    buffer: device::BufferHandle<gfx::GlResources, SharedMaterial>,
     ka_texture: Option<Entity>,
     kd_texture: Option<Entity>,
     ks_texture: Option<Entity>,
 }
 
 pub struct RenderManagerContext {
-    prog: device::Handle<u32,device::shade::ProgramInfo>,
+    prog: device::Handle<u32, device::shade::ProgramInfo>,
     data: Params,
 
     shadow_data: ShadowParams,
-    shadow_prog: device::Handle<u32,device::shade::ProgramInfo>,
-    shadow_frame: render::target::Frame,
-    shadow: device::TextureHandle,
-    shadow_sampler: device::SamplerHandle,
-    shadow_shared_mat: device::BufferHandle<SharedMatrix>,
-    shared_mat: device::BufferHandle<SharedMatrix>,
+    shadow_prog: device::Handle<u32, device::shade::ProgramInfo>,
+    shadow_frame: render::target::Frame<gfx::GlResources>,
+    shadow: device::TextureHandle<gfx::GlResources>,
+    shadow_sampler: device::SamplerHandle<gfx::GlResources>,
+    shadow_shared_mat: device::BufferHandle<gfx::GlResources, SharedMatrix>,
+    shared_mat: device::BufferHandle<gfx::GlResources, SharedMatrix>,
 
     back_data: ShadowParams,
-    back_prog: device::Handle<u32,device::shade::ProgramInfo>,
+    back_prog: device::Handle<u32, device::shade::ProgramInfo>,
 
-    render: gfx::render::Renderer<gfx::GlCommandBuffer>,
+    render: gfx::render::Renderer<device::gl_device::GlDevice>,
     device: device::gl_device::GlDevice,
     context: gfx::render::batch::Context,
-    frame: render::target::Frame,
+    frame: render::target::Frame<gfx::GlResources>,
     state: render::state::DrawState,
     back_state: render::state::DrawState,
     meshes: HashMap<Entity, Mesh>,
-    textures: HashMap<Entity, device::TextureHandle>,
-    sampler: device::SamplerHandle,
+    textures: HashMap<Entity, device::TextureHandle<gfx::GlResources>>,
+    sampler: device::SamplerHandle<gfx::GlResources>,
     window: Window,
 
     material: HashMap<Entity, RenderMaterial>,
@@ -318,10 +318,10 @@ pub struct RenderManagerContext {
     draw_batches: HashMap<Entity, RefBatch<Params>>,
     draw_back_batches: HashMap<Entity, RefBatch<ShadowParams>>,
 
-    spare_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
-    used_matrix_buffers: Vec<device::BufferHandle<[[f32; 4]; 4]>>,
-    shared_geometry: Vec<(u32, device::BufferHandle<[[f32; 4]; 4]>, usize, usize)>,
-    shared_geometry_material: Vec<(u32, u32, device::BufferHandle<[[f32; 4]; 4]>, usize, usize)>,
+    spare_matrix_buffers: Vec<device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]>>,
+    used_matrix_buffers: Vec<device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]>>,
+    shared_geometry: Vec<(u32, device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]>, usize, usize)>,
+    shared_geometry_material: Vec<(u32, u32, device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]>, usize, usize)>,
 }
 
 pub struct RenderManager<R> {
@@ -607,7 +607,7 @@ impl RenderManagerContext {
                         start: geo.offset as u32,
                         end: (geo.offset + geo.count) as u32,
                         prim_type: gfx::PrimitiveType::TriangleList,
-                        kind: gfx::SliceKind::Index32(vb.index, 0)
+                        kind: gfx::SliceKind::Index32(vb.index.clone(), 0)
                     },
                     &self.state
                 ).ok().expect("Failed to create batch.");
@@ -620,7 +620,7 @@ impl RenderManagerContext {
                         start: geo.offset as u32,
                         end: (geo.offset + geo.count) as u32,
                         prim_type: gfx::PrimitiveType::TriangleList,
-                        kind: gfx::SliceKind::Index32(vb.index, 0)
+                        kind: gfx::SliceKind::Index32(vb.index.clone(), 0)
                     },
                     &self.state
                 ).ok().expect("Failed to create batch.");
@@ -633,7 +633,7 @@ impl RenderManagerContext {
                         start: geo.offset as u32,
                         end: (geo.offset + geo.count) as u32,
                         prim_type: gfx::PrimitiveType::TriangleList,
-                        kind: gfx::SliceKind::Index32(vb.index, 0)
+                        kind: gfx::SliceKind::Index32(vb.index.clone(), 0)
                     },
                     &self.back_state
                 ).ok().expect("Failed to create batch.");
@@ -642,13 +642,16 @@ impl RenderManagerContext {
         }
     }
 
-    fn fetch_matrix(&mut self) -> device::BufferHandle<[[f32; 4]; 4]> {
+    fn fetch_matrix(&mut self) -> device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]> {
         let buffer = if let Some(buffer) = self.spare_matrix_buffers.pop() {
             buffer
         } else {
-            self.device.create_buffer(512, gfx::BufferUsage::Static)
+            let x = self.device.create_buffer(512, gfx::BufferUsage::Static);
+            println!("self.device {:?}", x);
+            x
         };
-        self.used_matrix_buffers.push(buffer);
+        let clone = buffer.clone();
+        self.used_matrix_buffers.push(clone);
         buffer
     }
 
@@ -670,18 +673,18 @@ impl RenderManagerContext {
         for &(g, m, id) in self.batch.clone().iter() {
             last = if let Some((lg, lm, mut idx_gm, mut idx_g)) = last {
                 if (lg, lm) != (g, m) {
-                    shared_gm.push((lg, lm, mat, matrices.len()-idx_gm, idx_gm));
+                    shared_gm.push((lg, lm, mat.clone(), matrices.len()-idx_gm, idx_gm));
                     idx_gm = matrices.len();
                 }
                 if lg != g {
-                    shared_g.push((lg, mat, matrices.len()-idx_g, idx_g));
+                    shared_g.push((lg, mat.clone(), matrices.len()-idx_g, idx_g));
                     idx_g = matrices.len();
                 }
             
                 if matrices.len() == max {
-                    shared_gm.push((lg, lm, mat, matrices.len()-idx_gm, idx_gm));
-                    shared_g.push((lg, mat, matrices.len()-idx_g, idx_g));
-                    self.device.update_buffer(mat, &matrices[], 0);
+                    shared_gm.push((lg, lm, mat.clone(), matrices.len()-idx_gm, idx_gm));
+                    shared_g.push((lg, mat.clone(), matrices.len()-idx_g, idx_g));
+                    self.device.update_buffer(mat.clone(), &matrices[], 0);
                     mat = self.fetch_matrix();
                     matrices.clear();
                     None
@@ -696,9 +699,9 @@ impl RenderManagerContext {
         }
 
         if let Some((g, m, idx_gm, idx_g)) = last {
-            shared_gm.push((g, m, mat, matrices.len()-idx_gm, idx_gm));
-            shared_g.push((g, mat, matrices.len()-idx_g, idx_g));
-            self.device.update_buffer(mat, &matrices[], 0)
+            shared_gm.push((g, m, mat.clone(), matrices.len()-idx_gm, idx_gm));
+            shared_g.push((g, mat.clone(), matrices.len()-idx_g, idx_g));
+            self.device.update_buffer(mat.clone(), &matrices, 0)
         }
 
         self.shared_geometry = shared_g;
@@ -711,7 +714,7 @@ impl RenderManagerContext {
             depth: 2.0,
             stencil: 0,
         };
-        self.render.clear(cdata, gfx::DEPTH, &self.shadow_frame);
+        self.render.clear(cdata, gfx::DEPTH, &self.shadow_frame.clone());
 
         let pos = cam.move_with_vector(&Vector3::new(0f32, 15., 0.));
         let proj = cgmath::ortho(
@@ -736,18 +739,18 @@ impl RenderManagerContext {
             view_mat: view.into_fixed()
         }];
 
-        self.device.update_buffer(self.shadow_shared_mat, shadow_mat, 0);
+        self.device.update_buffer(self.shadow_shared_mat.clone(), shadow_mat, 0);
 
         for &(geo, matrix, len, offset) in self.shared_geometry.iter() {
             self.shadow_data.model = matrix.raw();
             self.shadow_data.offset = offset as i32;
             self.render.draw_instanced(
-                &(self.shadow_batches.get(&geo).expect("Missing draw"),
+                &(self.shadow_batches.get(&geo).expect("Missing draw").clone(),
                   &self.shadow_data,
                   &self.context),
                 len as u32,
                 0,
-                &self.shadow_frame,
+                &self.shadow_frame.clone(),
             );
         };
 
@@ -775,7 +778,7 @@ impl RenderManagerContext {
             proj_mat: proj.into_fixed()
         }];
 
-        self.device.update_buffer(self.shared_mat, shared_mat, 0);
+        self.device.update_buffer(self.shared_mat.clone(), shared_mat, 0);
 
         for (key, light) in db.light_iter() {
             match light {
@@ -793,7 +796,7 @@ impl RenderManagerContext {
 
         self.draw_shadow(&camera);
 
-        for &(geo, _, matrix, len, offset) in self.shared_geometry_material.iter() {
+        /*for &(geo, _, matrix, len, offset) in self.shared_geometry_material.iter() {
             self.back_data.model = matrix.raw();
             self.back_data.offset = offset as i32;
 
@@ -805,7 +808,7 @@ impl RenderManagerContext {
                 0,
                 &self.frame,
             );
-        };
+        };*/
 
         for &(geo, mat, matrix, len, offset) in self.shared_geometry_material.iter() {
             let mat = self.material.get(&mat).expect("Could not find material");
@@ -833,7 +836,7 @@ impl RenderManagerContext {
             self.data.offset = offset as i32;
 
             self.render.draw_instanced(
-                &(self.draw_batches.get(&geo).expect("Missing draw"),
+                &(self.draw_batches.get(&geo).expect("Missing draw").clone(),
                   &self.data,
                   &self.context),
                 len as u32,
@@ -866,14 +869,14 @@ impl RenderManagerContext {
     }
 }
 
-impl<RD: Renderable+GetIoState+Send> sm_render::Render<RD> for RenderManager<RD> {
+impl<RD: Renderable+GetIoState+Send+'static> sm_render::Render<RD> for RenderManager<RD> {
     fn update(&mut self, db: RD) {
         self.channel.send(db);
     }
 }
 
 #[cfg(feature="use_opencl")]
-impl<RD: Renderable+GetIoState+Send> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
+impl<RD: Renderable+GetIoState+Send+'static> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &input::IOManager,
             mut window: Window,
@@ -928,7 +931,7 @@ impl<RD: Renderable+GetIoState+Send> sm_render::RenderFactory<RD, RenderManager<
 }
 
 #[cfg(not(feature="use_opencl"))]
-impl<RD: Renderable+GetIoState+Send> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
+impl<RD: Renderable+GetIoState+Send+'static> sm_render::RenderFactory<RD, RenderManager<RD>> for RenderFactory {
     fn init(self: Box<RenderFactory>,
             io: &input::IOManager,
             mut window: Window,
