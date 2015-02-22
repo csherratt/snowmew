@@ -197,11 +197,21 @@ const FRAGMENT_SRC: &'static [u8] = b"
         shadow_sum += textureOffset(shadow, shadow_coord, ivec2( 1,-1)) * 0.0625;
         shadow_sum += textureOffset(shadow, shadow_coord, ivec2( 1, 1)) * 0.0625;
 
-        color = ka * 0.2;
-        color += shadow_sum *
-                 kd *
-                 light_color *
-                 max(0, dot(light_normal, normal));
+        float level = shadow_sum * max(0, dot(light_normal, normal));
+        if (level >= 1.0) {
+            level = 1.0;
+        } else if (level >= 0.75) {
+            level = 0.75;
+        } else if (level >= 0.5) {
+            level = 0.5;
+        } else if (level >= 0.25) {
+            level = 0.25;
+        } else {
+            level = 0.0;
+        }
+
+        color = ka * 0.2 + kd * level * light_color;
+
         o_Color = color;
     }
 ";
