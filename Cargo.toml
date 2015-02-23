@@ -35,17 +35,8 @@ path = "src/snowmew-render-gfx/"
 [dependencies.snowmew-render-mux]
 path = "src/snowmew-render-mux/"
 
-[dependencies.snowmew-loader]
-path = "src/snowmew-loader/"
-
-[dependencies.snowmew-debugger]
-path = "src/snowmew-debugger/"
-
 [dependencies.snowmew-random]
 path = "src/snowmew-random/"
-
-[dependencies.snowmew-timer]
-path = "src/snowmew-timer/"
 
 [dependencies.snowmew-input]
 path = "src/snowmew-input/"
@@ -73,13 +64,16 @@ name = "noclip"
 path = "examples/noclip/main.rs"
 
 [features]
-default = []
+default = ["debugger", "loader", "timer"]
 use_opencl = ["opencl",
 		      "snowmew-position/use_opencl",
               "snowmew-render/use_opencl",
               "snowmew-render-gfx/use_opencl",
               "snowmew-render-mux/use_opencl"]
 networking = ["snowmew-network"]
+debugger = ["snowmew-debugger"]
+loader = ["snowmew-loader"]
+timer = ["snowmew-timer"]
 
 [dependencies.opencl]
 git = "https://github.com/luqmana/rust-opencl.git"
@@ -87,6 +81,18 @@ optional = true
 
 [dependencies.snowmew-network]
 path = "src/snowmew-network/"
+optional = true
+
+[dependencies.snowmew-debugger]
+path = "src/snowmew-debugger/"
+optional = true
+
+[dependencies.snowmew-loader]
+path = "src/snowmew-loader/"
+optional = true
+
+[dependencies.snowmew-timer]
+path = "src/snowmew-timer/"
 optional = true
 
 [dev-dependencies]

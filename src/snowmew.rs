@@ -17,12 +17,15 @@
 
 extern crate "snowmew-core"         as _core;
 extern crate "snowmew-graphics"     as _graphics;
+#[cfg(feature="loader")]
 extern crate "snowmew-loader"       as _loader;
 extern crate "snowmew-position"     as _position;
 extern crate "snowmew-render-mux"   as _mux;
 extern crate "snowmew-render"  as _render;
+#[cfg(feature="debugger")]
 extern crate "snowmew-debugger" as _debugger;
 extern crate "snowmew-random" as _random;
+#[cfg(feature="timer")]
 extern crate "snowmew-timer" as _timer;
 #[cfg(feature="networking")]
 extern crate "snowmew-network" as _network;
@@ -119,6 +122,7 @@ pub mod input {
     pub use _input_integrator::input_integrator as integrator;
 }
 
+#[cfg(feature="debugger")]
 pub mod debug {
     pub use _debugger::{
         Debugger,
@@ -133,10 +137,12 @@ pub mod random {
     };
 }
 
+#[cfg(feature="loader")]
 pub mod loader {
     pub use _loader::Obj;
 }
 
+#[cfg(feature="timer")]
 pub mod timer {
     pub use _timer::{Timer, Phase};
 }

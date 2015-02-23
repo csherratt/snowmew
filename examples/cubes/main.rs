@@ -22,12 +22,10 @@ extern crate "rustc-serialize" as rustc_serialize;
 pub use snowmew::{
     core,
     render,
-    loader,
     graphics,
     position,
     input,
     config,
-    debug
 };
 use snowmew::core::*;
 use snowmew::common::*;
