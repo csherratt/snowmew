@@ -19,6 +19,10 @@ git = "https://github.com/PistonDevelopers/image"
 [dependencies]
 genmesh = "*"
 rustc-serialize="*"
-gfx = "*"
-gfx_macros="*"
 cgmath="*"
+
+[dependencies.gfx]
+git = "https://github.com/gfx-rs/gfx-rs.git"
+
+[dependencies.gfx_macros]
+git = "https://github.com/gfx-rs/gfx-rs.git"

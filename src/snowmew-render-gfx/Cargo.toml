@@ -20,9 +20,6 @@ collect="*"
 genmesh = "*"
 time = "*"
 glfw = "*"
-gfx = "*"
-gfx_macros = "*"
-gfx_device_gl = "*"
 
 [dependencies.snowmew-core]
 path = "../snowmew-core/"
@@ -45,3 +42,12 @@ use_opencl=["opencl", "snowmew-render/use_opencl"]
 [dependencies.opencl]
 git = "https://github.com/luqmana/rust-opencl.git"
 optional = true
+
+[dependencies.gfx]
+git = "https://github.com/gfx-rs/gfx-rs.git"
+
+[dependencies.gfx_macros]
+git = "https://github.com/gfx-rs/gfx-rs.git"
+
+[dependencies.gfx_device_gl]
+git = "https://github.com/gfx-rs/gfx-rs.git"
