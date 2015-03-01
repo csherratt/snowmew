@@ -27,8 +27,6 @@ extern crate libc;
 extern crate opencl;
 extern crate glfw;
 
-#[macro_use]
-extern crate gfx_macros;
 extern crate gfx;
 extern crate "gfx_device_gl" as device;
 extern crate genmesh;
@@ -52,7 +50,6 @@ use std::sync::Arc;
 use opencl::hl;
 use gfx::{Device, DeviceExt};
 use gfx::batch::RefBatch;
-use device::state;
 use cgmath::*;
 use collect::iter::{OrderedMapIterator, OrderedSetIterator};
 
@@ -207,22 +204,22 @@ const FRAGMENT_SRC: &'static [u8] = b"
 
 #[shader_param]
 #[derive(Debug, Clone)]
-struct Params {
-    shadow_shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
-    shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
+struct Params<R: gfx::Resources> {
+    shadow_shared_mat: gfx::RawBufferHandle<R>,
+    shared_mat: gfx::RawBufferHandle<R>,
 
     shadow_bias_mat: [[f32; 4]; 4],
 
-    material: gfx::RawBufferHandle<gfx::GlResources>,
-    ka_texture: gfx::shade::TextureParam,
-    kd_texture: gfx::shade::TextureParam,
-    ks_texture: gfx::shade::TextureParam,
+    material: gfx::RawBufferHandle<R>,
+    ka_texture: gfx::shade::TextureParam<R>,
+    kd_texture: gfx::shade::TextureParam<R>,
+    ks_texture: gfx::shade::TextureParam<R>,
 
     light_normal: [f32; 4],
     light_color: [f32; 4],
-    shadow: gfx::shade::TextureParam,
+    shadow: gfx::shade::TextureParam<R>,
 
-    model: gfx::RawBufferHandle<gfx::GlResources>,
+    model: gfx::RawBufferHandle<R>,
     offset: i32
 }
 
@@ -267,62 +264,62 @@ static SHADOW_FRAGMENT_SRC: &'static [u8] = b"
 
 #[shader_param]
 #[derive(Debug, Clone)]
-struct ShadowParams {
-    shared_mat: gfx::RawBufferHandle<gfx::GlResources>,
-    model: gfx::RawBufferHandle<gfx::GlResources>,
+struct ShadowParams<R: gfx::Resources> {
+    shared_mat: gfx::RawBufferHandle<R>,
+    model: gfx::RawBufferHandle<R>,
     offset: i32
 }
 
-struct Mesh {
-    mesh: render::mesh::Mesh<gfx::GlResources>,
-    index: device::BufferHandle<gfx::GlResources, u32>
+struct Mesh<R: gfx::Resources> {
+    mesh: render::mesh::Mesh<R>,
+    index: gfx::BufferHandle<device::GlResources, u32>
 }
 
 struct RenderMaterial {
     material: Material,
-    buffer: device::BufferHandle<gfx::GlResources, SharedMaterial>,
+    buffer: gfx::BufferHandle<device::GlResources, SharedMaterial>,
     ka_texture: Option<Entity>,
     kd_texture: Option<Entity>,
     ks_texture: Option<Entity>,
 }
 
 pub struct RenderManagerContext {
-    prog: device::Handle<u32, device::shade::ProgramInfo>,
-    data: Params,
+    prog: gfx::ProgramHandle<device::GlResources>,
+    data: Params<device::GlResources>,
 
-    shadow_data: ShadowParams,
-    shadow_prog: device::Handle<u32, device::shade::ProgramInfo>,
-    shadow_frame: render::target::Frame<gfx::GlResources>,
-    shadow: device::TextureHandle<gfx::GlResources>,
-    shadow_sampler: device::SamplerHandle<gfx::GlResources>,
-    shadow_shared_mat: device::BufferHandle<gfx::GlResources, SharedMatrix>,
-    shared_mat: device::BufferHandle<gfx::GlResources, SharedMatrix>,
+    shadow_data: ShadowParams<device::GlResources>,
+    shadow_prog: gfx::ProgramHandle<device::GlResources>,
+    shadow_frame: render::target::Frame<device::GlResources>,
+    shadow: gfx::TextureHandle<device::GlResources>,
+    shadow_sampler: gfx::SamplerHandle<device::GlResources>,
+    shadow_shared_mat: gfx::BufferHandle<device::GlResources, SharedMatrix>,
+    shared_mat: gfx::BufferHandle<device::GlResources, SharedMatrix>,
 
-    back_data: ShadowParams,
-    back_prog: device::Handle<u32, device::shade::ProgramInfo>,
+    back_data: ShadowParams<device::GlResources>,
+    back_prog: gfx::ProgramHandle<device::GlResources>,
 
-    render: gfx::render::Renderer<device::gl_device::GlDevice>,
-    device: device::gl_device::GlDevice,
-    context: gfx::render::batch::Context,
-    frame: render::target::Frame<gfx::GlResources>,
+    render: gfx::render::Renderer<device::CommandBuffer>,
+    device: device::GlDevice,
+    context: gfx::render::batch::Context<device::GlResources>,
+    frame: render::target::Frame<device::GlResources>,
     state: render::state::DrawState,
     back_state: render::state::DrawState,
-    meshes: HashMap<Entity, Mesh>,
-    textures: HashMap<Entity, device::TextureHandle<gfx::GlResources>>,
-    sampler: device::SamplerHandle<gfx::GlResources>,
+    meshes: HashMap<Entity, Mesh<device::GlResources>>,
+    textures: HashMap<Entity, gfx::TextureHandle<device::GlResources>>,
+    sampler: gfx::SamplerHandle<device::GlResources>,
     window: Window,
 
     material: HashMap<Entity, RenderMaterial>,
 
     batch: BTreeSet<(Entity, Entity, Entity)>,
-    shadow_batches: HashMap<Entity, RefBatch<ShadowParams>>,
-    draw_batches: HashMap<Entity, RefBatch<Params>>,
-    draw_back_batches: HashMap<Entity, RefBatch<ShadowParams>>,
+    shadow_batches: HashMap<Entity, RefBatch<ShadowParams<device::GlResources>>>,
+    draw_batches: HashMap<Entity, RefBatch<Params<device::GlResources>>>,
+    draw_back_batches: HashMap<Entity, RefBatch<ShadowParams<device::GlResources>>>,
 
-    spare_matrix_buffers: Vec<device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]>>,
-    used_matrix_buffers: Vec<device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]>>,
-    shared_geometry: Vec<(u32, device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]>, usize, usize)>,
-    shared_geometry_material: Vec<(u32, u32, device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]>, usize, usize)>,
+    spare_matrix_buffers: Vec<gfx::BufferHandle<device::GlResources, [[f32; 4]; 4]>>,
+    used_matrix_buffers: Vec<gfx::BufferHandle<device::GlResources, [[f32; 4]; 4]>>,
+    shared_geometry: Vec<(u32, gfx::BufferHandle<device::GlResources, [[f32; 4]; 4]>, usize, usize)>,
+    shared_geometry_material: Vec<(u32, u32, gfx::BufferHandle<device::GlResources, [[f32; 4]; 4]>, usize, usize)>,
 }
 
 pub struct RenderManager<R> {
@@ -331,18 +328,13 @@ pub struct RenderManager<R> {
 }
 
 impl RenderManagerContext {
-    fn _new(mut device: gfx::GlDevice,
+    fn _new(mut device: device::GlDevice,
             window: Window,
             size: (i32, i32)) -> RenderManagerContext {
 
         let (width, height) = size;
         let frame = gfx::Frame::new(width as u16, height as u16);
-        let mut back_state = gfx::DrawState::new().depth(gfx::state::Comparison::Less, true);
-        back_state.primitive = state::Primitive {
-            front_face: state::WindingOrder::Clockwise,
-            method: state::RasterMethod::Line(1.0),
-            offset: None,
-        };
+        let back_state = gfx::DrawState::new().depth(gfx::state::Comparison::Less, true);
         let state = gfx::DrawState::new().depth(gfx::state::Comparison::Less, true);
 
         let sampler = device.create_sampler(
@@ -601,7 +593,7 @@ impl RenderManagerContext {
                 let geo = db.geometry(draw.geometry).expect("failed to find geometry");
                 let vb = self.meshes.get(&geo.vb).expect("Could not get vertex buffer");
 
-                let batch: RefBatch<ShadowParams> = self.context.make_batch(
+                let batch: RefBatch<ShadowParams<device::GlResources>> = self.context.make_batch(
                     &self.shadow_prog,
                     &vb.mesh,
                     gfx::Slice {
@@ -614,7 +606,7 @@ impl RenderManagerContext {
                 ).ok().expect("Failed to create batch.");
                 self.shadow_batches.insert(draw.geometry, batch);
 
-                let batch: RefBatch<Params> = self.context.make_batch(
+                let batch: RefBatch<Params<device::GlResources>> = self.context.make_batch(
                     &self.prog,
                     &vb.mesh,
                     gfx::Slice {
@@ -627,7 +619,7 @@ impl RenderManagerContext {
                 ).ok().expect("Failed to create batch.");
                 self.draw_batches.insert(draw.geometry, batch);
 
-                let batch: RefBatch<ShadowParams> = self.context.make_batch(
+                let batch: RefBatch<ShadowParams<device::GlResources>> = self.context.make_batch(
                     &self.back_prog,
                     &vb.mesh,
                     gfx::Slice {
@@ -643,7 +635,7 @@ impl RenderManagerContext {
         }
     }
 
-    fn fetch_matrix(&mut self) -> device::BufferHandle<gfx::GlResources, [[f32; 4]; 4]> {
+    fn fetch_matrix(&mut self) -> gfx::BufferHandle<device::GlResources, [[f32; 4]; 4]> {
         let buffer = if let Some(buffer) = self.spare_matrix_buffers.pop() {
             buffer
         } else {
@@ -939,7 +931,7 @@ impl<RD: Renderable+GetIoState+Send+'static> sm_render::RenderFactory<RD, Render
 
         let (sender, recv) = channel();
         window.make_context_current();
-        let device = gfx::GlDevice::new(|s| io.get_proc_address(s));
+        let device = device::GlDevice::new(|s| io.get_proc_address(s));
         glfw::make_context_current(None);
 
         let (free_send, free_recv) = channel();

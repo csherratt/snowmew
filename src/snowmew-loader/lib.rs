@@ -106,7 +106,7 @@ impl Obj {
 
         let mut name_to_id = HashMap::new();
 
-        let lookup = |&: name| {
+        let lookup = |name| {
             *text.get(name).expect("texture not found")
         };
 
