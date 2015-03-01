@@ -334,8 +334,8 @@ impl RenderManagerContext {
 
         let (width, height) = size;
         let frame = gfx::Frame::new(width as u16, height as u16);
-        let back_state = gfx::DrawState::new().depth(gfx::state::Comparison::Less, true);
-        let state = gfx::DrawState::new().depth(gfx::state::Comparison::Less, true);
+        let back_state = gfx::DrawState::new().depth(gfx::state::Comparison::LessEqual, true);
+        let state = gfx::DrawState::new().depth(gfx::state::Comparison::LessEqual, true);
 
         let sampler = device.create_sampler(
             gfx::tex::SamplerInfo::new(
