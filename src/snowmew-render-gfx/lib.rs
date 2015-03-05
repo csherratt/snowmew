@@ -31,6 +31,7 @@ extern crate gfx;
 extern crate "gfx_device_gl" as device;
 extern crate genmesh;
 extern crate cgmath;
+extern crate draw_state;
 
 extern crate "snowmew-core" as snowmew;
 extern crate "snowmew-position" as position;
@@ -302,8 +303,8 @@ pub struct RenderManagerContext {
     device: device::GlDevice,
     context: gfx::render::batch::Context<device::GlResources>,
     frame: render::target::Frame<device::GlResources>,
-    state: render::state::DrawState,
-    back_state: render::state::DrawState,
+    state: draw_state::DrawState,
+    back_state: draw_state::DrawState,
     meshes: HashMap<Entity, Mesh<device::GlResources>>,
     textures: HashMap<Entity, gfx::TextureHandle<device::GlResources>>,
     sampler: gfx::SamplerHandle<device::GlResources>,
@@ -595,6 +596,7 @@ impl RenderManagerContext {
 
                 let batch: RefBatch<ShadowParams<device::GlResources>> = self.context.make_batch(
                     &self.shadow_prog,
+                    self.shadow_data.clone(),
                     &vb.mesh,
                     gfx::Slice {
                         start: geo.offset as u32,
@@ -608,6 +610,7 @@ impl RenderManagerContext {
 
                 let batch: RefBatch<Params<device::GlResources>> = self.context.make_batch(
                     &self.prog,
+                    self.data.clone(),
                     &vb.mesh,
                     gfx::Slice {
                         start: geo.offset as u32,
@@ -621,6 +624,7 @@ impl RenderManagerContext {
 
                 let batch: RefBatch<ShadowParams<device::GlResources>> = self.context.make_batch(
                     &self.back_prog,
+                    self.back_data.clone(),
                     &vb.mesh,
                     gfx::Slice {
                         start: geo.offset as u32,
@@ -734,12 +738,11 @@ impl RenderManagerContext {
         self.device.update_buffer(self.shadow_shared_mat.clone(), shadow_mat, 0);
 
         for &(geo, matrix, len, offset) in self.shared_geometry.iter() {
-            self.shadow_data.model = matrix.raw();
-            self.shadow_data.offset = offset as i32;
+            let batch = self.shadow_batches.get_mut(&geo).expect("Missing draw");
+            batch.params.model = matrix.raw();
+            batch.params.offset = offset as i32;
             self.render.draw_instanced(
-                &(self.shadow_batches.get(&geo).expect("Missing draw").clone(),
-                  &self.shadow_data,
-                  &self.context),
+                &(&*batch, &self.context),
                 len as u32,
                 0,
                 &self.shadow_frame.clone(),
@@ -772,6 +775,8 @@ impl RenderManagerContext {
 
         self.device.update_buffer(self.shared_mat.clone(), shared_mat, 0);
 
+        let mut light_color = [0., 0., 0., 1.];
+        let mut light_normal = [0., 0., 0., 1.];
         for (key, light) in db.light_iter() {
             match light {
                 &graphics::Light::Point(_) => {}
@@ -780,8 +785,8 @@ impl RenderManagerContext {
                     let n = Vector4::new(n.x, n.y, n.z, 0.);
                     let n = db.position(key).mul_v(&n).normalize();
                     let color = d.color().mul_s(d.intensity());
-                    self.data.light_color = [color.x, color.y, color.z, 1.];
-                    self.data.light_normal = [n.x, n.y, n.z, n.w];
+                    light_color = [color.x, color.y, color.z, 1.];
+                    light_normal = [n.x, n.y, n.z, n.w];
                 }
             }
         }
@@ -789,13 +794,12 @@ impl RenderManagerContext {
         self.draw_shadow(&camera);
 
         for &(geo, _, ref matrix, len, offset) in self.shared_geometry_material.iter() {
-            self.back_data.model = matrix.clone().raw();
-            self.back_data.offset = offset as i32;
+            let batch = self.draw_back_batches.get_mut(&geo).expect("Missing draw");
+            batch.params.model = matrix.clone().raw();
+            batch.params.offset = offset as i32;
 
             self.render.draw_instanced(
-                &(self.draw_back_batches.get(&geo).expect("Missing draw").clone(),
-                  &self.back_data,
-                  &self.context),
+                &(&*batch, &self.context),
                 len as u32,
                 0,
                 &self.frame.clone(),
@@ -803,34 +807,35 @@ impl RenderManagerContext {
         };
 
         for &(geo, mat, ref matrix, len, offset) in self.shared_geometry_material.iter() {
+            let batch = self.draw_batches.get_mut(&geo).expect("Missing draw");
             let mat = self.material.get(&mat).expect("Could not find material");
             if let Some(ka) = mat.ka_texture {
-                self.data.ka_texture =
+                batch.params.ka_texture =
                     (*self.textures.get(&ka)
                           .expect("Could not find texture"),
                      Some(self.sampler));
             }
             if let Some(kd) = mat.kd_texture {
-                self.data.kd_texture =
+                batch.params.kd_texture =
                     (*self.textures.get(&kd)
                           .expect("Could not find texture"),
                      Some(self.sampler));
             }
             if let Some(ks) = mat.ks_texture {
-                self.data.ks_texture =
+                batch.params.ks_texture =
                     (*self.textures.get(&ks)
                           .expect("Could not find texture"),
                      Some(self.sampler));
             }
-            self.data.material = mat.buffer.raw();
-            self.data.shadow = (self.shadow, Some(self.shadow_sampler));
-            self.data.model = matrix.clone().raw();
-            self.data.offset = offset as i32;
+            batch.params.material = mat.buffer.raw();
+            batch.params.shadow = (self.shadow, Some(self.shadow_sampler));
+            batch.params.model = matrix.clone().raw();
+            batch.params.offset = offset as i32;
+            batch.params.light_normal = light_normal;
+            batch.params.light_color = light_color;
 
             self.render.draw_instanced(
-                &(self.draw_batches.get(&geo).expect("Missing draw").clone(),
-                  &self.data.clone(),
-                  &self.context),
+                &(&*batch, &self.context),
                 len as u32,
                 0,
                 &self.frame.clone(),

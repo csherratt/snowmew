@@ -128,7 +128,7 @@ impl<T> IntoRender for T
 }
 
 #[derive(Clone)]
-struct BasicRenderData {
+pub struct BasicRenderData {
     common: snowmew::common::CommonData,
     graphics: graphics::GraphicsData,
     position: position::PositionData,

@@ -12,7 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+#![feature(core)]
+
 extern crate "rustc-serialize" as rustc_serialize;
+
+use std::intrinsics::overflowing_add;
 
 #[derive(Copy, Clone, RustcEncodable, RustcDecodable)]
 /// Determines when the timer should fire
@@ -64,7 +68,7 @@ impl Timer {
     /// This should be a fixed base
     pub fn cycle(&mut self, seconds: f32) -> bool {
         let last = self.accumulator;
-        self.accumulator += self.increment(seconds);
+        self.accumulator = unsafe { overflowing_add(self.accumulator, self.increment(seconds)) };
         
         match (self.accumulator > last, self.phase) {
             (true, Phase::In) => true,
